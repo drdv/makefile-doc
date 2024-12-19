@@ -1,4 +1,4 @@
-# AWK script used to generate Makefile docs
+# AWK script for Makefile docs
 
 I extended a simple AWK one-liner I have been using for years (I think it was based on
 [this gist](https://gist.github.com/prwhite/8168133)). Every step of the way I asked
