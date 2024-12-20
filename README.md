@@ -1,9 +1,9 @@
-# AWK script for Makefile docs
+# Awk script for Makefile docs
 
-I extended a simple AWK one-liner I have been using for years (I think it was based on
+I extended a simple `awk` one-liner I have been using for years (I think it was based on
 [this gist](https://gist.github.com/prwhite/8168133)). Every step of the way I asked
 myself whether I should switch to writing it in python but I never did ... in the end I
-have a somewhat working version in AWK.
+have a somewhat working version in `awk`.
 
 ## How to use
 
@@ -14,9 +14,9 @@ help: ## show help
 	@awk -f makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
-Set the `AWKPATH` env variable to the location of the `makefile-doc.awk` script,
-or explicitly use `@awk -f /path/to/makefile-doc.awk $(MAKEFILE_LIST)` in the
-`help` target.
+or if it is not the first target, set `.DEFAULT_GOAL := help`. Add the location of the
+`makefile-doc.awk` script to the `AWKPATH` env variable, or explicitly use `@awk -f
+/path/to/makefile-doc.awk $(MAKEFILE_LIST)` in the `help` target.
 
 ## Docs syntax
 
@@ -46,7 +46,7 @@ t2: ## inline doc (ignored if there are top docs as well)
   for inline docs.
 
 	``` make
-    ## this is recommended
+    ##! this is recommended
        ## but this is possible
     ##so is this
     t1:
@@ -63,7 +63,7 @@ t2: ## inline doc (ignored if there are top docs as well)
 
 ## Parameters
 
-The following parameters are recognised and can be passed to AWK using `-v NAME VALUE`
+The following parameters are recognised and can be passed to `awk` using `-v NAME VALUE`
 
 + `HEADER`: (default: `1`) If `1`, display header and footer.
 + `DEPRECATED`: (default: `1`) If `0`, hide deprecated targets, show them otherwise.
@@ -79,10 +79,18 @@ The following parameters are recognised and can be passed to AWK using `-v NAME 
 Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
 blue is the 34 in `\033[34m`.
 
+## Dependencies
+
++ `awk` (I have tested with version 5.2.2)
++ `make`
+
 ## Running the tests
 
-Execute `make test` (I use ad hoc tests as I don't want any dependencies except for
-`make` and `AWK`).
+Execute `make test` (I use ad hoc tests as I don't want other dependencies).
 
 Note that `Makefile` and `Makefile.inc` in `./test` are not meant to be used manually,
 they are a part of the tests.
+
+## Code
+
+[Github](https://github.com/drdv/makefile-doc).

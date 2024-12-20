@@ -12,7 +12,10 @@ help: ## show this help
 
 ## run all tests
 .PHONY: test
-test: test-default test-deprecated test-padding test-header test-connected clean-tmp-dir
+test: test-default test-deprecated test-padding test-header test-connected clean
+
+clean: ## clean tmp stuff
+	@rm -rf $(TMP_DIR)
 
 ##@
 ##@ ----- Individual tests -----
@@ -32,6 +35,3 @@ test-header: ## test setting HEADER=0
 
 test-connected: ## test setting CONNECTED=0
 	@$(call run-test,$@, make -s -f Makefile.inc CONNECTED=0)
-
-clean-tmp-dir:
-	@rm -rf $(TMP_DIR)

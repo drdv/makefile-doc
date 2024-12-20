@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------------------
-# AWK script used to generate Makefile target descriptions.
+# Awk script for Makefile docs (https://github.com/drdv/makefile-doc)
 #
 # ========================================================
 # How to use (see the tests for more examples):
@@ -83,7 +83,7 @@ function forget_associated_section_data(target_string) {
 }
 
 function parse_inline_descriptions(whole_line_string) {
-  # I use these nested ifs because in AWK, 5 || 0 returns 1 instead of 5
+  # I use these nested ifs because in awk, 5 || 0 returns 1 instead of 5
   inline_description_index = index(whole_line_string, " ## ")
   if (!inline_description_index) {
     inline_description_index = index(whole_line_string, " ##! ")
