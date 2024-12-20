@@ -3,13 +3,15 @@ PADDING =
 HEADER =
 DEPRECATED =
 
+AWK := awk
+
 ## ignored when CONNECTED = 1 (the default)
 
 ## associate this with the help target (and not .PHONY)
 .PHONY: help
 ## second line in the description of the target help
 help:
-	@awk -v PADDING=$(PADDING) \
+	@$(AWK) -v PADDING=$(PADDING) \
 		-v HEADER=$(HEADER) \
 		-v CONNECTED=$(CONNECTED) \
 		-v DEPRECATED=$(DEPRECATED) \

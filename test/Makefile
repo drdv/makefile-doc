@@ -82,3 +82,5 @@ ${TARGET-NAME}:
 
 ## target with spaces before and after
   target-with-spaces  :
+
+target-without-docs:

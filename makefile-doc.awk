@@ -38,7 +38,7 @@
 #
 # COLOR_SECTION: 32 by default, i.e., green (used for sections)
 #
-# HEADER: if 1, display header and footer
+# HEADER: set header text to display, if 0 skip the header (and footer)
 #
 # DEPRECATED: if 0, hide deprecated targets, show them otherwise (the default)
 #
@@ -51,9 +51,18 @@
 # ========================================================
 # Utility functions
 # ========================================================
-function save_description_data(whole_line_string) {
-  sub(/^ +/, "", whole_line_string) # strip leading spaces
-  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX] = whole_line_string
+function get_description_tag(string) {
+  if (match(string, /^ *(##!|##%|##)/)) {
+    tag = substr(string, RSTART, RLENGTH)
+    sub(/ */, "", tag)
+    return tag
+  } else {
+    return 0
+  }
+}
+
+function save_description_data(string) {
+  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX] = string
   DESCRIPTION_DATA_INDEX++
 }
 
@@ -63,17 +72,11 @@ function forget_descriptions_data() {
 }
 
 function parse_inline_descriptions(whole_line_string) {
-  # I use these nested ifs because in awk, 5 || 0 returns 1 instead of 5
-  inline_description_index = index(whole_line_string, " ## ")
-  if (!inline_description_index) {
-    inline_description_index = index(whole_line_string, " ##! ")
-    if (!inline_description_index) {
-      inline_description_index = index(whole_line_string, " ##% ")
-    }
-  }
-
-  if (inline_description_index) {
-    save_description_data(substr(whole_line_string, inline_description_index + 1))
+  # we wouldn't enter here if we have a target without docs
+  if (match(whole_line_string, / *(##!|##%|##)/)) {
+    string = substr(whole_line_string, RSTART)
+    sub(/^ */, "", string)
+    save_description_data(string)
   }
 }
 
@@ -107,8 +110,8 @@ function associate_data_with_target(target_string) {
   }
 }
 
-function save_section_data(whole_line_string) {
-  SECTION_DATA[SECTION_DATA_INDEX] = whole_line_string
+function save_section_data(string) {
+  SECTION_DATA[SECTION_DATA_INDEX] = string
   SECTION_DATA_INDEX++
 }
 
@@ -119,7 +122,7 @@ function forget_section_data() {
 
 function get_max_target_length() {
   max_target_length = 0
-  for (key in TARGETS_ORDER) { # here order is not important
+  for (key in TARGETS_ORDER) { # order is not important
     target = TARGETS_ORDER[key]
     n = length(target)
     if (n > max_target_length) {
@@ -130,12 +133,11 @@ function get_max_target_length() {
 }
 
 function print_header(max_target_length) {
-  header = "Available targets:"
-  lh = length(header)
-  separator = sprintf("%*s", max_target_length < lh ? lh : max_target_length, "")
-  gsub(/ /, "-", separator) # gsub works inplace
+  len = length(HEADER)
+  separator = sprintf("%*s", max_target_length < len ? len : max_target_length, "")
+  gsub(/ /, "-", separator)
 
-  printf("%s\n%s\n%s\n", separator, header, separator)
+  printf("%s\n%s\n%s\n", separator, HEADER, separator)
   return separator
 }
 
@@ -143,57 +145,56 @@ function print_footer(separator) {
   printf("%s\n", separator)
 }
 
-# The input contains the collected description lines (new-line separated). Here we have
-# to indent all lines after the first.
+# The input contains the (\n separated) description lines associated with one target.
+# Each line starts with a tag (##, ##! or ##%). Here we have to strip them (except the
+# one for the first line) and to introduce indentation for lines below the first one.
 function indent_description_data(multiline_description, max_target_length) {
-  # the indexes are 1, ..., number-of-lines
+  # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(multiline_description, array_of_lines, "\n")
 
-  description = ""
-  for (indx = 1; indx <= length(array_of_lines); indx++) {
+  offset = TARGET_DESCRIPTION_OFFSET
+  description = sprintf("%" offset "s", "") array_of_lines[1]
+
+  offset = offset + max_target_length
+  for (indx = 2; indx <= length(array_of_lines); indx++) {
     next_line = array_of_lines[indx]
-    if (description) {
-      # FIXME: magic constants
-      offset = sprintf("%" max_target_length + 3 "s", "")
-      description = description "\n" offset substr(next_line, 4)
-    } else {
-      description = description next_line
-    }
+    sub(/^(##|##!|##%)/, "", next_line) # strip the tag
+    description = description "\n" sprintf("%" offset "s", "") next_line
   }
   return description
 }
 
 function assemble_description_data() {
-  description = ""
-  for (indx = 1; indx <= length(DESCRIPTION_DATA); indx++) {
-    description = description DESCRIPTION_DATA[indx] "\n"
+  description = DESCRIPTION_DATA[1]
+  for (indx = 2; indx <= length(DESCRIPTION_DATA); indx++) {
+    description = description "\n" DESCRIPTION_DATA[indx]
   }
-  return substr(description, 1, length(description) - 1) # remove last \n
+  return description
 }
 
 function assemble_section_data() {
-  section = ""
-  for (indx = 1; indx <= length(SECTION_DATA); indx++) {
-    section = section SECTION_DATA[indx] "\n"
+  section = SECTION_DATA[1]
+  for (indx = 2; indx <= length(SECTION_DATA); indx++) {
+    section = section "\n" SECTION_DATA[indx]
   }
-  return substr(section, 1, length(section) - 1)
+  return section
 }
 
-# FIXME: magic constants
 function update_display_parameters(description) {
-  if (substr(description, 3, 1) == "!") {
+  tag = get_description_tag(description)
+  if (tag == "##!") {
     DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
-    DISPLAY_PARAMS["offset"] = 4
     DISPLAY_PARAMS["show"] = 1
-  } else if (substr(description, 3, 1) == "%") {
+  } else if (tag == "##%") {
     DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
-    DISPLAY_PARAMS["offset"] = 4
     DISPLAY_PARAMS["show"] = DEPRECATED
   }
-  else {
+  else if (tag == "##") {
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
-    DISPLAY_PARAMS["offset"] = 3
     DISPLAY_PARAMS["show"] = 1
+  } else {
+    printf("Something went wrong! %s", description)
+    exit 1
   }
 }
 
@@ -206,12 +207,13 @@ function display_target_with_data(target, description, section, max_target_lengt
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    DISPLAY_PATTERN = "%s%-" max_target_length "s  %s"
+    DISPLAY_PATTERN = "%s%-" max_target_length "s%s"
     t = sprintf(DISPLAY_PATTERN, DISPLAY_PARAMS["color"], target, COLOR_RESET_CODE)
     if (PADDING != " ") {
       gsub(/ /, PADDING, t)
     }
-    printf("%s%s\n", t, substr(description, DISPLAY_PARAMS["offset"]))
+    sub(/(##|##!|##%)/, "", description) # strip the tag (but keep the leading space)
+    printf("%s%s\n", t, description)
   }
 }
 
@@ -236,7 +238,7 @@ BEGIN {
 
   initialize_colors()
 
-  HEADER = HEADER == "" ? 1 : HEADER
+  HEADER = HEADER == "" ? "Available targets:" : HEADER
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
   CONNECTED = CONNECTED == "" ? 1 : CONNECTED
   PADDING = PADDING == "" ? " " : PADDING
@@ -244,6 +246,8 @@ BEGIN {
     printf("%sPADDING should have length 1%s\n", COLOR_WARNING_CODE, COLOR_RESET_CODE)
     exit 1
   }
+
+  TARGET_DESCRIPTION_OFFSET = 2 # offset all descriptions from the targets
 
   # initialize global arrays (i.e., hash tables) for clarity
   # my index variables start from 1 because this is the standard in awk
@@ -261,9 +265,11 @@ BEGIN {
   split("", DISPLAY_PARAMS)
 }
 
-# Capture the line if it is a description.
-/^ *##/ {
-  save_description_data($0)
+# Capture the line if it is a description (but not section).
+/^ *##[^@]/ {
+  string = $0
+  sub(/^ */, "", string)
+  save_description_data(string)
 }
 
 # Flush accumulated descriptions if followed by an empty line.
@@ -274,10 +280,11 @@ BEGIN {
 }
 
 # New section
-# Section description should start at the beginning of the line. All lines in a
-# multi-line description should start with ##@.
-/^##@/ {
-  save_section_data(substr($0, 4))
+# All lines in a multi-line description should start with ##@.
+/^ *##@/ {
+  string = $0
+  sub(/ *##@/, "", string) # strip the tags (they are not needed anymore)
+  save_section_data(string)
 }
 
 # Process target.
@@ -286,8 +293,9 @@ BEGIN {
 # separated targets on one line (they are captured together). The regex detects targets
 # of the form $(TARGET-NAME) and ${TARGET-NAME} even though they are of limited value as
 # we don't have access to the value of the TARGET-NAME variable. "double-colon" targets
-# are not handled. The regex requires to use FS = ":".
-/^\s*\${0,1}[^.][ a-zA-Z0-9_\/%.(){}-]+\s*:/ {
+# are not handled. After the final colon we require either one space of end of line --
+# this is because otherwise we would match VAR := value. The regex requires FS = ":".
+/^ *\${0,1}[^.][ a-zA-Z0-9_\/%.(){}-]+ *:( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0)
