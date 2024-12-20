@@ -285,7 +285,7 @@ BEGIN {
 # of the form $(TARGET-NAME) and ${TARGET-NAME} even though they are of limited value as
 # we don't have access to the value of the TARGET-NAME variable. "double-colon" targets
 # are not handled. The regex requires to use FS = ":".
-/^\s*\${0,1}[^.][ a-zA-Z0-9_/%.(){}-]+\s*:/ {
+/^\s*\${0,1}[^.][ a-zA-Z0-9_\/%.(){}-]+\s*:/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0)
