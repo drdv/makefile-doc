@@ -58,28 +58,8 @@ function save_description_data(whole_line_string) {
 }
 
 function forget_descriptions_data() {
-  for (key in DESCRIPTION_DATA) {
-    delete DESCRIPTION_DATA[key]
-  }
+  delete DESCRIPTION_DATA
   DESCRIPTION_DATA_INDEX = 0
-}
-
-# Forget descriptions that have already been associated with a target when it is
-# redefined (i.e., overridden). For a target to be overriden, another *documented*
-# target with the same name should exist. Because if the redefining target has no docs
-# then we would simply skip it. So while `make` itself would issue a warning that a
-# target has been redefined, there is nothing to do from the point of view of our
-# documentation system.
-function forget_associated_description_data(target_string) {
-  for (key in TARGET_DESCRIPTION_DATA[target_string]) {
-    delete TARGET_DESCRIPTION_DATA[target_string][key]
-  }
-}
-
-function forget_associated_section_data(target_string) {
-  for (key in TARGET_SECTION_DATA[target_string]) {
-    delete TARGET_SECTION_DATA[target_string][key]
-  }
 }
 
 function parse_inline_descriptions(whole_line_string) {
@@ -108,27 +88,21 @@ function associate_data_with_target(target_string) {
     TARGETS_ORDER_INDEX++
   }
 
-  forget_associated_description_data(target_string)
-  for (key in DESCRIPTION_DATA) {
-    TARGET_DESCRIPTION_DATA[target_string][key] = DESCRIPTION_DATA[key]
-  }
+  # Here we might overwrite a description associatd with a redefined target -- this is
+  # intended.
+  TARGET_DESCRIPTION_DATA[target_string] = assemble_description_data()
+  forget_descriptions_data()
 
-  forget_descriptions_data() # forget descriptions that were associated with the target
-
-  # note that section data can be associated only with a documented target
+  # note that section data is associated with a documented target
   if (length(SECTION_DATA) > 0) {
-
-    if (length(TARGET_SECTION_DATA[target_string]) > 0) {
+    if (target_string in TARGET_SECTION_DATA) {
       printf("%sRedefining associated section data: %s%s\n",
              COLOR_WARNING_CODE,
              target_string,
              COLOR_RESET_CODE)
     }
 
-    forget_associated_section_data(target_string)
-    for (key in SECTION_DATA) {
-      TARGET_SECTION_DATA[target_string][key] = SECTION_DATA[key]
-    }
+    TARGET_SECTION_DATA[target_string] = assemble_section_data()
     forget_section_data()
   }
 }
@@ -139,9 +113,7 @@ function save_section_data(whole_line_string) {
 }
 
 function forget_section_data() {
-  for (key in SECTION_DATA) {
-    delete SECTION_DATA[key]
-  }
+  delete SECTION_DATA
   SECTION_DATA_INDEX = 0
 }
 
@@ -171,29 +143,42 @@ function print_footer(separator) {
   printf("%s\n", separator)
 }
 
-function assemble_target_description_data(target) {
+# The input contains the collected description lines (new-line separated). Here we have
+# to indent all lines after the first.
+function indent_description_data(multiline_description, max_target_length) {
+  split(multiline_description, array_of_lines, "\n")
+
   description = ""
-  for (key in TARGET_DESCRIPTION_DATA[target]) {
-    next_line = TARGET_DESCRIPTION_DATA[target][key]
+  for (key in array_of_lines) {
+    next_line = array_of_lines[key]
     if (description) {
-      with_offset = sprintf("%" max_target_length + 3 "s", "") substr(next_line, 4)
-      description = description "\n" with_offset
+      # FIXME: magic constants
+      offset = sprintf("%" max_target_length + 3 "s", "")
+      description = description "\n" offset substr(next_line, 4)
     } else {
-      description = description TARGET_DESCRIPTION_DATA[target][key]
+      description = description next_line
     }
   }
   return description
 }
 
-function assemble_target_section_data(target) {
-  section = ""
-  for (key in TARGET_SECTION_DATA[target]) {
-    next_line = TARGET_SECTION_DATA[target][key]
-    section = section next_line "\n"
+function assemble_description_data() {
+  description = ""
+  for (key in DESCRIPTION_DATA) {
+    description = description DESCRIPTION_DATA[key] "\n"
   }
-  return substr(section, 1, length(section) - 1) # remove last \n
+  return substr(description, 1, length(description) - 1) # remove last \n
 }
 
+function assemble_section_data() {
+  section = ""
+  for (key in SECTION_DATA) {
+    section = section SECTION_DATA[key] "\n"
+  }
+  return substr(section, 1, length(section) - 1)
+}
+
+# FIXME: magic constants
 function update_display_parameters(description) {
   if (substr(description, 3, 1) == "!") {
     DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
@@ -300,7 +285,7 @@ BEGIN {
 # of the form $(TARGET-NAME) and ${TARGET-NAME} even though they are of limited value as
 # we don't have access to the value of the TARGET-NAME variable. "double-colon" targets
 # are not handled. The regex requires to use FS = ":".
-/^\s*\$*[^.][ a-zA-Z0-9_/%.(){}-]+\s*:/ {
+/^\s*\${0,1}[^.][ a-zA-Z0-9_/%.(){}-]+\s*:/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0)
@@ -321,8 +306,9 @@ END {
 
     for (ind in TARGETS_ORDER) {
       target = TARGETS_ORDER[ind]
-      description = assemble_target_description_data(target)
-      section = assemble_target_section_data(target)
+      description = indent_description_data(TARGET_DESCRIPTION_DATA[target],
+                                            max_target_length)
+      section = TARGET_SECTION_DATA[target]
 
       update_display_parameters(description)
       display_target_with_data(target, description, section, max_target_length)

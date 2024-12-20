@@ -81,7 +81,7 @@ blue is the 34 in `\033[34m`.
 
 ## Dependencies
 
-+ `awk` (I have tested with version 5.2.2)
++ `awk` (I have tested with GNU Awk 5.2.2)
 + `make`
 
 ## Running the tests
