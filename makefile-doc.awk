@@ -59,7 +59,7 @@ function save_description_data(whole_line_string) {
 
 function forget_descriptions_data() {
   delete DESCRIPTION_DATA
-  DESCRIPTION_DATA_INDEX = 0
+  DESCRIPTION_DATA_INDEX = 1
 }
 
 function parse_inline_descriptions(whole_line_string) {
@@ -114,13 +114,13 @@ function save_section_data(whole_line_string) {
 
 function forget_section_data() {
   delete SECTION_DATA
-  SECTION_DATA_INDEX = 0
+  SECTION_DATA_INDEX = 1
 }
 
 function get_max_target_length() {
   max_target_length = 0
-  for (ind in TARGETS_ORDER) {
-    target = TARGETS_ORDER[ind]
+  for (key in TARGETS_ORDER) { # here order is not important
+    target = TARGETS_ORDER[key]
     n = length(target)
     if (n > max_target_length) {
       max_target_length = n
@@ -146,11 +146,12 @@ function print_footer(separator) {
 # The input contains the collected description lines (new-line separated). Here we have
 # to indent all lines after the first.
 function indent_description_data(multiline_description, max_target_length) {
+  # the indexes are 1, ..., number-of-lines
   split(multiline_description, array_of_lines, "\n")
 
   description = ""
-  for (key in array_of_lines) {
-    next_line = array_of_lines[key]
+  for (indx = 1; indx <= length(array_of_lines); indx++) {
+    next_line = array_of_lines[indx]
     if (description) {
       # FIXME: magic constants
       offset = sprintf("%" max_target_length + 3 "s", "")
@@ -164,16 +165,16 @@ function indent_description_data(multiline_description, max_target_length) {
 
 function assemble_description_data() {
   description = ""
-  for (key in DESCRIPTION_DATA) {
-    description = description DESCRIPTION_DATA[key] "\n"
+  for (indx = 1; indx <= length(DESCRIPTION_DATA); indx++) {
+    description = description DESCRIPTION_DATA[indx] "\n"
   }
   return substr(description, 1, length(description) - 1) # remove last \n
 }
 
 function assemble_section_data() {
   section = ""
-  for (key in SECTION_DATA) {
-    section = section SECTION_DATA[key] "\n"
+  for (indx = 1; indx <= length(SECTION_DATA); indx++) {
+    section = section SECTION_DATA[indx] "\n"
   }
   return substr(section, 1, length(section) - 1)
 }
@@ -245,16 +246,17 @@ BEGIN {
   }
 
   # initialize global arrays (i.e., hash tables) for clarity
+  # my index variables start from 1 because this is the standard in awk
   split("", TARGET_DESCRIPTION_DATA) # map target name to description (no order)
   split("", TARGET_SECTION_DATA)     # map target name to section data (use as anchor)
   split("", TARGETS_ORDER)           # map index to target name (to keep track of order)
-  TARGETS_ORDER_INDEX = 0
+  TARGETS_ORDER_INDEX = 1
 
   split("", DESCRIPTION_DATA) # map index to line in description data for targets
-  DESCRIPTION_DATA_INDEX = 0
+  DESCRIPTION_DATA_INDEX = 1
 
   split("", SECTION_DATA) # map index to line in section data
-  SECTION_DATA_INDEX = 0
+  SECTION_DATA_INDEX = 1
 
   split("", DISPLAY_PARAMS)
 }
@@ -304,8 +306,15 @@ END {
       separator = print_header()
     }
 
-    for (ind in TARGETS_ORDER) {
-      target = TARGETS_ORDER[ind]
+    # I cannot use `for (indx in TARGETS_ORDER)` because we need to enforce order.
+    # While gawk seems to sort things nicely, the order e.g., in mawk is undefined:
+    # https://invisible-island.net/mawk/manpage/mawk.html#h3-6_-Arrays
+    #
+    # A particuliarity of awk: here I cannot use a variable named indx to loop over the
+    # integers because the loop calls indent_description_data where indx is incremented
+    # in a loop :) so I choose a different name here.
+    for (k = 1; k <= length(TARGETS_ORDER); k++) {
+      target = TARGETS_ORDER[k]
       description = indent_description_data(TARGET_DESCRIPTION_DATA[target],
                                             max_target_length)
       section = TARGET_SECTION_DATA[target]

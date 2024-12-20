@@ -63,7 +63,7 @@ t2: ## inline doc (ignored if there are top docs as well)
 
 ## Parameters
 
-The following parameters are recognised and can be passed to `awk` using `-v NAME VALUE`
+The following parameters are recognised and can be passed to `awk` using `-v var=value`
 
 + `HEADER`: (default: `1`) If `1`, display header and footer.
 + `DEPRECATED`: (default: `1`) If `0`, hide deprecated targets, show them otherwise.
@@ -81,7 +81,10 @@ blue is the 34 in `\033[34m`.
 
 ## Dependencies
 
-+ `awk` (I have tested with GNU Awk 5.2.2)
++ `awk`, I have tested with:
+  + [gawk](https://www.gnu.org/software/gawk) `5.2.2`, `5.1.0`
+  + [nawk](https://github.com/onetrueawk/awk) tag `20240728`
+  + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905`
 + `make`
 
 ## Running the tests
