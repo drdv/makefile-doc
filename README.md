@@ -1,6 +1,6 @@
 # Awk script for Makefile docs
 
-The `makefile-doc.awk` is an expension of a simple `awk` one-liner I have been using for
+The `makefile-doc.awk` is an extension of a simple `awk` one-liner I have been using for
 years (I think it was based on [this gist](https://gist.github.com/prwhite/8168133)).
 
 ## How to use
