@@ -66,6 +66,9 @@ The following parameters can be passed to `awk` using `-v var=value`
 Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
 blue is the 34 in `\033[34m`.
 
+Cloning this repository and running `make` outputs:
+![makefile-doc.awk](img/example.png)
+
 ## Dependencies
 
 + `awk`, I have tested with:
