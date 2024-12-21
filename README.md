@@ -1,9 +1,7 @@
 # Awk script for Makefile docs
 
-I extended a simple `awk` one-liner I have been using for years (I think it was based on
-[this gist](https://gist.github.com/prwhite/8168133)). Every step of the way I asked
-myself whether I should switch to writing it in python but I never did ... in the end I
-have a somewhat working version in `awk`.
+The `makefile-doc.awk` is an expension of a simple `awk` one-liner I have been using for
+years (I think it was based on [this gist](https://gist.github.com/prwhite/8168133)).
 
 ## How to use
 
@@ -42,15 +40,16 @@ t2: ## inline doc (ignored if there are top docs as well)
   emphasis.
 
 + Sections can be defined using `##@`. All lines in a multi-line section should start
-  with `##@` (empty lines are ignored). There should be at least one target (possibly
+  with `##@` (empty lines are ignored). There should be at least one target (possibly a
   hidden deprecated one) after a section for it to be displayed.
 
 + See `test/Makefile` for examples.
 
 ## Parameters
 
-The following parameters are recognised and can be passed to `awk` using `-v var=value`
+The following parameters can be passed to `awk` using `-v var=value`
 
++ `OFFSET`: Number of spaces to offset descriptions from targets (2 by default).
 + `HEADER`: Set header text to display, if 0 skip the header (and footer).
 + `DEPRECATED`: (default: `1`) If `0`, hide deprecated targets, show them otherwise.
 + `PADDING`: (default: `" "`) Padding symbol between target name and its docs.
@@ -75,7 +74,11 @@ blue is the 34 in `\033[34m`.
 
 ## Running the tests
 
-Execute `make test` (I use ad hoc tests as I don't want other dependencies).
+Execute `make test` (this uses the system's default `awk`). To test with a custom
+`awk`, use (see `make build-other-awk-versions`):
+
++ `make test AWK=bin/mawk`
++ `make test AWK=bin/nawk`
 
 Note that `Makefile` and `Makefile.inc` in `./test` are not meant to be used manually,
 they are a part of the tests.

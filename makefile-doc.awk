@@ -24,7 +24,7 @@
 #   COLOR_DEPRECATED if its description starts with ##%
 #
 # ========================================================
-# Command-line arguments (set using the -v flag)
+# Command-line arguments (set using -v var=value)
 # ========================================================
 # COLOR_DEFAULT: 34 by default, i.e., blue - only the parameter portion of the ANSI
 #                escape code should be passed, e.g., the parameter for blue is the 34 in
@@ -37,6 +37,8 @@
 # COLOR_WARNING: 35 by default, i.e., magenta (used for warnings)
 #
 # COLOR_SECTION: 32 by default, i.e., green (used for sections)
+#
+# OFFSET: number of spaces to offset descriptions from targets (2 by default)
 #
 # HEADER: set header text to display, if 0 skip the header (and footer)
 #
@@ -72,7 +74,6 @@ function forget_descriptions_data() {
 }
 
 function parse_inline_descriptions(whole_line_string) {
-  # we wouldn't enter here if we have a target without docs
   if (match(whole_line_string, / *(##!|##%|##)/)) {
     string = substr(whole_line_string, RSTART)
     sub(/^ */, "", string)
@@ -96,7 +97,7 @@ function associate_data_with_target(target_string) {
   TARGET_DESCRIPTION_DATA[target_string] = assemble_description_data()
   forget_descriptions_data()
 
-  # note that section data is associated with a documented target
+  # note that section data is associated only with documented targets
   if (length(SECTION_DATA) > 0) {
     if (target_string in TARGET_SECTION_DATA) {
       printf("%sRedefining associated section data: %s%s\n",
@@ -152,10 +153,9 @@ function indent_description_data(multiline_description, max_target_length) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(multiline_description, array_of_lines, "\n")
 
-  offset = TARGET_DESCRIPTION_OFFSET
-  description = sprintf("%" offset "s", "") array_of_lines[1]
+  description = sprintf("%" OFFSET "s", "") array_of_lines[1]
 
-  offset = offset + max_target_length
+  offset = OFFSET + max_target_length
   for (indx = 2; indx <= length(array_of_lines); indx++) {
     next_line = array_of_lines[indx]
     sub(/^(##|##!|##%)/, "", next_line) # strip the tag
@@ -238,6 +238,7 @@ BEGIN {
 
   initialize_colors()
 
+  OFFSET = OFFSET == "" ? 2 : OFFSET
   HEADER = HEADER == "" ? "Available targets:" : HEADER
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
   CONNECTED = CONNECTED == "" ? 1 : CONNECTED
@@ -247,10 +248,8 @@ BEGIN {
     exit 1
   }
 
-  TARGET_DESCRIPTION_OFFSET = 2 # offset all descriptions from the targets
-
   # initialize global arrays (i.e., hash tables) for clarity
-  # my index variables start from 1 because this is the standard in awk
+  # index variables start from 1 because this is the standard in awk
   split("", TARGET_DESCRIPTION_DATA) # map target name to description (no order)
   split("", TARGET_SECTION_DATA)     # map target name to section data (use as anchor)
   split("", TARGETS_ORDER)           # map index to target name (to keep track of order)
@@ -279,8 +278,7 @@ BEGIN {
   }
 }
 
-# New section
-# All lines in a multi-line description should start with ##@.
+# New section (all lines in a multi-line sections should start with ##@)
 /^ *##@/ {
   string = $0
   sub(/ *##@/, "", string) # strip the tags (they are not needed anymore)
@@ -294,7 +292,7 @@ BEGIN {
 # of the form $(TARGET-NAME) and ${TARGET-NAME} even though they are of limited value as
 # we don't have access to the value of the TARGET-NAME variable. "double-colon" targets
 # are not handled. After the final colon we require either one space of end of line --
-# this is because otherwise we would match VAR := value. The regex requires FS = ":".
+# this is because otherwise we would match VAR := value. The regex assumes FS = ":".
 /^ *\${0,1}[^.][ a-zA-Z0-9_\/%.(){}-]+ *:( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length(DESCRIPTION_DATA) == 0) {
