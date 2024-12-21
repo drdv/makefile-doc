@@ -38,6 +38,10 @@
 #
 # COLOR_SECTION: 32 by default, i.e., green (used for sections)
 #
+# COLOR_BACKTICKS: 1 by default i.e., bold (used for text in backticks in
+#                  descriptions). Currenlty this feature is not used as only GNU Awk
+#                  implements gensub.
+#
 # OFFSET: number of spaces to offset descriptions from targets (2 by default)
 #
 # HEADER: set header text to display, if 0 skip the header (and footer)
@@ -146,10 +150,16 @@ function print_footer(separator) {
   printf("%s\n", separator)
 }
 
+function colorize_description_backticks(description) {
+  #replace_with = COLOR_BACKTICKS_CODE "\\1" COLOR_RESET_CODE
+  #return gensub(/`([^`]*)`/, replace_with, "g", description) # only for gawk
+  return description
+}
+
 # The input contains the (\n separated) description lines associated with one target.
 # Each line starts with a tag (##, ##! or ##%). Here we have to strip them and to
 # introduce indentation for lines below the first one.
-function indent_description_data(target, max_target_length) {
+function format_description_data(target, max_target_length) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(TARGET_DESCRIPTION_DATA[target], array_of_lines, "\n")
 
@@ -165,7 +175,7 @@ function indent_description_data(target, max_target_length) {
 
   update_display_parameters(description)
   sub(/(##|##!|##%)/, "", description) # strip the tag (but keep the leading space)
-  return description
+  return colorize_description_backticks(description)
 }
 
 function assemble_description_data() {
@@ -229,6 +239,7 @@ function initialize_colors() {
   COLOR_DEPRECATED_CODE = ansi_color(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
   COLOR_WARNING_CODE = ansi_color(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
   COLOR_SECTION_CODE = ansi_color(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
+  COLOR_BACKTICKS_CODE = ansi_color(COLOR_BACKTICKS == "" ? 1 : COLOR_BACKTICKS)
   COLOR_RESET_CODE = ansi_color(0)
 }
 
@@ -319,11 +330,11 @@ END {
     # https://invisible-island.net/mawk/manpage/mawk.html#h3-6_-Arrays
     #
     # A particuliarity of awk: here I cannot use a variable named indx to loop over the
-    # integers because the loop calls indent_description_data where indx is incremented
+    # integers because the loop calls format_description_data where indx is incremented
     # in a loop :) so I choose a different name here.
     for (k = 1; k <= length(TARGETS_ORDER); k++) {
       target = TARGETS_ORDER[k]
-      description = indent_description_data(target, max_target_length)
+      description = format_description_data(target, max_target_length)
       section = TARGET_SECTION_DATA[target]
       display_target_with_data(target, description, section, max_target_length)
     }
