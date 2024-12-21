@@ -147,12 +147,13 @@ function print_footer(separator) {
 }
 
 # The input contains the (\n separated) description lines associated with one target.
-# Each line starts with a tag (##, ##! or ##%). Here we have to strip them (except the
-# one for the first line) and to introduce indentation for lines below the first one.
-function indent_description_data(multiline_description, max_target_length) {
+# Each line starts with a tag (##, ##! or ##%). Here we have to strip them and to
+# introduce indentation for lines below the first one.
+function indent_description_data(target, max_target_length) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
-  split(multiline_description, array_of_lines, "\n")
+  split(TARGET_DESCRIPTION_DATA[target], array_of_lines, "\n")
 
+  # the tag for the first line is stripped below (after the parameter update)
   description = sprintf("%" OFFSET "s", "") array_of_lines[1]
 
   offset = OFFSET + max_target_length
@@ -161,6 +162,9 @@ function indent_description_data(multiline_description, max_target_length) {
     sub(/^(##|##!|##%)/, "", next_line) # strip the tag
     description = description "\n" sprintf("%" offset "s", "") next_line
   }
+
+  update_display_parameters(description)
+  sub(/(##|##!|##%)/, "", description) # strip the tag (but keep the leading space)
   return description
 }
 
@@ -199,7 +203,6 @@ function update_display_parameters(description) {
 }
 
 function display_target_with_data(target, description, section, max_target_length) {
-
   # Display the section (if there is one) even if it is anchored to a deprecated target
   # that is not to be displayed.
   if (section) {
@@ -212,7 +215,6 @@ function display_target_with_data(target, description, section, max_target_lengt
     if (PADDING != " ") {
       gsub(/ /, PADDING, t)
     }
-    sub(/(##|##!|##%)/, "", description) # strip the tag (but keep the leading space)
     printf("%s%s\n", t, description)
   }
 }
@@ -321,11 +323,8 @@ END {
     # in a loop :) so I choose a different name here.
     for (k = 1; k <= length(TARGETS_ORDER); k++) {
       target = TARGETS_ORDER[k]
-      description = indent_description_data(TARGET_DESCRIPTION_DATA[target],
-                                            max_target_length)
+      description = indent_description_data(target, max_target_length)
       section = TARGET_SECTION_DATA[target]
-
-      update_display_parameters(description)
       display_target_with_data(target, description, section, max_target_length)
     }
 
