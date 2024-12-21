@@ -38,9 +38,8 @@
 #
 # COLOR_SECTION: 32 by default, i.e., green (used for sections)
 #
-# COLOR_BACKTICKS: 1 by default i.e., bold (used for text in backticks in
-#                  descriptions). Currenlty this feature is not used as only GNU Awk
-#                  implements gensub.
+# COLOR_BACKTICKS: 0 by default i.e., disabled (used for text in backticks in
+#                  descriptions), set e.g., to 1 to display it in bold
 #
 # OFFSET: number of spaces to offset descriptions from targets (2 by default)
 #
@@ -150,9 +149,28 @@ function print_footer(separator) {
   printf("%s\n", separator)
 }
 
+function substitute_backticks_pattern(string) {
+  # --------------------------------------------------------------------------
+  # Since I cannot use this code in mawk and nawk, I implemented a manual hack
+  # --------------------------------------------------------------------------
+  # replace_with = COLOR_BACKTICKS_CODE "\\1" COLOR_RESET_CODE
+  # return gensub(/`([^`]+)`/, replace_with, "g", description) # only for gawk
+  # --------------------------------------------------------------------------
+
+  while (match(string, /`([^`]+)`/)) {
+    before_match = substr(string, 1, RSTART - 1)
+    inside_match = substr(string, RSTART + 1, RLENGTH - 2)
+    after_match = substr(string, RSTART + RLENGTH)
+
+    string = before_match COLOR_BACKTICKS_CODE inside_match COLOR_RESET_CODE after_match
+  }
+  return string
+}
+
 function colorize_description_backticks(description) {
-  #replace_with = COLOR_BACKTICKS_CODE "\\1" COLOR_RESET_CODE
-  #return gensub(/`([^`]*)`/, replace_with, "g", description) # only for gawk
+  if (COLOR_BACKTICKS) {
+    return substitute_backticks_pattern(description)
+  }
   return description
 }
 
@@ -239,7 +257,10 @@ function initialize_colors() {
   COLOR_DEPRECATED_CODE = ansi_color(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
   COLOR_WARNING_CODE = ansi_color(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
   COLOR_SECTION_CODE = ansi_color(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
-  COLOR_BACKTICKS_CODE = ansi_color(COLOR_BACKTICKS == "" ? 1 : COLOR_BACKTICKS)
+
+  COLOR_BACKTICKS = COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS
+  COLOR_BACKTICKS_CODE = ansi_color(COLOR_BACKTICKS)
+
   COLOR_RESET_CODE = ansi_color(0)
 }
 

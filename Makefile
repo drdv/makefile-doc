@@ -12,9 +12,15 @@ endef
 help: ## show this help
 	@$(AWK) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
-## run all tests (make test AWK=custom-awk)
+## run all tests (`make test AWK=custom-awk`)
 .PHONY: test
-test: test-default test-deprecated test-padding test-header test-connected _clean-tmp
+test: test-default \
+	test-deprecated \
+	test-padding \
+	test-header \
+	test-connected \
+	test-backticks \
+	_clean-tmp
 
 _clean-tmp:
 	@rm -rf $(TEST_DIR)/tmp.txt
@@ -37,6 +43,9 @@ test-header: ## test setting HEADER=0
 
 test-connected: ## test setting CONNECTED=0
 	@$(call run-test,$@,make -s -f Makefile.inc CONNECTED=0,AWK=$(AWK))
+
+test-backticks: ## test setting COLOR_BACKTICKS=1
+	@$(call run-test,$@,make -s -f Makefile.inc COLOR_BACKTICKS=1,AWK=$(AWK))
 
 ##@
 ##@ ----- Download mawk and nawk -----

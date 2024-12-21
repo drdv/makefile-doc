@@ -1,6 +1,7 @@
 ------------------
 Available targets:
 ------------------
-[34mhelp   [0m   associate this with the help target (and not `.PHONY`)
+[34mhelp   [0m   associate this with the help target (and not [1m.PHONY[0m)
           second line in the description of the target help
+[33mtest-10[0m   some target
 ------------------

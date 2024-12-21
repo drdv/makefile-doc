@@ -60,6 +60,8 @@ The following parameters can be passed to `awk` using `-v var=value`
 + `COLOR_DEPRECATED`: (default: yellow) Color for targets whose docs start with `##%`.
 + `COLOR_WARNING`: (default: magenta) Color for warnings.
 + `COLOR_SECTION`: (default: green) Color for sections.
++ `COLOR_BACKTICKS`: (default: 0, i.e., disabled) used for text in backticks in
+  descriptions, set e.g., to 1 to display it in bold.
 
 Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
 blue is the 34 in `\033[34m`.
