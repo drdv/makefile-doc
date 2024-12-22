@@ -1,8 +1,8 @@
 [35mRedefined docs of target: test-3[0m
 [35mRedefined docs of target: test-10[0m
-------------------
+----------------------
 Available targets:
-------------------
+----------------------
 [34mtest-1                [0m   test inline docs without top docs
 [34mtest-2                [0m   test inline docs with top docs
 [34mtest-3                [0m   target test-3 is defined twice
@@ -39,4 +39,4 @@ Available targets:
 [34m  target-with-spaces  [0m   target with spaces before and after
 [34mhelp                  [0m   associate this with the help target (and not `.PHONY`)
                          second line in the description of the target help
-------------------
+----------------------

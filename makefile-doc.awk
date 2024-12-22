@@ -56,6 +56,15 @@
 # ========================================================
 # Utility functions
 # ========================================================
+# in POSIX-compliant AWK the length function works on strings but not on arrays
+function length_array_posix(array) {
+  array_numb_elements = 0
+  for (i in array) {
+    array_numb_elements++
+  }
+  return array_numb_elements
+}
+
 function get_description_tag(string) {
   if (match(string, /^ *(##!|##%|##)/)) {
     tag = substr(string, RSTART, RLENGTH)
@@ -78,9 +87,9 @@ function forget_descriptions_data() {
 
 function parse_inline_descriptions(whole_line_string) {
   if (match(whole_line_string, / *(##!|##%|##)/)) {
-    string = substr(whole_line_string, RSTART)
-    sub(/^ */, "", string)
-    save_description_data(string)
+    inline_string = substr(whole_line_string, RSTART)
+    sub(/^ */, "", inline_string)
+    save_description_data(inline_string)
   }
 }
 
@@ -101,7 +110,7 @@ function associate_data_with_target(target_string) {
   forget_descriptions_data()
 
   # note that section data is associated only with documented targets
-  if (length(SECTION_DATA) > 0) {
+  if (length_array_posix(SECTION_DATA) > 0) {
     if (target_string in TARGET_SECTION_DATA) {
       printf("%sRedefining associated section data: %s%s\n",
              COLOR_WARNING_CODE,
@@ -124,21 +133,28 @@ function forget_section_data() {
   SECTION_DATA_INDEX = 1
 }
 
+function get_associated_section_data(target) {
+  if (target in TARGET_SECTION_DATA) {
+    return TARGET_SECTION_DATA[target]
+  }
+  return 0
+}
+
 function get_max_target_length() {
-  max_target_length = 0
+  max_n = 0
   for (key in TARGETS_ORDER) { # order is not important
     target = TARGETS_ORDER[key]
     n = length(target)
-    if (n > max_target_length) {
-      max_target_length = n
+    if (n > max_n) {
+      max_n = n
     }
   }
-  return max_target_length
+  return max_n
 }
 
-function print_header(max_target_length) {
-  len = length(HEADER)
-  separator = sprintf("%*s", max_target_length < len ? len : max_target_length, "")
+function print_header(len_targets) {
+  len_header = length(HEADER)
+  separator = sprintf("%*s", len_targets < len_header ? len_header : len_targets, "")
   gsub(/ /, "-", separator)
 
   printf("%s\n%s\n%s\n", separator, HEADER, separator)
@@ -177,39 +193,39 @@ function colorize_description_backticks(description) {
 # The input contains the (\n separated) description lines associated with one target.
 # Each line starts with a tag (##, ##! or ##%). Here we have to strip them and to
 # introduce indentation for lines below the first one.
-function format_description_data(target, max_target_length) {
+function format_description_data(target, len_targets) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(TARGET_DESCRIPTION_DATA[target], array_of_lines, "\n")
 
   # the tag for the first line is stripped below (after the parameter update)
-  description = sprintf("%" OFFSET "s", "") array_of_lines[1]
+  description_local = sprintf("%" OFFSET "s", "") array_of_lines[1]
 
-  offset = OFFSET + max_target_length
-  for (indx = 2; indx <= length(array_of_lines); indx++) {
+  offset = OFFSET + len_targets
+  for (indx = 2; indx <= length_array_posix(array_of_lines); indx++) {
     next_line = array_of_lines[indx]
     sub(/^(##|##!|##%)/, "", next_line) # strip the tag
-    description = description "\n" sprintf("%" offset "s", "") next_line
+    description_local = description_local "\n" sprintf("%" offset "s", "") next_line
   }
 
-  update_display_parameters(description)
-  sub(/(##|##!|##%)/, "", description) # strip the tag (but keep the leading space)
-  return colorize_description_backticks(description)
+  update_display_parameters(description_local)
+  sub(/(##|##!|##%)/, "", description_local) # strip the tag (keep the leading space)
+  return colorize_description_backticks(description_local)
 }
 
 function assemble_description_data() {
-  description = DESCRIPTION_DATA[1]
-  for (indx = 2; indx <= length(DESCRIPTION_DATA); indx++) {
-    description = description "\n" DESCRIPTION_DATA[indx]
+  description_local = DESCRIPTION_DATA[1]
+  for (indx = 2; indx <= length_array_posix(DESCRIPTION_DATA); indx++) {
+    description_local = description_local "\n" DESCRIPTION_DATA[indx]
   }
-  return description
+  return description_local
 }
 
 function assemble_section_data() {
-  section = SECTION_DATA[1]
-  for (indx = 2; indx <= length(SECTION_DATA); indx++) {
-    section = section "\n" SECTION_DATA[indx]
+  section_local = SECTION_DATA[1]
+  for (indx = 2; indx <= length_array_posix(SECTION_DATA); indx++) {
+    section_local = section_local "\n" SECTION_DATA[indx]
   }
-  return section
+  return section_local
 }
 
 function update_display_parameters(description) {
@@ -230,7 +246,7 @@ function update_display_parameters(description) {
   }
 }
 
-function display_target_with_data(target, description, section, max_target_length) {
+function display_target_with_data(target, description, section, len_targets) {
   # Display the section (if there is one) even if it is anchored to a deprecated target
   # that is not to be displayed.
   if (section) {
@@ -238,12 +254,15 @@ function display_target_with_data(target, description, section, max_target_lengt
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    DISPLAY_PATTERN = "%s%-" max_target_length "s%s"
-    t = sprintf(DISPLAY_PATTERN, DISPLAY_PARAMS["color"], target, COLOR_RESET_CODE)
+    DISPLAY_PATTERN = "%s%-" len_targets "s%s"
+    formatted_target = sprintf(DISPLAY_PATTERN,
+                               DISPLAY_PARAMS["color"],
+                               target,
+                               COLOR_RESET_CODE)
     if (PADDING != " ") {
-      gsub(/ /, PADDING, t)
+      gsub(/ /, PADDING, formatted_target)
     }
-    printf("%s%s\n", t, description)
+    printf("%s%s\n", formatted_target, description)
   }
 }
 
@@ -300,9 +319,9 @@ BEGIN {
 
 # Capture the line if it is a description (but not section).
 /^ *##[^@]/ {
-  string = $0
-  sub(/^ */, "", string)
-  save_description_data(string)
+  description_string = $0
+  sub(/^ */, "", description_string)
+  save_description_data(description_string)
 }
 
 # Flush accumulated descriptions if followed by an empty line.
@@ -314,9 +333,9 @@ BEGIN {
 
 # New section (all lines in a multi-line sections should start with ##@)
 /^ *##@/ {
-  string = $0
-  sub(/ *##@/, "", string) # strip the tags (they are not needed anymore)
-  save_section_data(string)
+  section_string = $0
+  sub(/ *##@/, "", section_string) # strip the tags (they are not needed anymore)
+  save_section_data(section_string)
 }
 
 # Process target.
@@ -329,11 +348,11 @@ BEGIN {
 # this is because otherwise we would match VAR := value. The regex assumes FS = ":".
 /^ *\${0,1}[^.][ a-zA-Z0-9_\/%.(){}-]+ *:( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
-  if (length(DESCRIPTION_DATA) == 0) {
+  if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0)
   }
 
-  if (length(DESCRIPTION_DATA) > 0) {
+  if (length_array_posix(DESCRIPTION_DATA) > 0) {
     associate_data_with_target($1)
   }
 }
@@ -343,7 +362,7 @@ END {
   max_target_length = get_max_target_length()
   if (max_target_length > 0) {
     if (HEADER) {
-      separator = print_header()
+      separator = print_header(max_target_length)
     }
 
     # I cannot use `for (indx in TARGETS_ORDER)` because we need to enforce order.
@@ -353,10 +372,10 @@ END {
     # A particuliarity of awk: here I cannot use a variable named indx to loop over the
     # integers because the loop calls format_description_data where indx is incremented
     # in a loop :) so I choose a different name here.
-    for (k = 1; k <= length(TARGETS_ORDER); k++) {
+    for (k = 1; k <= length_array_posix(TARGETS_ORDER); k++) {
       target = TARGETS_ORDER[k]
       description = format_description_data(target, max_target_length)
-      section = TARGET_SECTION_DATA[target]
+      section = get_associated_section_data(target)
       display_target_with_data(target, description, section, max_target_length)
     }
 

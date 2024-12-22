@@ -17,6 +17,7 @@ jobs:
         run: |
           awk --version
           make test
+          make test AWK="awk\ --posix"
           make build-other-awk-versions
           make test AWK=bin/mawk
           make test AWK=bin/nawk

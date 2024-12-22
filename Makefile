@@ -66,5 +66,5 @@ nawk: ## download and build nawk
 	@tar xvf $(AWK_BIN)/20240728.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
 	@cd $(AWK_BIN)/src-$@ && make && cp a.out ../$@
 
-clean-bin: ## remove the awk bin
+clean-bin: ##! remove the awk bin
 	@rm -rf $(AWK_BIN)

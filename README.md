@@ -1,7 +1,8 @@
 # Awk script for Makefile docs
 
-The `makefile-doc.awk` is an extension of a simple `awk` one-liner I have been using for
-years (I think it was based on [this gist](https://gist.github.com/prwhite/8168133)).
+The `makefile-doc.awk` is a POSIX-compliant extension of a simple `awk` one-liner I have
+been using for years (I think it was based on [this
+gist](https://gist.github.com/prwhite/8168133)).
 
 ## How to use
 
@@ -66,15 +67,15 @@ The following parameters can be passed to `awk` using `-v var=value`
 Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
 blue is the 34 in `\033[34m`.
 
-Cloning this repository and running `make` outputs:
+Cloning this repository (at tag `v0.1`) and running `make` outputs:
 ![makefile-doc.awk](img/example.png)
 
 ## Dependencies
 
-+ `awk`, I have tested with:
-  + [gawk](https://www.gnu.org/software/gawk) `5.2.2`, `5.1.0`
++ `awk`, tested with:
+  + [gawk](https://www.gnu.org/software/gawk) `5.2.2`, `5.1.0` (with `--posix` flag)
   + [nawk](https://github.com/onetrueawk/awk) tag `20240728`
-  + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905`
+  + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905` (with  `-W posix` flag)
 + `make`
 
 ## Running the tests
