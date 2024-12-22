@@ -1,0 +1,24 @@
+-----------------------
+Available targets:
+-----------------------
+[34mhelp    [0m   second line in the description of the target help
+[32m
+ ----- This section in anchored on a target -----
+[0m
+[33mtest-10 [0m   some target
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mVAR1    [0m   First variable
+[34mVAR2    [0m   Second variable
+[34mVAR3    [0m       Third variable
+[32m
+ ----- Will be associated with the next anchor (which happens to be a variable) -----
+[0m
+[31mVAR4    [0m   Varianle with top docs
+           line 2
+           line 3
+[33mVAR5    [0m   A big mess
+[33mVAR7    [0m   another variable
+-----------------------

@@ -1,0 +1,33 @@
+# all these should be alligned well in the docs
+   VAR1    =1 ## First variable
+ VAR2:=   1    ## Second variable
+VAR3 ::=   1 ##     Third variable
+
+##@
+##@ ----- Will be associated with the next anchor (which happens to be a variable) -----
+##@
+
+##! Varianle with top docs
+## line 2
+## line 3
+VAR4 :::= 1 ## this will not be shown
+AWK := awk
+VARS = # VARS CLA for our Awk script
+
+.PHONY: help
+## second line in the description of the target help
+help:
+	@$(AWK) -v VARS=$(VARS) \
+		-f ../makefile-doc.awk $(MAKEFILE_LIST)
+
+VAR5:=1 ##% A big mess
+#VAR6:=1 ##% This shouldn't appear
+#commented-out-target: ## with some docs (but this should not appear)
+
+##@
+##@ ----- This section in anchored on a target -----
+##@
+
+test-10: ##% some target
+
+VAR7 = ##% another variable

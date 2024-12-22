@@ -1,0 +1,9 @@
+-----------------------
+Available targets:
+-----------------------
+[34mhelp    [0m   second line in the description of the target help
+[32m
+ ----- This section in anchored on a target -----
+[0m
+[33mtest-10 [0m   some target
+-----------------------

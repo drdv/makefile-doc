@@ -1,6 +1,10 @@
 TEST_DIR := test
 AWK_BIN := $(TEST_DIR)/bin
 
+## Awk executable
+##  + `awk` (system's default)
+##  + `bin/mawk`
+##  + `bin/nawk`
 AWK := awk
 
 define run-test
@@ -17,7 +21,6 @@ help: ## show this help
 test: test-default \
 	test-deprecated \
 	test-padding \
-	test-header \
 	test-connected \
 	test-backticks \
 	_clean-tmp
@@ -38,14 +41,17 @@ test-deprecated: ## test setting DEPRECATED=0
 test-padding: ## test setting PADDING="."
 	@$(call run-test,$@,make -s -f Makefile.inc PADDING='.',AWK=$(AWK))
 
-test-header: ## test setting HEADER=0
-	@$(call run-test,$@,make -s -f Makefile.inc HEADER=0 PADDING='.',AWK=$(AWK))
-
 test-connected: ## test setting CONNECTED=0
 	@$(call run-test,$@,make -s -f Makefile.inc CONNECTED=0,AWK=$(AWK))
 
 test-backticks: ## test setting COLOR_BACKTICKS=1
 	@$(call run-test,$@,make -s -f Makefile.inc COLOR_BACKTICKS=1,AWK=$(AWK))
+
+test-vars: ## test with default VARS=1
+	@$(call run-test,$@,make -s -f Makefile.var,AWK=$(AWK))
+
+test-no-vars: ## test with VARS=0
+	@$(call run-test,$@,make -s -f Makefile.var VARS=0,AWK=$(AWK))
 
 ##@
 ##@ ----- Download mawk and nawk -----

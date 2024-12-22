@@ -2,7 +2,8 @@
 
 The `makefile-doc.awk` is a POSIX-compliant extension of a simple `awk` one-liner I have
 been using for years (I think it was based on [this
-gist](https://gist.github.com/prwhite/8168133)).
+gist](https://gist.github.com/prwhite/8168133)). I simply needed a bit more
+functionality and this turned out to be a nice small project with Awk.
 
 ## How to use
 
@@ -20,28 +21,32 @@ or if it is not the first target, set `.DEFAULT_GOAL := help`. Add the location 
 ## Docs syntax
 
 ``` make
+MY_VARIABLE = 42 ## doc of a CLA variable the user might want to know about
+
 ## top doc line 1
 ## line 2
-t1:
+target1:
 
-t2: ## inline doc (ignored if there are top docs as well)
+target2: ## inline doc (ignored if there are top docs as well)
 ```
 
-+ Docs of targets start with tokens `##` or `##!` or `##%` (they can be both above a
-  target or inline).
+I refer to targets / variables as anchors (for docs/sections).
 
-+ To emphasize targets that are "special" in some way, start their docs with `##!` (this
-  changes the target's color).
++ Docs of anchors start with tokens `##` or `##!` or `##%` (they can be both above an
+  anchor or inline).
 
-+ To indicate that a target is deprecated, start its docs with `##%` (this changes the
-  target's color).
++ To emphasize anchors that are "special" in some way, start their docs with `##!` (this
+  changes their color).
 
-+ Multi-line docs can be added above a target, inline docs are ignored when top docs are
-  present. Only the first line in a multi-line doc need to include a token with an
-  emphasis.
++ To indicate that an anchor is deprecated, start its docs with `##%` (this changes its
+  color and allows to filter it out, see the `DEPRECATED` flag below).
+
++ Multi-line docs can be added above an anchor, inline docs are ignored when top docs
+  are present. Only the first line in a multi-line doc need to include a token with an
+  emphasis (i.e., `##!` or `##%`).
 
 + Sections can be defined using `##@`. All lines in a multi-line section should start
-  with `##@` (empty lines are ignored). There should be at least one target (possibly a
+  with `##@` (empty lines are ignored). There should be at least one anchor (possibly a
   hidden deprecated one) after a section for it to be displayed.
 
 + See `test/Makefile` for examples.
@@ -50,15 +55,15 @@ t2: ## inline doc (ignored if there are top docs as well)
 
 The following parameters can be passed to `awk` using `-v var=value`
 
-+ `OFFSET`: Number of spaces to offset descriptions from targets (2 by default).
-+ `HEADER`: Set header text to display, if 0 skip the header (and footer).
-+ `DEPRECATED`: (default: `1`) If `0`, hide deprecated targets, show them otherwise.
-+ `PADDING`: (default: `" "`) Padding symbol between target name and its docs.
-+ `CONNECTED`: (default: `1`) If `1`, docs above a target cannot include an empty line.
++ `VARS`: (default: `1`) Show documented variables, set to 0 to disable.
++ `PADDING`: (default: `" "`) Padding symbol between anchor name and its docs.
++ `DEPRECATED`: (default: `1`) If `0`, hide deprecated anchors, show them otherwise.
++ `OFFSET`: Number of spaces to offset descriptions from anchors (2 by default).
++ `CONNECTED`: (default: `1`) If `1`, docs above an anchor cannot include an empty line.
   If `0`, docs split by empty lines are joined.
-+ `COLOR_DEFAULT`: (default: blue) Color for targets whose docs start with `##`.
-+ `COLOR_ATTENTION`: (default: red) Color for targets whose docs start with `##!`.
-+ `COLOR_DEPRECATED`: (default: yellow) Color for targets whose docs start with `##%`.
++ `COLOR_DEFAULT`: (default: blue) Color for anchors whose docs start with `##`.
++ `COLOR_ATTENTION`: (default: red) Color for anchors whose docs start with `##!`.
++ `COLOR_DEPRECATED`: (default: yellow) Color for anchors whose docs start with `##%`.
 + `COLOR_WARNING`: (default: magenta) Color for warnings.
 + `COLOR_SECTION`: (default: green) Color for sections.
 + `COLOR_BACKTICKS`: (default: 0, i.e., disabled) used for text in backticks in

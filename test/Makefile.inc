@@ -13,7 +13,6 @@ AWK := awk
 ## second line in the description of the target help
 help:
 	@$(AWK) -v PADDING=$(PADDING) \
-		-v HEADER=$(HEADER) \
 		-v CONNECTED=$(CONNECTED) \
 		-v DEPRECATED=$(DEPRECATED) \
 		-v COLOR_BACKTICKS=$(COLOR_BACKTICKS) \
