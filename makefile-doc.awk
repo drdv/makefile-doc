@@ -23,6 +23,9 @@
 #   COLOR_ATTENTION  if its description starts with ##!
 #   COLOR_DEPRECATED if its description starts with ##%
 #
+# I follow the convention that the name of a variable assignet to in a function should
+# end with _local (because AWK is a bit special in that respect).
+#
 # ========================================================
 # Command-line arguments (set using -v var=value)
 # ========================================================
@@ -58,18 +61,18 @@
 # ========================================================
 # in POSIX-compliant AWK the length function works on strings but not on arrays
 function length_array_posix(array) {
-  array_numb_elements = 0
-  for (i in array) {
-    array_numb_elements++
+  array_numb_elements_local = 0
+  for (counter_local in array) {
+    array_numb_elements_local++
   }
-  return array_numb_elements
+  return array_numb_elements_local
 }
 
 function get_description_tag(string) {
   if (match(string, /^ *(##!|##%|##)/)) {
-    tag = substr(string, RSTART, RLENGTH)
-    sub(/ */, "", tag)
-    return tag
+    tag_local = substr(string, RSTART, RLENGTH)
+    sub(/ */, "", tag_local)
+    return tag_local
   } else {
     return 0
   }
@@ -87,38 +90,38 @@ function forget_descriptions_data() {
 
 function parse_inline_descriptions(whole_line_string) {
   if (match(whole_line_string, / *(##!|##%|##)/)) {
-    inline_string = substr(whole_line_string, RSTART)
-    sub(/^ */, "", inline_string)
-    save_description_data(inline_string)
+    inline_string_local = substr(whole_line_string, RSTART)
+    sub(/^ */, "", inline_string_local)
+    save_description_data(inline_string_local)
   }
 }
 
 function associate_data_with_target(target_string) {
-  if (target_string in TARGET_DESCRIPTION_DATA) {
+  if (target_string in TARGETS_DESCRIPTION_DATA) {
     printf("%sRedefined docs of target: %s%s\n",
            COLOR_WARNING_CODE,
            target_string,
            COLOR_RESET_CODE)
   } else {
-    TARGETS_ORDER[TARGETS_ORDER_INDEX] = target_string
-    TARGETS_ORDER_INDEX++
+    TARGETS[TARGETS_INDEX] = target_string
+    TARGETS_INDEX++
   }
 
   # Here we might overwrite a description associatd with a redefined target -- this is
   # intended.
-  TARGET_DESCRIPTION_DATA[target_string] = assemble_description_data()
+  TARGETS_DESCRIPTION_DATA[target_string] = assemble_description_data()
   forget_descriptions_data()
 
   # note that section data is associated only with documented targets
   if (length_array_posix(SECTION_DATA) > 0) {
-    if (target_string in TARGET_SECTION_DATA) {
+    if (target_string in TARGETS_SECTION_DATA) {
       printf("%sRedefining associated section data: %s%s\n",
              COLOR_WARNING_CODE,
              target_string,
              COLOR_RESET_CODE)
     }
 
-    TARGET_SECTION_DATA[target_string] = assemble_section_data()
+    TARGETS_SECTION_DATA[target_string] = assemble_section_data()
     forget_section_data()
   }
 }
@@ -134,31 +137,31 @@ function forget_section_data() {
 }
 
 function get_associated_section_data(target) {
-  if (target in TARGET_SECTION_DATA) {
-    return TARGET_SECTION_DATA[target]
+  if (target in TARGETS_SECTION_DATA) {
+    return TARGETS_SECTION_DATA[target]
   }
-  return 0
+  return 0 # means that there is no associated section data with this target
 }
 
 function get_max_target_length() {
-  max_n = 0
-  for (key in TARGETS_ORDER) { # order is not important
-    target = TARGETS_ORDER[key]
-    n = length(target)
-    if (n > max_n) {
-      max_n = n
+  max_len_local = 0
+  for (key_local in TARGETS) { # order is not important
+    target_local = TARGETS[key_local]
+    len_local = length(target_local)
+    if (len_local > max_len_local) {
+      max_len_local = len_local
     }
   }
-  return max_n
+  return max_len_local
 }
 
 function print_header(len_targets) {
-  len_header = length(HEADER)
-  separator = sprintf("%*s", len_targets < len_header ? len_header : len_targets, "")
-  gsub(/ /, "-", separator)
+  len_local = length(HEADER)
+  separator_local = sprintf("%*s", len_targets<len_local ? len_local : len_targets, "")
+  gsub(/ /, "-", separator_local)
 
-  printf("%s\n%s\n%s\n", separator, HEADER, separator)
-  return separator
+  printf("%s\n%s\n%s\n", separator_local, HEADER, separator_local)
+  return separator_local
 }
 
 function print_footer(separator) {
@@ -173,14 +176,20 @@ function substitute_backticks_pattern(string) {
   # return gensub(/`([^`]+)`/, replace_with, "g", description) # only for gawk
   # --------------------------------------------------------------------------
 
-  while (match(string, /`([^`]+)`/)) {
-    before_match = substr(string, 1, RSTART - 1)
-    inside_match = substr(string, RSTART + 1, RLENGTH - 2)
-    after_match = substr(string, RSTART + RLENGTH)
+  string_local = string
+  while (match(string_local, /`([^`]+)`/)) {
+    before_match_local = substr(string_local, 1, RSTART - 1)
+    inside_match_local = substr(string_local, RSTART + 1, RLENGTH - 2)
+    after_match_local = substr(string_local, RSTART + RLENGTH)
 
-    string = before_match COLOR_BACKTICKS_CODE inside_match COLOR_RESET_CODE after_match
+    string_local = sprintf("%s%s%s%s%s",
+                           before_match_local,
+                           COLOR_BACKTICKS_CODE,
+                           inside_match_local,
+                           COLOR_RESET_CODE,
+                           after_match_local)
   }
-  return string
+  return string_local
 }
 
 function colorize_description_backticks(description) {
@@ -195,16 +204,20 @@ function colorize_description_backticks(description) {
 # introduce indentation for lines below the first one.
 function format_description_data(target, len_targets) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
-  split(TARGET_DESCRIPTION_DATA[target], array_of_lines, "\n")
+  split(TARGETS_DESCRIPTION_DATA[target], array_of_lines_local, "\n")
 
   # the tag for the first line is stripped below (after the parameter update)
-  description_local = sprintf("%" OFFSET "s", "") array_of_lines[1]
+  description_local = sprintf("%" OFFSET "s", "") array_of_lines_local[1]
 
-  offset = OFFSET + len_targets
-  for (indx = 2; indx <= length_array_posix(array_of_lines); indx++) {
-    next_line = array_of_lines[indx]
-    sub(/^(##|##!|##%)/, "", next_line) # strip the tag
-    description_local = description_local "\n" sprintf("%" offset "s", "") next_line
+  for (indx_local = 2;
+       indx_local <= length_array_posix(array_of_lines_local);
+       indx_local++) {
+    line_local = array_of_lines_local[indx_local]
+    sub(/^(##|##!|##%)/, "", line_local) # strip the tag
+    description_local = sprintf("%s\n%s%s",
+                                description_local,
+                                sprintf("%" OFFSET + len_targets "s", ""),
+                                line_local)
   }
 
   update_display_parameters(description_local)
@@ -214,30 +227,30 @@ function format_description_data(target, len_targets) {
 
 function assemble_description_data() {
   description_local = DESCRIPTION_DATA[1]
-  for (indx = 2; indx <= length_array_posix(DESCRIPTION_DATA); indx++) {
-    description_local = description_local "\n" DESCRIPTION_DATA[indx]
+  for (indx_local = 2; indx_local<=length_array_posix(DESCRIPTION_DATA); indx_local++) {
+    description_local = description_local "\n" DESCRIPTION_DATA[indx_local]
   }
   return description_local
 }
 
 function assemble_section_data() {
   section_local = SECTION_DATA[1]
-  for (indx = 2; indx <= length_array_posix(SECTION_DATA); indx++) {
-    section_local = section_local "\n" SECTION_DATA[indx]
+  for (indx_local = 2; indx_local <= length_array_posix(SECTION_DATA); indx_local++) {
+    section_local = section_local "\n" SECTION_DATA[indx_local]
   }
   return section_local
 }
 
 function update_display_parameters(description) {
-  tag = get_description_tag(description)
-  if (tag == "##!") {
+  tag_local = get_description_tag(description)
+  if (tag_local == "##!") {
     DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
     DISPLAY_PARAMS["show"] = 1
-  } else if (tag == "##%") {
+  } else if (tag_local == "##%") {
     DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
     DISPLAY_PARAMS["show"] = DEPRECATED
   }
-  else if (tag == "##") {
+  else if (tag_local == "##") {
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
@@ -303,15 +316,24 @@ BEGIN {
 
   # initialize global arrays (i.e., hash tables) for clarity
   # index variables start from 1 because this is the standard in awk
-  split("", TARGET_DESCRIPTION_DATA) # map target name to description (no order)
-  split("", TARGET_SECTION_DATA)     # map target name to section data (use as anchor)
-  split("", TARGETS_ORDER)           # map index to target name (to keep track of order)
-  TARGETS_ORDER_INDEX = 1
 
-  split("", DESCRIPTION_DATA) # map index to line in description data for targets
+  # map target name to description (order is not important)
+  split("", TARGETS_DESCRIPTION_DATA)
+
+  # map target name to section data (order is not important)
+  # a section uses a targtet as an anchor
+  split("", TARGETS_SECTION_DATA)
+
+  # map index to target name (order is important)
+  split("", TARGETS)
+  TARGETS_INDEX = 1
+
+  # map index to line in description data (to be associated with the next target)
+  split("", DESCRIPTION_DATA)
   DESCRIPTION_DATA_INDEX = 1
 
-  split("", SECTION_DATA) # map index to line in section data
+  # map index to line in section data (to be associated with the next target)
+  split("", SECTION_DATA)
   SECTION_DATA_INDEX = 1
 
   split("", DISPLAY_PARAMS)
@@ -365,15 +387,11 @@ END {
       separator = print_header(max_target_length)
     }
 
-    # I cannot use `for (indx in TARGETS_ORDER)` because we need to enforce order.
+    # `for (indx in TARGETS)` cannot be used because we need to enforce order.
     # While gawk seems to sort things nicely, the order e.g., in mawk is undefined:
     # https://invisible-island.net/mawk/manpage/mawk.html#h3-6_-Arrays
-    #
-    # A particuliarity of awk: here I cannot use a variable named indx to loop over the
-    # integers because the loop calls format_description_data where indx is incremented
-    # in a loop :) so I choose a different name here.
-    for (k = 1; k <= length_array_posix(TARGETS_ORDER); k++) {
-      target = TARGETS_ORDER[k]
+    for (indx = 1; indx <= length_array_posix(TARGETS); indx++) {
+      target = TARGETS[indx]
       description = format_description_data(target, max_target_length)
       section = get_associated_section_data(target)
       display_target_with_data(target, description, section, max_target_length)
