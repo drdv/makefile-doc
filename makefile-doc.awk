@@ -68,14 +68,13 @@ function length_array_posix(array) {
   return array_numb_elements_local
 }
 
-function get_description_tag(string) {
+function get_tag_from_description(string) {
   if (match(string, /^ *(##!|##%|##)/)) {
     tag_local = substr(string, RSTART, RLENGTH)
     sub(/ */, "", tag_local)
     return tag_local
-  } else {
-    return 0
   }
+  return 0
 }
 
 function save_description_data(string) {
@@ -168,7 +167,7 @@ function print_footer(separator) {
   printf("%s\n", separator)
 }
 
-function substitute_backticks_pattern(string) {
+function substitute_backticks_patterns(string) {
   # --------------------------------------------------------------------------
   # Since I cannot use this code in mawk and nawk, I implemented a manual hack
   # --------------------------------------------------------------------------
@@ -194,7 +193,7 @@ function substitute_backticks_pattern(string) {
 
 function colorize_description_backticks(description) {
   if (COLOR_BACKTICKS) {
-    return substitute_backticks_pattern(description)
+    return substitute_backticks_patterns(description)
   }
   return description
 }
@@ -242,7 +241,7 @@ function assemble_section_data() {
 }
 
 function update_display_parameters(description) {
-  tag_local = get_description_tag(description)
+  tag_local = get_tag_from_description(description)
   if (tag_local == "##!") {
     DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
     DISPLAY_PARAMS["show"] = 1
@@ -360,18 +359,23 @@ BEGIN {
   save_section_data(section_string)
 }
 
-# Process target.
-# The name of a target may start with a space, but not with a dot (in order to jump over
-# e.g., .PHONY) and can have spaces before the final colon. There can be multiple space
-# separated targets on one line (they are captured together). The regex detects targets
-# of the form $(TARGET-NAME) and ${TARGET-NAME} even though they are of limited value as
-# we don't have access to the value of the TARGET-NAME variable. "double-colon" targets
-# are not handled. After the final colon we require either one space of end of line --
-# this is because otherwise we would match VAR := value. The regex assumes FS = ":".
+# Process target, whose name
+#  1. may start with spaces
+#  2. but not with a dot (in order to jump over e.g., .PHONY)
+#  3. and can have spaces before the final colon.
+#  4. There can be multiple space-separated targets on one line (they are captured
+#     together).
+#  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected, even though
+#     they are of limited value as we don't have access to the value of the TARGET-NAME
+#     variable.
+#  6. After the final colon we require either at least one space of end of line -- this
+#     is because otherwise we would match VAR := value.
+#  7. "double-colon" targets are not handled.
+#  8. FS = ":" is assumed.
 /^ *\${0,1}[^.][ a-zA-Z0-9_\/%.(){}-]+ *:( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
-    parse_inline_descriptions($0)
+    parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
@@ -379,7 +383,7 @@ BEGIN {
   }
 }
 
-# Display results.
+# Display results (except for warnings all stdout is here).
 END {
   max_target_length = get_max_target_length()
   if (max_target_length > 0) {
