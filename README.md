@@ -91,8 +91,8 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 + `make test AWK=bin/mawk`
 + `make test AWK=bin/nawk`
 
-Note that `Makefile` and `Makefile.inc` in `./test` are not meant to be used manually,
-they are a part of the tests.
+Note that the makefiles in `./test` are not meant to be used manually, they are a part
+of the tests.
 
 ## Code
 
