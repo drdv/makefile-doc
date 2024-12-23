@@ -20,8 +20,9 @@ Command-line arguments:
  ----- Will be associated with the next anchor (which happens to be a variable) -----
 [0m
 [31mVAR4    [0m   Varianle with top docs
-           line 2
-           line 3
+           here I wanted to test with :::=
+           but it has been introduced in GNU Make 4.4
+           and the tests on ubuntu fail (it has GNU Make 4.3)
 [33mVAR5    [0m   A big mess
 [33mVAR7    [0m   another variable
 -----------------------

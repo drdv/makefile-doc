@@ -83,7 +83,7 @@ Cloning this repository (at tag `v0.1`) and running `make` outputs:
   + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905` (with  `-W posix` flag)
   + [busybox awk](https://www.busybox.net/) `1.35.0`
   + [wak](https://github.com/raygard/wak) `1v24.10`
-+ `make`
++ `GNU Make`
 
 ## Running the tests
 

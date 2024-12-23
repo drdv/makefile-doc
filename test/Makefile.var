@@ -8,9 +8,10 @@ VAR3 ::=   1 ##     Third variable
 ##@
 
 ##! Varianle with top docs
-## line 2
-## line 3
-VAR4 :::= 1 ## this will not be shown
+## here I wanted to test with :::=
+## but it has been introduced in GNU Make 4.4
+## and the tests on ubuntu fail (it has GNU Make 4.3)
+VAR4 ::= 1 ## this will not be shown
 AWK := awk
 VARS = # VARS CLA for our Awk script
 

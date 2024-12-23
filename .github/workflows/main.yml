@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - ci
 
 jobs:
   build:
@@ -16,6 +16,7 @@ jobs:
       - name: run tests
         run: |
           awk --version
+          make --version
           make test
           make test AWK="awk\ --posix"
           make build-other-awk-versions
