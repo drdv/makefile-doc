@@ -1,6 +1,12 @@
 TEST_DIR := test
 AWK_BIN := $(TEST_DIR)/bin
 
+URL_MAWK := https://invisible-island.net/datafiles/release/mawk.tar.gz
+URL_NAWK := https://github.com/onetrueawk/awk/archive/refs/tags/20240728.tar.gz
+URL_BAWK := https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
+URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
+UNTAR := tar xvf
+
 ## Awk executable
 ##  + `awk` (system's default)
 ##  + `bin/mawk`
@@ -66,26 +72,26 @@ test-no-vars: ## test with VARS=0
 build-other-awk-versions: mawk nawk bawk wak
 
 mawk: ## download and build mawk
-	@wget -P $(AWK_BIN) https://invisible-island.net/datafiles/release/mawk.tar.gz
+	@wget -P $(AWK_BIN) $(URL_MAWK)
 	@mkdir -p $(AWK_BIN)/src-$@
-	@tar xvf $(AWK_BIN)/mawk.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
+	$(UNTAR) $(AWK_BIN)/mawk.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
 	@cd $(AWK_BIN)/src-$@ && ./configure && make && cp $@ ../$@
 
 nawk: ## download and build nawk
-	@wget -P $(AWK_BIN) https://github.com/onetrueawk/awk/archive/refs/tags/20240728.tar.gz
+	@wget -P $(AWK_BIN) $(URL_NAWK)
 	@mkdir -p $(AWK_BIN)/src-$@
-	@tar xvf $(AWK_BIN)/20240728.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
+	@$(UNTAR) $(AWK_BIN)/20240728.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
 	@cd $(AWK_BIN)/src-$@ && make && cp a.out ../$@
 
 bawk: ## download and build busybox awk
-	@wget -P $(AWK_BIN) https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
+	@wget -P $(AWK_BIN) $(URL_BAWK)
 	@mv $(AWK_BIN)/busybox_AWK $(AWK_BIN)/$@
 	@chmod +x $(AWK_BIN)/$@
 
 wak: ## download and build wak
-	@wget -P $(AWK_BIN) https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
+	@wget -P $(AWK_BIN) $(URL_WAK)
 	@mkdir -p $(AWK_BIN)/src-$@
-	@tar xvf $(AWK_BIN)/v24.10.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
+	@$(UNTAR) $(AWK_BIN)/v24.10.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
 	@cd $(AWK_BIN)/src-$@ && make && cp wak ../$@
 
 clean-bin: ##! remove the awk bin dir

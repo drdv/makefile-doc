@@ -19,7 +19,7 @@
 # ========================================================
 # Notes
 # ========================================================
-# We refer to targets / variables as anchors (for docs/sections)
+# I refer to targets / variables as anchors (for docs/sections).
 #
 # The inline description of an anchor is ignored if there are descriptions above it.
 #
@@ -249,11 +249,6 @@ function format_description_data(anchor_name,
                                 line_local)
   }
 
-  # print(anchor_name)
-  # for (key in anchors_description_data) {
-  #   print(anchors_description_data[key])
-  # }
-
   update_display_parameters(description_local)
   sub(/(##|##!|##%)/, "", description_local) # strip the tag (keep the leading space)
   return colorize_description_backticks(description_local)
@@ -467,10 +462,7 @@ END {
   if (max_target_length > 0) {
     printf("%s\n%s\n%s\n", separator, HEADER_TARGETS, separator)
 
-    # `for (indx in TARGETS)` cannot be used because we need to enforce order.
-    # While gawk seems to sort things nicely, the order e.g., in mawk is undefined:
-    # https://invisible-island.net/mawk/manpage/mawk.html#h3-6_-Arrays
-    for (indx = 1; indx <= length_array_posix(TARGETS); indx++) {
+    for (indx = 1; indx <= length_array_posix(TARGETS); indx++) { # enforce order
       target = TARGETS[indx]
       description = format_description_data(target,
                                             TARGETS_DESCRIPTION_DATA,
