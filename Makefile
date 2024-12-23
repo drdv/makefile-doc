@@ -10,8 +10,10 @@ AWK := awk
 
 define run-test
 	cd test && $2 $3 > tmp.txt
-	@diff -u <(tail -n +4 $(TEST_DIR)/expected_output/$1) $(TEST_DIR)/tmp.txt || (echo "failed $1"; exit 1)
-	@echo "passed $1 ($3)"
+	tail -n +4 $(TEST_DIR)/expected_output/$1 > /tmp/expected_output # <(...) doesn't work on dash
+	diff -u /tmp/expected_output $(TEST_DIR)/tmp.txt || \
+	(echo "failed $1"; exit 1)
+	echo "passed $1 ($3)"
 endef
 
 help: ## show this help
