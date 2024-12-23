@@ -10,7 +10,7 @@ AWK := awk
 
 define run-test
 	cd test && $2 $3 > tmp.txt
-	@diff -u $(TEST_DIR)/expected_output/$1 $(TEST_DIR)/tmp.txt || (echo "failed $1"; exit 1)
+	@diff -u <(tail -n +4 $(TEST_DIR)/expected_output/$1) $(TEST_DIR)/tmp.txt || (echo "failed $1"; exit 1)
 	@echo "passed $1 ($3)"
 endef
 
@@ -40,7 +40,7 @@ test-deprecated: ## test setting DEPRECATED=0
 	@$(call run-test,$@,make -s -f Makefile.inc DEPRECATED=0,AWK=$(AWK))
 
 test-padding: ## test setting PADDING="."
-	@$(call run-test,$@,make -s -f Makefile.inc PADDING='.',AWK=$(AWK))
+	@$(call run-test,$@,make -s -f Makefile.inc PADDING=".",AWK=$(AWK))
 
 test-connected: ## test setting CONNECTED=0
 	@$(call run-test,$@,make -s -f Makefile.inc CONNECTED=0,AWK=$(AWK))
@@ -59,7 +59,7 @@ test-no-vars: ## test with VARS=0
 ##@
 
 ## download and build all other
-build-other-awk-versions: mawk nawk bawk
+build-other-awk-versions: mawk nawk bawk wak
 
 mawk: ## download and build mawk
 	@wget -P $(AWK_BIN) https://invisible-island.net/datafiles/release/mawk.tar.gz

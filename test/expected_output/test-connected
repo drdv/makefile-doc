@@ -1,3 +1,6 @@
+#
+# make -s -f Makefile.inc CONNECTED=0
+#
 -----------------------
 Available targets:
 -----------------------

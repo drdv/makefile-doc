@@ -1,3 +1,6 @@
+#
+# make -s -f Makefile.inc COLOR_BACKTICKS=1
+#
 -----------------------
 Available targets:
 -----------------------

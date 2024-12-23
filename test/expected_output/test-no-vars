@@ -1,3 +1,6 @@
+#
+# make -s -f Makefile.var VARS=0
+#
 -----------------------
 Available targets:
 -----------------------

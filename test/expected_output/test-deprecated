@@ -1,3 +1,6 @@
+#
+# make -s -f Makefile.inc DEPRECATED=0
+#
 -----------------------
 Available targets:
 -----------------------
