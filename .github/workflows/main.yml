@@ -22,3 +22,4 @@ jobs:
           make test AWK=bin/mawk
           make test AWK=bin/nawk
           make test AWK=bin/bawk
+          make test AWK=bin/wak

@@ -5,7 +5,7 @@ AWK_BIN := $(TEST_DIR)/bin
 ##  + `awk` (system's default)
 ##  + `bin/mawk`
 ##  + `bin/nawk`
-##  + `bin/bawk`
+##  + ...
 AWK := awk
 
 define run-test
@@ -55,10 +55,10 @@ test-no-vars: ## test with VARS=0
 	@$(call run-test,$@,make -s -f Makefile.var VARS=0,AWK=$(AWK))
 
 ##@
-##@ ----- Download mawk, nawk, bawk -----
+##@ ----- Get other awk implementations -----
 ##@
 
-## download and build mawk, nawk, bawk
+## download and build all other
 build-other-awk-versions: mawk nawk bawk
 
 mawk: ## download and build mawk
@@ -73,10 +73,16 @@ nawk: ## download and build nawk
 	@tar xvf $(AWK_BIN)/20240728.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
 	@cd $(AWK_BIN)/src-$@ && make && cp a.out ../$@
 
-bawk: ## download and build bawk (busybox awk)
+bawk: ## download and build busybox awk
 	@wget -P $(AWK_BIN) https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
 	@mv $(AWK_BIN)/busybox_AWK $(AWK_BIN)/$@
 	@chmod +x $(AWK_BIN)/$@
+
+wak: ## download and build wak
+	@wget -P $(AWK_BIN) https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
+	@mkdir -p $(AWK_BIN)/src-$@
+	@tar xvf $(AWK_BIN)/v24.10.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
+	@cd $(AWK_BIN)/src-$@ && make && cp wak ../$@
 
 clean-bin: ##! remove the awk bin dir
 	@rm -rf $(AWK_BIN)
