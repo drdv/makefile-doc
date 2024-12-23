@@ -26,6 +26,8 @@ test: test-default \
 	test-padding \
 	test-connected \
 	test-backticks \
+	test-vars \
+	test-no-vars \
 	_clean-tmp
 
 _clean-tmp:

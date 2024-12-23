@@ -485,7 +485,7 @@ END {
   # max_variable_length > 0 but no variables would be displayed (just a header)
   if (max_variable_length > 0 && VARS) {
     printf("\n%s\n%s\n%s\n", separator, HEADER_VARIABLES, separator)
-    for (indx in VARIABLES) {
+    for (indx = 1; indx <= length_array_posix(VARIABLES); indx++) {
       variable = VARIABLES[indx]
       description = format_description_data(variable,
                                             VARIABLES_DESCRIPTION_DATA,
