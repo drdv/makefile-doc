@@ -7,16 +7,35 @@ functionality and this turned out to be a nice small project with Awk.
 
 ## How to use
 
-Define the first target of your `Makefile` to be:
+### Make available on the fly
+
+Define the first target of your `Makefile` (or if it is not the first target, set
+`.DEFAULT_GOAL := help`) as:
+
+``` make
+help: ## show this help
+	@test -f .external/makefile-doc.awk || \
+	wget --quiet -P .external github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
+	@awk -f .external/makefile-doc.awk $(MAKEFILE_LIST)
+```
+
+This will download the awk script on the fly (if it doesn't exist in `.external`). As an
+alternative of `wget` you could use `curl`:
+
+```
+curl -sLO --create-dirs --output-dir .external github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
+```
+
+### Manual installation
+
+Define the first target of your `Makefile` as:
 
 ``` make
 help: ## show help
 	@awk -f makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
-or if it is not the first target, set `.DEFAULT_GOAL := help`. Add the location of the
-`makefile-doc.awk` script to the `AWKPATH` env variable, or explicitly use `@awk -f
-/path/to/makefile-doc.awk $(MAKEFILE_LIST)` in the `help` target.
+Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
 
 ## Docs syntax
 
@@ -96,7 +115,3 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of
 the tests.
-
-## Code
-
-[Github](https://github.com/drdv/makefile-doc).
