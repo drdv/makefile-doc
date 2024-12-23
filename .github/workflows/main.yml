@@ -21,3 +21,4 @@ jobs:
           make build-other-awk-versions
           make test AWK=bin/mawk
           make test AWK=bin/nawk
+          make test AWK=bin/bawk

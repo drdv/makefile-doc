@@ -5,6 +5,7 @@ AWK_BIN := $(TEST_DIR)/bin
 ##  + `awk` (system's default)
 ##  + `bin/mawk`
 ##  + `bin/nawk`
+##  + `bin/bawk`
 AWK := awk
 
 define run-test
@@ -54,11 +55,11 @@ test-no-vars: ## test with VARS=0
 	@$(call run-test,$@,make -s -f Makefile.var VARS=0,AWK=$(AWK))
 
 ##@
-##@ ----- Download mawk and nawk -----
+##@ ----- Download mawk, nawk, bawk -----
 ##@
 
-## download and build mawk and nawk
-build-other-awk-versions: mawk nawk
+## download and build mawk, nawk, bawk
+build-other-awk-versions: mawk nawk bawk
 
 mawk: ## download and build mawk
 	@wget -P $(AWK_BIN) https://invisible-island.net/datafiles/release/mawk.tar.gz
@@ -72,5 +73,10 @@ nawk: ## download and build nawk
 	@tar xvf $(AWK_BIN)/20240728.tar.gz -C $(AWK_BIN)/src-$@ --strip-components=1
 	@cd $(AWK_BIN)/src-$@ && make && cp a.out ../$@
 
-clean-bin: ##! remove the awk bin
+bawk: ## download and build bawk (busybox awk)
+	@wget -P $(AWK_BIN) https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
+	@mv $(AWK_BIN)/busybox_AWK $(AWK_BIN)/$@
+	@chmod +x $(AWK_BIN)/$@
+
+clean-bin: ##! remove the awk bin dir
 	@rm -rf $(AWK_BIN)

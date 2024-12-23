@@ -183,17 +183,16 @@ function get_max_anchor_length(anchors) {
   return max_len_local
 }
 
-function print_header_targets(len_targets) {
-  len_local = max(length(HEADER_TARGETS), length(HEADER_VARIABLES))
-  separator_local = sprintf("%*s", len_targets<len_local ? len_local : len_targets, "")
-  gsub(/ /, "-", separator_local)
-
-  printf("%s\n%s\n%s\n", separator_local, HEADER_TARGETS, separator_local)
+function get_separator(len_anchors) {
+  # busybox's awk doesn't support %* patterns (so I use a loop)
+  separator_local = ""
+  for (indx_local = 1;
+       indx_local <= max(len_anchors,
+                         max(length(HEADER_TARGETS), length(HEADER_VARIABLES)));
+       indx_local++) {
+    separator_local = separator_local "-"
+  }
   return separator_local
-}
-
-function print_footer(separator) {
-  printf("%s\n", separator)
 }
 
 function substitute_backticks_patterns(string) {
@@ -462,11 +461,11 @@ END {
   max_target_length = get_max_anchor_length(TARGETS)
   max_variable_length = get_max_anchor_length(VARIABLES)
   max_anchor_length = max(max_target_length, max_variable_length)
+  separator = get_separator(max_anchor_length)
 
   # process targets
   if (max_target_length > 0) {
-    # the separator is based on the max target length and is reused for variables
-    separator = print_header_targets(max_anchor_length)
+    printf("%s\n%s\n%s\n", separator, HEADER_TARGETS, separator)
 
     # `for (indx in TARGETS)` cannot be used because we need to enforce order.
     # While gawk seems to sort things nicely, the order e.g., in mawk is undefined:
@@ -495,5 +494,5 @@ END {
       display_anchor_with_data(variable, description, section, max_anchor_length)
     }
   }
-  print_footer(separator)
+  printf("%s\n", separator)
 }

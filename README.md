@@ -81,6 +81,7 @@ Cloning this repository (at tag `v0.1`) and running `make` outputs:
   + [gawk](https://www.gnu.org/software/gawk) `5.2.2`, `5.1.0` (with `--posix` flag)
   + [nawk](https://github.com/onetrueawk/awk) tag `20240728`
   + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905` (with  `-W posix` flag)
+  + [bawk](https://www.busybox.net/) `1.35.0` (busybox `awk`)
 + `make`
 
 ## Running the tests
@@ -90,9 +91,10 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 
 + `make test AWK=bin/mawk`
 + `make test AWK=bin/nawk`
++ `make test AWK=bin/bawk`
 
-Note that the makefiles in `./test` are not meant to be used manually, they are a part
-of the tests.
+Note that the makefiles in `./test` are not meant to be used manually, they are part of
+the tests.
 
 ## Code
 
