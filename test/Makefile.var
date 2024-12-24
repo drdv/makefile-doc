@@ -1,3 +1,21 @@
+# -------------------------------------------------
+# WARNING
+# --------------------------------------------------------
+# Using inline comments for variables is not a good idea because the variable value
+# would contain the extra space(s) between the value and the comment. For example,
+# consider the following Makefile:
+#
+# DIR = important ## do not delete
+# clean: ## remove generated stuff
+#     rm -rf $(DIR).extra-info-dir
+#
+# If we run make clean, the command would expand to rm -rf $(DIR) .extra-info-dir
+# instead of what we want: rm -rf $(DIR).extra-info-dir. Note that, normally, editors
+# delete training space on save.
+#
+# The formatting of comments in this file is only for testing purposes.
+# -------------------------------------------------
+
 # all these should be alligned well in the docs
    VAR1    =1 ## First variable
  VAR2:=   1    ## Second variable

@@ -68,7 +68,11 @@ I refer to targets / variables as anchors (for docs/sections).
   with `##@` (empty lines are ignored). There should be at least one anchor (possibly a
   hidden deprecated one) after a section for it to be displayed.
 
-+ See `test/Makefile` for examples.
++ See `test/Makefile*` for examples.
+
+**Note**: in general, using inline comments with variables is not a good idea because
+["trailing space characters are not stripped from variable
+value"](https://www.gnu.org/software/make/manual/html_node/Simple-Assignment.html).
 
 ## Parameters
 
