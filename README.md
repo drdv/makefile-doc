@@ -40,7 +40,8 @@ Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
 ## Docs syntax
 
 ``` make
-MY_VARIABLE = 42 ## doc of a CLA variable the user might want to know about
+## doc of a CLA variable the user might want to know about
+MY_VARIABLE = 42
 
 ## top doc line 1
 ## line 2
