@@ -20,3 +20,21 @@ help:
 		-f ../makefile-doc.awk $(MAKEFILE_LIST)
 
 test-10: ##% some target
+
+##@
+##@ ----- Double-column targets -----
+##@
+
+## This is the first double-colon target from group A
+## It has two lines of description
+double-colon-A::
+
+double-colon-B:: ##! group B first documented
+
+double-colon-B:: # not documented
+
+double-colon-B:: ## group B second documented
+
+double-colon-A:: ## This is the second double-colon target from group A
+
+double-colon-B:: ##% group B third documented (deprecated)

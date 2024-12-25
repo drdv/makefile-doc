@@ -69,6 +69,10 @@ I refer to targets / variables as anchors (for docs/sections).
   with `##@` (empty lines are ignored). There should be at least one anchor (possibly a
   hidden deprecated one) after a section for it to be displayed.
 
+* [Double-colon](https://www.gnu.org/software/make/manual/html_node/Double_002dColon.html)
+  target are displayed using the format `target-name:target-index` and for each index
+  there can be a dedicated documentation (if necessary).
+
 + See `test/Makefile*` for examples.
 
 **Note**: in general, using inline comments with variables is not a good idea because
@@ -83,7 +87,7 @@ The following parameters can be passed to `awk` using `-v var=value`
 + `PADDING`: (default: `" "`) Padding symbol between anchor name and its docs.
 + `DEPRECATED`: (default: `1`) If `0`, hide deprecated anchors, show them otherwise.
 + `OFFSET`: Number of spaces to offset descriptions from anchors (2 by default).
-+ `CONNECTED`: (default: `1`) If `1`, docs above an anchor cannot include an empty line.
++ `CONNECTED`: If `1` (the default), docs above an anchor cannot include an empty line.
   If `0`, docs split by empty lines are joined.
 + `COLOR_DEFAULT`: (default: blue) Color for anchors whose docs start with `##`.
 + `COLOR_ATTENTION`: (default: red) Color for anchors whose docs start with `##!`.

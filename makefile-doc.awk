@@ -299,13 +299,40 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
     DISPLAY_PATTERN = "%s%-" len_anchors "s%s"
     formatted_anchor = sprintf(DISPLAY_PATTERN,
                                DISPLAY_PARAMS["color"],
-                               anchor,
+                               format_anchor_name(anchor),
                                COLOR_RESET_CODE)
     if (PADDING != " ") {
       gsub(/ /, PADDING, formatted_anchor)
     }
     printf("%s%s\n", formatted_anchor, description)
   }
+}
+
+function count_numb_double_colon(new_target) {
+  counter_local = 1
+  prefix_local = "[" new_target "]"
+  n_prefix_local = length(prefix_local)
+  for (indx_local in TARGETS) { # order is not important
+    target_local = TARGETS[indx_local]
+    if (length(target_local) >= n_prefix_local &&
+        substr(target_local, 1, n_prefix_local) == prefix_local) {
+      counter_local++
+    }
+  }
+  return counter_local
+}
+
+# modifies only double-colon targets:
+# [double_colon_target_name]:1 -> double_colon_target_name:1
+function format_anchor_name(target) {
+  if (match(target, /\[.+\]/)) {
+    target_name_local = substr(target, RSTART+1, RLENGTH-2)
+    if (match(target, /:([0-9]*)/)) {
+      target_index_local = substr(target, RSTART+1, RLENGTH)
+    }
+    return target_name_local ":" target_index_local
+  }
+  return target
 }
 
 function ansi_color(string) {
@@ -413,16 +440,25 @@ BEGIN {
 #     variable.
 #  6. After the final colon we require either at least one space of end of line -- this
 #     is because otherwise we would match VAR := value.
-#  7. "double-colon" targets are not handled.
-#  8. FS = ":" is assumed.
-/^ *\${0,1}[^.#][ a-zA-Z0-9_\/%.(){}-]+ *:( |$)/ {
+#  7. FS = ":" is assumed.
+#
+# Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
+#
+/^ *\${0,1}[^.#][ a-zA-Z0-9_\/%.(){}-]+ *(:|::)( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    TARGETS_INDEX = associate_data_with_anchor($1,
+    target_name = $1
+    if ($0 ~ "::") {
+      target_name = sprintf("[%s]:%s",
+                            target_name,
+                            count_numb_double_colon(target_name))
+    }
+
+    TARGETS_INDEX = associate_data_with_anchor(target_name,
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
