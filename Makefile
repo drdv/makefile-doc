@@ -16,16 +16,19 @@ URL_BUSYBOX_AWK := https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linu
 URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 
 define run-test
-	cd test && $2 $3 > tmp.txt
-	tail -n +4 $(TEST_DIR)/expected_output/$1 > /tmp/expected_output # <(...) doesn't work on dash
+	cd test && $2 $3 > tmp.txt # <(...) doesn't work on dash
+	tail -n +4 $(TEST_DIR)/expected_output/$1 > /tmp/expected_output
 	diff -u /tmp/expected_output $(TEST_DIR)/tmp.txt || \
 	(echo "failed $1"; exit 1)
 	echo "passed $1 ($3)"
 endef
 
+# for some reason `yes | make test AWK=mawk` results in a broken pipe on dash (ubuntu)
+# so I use the SKIP_VERIFY hack
+SKIP_VERIFY =
 define verify-download
-	@read -p "Download and build $(AWK) [Y/n]: " ans \
-		&& [[ -z $$ans || $$ans = y || $$ans = Y ]] \
+	[ $(SKIP_VERIFY) = 1 ] || read -p "Download and build $(AWK) [Y/n]: " ans \
+		&& ([ -z $$ans ] || [ $$ans = y ] || [ $$ans = Y ]) \
 		&& exit 0 \
 		|| echo "Download of $(AWK) cancelled"; exit 1
 endef
