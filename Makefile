@@ -25,7 +25,7 @@ endef
 
 # for some reason `yes | make test AWK=mawk` results in a broken pipe on dash (ubuntu)
 # so I use the SKIP_VERIFY hack
-SKIP_VERIFY =
+SKIP_VERIFY = 0
 define verify-download
 	[ $(SKIP_VERIFY) = 1 ] || read -p "Download and build $(AWK) [Y/n]: " ans \
 		&& ([ -z $$ans ] || [ $$ans = y ] || [ $$ans = Y ]) \
