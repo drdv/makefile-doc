@@ -31,12 +31,14 @@ VAR3 ::=   1 ##     Third variable
 ## and the tests on ubuntu fail (it has GNU Make 4.3)
 VAR4 ::= 1 ## this will not be shown
 AWK := awk
+AWK_FLAGS :=
+
 VARS = # VARS CLA for our Awk script
 
 .PHONY: help
 ## second line in the description of the target help
 help:
-	@$(AWK) -v VARS=$(VARS) \
+	@bin/$(AWK) $(AWK_FLAGS) -v VARS=$(VARS) \
 		-f ../makefile-doc.awk $(MAKEFILE_LIST)
 
 VAR5:=1 ##% A big mess

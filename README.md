@@ -112,10 +112,10 @@ Cloning this repository (at tag `v0.1`) and running `make` outputs:
 ## Running the tests
 
 Execute `make test` (this uses the system's default `awk`). To test with a custom
-`awk`, use (see `make build-other-awk-versions`):
+`awk`, use:
 
-+ `make test AWK=bin/mawk`
-+ `make test AWK=bin/nawk`
++ `make test AWK=mawk`
++ `make test AWK=nawk`
 + ...
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of

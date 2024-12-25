@@ -5,6 +5,7 @@ DEPRECATED =
 COLOR_BACKTICKS =
 
 AWK := awk
+AWK_FLAGS :=
 
 ## ignored when CONNECTED = 1 (the default)
 
@@ -12,7 +13,7 @@ AWK := awk
 .PHONY: help
 ## second line in the description of the target help
 help:
-	@$(AWK) -v PADDING=$(PADDING) \
+	@bin/$(AWK) $(AWK_FLAGS) -v PADDING=$(PADDING) \
 		-v CONNECTED=$(CONNECTED) \
 		-v DEPRECATED=$(DEPRECATED) \
 		-v COLOR_BACKTICKS=$(COLOR_BACKTICKS) \
