@@ -19,7 +19,7 @@ jobs:
           make --version
           make test
           make test AWK_FLAGS=--posix
-          yes | make test AWK=bin/mawk
-          yes | make test AWK=bin/nawk
-          yes | make test AWK=bin/bawk
-          yes | make test AWK=bin/wak
+          yes | make test AWK=mawk
+          yes | make test AWK=nawk
+          yes | make test AWK=bawk
+          yes | make test AWK=wak
