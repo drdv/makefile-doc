@@ -118,3 +118,11 @@ $(AWK_BIN)/wak:
 	@tar xvf $(AWK_BIN)/v24.10.tar.gz -C $@-src --strip-components=1
 	@cd $@-src && make
 	@cp $@-src/wak $@
+
+$(AWK_BIN)/%: FORCE # a catch-all target for AWK values
+	@echo "==================================================="
+	@echo "Expected value for AWK: awk, mawk, nawk, bawk, wak."
+	@echo "==================================================="
+	@exit 1
+
+FORCE:
