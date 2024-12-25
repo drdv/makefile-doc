@@ -328,7 +328,7 @@ function format_anchor_name(target) {
   if (match(target, /\[.+\]/)) {
     target_name_local = substr(target, RSTART+1, RLENGTH-2)
     if (match(target, /:([0-9]*)/)) {
-      target_index_local = substr(target, RSTART+1, RLENGTH)
+      target_index_local = substr(target, RSTART+1, RLENGTH-1)
     }
     return target_name_local ":" target_index_local
   }
