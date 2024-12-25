@@ -1,3 +1,5 @@
+TEST_DIR := test
+
 ## Awk executable to use
 ##  + awk (system's default)
 ##  + mawk
@@ -6,8 +8,6 @@
 ##  + wak
 AWK := awk
 AWK_FLAGS :=
-
-TEST_DIR := test
 AWK_BIN := $(TEST_DIR)/bin
 
 URL_MAWK := https://invisible-island.net/datafiles/release/mawk.tar.gz
@@ -35,7 +35,7 @@ endef
 
 ## show this help
 help: $(AWK_BIN)/$(AWK)
-	@$(AWK_BIN)/$(AWK) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
+	@$< $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
 ## run all tests
 .PHONY: test
