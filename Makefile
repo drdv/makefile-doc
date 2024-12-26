@@ -15,10 +15,11 @@ URL_NAWK := https://github.com/onetrueawk/awk/archive/refs/tags/20240728.tar.gz
 URL_BUSYBOX_AWK := https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
 URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 
+# diff -u <(...) <(...) doesn't work in the CI
 define run-test
-	cd test && $2 $3 > tmp.txt # <(...) doesn't work on dash
-	tail -n +4 $(TEST_DIR)/expected_output/$1 > /tmp/expected_output
-	diff -u /tmp/expected_output $(TEST_DIR)/tmp.txt || \
+	tail -n +4 $(TEST_DIR)/expected_output/$1 > $(TEST_DIR)/result_expected.txt
+	cd $(TEST_DIR) && $2 $3 > result_actual.txt
+	diff -u $(TEST_DIR)/result_actual.txt $(TEST_DIR)/result_expected.txt || \
 	(echo "failed $1"; exit 1)
 	echo "passed $1 ($3)"
 endef
@@ -46,13 +47,13 @@ test: test-default \
 	test-backticks \
 	test-vars \
 	test-no-vars \
-	_clean-tmp
+	_clean-results
 
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
 
-_clean-tmp:
-	@rm -rf $(TEST_DIR)/tmp.txt
+_clean-results:
+	@rm -rf $(TEST_DIR)/result*
 
 ##@
 ##@ ----- Individual tests -----
