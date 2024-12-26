@@ -444,7 +444,7 @@ BEGIN {
 #
 # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
 #
-/^ *\${0,1}[^.#][ a-zA-Z0-9_\/%.(){}-]+ *(:|::)( |$)/ {
+/^ *\${0,1}[^.#][ a-zA-Z0-9_\/%.(){}-]* *(:|::)( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
@@ -471,7 +471,7 @@ BEGIN {
 #  1. may start with spaces
 #  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
 #  3. can be followed by spaces and one of four assignment operators =, :=, ::=, :::=
-/^ *[^.#][a-zA-Z0-9_-]+ *(=|:=|::=|:::=)/ {
+/^ *[^.#][a-zA-Z0-9_-]* *(=|:=|::=|:::=)/ {
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }

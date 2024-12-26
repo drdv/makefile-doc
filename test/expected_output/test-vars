@@ -25,4 +25,5 @@ Command-line arguments:
            and the tests on ubuntu fail (it has GNU Make 4.3)
 [33mVAR5    [0m   A big mess
 [33mVAR7    [0m   another variable
+[34mv       [0m   A one letter variable
 -----------------------

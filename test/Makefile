@@ -84,3 +84,5 @@ ${TARGET-NAME}:
   target-with-spaces  :
 
 target-without-docs:
+
+t: ## A one letter target
