@@ -1,29 +1,31 @@
 #
 # make -s -f Makefile.var
 #
+[35mRedefined docs of variable: VAR6[0m
 -----------------------
 Available targets:
 -----------------------
-[34mhelp    [0m   second line in the description of the target help
+[34mhelp   [0m   show this help
 [32m
  ----- This section in anchored on a target -----
 [0m
-[33mtest-10 [0m   some target
+[33mtest-10[0m   some target
 
 -----------------------
 Command-line arguments:
 -----------------------
-[34mVAR1    [0m   First variable
-[34mVAR2    [0m   Second variable
-[34mVAR3    [0m       Third variable
+[34mVAR1_1 [0m   First variable (with value)
+[34mVAR1_0 [0m   First variable (without value)
+[34mVAR2_1 [0m   Second variable (with value)
+[34mVAR2_0 [0m   Second variable (without value)
+[34mVAR3_1 [0m       Third variable (with value)
+[34mVAR3_0 [0m       Third variable (without value)
+[34mVAR4   [0m   Top comment with value would be expanded
+[34mVAR5   [0m   Inline comment with value would be expanded
 [32m
  ----- Will be associated with the next anchor (which happens to be a variable) -----
 [0m
-[31mVAR4    [0m   Varianle with top docs
-           here I wanted to test with :::=
-           but it has been introduced in GNU Make 4.4
-           and the tests on ubuntu fail (it has GNU Make 4.3)
-[33mVAR5    [0m   A big mess
-[33mVAR7    [0m   another variable
-[34mv       [0m   A one letter variable
+[33mVAR6   [0m   Overwrites previous docs for this variable (change to deprecated)
+[34mx      [0m   A one letter variable
+[34my      [0m   A one letter variable inline docs
 -----------------------

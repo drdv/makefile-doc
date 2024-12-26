@@ -16,33 +16,39 @@
 # The formatting of comments in this file is only for testing purposes.
 # -------------------------------------------------
 
-# all these should be alligned well in the docs
-   VAR1    =1 ## First variable
- VAR2:=   1    ## Second variable
-VAR3 ::=   1 ##     Third variable
+AWK := awk
+AWK_FLAGS :=
+VARS = # VARS CLA for our Awk script
+
+# all these should be aligned well in the docs
+   VAR1_1    =1## First variable (with value)
+   VAR1_0    =## First variable (without value)
+ VAR2_1:=   1    ## Second variable (with value)
+ VAR2_0:=        ## Second variable (without value)
+VAR3_1 :=   1 ##     Third variable (with value)
+VAR3_0 :=     ##     Third variable (without value)
+
+## Top comment with value would be expanded
+VAR4 = $(VAR1_1)
+
+VAR5 = $(VAR1_1) ## Inline comment with value would be expanded
 
 ##@
 ##@ ----- Will be associated with the next anchor (which happens to be a variable) -----
 ##@
 
-##! Varianle with top docs
-## here I wanted to test with :::=
-## but it has been introduced in GNU Make 4.4
-## and the tests on ubuntu fail (it has GNU Make 4.3)
-VAR4 ::= 1 ## this will not be shown
-AWK := awk
-AWK_FLAGS :=
-
-VARS = # VARS CLA for our Awk script
+##! Variable with top docs
+## line 2
+VAR6 := 1 ## this will not be shown
 
 .PHONY: help
-## second line in the description of the target help
+## show this help
 help:
 	@bin/$(AWK) $(AWK_FLAGS) -v VARS=$(VARS) \
 		-f ../makefile-doc.awk $(MAKEFILE_LIST)
 
-VAR5:=1 ##% A big mess
-#VAR6:=1 ##% This shouldn't appear
+  VAR6 :=1 ##% Overwrites previous docs for this variable (change to deprecated)
+#VAR7:=1 ##% This shouldn't appear
 #commented-out-target: ## with some docs (but this should not appear)
 
 ##@
@@ -51,7 +57,7 @@ VAR5:=1 ##% A big mess
 
 test-10: ##% some target
 
-VAR7 = ##% another variable
-
 ## A one letter variable
-v = 1
+x =
+
+y = ## A one letter variable inline docs

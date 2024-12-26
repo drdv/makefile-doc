@@ -124,11 +124,14 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_section_data,
                                     anchor_type) {
   if (anchor_name in anchors_description_data) {
-    printf("%sRedefined docs of %s: %s%s\n",
-           COLOR_WARNING_CODE,
-           anchor_type,
-           anchor_name,
-           COLOR_RESET_CODE)
+    # omit variable related warnings when they are not displayed
+    if (anchor_type != "variable" || VARS) {
+      printf("%sRedefined docs of %s: %s%s\n",
+             COLOR_WARNING_CODE,
+             anchor_type,
+             anchor_name,
+             COLOR_RESET_CODE)
+    }
   } else {
     anchors[anchors_index] = anchor_name
     anchors_index++
@@ -335,6 +338,12 @@ function format_anchor_name(target) {
   return target
 }
 
+function trim_start_end_spaces(string_local) {
+  sub(/^ */, "", string_local)
+  sub(/ *$/, "", string_local)
+  return string_local
+}
+
 function ansi_color(string) {
   return "\033[" string "m"
 }
@@ -458,7 +467,7 @@ BEGIN {
                             count_numb_double_colon(target_name))
     }
 
-    TARGETS_INDEX = associate_data_with_anchor(target_name,
+    TARGETS_INDEX = associate_data_with_anchor(trim_start_end_spaces(target_name),
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
@@ -477,7 +486,7 @@ BEGIN {
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    variable_name = parse_variable_name($0)
+    variable_name = trim_start_end_spaces(parse_variable_name($0))
     VARIABLES_INDEX = associate_data_with_anchor(variable_name,
                                                  VARIABLES,
                                                  VARIABLES_INDEX,

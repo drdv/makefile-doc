@@ -1,6 +1,12 @@
 SHELL := bash
 TEST_DIR := test
 
+UNAME := $(shell uname)
+MAKE_VERSION_MAJOR := $(shell echo $(MAKE_VERSION) | cut -d. -f1)
+GNU_MAKE_MIN_MAJOR_VERSION := 4 # see test/Makefile.var-new-operators
+MAKE_HAS_DOUBLE_COLON_EQUAL := \
+$(shell [ $(MAKE_VERSION_MAJOR) -ge $(GNU_MAKE_MIN_MAJOR_VERSION) ] && echo 1 || echo 0)
+
 ## Awk executable to use
 ##  + awk (system's default)
 ##  + mawk
@@ -34,6 +40,7 @@ endef
 ## show this help
 help: $(AWK_BIN)/$(AWK)
 	@$< $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
+	@echo $(MAKE_HAS_DOUBLE_COLON_EQUAL)
 
 ## run all tests
 .PHONY: test
@@ -43,7 +50,8 @@ test: test-default \
 	test-connected \
 	test-backticks \
 	test-vars \
-	test-no-vars
+	test-no-vars \
+	test-vars-assign-operators
 
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
@@ -80,6 +88,16 @@ test-vars: $(AWK_BIN)/$(AWK)
 test-no-vars: $(AWK_BIN)/$(AWK)
 	@$(call run-test,$@,make -s -f Makefile.var VARS=0,AWK=$(AWK))
 
+## test variable assignments =, :=, ::=, :::=
+## WARNING: this test would be skipped for GNU Make versions
+##          below 4.0.0 (see test/Makefile.var-new-operators)
+test-vars-assign-operators: $(AWK_BIN)/$(AWK)
+ifeq ($(MAKE_HAS_DOUBLE_COLON_EQUAL),1)
+	@$(call run-test,$@,make -s -f Makefile.var-new-operators,AWK=$(AWK))
+else
+	@echo "--> skipping $@ due to GNU Make version: $(MAKE_VERSION_MAJOR)"
+endif
+
 $(AWK_BIN)/awk:
 	@mkdir -p $(AWK_BIN)
 	@ln -s $(shell which awk) $@
@@ -101,9 +119,14 @@ $(AWK_BIN)/nawk:
 	@cp $@-src/a.out $@
 
 $(AWK_BIN)/bawk:
+ifeq ($(UNAME),Darwin)
+	@echo "No official version of Busybox awk for macos"
+	@exit 1
+else
 	@$(call verify-download)
 	@wget -P $(AWK_BIN) $(URL_BUSYBOX_AWK)
 	@mv $(AWK_BIN)/busybox_AWK $@ && chmod +x $@
+endif
 
 $(AWK_BIN)/wak:
 	@$(call verify-download)
@@ -113,10 +136,8 @@ $(AWK_BIN)/wak:
 	@cd $@-src && make
 	@cp $@-src/wak $@
 
-$(AWK_BIN)/%: FORCE # a catch-all target for AWK values
+$(AWK_BIN)/%: # a catch-all target for AWK values
 	@echo "==================================================="
 	@echo "Expected value for AWK: awk, mawk, nawk, bawk, wak."
 	@echo "==================================================="
 	@exit 1
-
-FORCE:
