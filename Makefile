@@ -3,9 +3,12 @@ TEST_DIR := test
 
 UNAME := $(shell uname)
 MAKE_VERSION_MAJOR := $(shell echo $(MAKE_VERSION) | cut -d. -f1)
-GNU_MAKE_MIN_MAJOR_VERSION := 4 # see test/Makefile.var-new-operators
-MAKE_HAS_DOUBLE_COLON_EQUAL := \
-$(shell [ $(MAKE_VERSION_MAJOR) -ge $(GNU_MAKE_MIN_MAJOR_VERSION) ] && echo 1 || echo 0)
+MAKE_VERSION_MINOR := $(shell echo $(MAKE_VERSION) | cut -d. -f2)
+# See test/Makefile.var-new-operators
+MAKE_HAS_DOUBLE_COLON_EQUAL := $(shell \
+	[ $(MAKE_VERSION_MAJOR) -ge 4 ] && \
+	[ $(MAKE_VERSION_MINOR) -ge 4 ] && \
+	echo 1 || echo 0)
 
 ## Awk executable to use
 ##  + awk (system's default)
@@ -40,7 +43,6 @@ endef
 ## show this help
 help: $(AWK_BIN)/$(AWK)
 	@$< $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
-	@echo $(MAKE_HAS_DOUBLE_COLON_EQUAL)
 
 ## run all tests
 .PHONY: test
@@ -90,7 +92,7 @@ test-no-vars: $(AWK_BIN)/$(AWK)
 
 ## test variable assignments =, :=, ::=, :::=
 ## WARNING: this test would be skipped for GNU Make versions
-##          below 4.0.0 (see test/Makefile.var-new-operators)
+##          below 4.4.0 (see test/Makefile.var-new-operators)
 test-vars-assign-operators: $(AWK_BIN)/$(AWK)
 ifeq ($(MAKE_HAS_DOUBLE_COLON_EQUAL),1)
 	@$(call run-test,$@,make -s -f Makefile.var-new-operators,AWK=$(AWK))
