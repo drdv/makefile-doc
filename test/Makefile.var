@@ -52,3 +52,6 @@ VAR5:=1 ##% A big mess
 test-10: ##% some target
 
 VAR7 = ##% another variable
+
+## A one letter variable
+v = 1
