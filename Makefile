@@ -1,3 +1,4 @@
+SHELL := bash
 TEST_DIR := test
 
 ## Awk executable to use
@@ -15,20 +16,16 @@ URL_NAWK := https://github.com/onetrueawk/awk/archive/refs/tags/20240728.tar.gz
 URL_BUSYBOX_AWK := https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
 URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 
-# diff -u <(...) <(...) doesn't work in the CI
 define run-test
-	tail -n +4 $(TEST_DIR)/expected_output/$1 > $(TEST_DIR)/result_expected.txt
-	cd $(TEST_DIR) && $2 $3 > result_actual.txt
-	diff -u $(TEST_DIR)/result_actual.txt $(TEST_DIR)/result_expected.txt || \
+	diff -u \
+		<(tail -n +4 $(TEST_DIR)/expected_output/$1) \
+		<(cd $(TEST_DIR) && $2 $3) || \
 	(echo "failed $1"; exit 1)
 	echo "passed $1 ($3)"
 endef
 
-# for some reason `yes | make test AWK=mawk` results in a broken pipe on dash (ubuntu)
-# so I use the SKIP_VERIFY hack
-SKIP_VERIFY = 0
 define verify-download
-	[ $(SKIP_VERIFY) = 1 ] || read -p "Download and build $(AWK) [Y/n]: " ans \
+	read -p "Download and build $(AWK) [Y/n]: " ans \
 		&& ([ -z $$ans ] || [ $$ans = y ] || [ $$ans = Y ]) \
 		&& exit 0 \
 		|| echo "Download of $(AWK) cancelled"; exit 1
@@ -46,14 +43,10 @@ test: test-default \
 	test-connected \
 	test-backticks \
 	test-vars \
-	test-no-vars \
-	_clean-results
+	test-no-vars
 
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
-
-_clean-results:
-	@rm -rf $(TEST_DIR)/result*
 
 ##@
 ##@ ----- Individual tests -----
