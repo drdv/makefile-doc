@@ -97,7 +97,7 @@ test-vars-assign-operators: $(AWK_BIN)/$(AWK)
 ifeq ($(MAKE_HAS_DOUBLE_COLON_EQUAL),1)
 	@$(call run-test,$@,make -s -f Makefile.var-new-operators,AWK=$(AWK))
 else
-	@echo "--> skipping $@ due to GNU Make version: $(MAKE_VERSION_MAJOR)"
+	@echo "--> skipping $@ due to GNU Make version < 4.4.0"
 endif
 
 $(AWK_BIN)/awk:
