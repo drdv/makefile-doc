@@ -1,12 +1,3 @@
-# -------------------------------------------------
-# Tests with Makefile.var should run even on older GNU Make versions, e.g., version 3.81
-# on macos. For this reason there I don't use the following operators:
-# 1. ::= (introduced in GNU Make 4.0.0)
-#    https://lists.gnu.org/archive/html/help-make/2013-10/msg00011.html
-# 2. :::= (introduced in GNU Make 4.4.0)
-#    https://lists.gnu.org/archive/html/help-make/2022-10/msg00020.html
-# -------------------------------------------------
-
 AWK := awk
 
 .PHONY: help

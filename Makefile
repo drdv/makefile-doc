@@ -2,13 +2,6 @@ SHELL := bash
 TEST_DIR := test
 
 UNAME := $(shell uname)
-MAKE_VERSION_MAJOR := $(shell echo $(MAKE_VERSION) | cut -d. -f1)
-MAKE_VERSION_MINOR := $(shell echo $(MAKE_VERSION) | cut -d. -f2)
-# See test/Makefile.var-new-operators
-MAKE_HAS_DOUBLE_COLON_EQUAL := $(shell \
-	[ $(MAKE_VERSION_MAJOR) -ge 4 ] && \
-	[ $(MAKE_VERSION_MINOR) -ge 4 ] && \
-	echo 1 || echo 0)
 
 ## Awk executable to use
 ##  + awk (system's default)
@@ -28,9 +21,9 @@ URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 define run-test
 	diff -u \
 		<(tail -n +4 $(TEST_DIR)/expected_output/$1) \
-		<(cd $(TEST_DIR) && $2 $3) || \
+		<($(AWK_BIN)/$(AWK) -f makefile-doc.awk $2) || \
 	(echo "failed $1"; exit 1)
-	echo "passed $1 ($3)"
+	echo "passed $1 ($(AWK))"
 endef
 
 define verify-download
@@ -64,41 +57,34 @@ clean-bin: ##! remove all downloaded awk varsions
 
 ## test default behavior
 test-default: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s,AWK=$(AWK))
+	@$(call run-test,$@,test/Makefile test/Makefile.inc)
 
 ## test setting DEPRECATED=0
 test-deprecated: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s -f Makefile.inc DEPRECATED=0,AWK=$(AWK))
+	@$(call run-test,$@,-v DEPRECATED=0 test/Makefile.inc)
 
-## test setting PADDING="."
+## test setting PADDING=.
 test-padding: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s -f Makefile.inc PADDING=".",AWK=$(AWK))
+	@$(call run-test,$@,-v PADDING=. test/Makefile.inc)
 
 ## test setting CONNECTED=0
 test-connected: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s -f Makefile.inc CONNECTED=0,AWK=$(AWK))
+	@$(call run-test,$@,-v CONNECTED=0 test/Makefile.inc)
 
 ## test setting COLOR_BACKTICKS=1
 test-backticks: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s -f Makefile.inc COLOR_BACKTICKS=1,AWK=$(AWK))
+	@$(call run-test,$@,-v COLOR_BACKTICKS=1 test/Makefile.inc)
 
 ## test with default VARS=1
 test-vars: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s -f Makefile.var,AWK=$(AWK))
+	@$(call run-test,$@,test/Makefile.var)
 
 ## test with VARS=0
 test-no-vars: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,make -s -f Makefile.var VARS=0,AWK=$(AWK))
+	@$(call run-test,$@,-v VARS=0 test/Makefile.var)
 
-## test variable assignments =, :=, ::=, :::=
-## WARNING: this test would be skipped for GNU Make versions
-##          below 4.4.0 (see test/Makefile.var-new-operators)
 test-vars-assign-operators: $(AWK_BIN)/$(AWK)
-ifeq ($(MAKE_HAS_DOUBLE_COLON_EQUAL),1)
-	@$(call run-test,$@,make -s -f Makefile.var-new-operators,AWK=$(AWK))
-else
-	@echo "--> skipping $@ due to GNU Make version < 4.4.0"
-endif
+	@$(call run-test,$@,test/Makefile.var-new-operators)
 
 $(AWK_BIN)/awk:
 	@mkdir -p $(AWK_BIN)
