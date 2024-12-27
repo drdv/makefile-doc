@@ -13,6 +13,5 @@ awk-deps: $(AWK_BIN)/awk $(AWK_BIN)/nawk $(AWK_BIN)/mawk $(AWK_BIN)/bawk $(AWK_B
 ## reproduce mawk bug 20241225
 ## reported to Thomas E. Dickey <dickey@invisible-island.net>
 mawk-20241225: awk-deps
-	@ln -s $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
+	@ln -fs $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
 	@./reproduce-bug-mawk-20241226.sh
-	@rm $(AWK_BIN)/gawk

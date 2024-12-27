@@ -14,20 +14,20 @@ echo "============================================================"
 printf "string: %s\n" "$string"
 printf " regex: %s\n" "$regex"
 echo "============================================================"
-echo "versions:"
-echo "============================================================"
-printf "[%7s] %s\n" mac-awk "$macosawk_version"
-printf "[%7s] %s\n" gawk "$gawk_version"
-printf "[%7s] %s\n" nawk "$nawk_version"
-printf "[%7s] %s\n" wak "$wak_version"
-printf "[%7s] %s\n" bawk "$bawk_version"
-printf "[%7s] %s\n" mawk "$mawk_version"
-echo "============================================================"
 echo "results:"
 echo "============================================================"
-awk_executables="gawk nawk wak bawk mawk"
-printf "[%7s] %s\n" mac-awk "maybe-bug::" # verified manually
-for awk_current in $awk_executables; do
-    printf "[%7s] %s\n" $awk_current $(echo $string | ./test/bin/$awk_current "/$regex/ { print \$0 }")
+
+declare -A awk_executables
+awk_executables["gawk"]="$gawk_version"
+awk_executables["nawk"]="$nawk_version"
+awk_executables["wak"]="$wak_version"
+awk_executables["bawk"]="$bawk_version"
+awk_executables["mawk"]="$mawk_version"
+
+printf "[%7s %15s] %s\n" "mac-awk" "$macosawk_version" "$string"
+for k in "${!awk_executables[@]}"; do
+    awk="$k"
+    ver="${awk_executables[$k]}"
+    printf "[%7s %15s] %s\n" "$awk" "$ver" $(echo $string | ./test/bin/"$awk" "/$regex/ { print \$0 }")
 done
 echo "============================================================"
