@@ -1,6 +1,4 @@
-#
-# make -s
-#
+# awk -f makefile-doc.awk Makefile
 [35mRedefined docs of target: test-3[0m
 [35mRedefined docs of target: test-10[0m
 -----------------------

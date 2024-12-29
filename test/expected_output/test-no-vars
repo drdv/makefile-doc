@@ -1,6 +1,4 @@
-#
-# make -s -f Makefile.var VARS=0
-#
+# awk -v VARS=0 -f makefile-doc.awk Makefile.var
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,4 @@
-#
-# make -s -f Makefile.var-new-operators
-#
+# awk -f makefile-doc.awk Makefile.var-new-operators
 [35mRedefined docs of variable: a4[0m
 [35mRedefined docs of variable: b4[0m
 [35mRedefined docs of variable: c4[0m

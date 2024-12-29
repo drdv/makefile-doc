@@ -100,7 +100,7 @@ are given in `{...}`, `(.)` shows the default)
   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
   blue is the 34 in `\033[34m`.
 
-Note: running `awk -f makefile-doc.awk` outputs help with values of options.
+**Note**: running `awk -f makefile-doc.awk` outputs help with values of options.
 
 Cloning this repository (at tag `v0.1`) and running `make` outputs:
 ![makefile-doc.awk](img/example.png)

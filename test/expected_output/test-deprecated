@@ -1,6 +1,4 @@
-#
-# make -s -f Makefile.inc DEPRECATED=0
-#
+# awk -v DEPRECATED=0 -f makefile-doc.awk Makefile.inc
 -----------------------
 Available targets:
 -----------------------

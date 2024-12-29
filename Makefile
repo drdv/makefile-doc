@@ -1,8 +1,6 @@
 SHELL := bash
 TEST_DIR := test
 
-UNAME := $(shell uname)
-
 ## Awk executable to use
 ##  + awk (system's default)
 ##  + mawk
@@ -20,7 +18,7 @@ URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 
 define run-test
 	diff -u \
-		<(tail -n +4 $(TEST_DIR)/expected_output/$1) \
+		<(tail -n +2 $(TEST_DIR)/expected_output/$1) \
 		<($(AWK_BIN)/$(AWK) -f makefile-doc.awk $2) || \
 	(echo "failed $1"; exit 1)
 	echo "passed $1 ($(AWK))"
@@ -107,7 +105,7 @@ $(AWK_BIN)/nawk:
 	@cp $@-src/a.out $@
 
 $(AWK_BIN)/bawk:
-ifeq ($(UNAME),Darwin)
+ifeq ($(shell uname),Darwin)
 	@echo "No official version of Busybox awk for macos"
 	@exit 1
 else

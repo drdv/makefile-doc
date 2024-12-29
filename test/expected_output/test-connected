@@ -1,6 +1,4 @@
-#
-# make -s -f Makefile.inc CONNECTED=0
-#
+# awk -v CONNECTED=0 -f makefile-doc.awk Makefile.inc
 -----------------------
 Available targets:
 -----------------------

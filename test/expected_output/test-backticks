@@ -1,6 +1,4 @@
-#
-# make -s -f Makefile.inc COLOR_BACKTICKS=1
-#
+# awk -v COLOR_BACKTICKS=1 -f makefile-doc.awk Makefile.inc
 -----------------------
 Available targets:
 -----------------------

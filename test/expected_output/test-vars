@@ -1,6 +1,4 @@
-#
-# make -s -f Makefile.var
-#
+# awk -f makefile-doc.awk Makefile.var
 [35mRedefined docs of variable: VAR6[0m
 -----------------------
 Available targets:
