@@ -79,26 +79,28 @@ I refer to targets / variables as anchors (for docs/sections).
 ["trailing space characters are not stripped from variable
 value"](https://www.gnu.org/software/make/manual/html_node/Simple-Assignment.html).
 
-## Parameters
+## Options
 
-The following parameters can be passed to `awk` using `-v var=value`
+The following options can be passed to `awk` using `-v option=value` (possible values
+are given in `{...}`, `(.)` shows the default)
 
-+ `VARS`: (default: `1`) Show documented variables, set to 0 to disable.
-+ `PADDING`: (default: `" "`) Padding symbol between anchor name and its docs.
-+ `DEPRECATED`: (default: `1`) If `0`, hide deprecated anchors, show them otherwise.
-+ `OFFSET`: Number of spaces to offset descriptions from anchors (2 by default).
-+ `CONNECTED`: If `1` (the default), docs above an anchor cannot include an empty line.
-  If `0`, docs split by empty lines are joined.
-+ `COLOR_DEFAULT`: (default: blue) Color for anchors whose docs start with `##`.
-+ `COLOR_ATTENTION`: (default: red) Color for anchors whose docs start with `##!`.
-+ `COLOR_DEPRECATED`: (default: yellow) Color for anchors whose docs start with `##%`.
-+ `COLOR_WARNING`: (default: magenta) Color for warnings.
-+ `COLOR_SECTION`: (default: green) Color for sections.
-+ `COLOR_BACKTICKS`: (default: 0, i.e., disabled) used for text in backticks in
-  descriptions, set e.g., to 1 to display it in bold.
+* `VARS`: `{0, (1)}` 1 show documented variables; 0 don't show
+* `PADDING`: `{(" "), ".", ...}` a single padding character between anchors and docs
+* `DEPRECATED`: `{0, (1)}` 1 show deprecated anchors; 0 don't show
+* `OFFSET`: `{0, 1, (2), ...}` number of spaces to offset docs from anchors
+* `CONNECTED`: `{0, (1)}` 1 ignore docs followed by an empty line; 0 join them
++ Colors:
+  + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`
+  + `COLOR_ATTENTION`: (`31`: red) for anchors whose docs start with `##!`
+  + `COLOR_DEPRECATED`: (`33`: yellow) for anchors whose docs start with `##%`
+  + `COLOR_WARNING`: (`35`: magenta) for warnings
+  + `COLOR_SECTION`: (`32`: green) for sections
+  + `COLOR_BACKTICKS`: (`0`, disabled) used for text in backticks in docs
 
-Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
-blue is the 34 in `\033[34m`.
+  Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
+  blue is the 34 in `\033[34m`.
+
+Note: running `awk -f makefile-doc.awk` outputs help with values of options.
 
 Cloning this repository (at tag `v0.1`) and running `make` outputs:
 ![makefile-doc.awk](img/example.png)

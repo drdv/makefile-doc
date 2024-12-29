@@ -1,72 +1,48 @@
-# --------------------------------------------------------------------------------------
-# Awk script for Makefile docs (https://github.com/drdv/makefile-doc)
+# Generate docs for Makefile variables and targets
 #
-# ========================================================
-# How to use (see the tests for more examples):
-# ========================================================
+#    File: makefile-doc.awk
+#  Author: Dimitar Dimitrov
+# License: Apache-2.0
+# Project: https://github.com/drdv/makefile-doc
+# Version: FIXME
 #
-# VAR = 1 ## doc of a CLA variable the user might want to know about
+# Usage (see project README.md for more details):
+#   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 #
-# ## show this help
-# ## can have multi-line description above a target or variable
-# ## the AWKPATH env variable should be set for makefile-doc.awk to be found
-# help:
-# 	@awk -f makefile-doc.awk $(MAKEFILE_LIST)
+# Options (set using -v option=value, possible values given in {...}, (.) is default):
+#   * VARS: {0, (1)} 1 show documented variables; 0 don't show
+#   * PADDING: {(" "), ".", ...} a single padding character between anchors and docs
+#   * DEPRECATED: {0, (1)} 1 show deprecated anchors; 0 don't show
+#   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
+#   * CONNECTED: {0, (1)} 1 ignore docs followed by an empty line; 0 join them
+#   * see as well the color codes below
 #
-# another-target: ## An inline description (displayed if there are no top descriptions)
-# 	@...
+# Notes:
+#   * In the code, the term anchor is used to refer to Makefile targets / variables.
+#   * Docs can be placed above an anchor or inline (the latter is discarded if the
+#     former is present).
+#   * Anchor docs can start with the following tokens:
+#      * ##  default anchors (displayed in COLOR_DEFAULT)
+#      * ##! special anchors (displayed in COLOR_ATTENTION)
+#      * ##% deprecated anchor (displayed in COLOR_DEPRECATED)
+#      * ##@ section (displayed in COLOR_SECTION)
 #
-# ========================================================
-# Notes
-# ========================================================
-# I refer to targets / variables as anchors (for docs/sections).
+# Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
+#   * COLOR_DEFAULT: (34) blue
+#   * COLOR_ATTENTION: (31) red
+#   * COLOR_DEPRECATED: (33) yellow
+#   * COLOR_SECTION: (32) green
+#   * COLOR_WARNING: (35) magenta -- used for warnings
+#   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
-# The inline description of an anchor is ignored if there are descriptions above it.
+#   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
+#   for blue is the 34 in `\033[34m`.
 #
-# An anchor is displayed in:
-#   COLOR_DEFAULT    if its description starts with ##
-#   COLOR_ATTENTION  if its description starts with ##!
-#   COLOR_DEPRECATED if its description starts with ##%
-#
-# In the code, I follow the convention that the name of a variable to which an
-# assignment is made in a function should end with _local (because AWK is a bit special
-# in that respect).
-#
-# ========================================================
-# Command-line arguments (set using -v var=value)
-# ========================================================
-# VARS: if 1 (the default) show documented variables, set to 0 to disable (in which
-#       case, documented variables are still processed but not displayed)
-#
-# PADDING: the value should be a single character, the default is space,
-#          (to use e.g., a dot instead, pass -v PADDING=".")
-#
-# DEPRECATED: if 0, hide deprecated anchors, show them otherwise (the default)
-#
-# OFFSET: number of spaces to offset descriptions from anchors (2 by default)
-#
-# CONNECTED: if 1 (the default) ignore descriptions followed by an empty line
-#
-# COLOR_DEFAULT: 34 (blue) by default
-#
-# COLOR_ATTENTION: 31 (red) by default
-#
-# COLOR_DEPRECATED: 33 (yellow) by default
-#
-# COLOR_WARNING: 35 (magenta) by default -- used for warnings
-#
-# COLOR_SECTION: 32 (green) by default -- used for sections
-#
-# COLOR_BACKTICKS: 0 (i.e., disabled) by default -- used for text in backticks in
-#                  descriptions, set e.g., to 1 to display it in bold
-#
-# Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
-# blue is the 34 in `\033[34m`.
-# --------------------------------------------------------------------------------------
+# Code conventions:
+#   * Variables in a function, to which an assignment is made, should have names ending
+#     in _local (because AWK is a bit special in that respect).
+#   * Compatibility: the code is meant to run with all major awk implementations.
 
-# ========================================================
-# Utility functions
-# ========================================================
 function max(var1, var2) {
   if (var1 >= var2) {
     return var1
@@ -361,7 +337,31 @@ function initialize_colors() {
   COLOR_RESET_CODE = ansi_color(0)
 }
 
-# ========================================================
+# It would be nice to extract the options from the docstring of this script (there could
+# be some sort of prefix before each option). Unfortunately, I can get the script passed
+# with the -f flag only using gawk (so, names of options are hard-coded in print_help):
+# for (indx_local in PROCINFO["argv"]) {
+#   if (PROCINFO["argv"][indx_local] == "-f") {
+#     printf PROCINFO["argv"][indx_local + 1]
+#   }
+# }
+function print_help() {
+    print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
+    print "Description: Generate docs for Makefile variables and targets"
+    print "Options:"
+    printf "  VARS: %s\n", VARS
+    printf "  PADDING: \"%s\"\n", PADDING
+    printf "  DEPRECATED: %s\n", DEPRECATED
+    printf "  OFFSET: %s\n", OFFSET
+    printf "  CONNECTED: %s\n", CONNECTED
+    printf "  COLORS: "
+    printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
+    printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
+    printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
+    printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
+    printf "%sWARNING%s, ", COLOR_WARNING_CODE, COLOR_RESET_CODE
+    printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
+}
 
 # Initialize global variables.
 BEGIN {
@@ -376,6 +376,11 @@ BEGIN {
   CONNECTED = CONNECTED == "" ? 1 : CONNECTED
   if (length(PADDING) != 1) {
     printf("%sPADDING should have length 1%s\n", COLOR_WARNING_CODE, COLOR_RESET_CODE)
+    exit 1
+  }
+
+  if (ARGC == 1) {
+    print_help()
     exit 1
   }
 
