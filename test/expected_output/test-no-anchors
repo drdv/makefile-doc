@@ -1,0 +1,2 @@
+# awk -v VARS=0 -f makefile-doc.awk Makefile.vars-2
+There are no documented targets/variables.
