@@ -1,7 +1,7 @@
 # Awk script for Makefile docs
 
 The `makefile-doc.awk` is a POSIX-compliant extension of a simple `awk` one-liner I have
-been using for years (I think it was based on [this
+been using for years (it was based on [this
 gist](https://gist.github.com/prwhite/8168133)). I simply needed a bit more
 functionality and this turned out to be a nice small project with Awk.
 
@@ -73,6 +73,10 @@ I refer to targets / variables as anchors (for docs/sections).
   targets are displayed using the format `target-name:target-index` and for each index
   there can be a dedicated documentation.
 
+* [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
+  targets are displayed with a `&` at the end, e.g., `t1 t2 t3&`. Double-colon grouped
+  targets are handled as well.
+
 + See `test/Makefile*` for examples.
 
 **Note**: in general, using inline comments with variables is not a good idea because
@@ -100,14 +104,14 @@ are given in `{...}`, `(.)` shows the default)
   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
   blue is the 34 in `\033[34m`.
 
-**Note**: running `awk -f makefile-doc.awk` outputs help with values of options.
+Running `awk -f makefile-doc.awk` outputs help with values of options.
 
 Cloning this repository (at tag `v0.1`) and running `make` outputs:
 ![makefile-doc.awk](img/example.png)
 
 ## Dependencies
 
-+ `awk`, tested with:
++ `awk`, tested with (on fedora, ubuntu, macos):
   + [gawk](https://www.gnu.org/software/gawk) `5.2.2`, `5.1.0` (with `--posix` flag)
   + [nawk](https://github.com/onetrueawk/awk) tag `20240728`
   + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905` (with  `-W posix` flag)
@@ -122,7 +126,8 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 
 + `make test AWK=mawk`
 + `make test AWK=nawk`
-+ ...
++ `make test AWK=bawk` (not available for macos)
++ `make test AWK=wak`
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of
 the tests.

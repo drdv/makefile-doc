@@ -44,7 +44,8 @@ test: test-default \
 	test-backticks \
 	test-vars \
 	test-no-vars \
-	test-vars-assign-operators
+	test-vars-assignment \
+	test-no-anchors
 
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
@@ -75,14 +76,17 @@ test-backticks: $(AWK_BIN)/$(AWK)
 
 ## test with default VARS=1
 test-vars: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,test/Makefile.var)
+	@$(call run-test,$@,test/Makefile.vars-1)
 
 ## test with VARS=0
 test-no-vars: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v VARS=0 test/Makefile.var)
+	@$(call run-test,$@,-v VARS=0 test/Makefile.vars-1)
 
-test-vars-assign-operators: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,test/Makefile.var-new-operators)
+test-vars-assignment: $(AWK_BIN)/$(AWK)
+	@$(call run-test,$@,test/Makefile.vars-2)
+
+test-no-anchors: $(AWK_BIN)/$(AWK)
+	@$(call run-test,$@,-v VARS=0 test/Makefile.vars-2)
 
 $(AWK_BIN)/awk:
 	@mkdir -p $(AWK_BIN)

@@ -4,7 +4,7 @@
 #  Author: Dimitar Dimitrov
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
-# Version: FIXME
+# Version: v0.4
 #
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
@@ -422,6 +422,10 @@ BEGIN {
   split("", DISPLAY_PARAMS)
 }
 
+FNR == 1 {
+  number_of_files_processed++
+}
+
 # Capture the line if it is a description (but not section).
 /^ *##[^@]/ {
   description_string = $0
@@ -458,7 +462,7 @@ BEGIN {
 #
 # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
 #
-/^ *\${0,1}[^.#][ a-zA-Z0-9_\/%.(){}-]* *(:|::)( |$)/ {
+/^ *\${0,1}[^.#][ a-zA-Z0-9_\/%.(){}-]* *&?(:|::)( |$)/ {
   # look for inline descriptions only if there aren't any descriptions above the target
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
@@ -466,6 +470,11 @@ BEGIN {
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
     target_name = $1
+
+    # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
+    # for the reason to use \\&, see AWK's Gory-Details!
+    # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
+    sub(/ *&/, "\\&", target_name)
     if ($0 ~ "::") {
       target_name = sprintf("[%s]:%s",
                             target_name,
@@ -523,8 +532,7 @@ END {
   }
 
   # process variables
-  # FIXME: in the case when all variables are deprecated and DEPRECATED = 0, then
-  # max_variable_length > 0 but no variables would be displayed (just a header)
+  # When all variables are deprecated and DEPRECATED = 0, just a header is displayed.
   if (max_variable_length > 0 && VARS) {
     printf("\n%s\n%s\n%s\n", separator, HEADER_VARIABLES, separator)
     for (indx = 1; indx <= length_array_posix(VARIABLES); indx++) {
@@ -536,5 +544,11 @@ END {
       display_anchor_with_data(variable, description, section, max_anchor_length)
     }
   }
-  printf("%s\n", separator)
+  if (max_target_length > 0 || (max_variable_length > 0 && VARS)) {
+    printf("%s\n", separator)
+  } else {
+    if (number_of_files_processed > 0) {
+      print("There are no documented targets/variables.")
+    }
+  }
 }

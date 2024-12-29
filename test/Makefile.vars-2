@@ -1,8 +1,6 @@
-AWK := awk
-
-.PHONY: help
-help: ## show this help
-	@bin/$(AWK) -f ../makefile-doc.awk $(MAKEFILE_LIST)
+# ======================================================================================
+# Test assignment operators =, :=, ::=, :::=
+# ======================================================================================
 
 ##@
 ##@ ----- recursive assignments

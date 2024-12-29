@@ -1,10 +1,9 @@
-# awk -v VARS=0 -f makefile-doc.awk Makefile.var
+# awk -v VARS=0 -f makefile-doc.awk Makefile.vars-1
 -----------------------
 Available targets:
 -----------------------
-[34mhelp   [0m   show this help
 [32m
  ----- This section in anchored on a target -----
 [0m
-[33mtest-10[0m   some target
+[33msome-target[0m   some target (that will comsume the above section)
 -----------------------

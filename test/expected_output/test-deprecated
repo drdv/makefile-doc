@@ -2,14 +2,6 @@
 -----------------------
 Available targets:
 -----------------------
-[34mhelp              [0m   associate this with the help target (and not `.PHONY`)
-                     second line in the description of the target help
-[32m
- ----- Double-column targets -----
-[0m
-[34mdouble-colon-A:1  [0m   This is the first double-colon target from group A
-                     It has two lines of description
-[31mdouble-colon-B:1  [0m   group B first documented
-[34mdouble-colon-B:2  [0m   group B second documented
-[34mdouble-colon-A:2  [0m   This is the second double-colon target from group A
+[34mhelp   [0m   associate this with the help target (and not `.PHONY`)
+          second line in the description of the target help
 -----------------------
