@@ -15,11 +15,13 @@ AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 
+# using $1 instead of $(AWK) is necessary for a target like
+# deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
 define verify-download
-	read -p "Download and build $(AWK) [Y/n]: " ans \
+	read -p "Download and build $1 [Y/n]: " ans \
 		&& ([ -z $$ans ] || [ $$ans = y ] || [ $$ans = Y ]) \
 		&& exit 0 \
-		|| echo "Download of $(AWK) cancelled"; exit 1
+		|| echo "Download of $1 cancelled"; exit 1
 endef
 
 ## show this help
@@ -67,7 +69,7 @@ $(AWK_BIN)/awk:
 
 $(AWK_BIN)/mawk: URL := invisible-island.net/datafiles/release/mawk.tar.gz
 $(AWK_BIN)/mawk:
-	@$(call verify-download)
+	@$(call verify-download,mawk)
 	@wget -P $(AWK_BIN) $(URL)
 	@mkdir -p $@-src
 	@tar xvf $(AWK_BIN)/mawk.tar.gz -C $@-src --strip-components=1
@@ -76,7 +78,7 @@ $(AWK_BIN)/mawk:
 
 $(AWK_BIN)/nawk: URL := github.com/onetrueawk/awk/archive/refs/tags/20240728.tar.gz
 $(AWK_BIN)/nawk:
-	@$(call verify-download)
+	@$(call verify-download,nawk)
 	@wget -P $(AWK_BIN) $(URL)
 	@mkdir -p $@-src
 	@tar xvf $(AWK_BIN)/20240728.tar.gz -C $@-src --strip-components=1
@@ -86,17 +88,17 @@ $(AWK_BIN)/nawk:
 $(AWK_BIN)/bawk: URL := busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
 $(AWK_BIN)/bawk:
 ifeq ($(shell uname),Darwin)
-	@echo "No official version of Busybox awk for macos"
+	@echo "Busybox awk binaries not available for macos"
 	@exit 1
 else
-	@$(call verify-download)
+	@$(call verify-download,bawk)
 	@wget -P $(AWK_BIN) $(URL)
 	@mv $(AWK_BIN)/busybox_AWK $@ && chmod +x $@
 endif
 
 $(AWK_BIN)/wak: URL := github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 $(AWK_BIN)/wak:
-	@$(call verify-download)
+	@$(call verify-download,wak)
 	@wget -P $(AWK_BIN) $(URL)
 	@mkdir -p $@-src
 	@tar xvf $(AWK_BIN)/v24.10.tar.gz -C $@-src --strip-components=1
