@@ -13,11 +13,12 @@ Define the first target of your `Makefile` (or if it is not the first target, se
 `.DEFAULT_GOAL := help`) as:
 
 ``` make
-help: DIR := $(HOME)/.local/share/makefile-doc
 help: URL := github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
+help: DIR := $(HOME)/.local/share/makefile-doc
+help: SCR := $(DIR)/makefile-doc.awk
 help: ## show this help
-	@test -f $(DIR)/makefile-doc.awk || wget -q -P $(DIR) $(URL)
-	@awk -f $(DIR)/makefile-doc.awk $(MAKEFILE_LIST)
+	@test -f $(SCR) || wget -q -P $(DIR) $(URL)
+	@awk -f $(SCR) $(MAKEFILE_LIST)
 ```
 
 This will download the awk script on the fly (if it doesn't exist in
