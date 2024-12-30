@@ -2,7 +2,6 @@ SHELL := bash
 TEST_DIR := test
 TEST_RECIPES := $(TEST_DIR)/recipes
 
-## names of tests
 TESTS := $(notdir $(wildcard $(TEST_RECIPES)/*))
 
 ## awk executable to use:
