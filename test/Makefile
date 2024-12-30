@@ -80,6 +80,16 @@ $(TARGET-NAME): ## target stored in a variable
 ## doesn't have access to the value of TARGET-NAME.
 ${TARGET-NAME}:
 
+$(t1) ${t2} t3: ## bug from issue #12
+
+define canned-recipes
+## documentation of a family of targets (with two parameters)
+##  + $1: month {jan, ..., dec}
+##  + $2: country code {fr, bg, jp, ...}
+result-$(1)-$2.html: data-$1.toml data_handler.py
+        python data_handler.py --important-flag $2 data-$1.toml
+endef
+
 ## target with spaces before and after
   target-with-spaces  :
 
