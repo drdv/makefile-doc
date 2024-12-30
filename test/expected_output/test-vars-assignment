@@ -1,4 +1,4 @@
-# awk -f makefile-doc.awk Makefile.vars-2
+> test/Makefile.vars-2
 [35mRedefined docs of variable: a4[0m
 [35mRedefined docs of variable: b4[0m
 [35mRedefined docs of variable: c4[0m

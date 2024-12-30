@@ -1,7 +1,18 @@
 SHELL := bash
 TEST_DIR := test
 
-## Awk executable to use
+## names of tests
+TESTS := test-deprecated \
+	test-default \
+	test-padding \
+	test-connected \
+	test-backticks \
+	test-vars \
+	test-no-vars \
+	test-vars-assignment \
+	test-no-anchors
+
+## awk executable to use:
 ##  + awk (system's default)
 ##  + mawk
 ##  + nawk
@@ -17,9 +28,12 @@ URL_BUSYBOX_AWK := https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linu
 URL_WAK := https://github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
 
 define run-test
+# both the command and the expected results are stored in test/expected_output/$1
+# the command is assumed to be on the first line
+	$(eval CMD := $$(shell head -n 1 $(TEST_DIR)/expected_output/$1))
 	diff -u \
 		<(tail -n +2 $(TEST_DIR)/expected_output/$1) \
-		<($(AWK_BIN)/$(AWK) -f makefile-doc.awk $2) || \
+		<($(AWK_BIN)/$(AWK) -f makefile-doc.awk $(CMD:>=)) || \
 	(echo "failed $1"; exit 1)
 	echo "passed $1 ($(AWK))"
 endef
@@ -37,15 +51,7 @@ help: $(AWK_BIN)/$(AWK)
 
 ## run all tests
 .PHONY: test
-test: test-default \
-	test-deprecated \
-	test-padding \
-	test-connected \
-	test-backticks \
-	test-vars \
-	test-no-vars \
-	test-vars-assignment \
-	test-no-anchors
+test: $(TESTS)
 
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
@@ -54,39 +60,24 @@ clean-bin: ##! remove all downloaded awk varsions
 ##@ ----- Individual tests -----
 ##@
 
-## test default behavior
-test-default: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,test/Makefile test/Makefile.inc)
+## multiple individual test targets:
+$(TESTS): $(AWK_BIN)/$(AWK)
+	@$(call run-test,$@)
 
-## test setting DEPRECATED=0
-test-deprecated: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v DEPRECATED=0 test/Makefile.inc)
+# add docs
+test-default:         ##  + test default behavior
+test-deprecated:      ##  + test setting `DEPRECATED=0`
+test-padding:         ##  + test setting `PADDING=.`
+test-connected:       ##  + test setting `CONNECTED=0`
+test-backticks:       ##  + test setting `COLOR_BACKTICKS=1`
+test-vars:            ##  + test with default `VARS=1`
+test-no-vars:         ##  + test with `VARS=0`
+test-vars-assignment: ##  + test variable assignments
+test-no-anchors:      ##  + test no anchors
 
-## test setting PADDING=.
-test-padding: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v PADDING=. test/Makefile.inc)
-
-## test setting CONNECTED=0
-test-connected: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v CONNECTED=0 test/Makefile.inc)
-
-## test setting COLOR_BACKTICKS=1
-test-backticks: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v COLOR_BACKTICKS=1 test/Makefile.inc)
-
-## test with default VARS=1
-test-vars: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,test/Makefile.vars-1)
-
-## test with VARS=0
-test-no-vars: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v VARS=0 test/Makefile.vars-1)
-
-test-vars-assignment: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,test/Makefile.vars-2)
-
-test-no-anchors: $(AWK_BIN)/$(AWK)
-	@$(call run-test,$@,-v VARS=0 test/Makefile.vars-2)
+# ----------------------------------------------------
+# Targets for downloading various awk implementations
+# ----------------------------------------------------
 
 $(AWK_BIN)/awk:
 	@mkdir -p $(AWK_BIN)

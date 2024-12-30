@@ -13,14 +13,15 @@ Define the first target of your `Makefile` (or if it is not the first target, se
 `.DEFAULT_GOAL := help`) as:
 
 ``` make
+help: DIR := $(HOME)/.local/share/makefile-doc
+help: URL := github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
 help: ## show this help
-	@test -f .external/makefile-doc.awk || \
-	wget --quiet -P .external github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
-	@awk -f .external/makefile-doc.awk $(MAKEFILE_LIST)
+	@test -f $(DIR)/makefile-doc.awk || wget --quiet -P $(DIR) $(URL)
+	@awk -f $(DIR)/makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
-This will download the awk script on the fly (if it doesn't exist in `.external`). As an
-alternative of `wget` you could use `curl`:
+This will download the awk script on the fly (if it doesn't exist in
+`~/.local/share/makefile-doc`). As an alternative of `wget` you could use `curl`:
 
 ```
 curl -sLO --create-dirs --output-dir .external github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
@@ -122,11 +123,11 @@ Cloning this repository (at tag `v0.1`) and running `make` outputs:
 ## Running the tests
 
 Execute `make test` (this uses the system's default `awk`). To test with a custom
-`awk`, use:
+`awk`, use (you need a standard build environment):
 
 + `make test AWK=mawk`
 + `make test AWK=nawk`
-+ `make test AWK=bawk` (not available for macos)
++ `make test AWK=bawk` (binaries not available for macos)
 + `make test AWK=wak`
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of
