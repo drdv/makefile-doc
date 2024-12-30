@@ -1,4 +1,4 @@
-# awk -v PADDING=. -f makefile-doc.awk Makefile.inc
+> -v PADDING=. test/Makefile.inc
 -----------------------
 Available targets:
 -----------------------
