@@ -1,7 +1,7 @@
 # Awk script for Makefile docs
 
-The `makefile-doc.awk` is a POSIX-compliant extension of a simple `awk` one-liner I have
-been using for years (it was based on [this
+The `makefile-doc.awk` script is a POSIX-compliant extension of a simple `awk` one-liner
+I have been using for years (it was based on [this
 gist](https://gist.github.com/prwhite/8168133)). I simply needed a bit more
 functionality and this turned out to be a nice small project with Awk.
 
@@ -16,7 +16,7 @@ Define the first target of your `Makefile` (or if it is not the first target, se
 help: DIR := $(HOME)/.local/share/makefile-doc
 help: URL := github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
 help: ## show this help
-	@test -f $(DIR)/makefile-doc.awk || wget --quiet -P $(DIR) $(URL)
+	@test -f $(DIR)/makefile-doc.awk || wget -q -P $(DIR) $(URL)
 	@awk -f $(DIR)/makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
@@ -24,7 +24,7 @@ This will download the awk script on the fly (if it doesn't exist in
 `~/.local/share/makefile-doc`). As an alternative of `wget` you could use `curl`:
 
 ```
-curl -sLO --create-dirs --output-dir .external github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
+curl -sLO --create-dirs --output-dir $(DIR) $(URL)
 ```
 
 ### Manual installation
