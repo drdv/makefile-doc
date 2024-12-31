@@ -1,67 +1,115 @@
 # ======================================================================================
-# Test assignment operators =, :=, ::=, :::=
+# Test assignment operators =, :=, ::=, :::=, !=, ?=, +=
 # ======================================================================================
 
 ##@
 ##@ ----- recursive assignments
 ##@
 
-## recursive assignment 1
+## case 1
 a1 = 1
 
-## recursive assignment 2
+## case 2
 a2=1
 
-   a3=1## recursive assignment inline
+   a3=1## case 3
 
-a4=1 ##another recursive assignment inline
+a4=1 ##case 4
 
-  a4  = $(a3) ##%    recursive assignment -- a mess
+  a4  = $(a3) ##%    case 5
 
 ##@
 ##@ ----- simply expanded variables with :=
 ##@
 
-## simply expanded variable 1
+## case 1
 b1 := 1
 
-## simply expanded variable 1
+## case 2
 b2:=1
 
-   b3:=1## simply expanded variable inline
+   b3:=1## case 3
 
-b4:=1 ##another simply expanded variable inline
+b4:=1 ##case 4
 
-  b4  := $(b3) ##%    simply expanded -- a mess
+  b4  := $(b3) ##%    case 5
 
 ##@
 ##@ ----- simply expanded variables with ::=
 ##@
 
-## simply expanded variable 1
+## case 1
 c1 ::= 1
 
-## simply expanded variable 1
+## case 2
 c2::=1
 
-   c3::=1## simply expanded variable inline
+   c3::=1## case 3
 
-c4::=1 ##another simply expanded variable inline
+c4::=1 ##case 4
 
-  c4  ::= $(c3) ##%    simply expanded -- a mess
+  c4  ::= $(c3) ##%    case 5
 
 ##@
 ##@ ----- immediately expanded variable
 ##@
 
-## immediately expanded variable 1
+## case 1
 d1 :::= 1
 
-## immediately expanded variable 1
+## case 2
 d2:::=1
 
-   d3:::=1## immediately expanded variable inline
+   d3:::=1## case 3
 
-d4:::=1 ##another immediately expanded variable inline
+d4:::=1 ##case 4
 
-  d4  :::= $(d3) ##%    immediately expanded -- a mess
+  d4  :::= $(d3) ##%    case 5
+
+##@
+##@ ----- shell assignment
+##@
+
+## case 1
+e1 != 1
+
+## case 2
+e2!=1
+
+   e3!=1## case 3
+
+e4!=1 ##case 4
+
+  e4  != $(e3) ##%    case 5
+
+##@
+##@ ----- conditional assignment
+##@
+
+## case 1
+f1 ?= 1
+
+## case 2
+f2?=1
+
+   f3?=1## case 3
+
+f4?=1 ##case 4
+
+  f4  ?= $(f3) ##%    case 5
+
+##@
+##@ ----- append assignment
+##@
+
+## case 1
+g1 += 1
+
+## case 2
+g2+=1
+
+   g3+=1## case 3
+
+g4+=1 ##case 4
+
+  g4  += $(g3) ##%    case 5
