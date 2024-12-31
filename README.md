@@ -138,4 +138,4 @@ the tests.
 
 ## Limitations
 
-See issue #15.
+See [#15](/../../issues/15).
