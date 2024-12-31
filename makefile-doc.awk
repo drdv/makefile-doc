@@ -87,7 +87,7 @@ function parse_inline_descriptions(whole_line_string) {
 }
 
 function parse_variable_name(whole_line_string) {
-  split(whole_line_string, array_whole_line, "(=|:=|::=|:::=)")
+  split(whole_line_string, array_whole_line, ASSIGNMENT_OPERATORS_PATTERN)
   variable_name_local = array_whole_line[1]
   sub(/[ ]+/, "", variable_name_local)
   return variable_name_local
@@ -102,8 +102,9 @@ function associate_data_with_anchor(anchor_name,
   if (anchor_name in anchors_description_data) {
     # omit variable related warnings when they are not displayed
     if (anchor_type != "variable" || VARS) {
-      printf("%sRedefined docs of %s: %s%s\n",
+      printf("%s[%s] redefined docs of %s: %s%s\n",
              COLOR_WARNING_CODE,
+             FILENAME,
              anchor_type,
              anchor_name,
              COLOR_RESET_CODE)
@@ -120,8 +121,9 @@ function associate_data_with_anchor(anchor_name,
   # note that section data is associated only with documented anchors
   if (length_array_posix(SECTION_DATA) > 0) {
     if (anchor_name in anchors_section_data) {
-      printf("%sRedefining associated section data: %s%s\n",
+      printf("%s[%s] redefining associated section data: %s%s\n",
              COLOR_WARNING_CODE,
+             FILENAME,
              anchor_name,
              COLOR_RESET_CODE)
     }
@@ -262,7 +264,10 @@ function update_display_parameters(description) {
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
-    printf("Something went wrong! %s", description)
+    printf("%sUnknown error (we should never be here): %s%s\n",
+           COLOR_WARNING_CODE,
+           description,
+           COLOR_RESET_CODE)
     exit 1
   }
 }
@@ -366,6 +371,7 @@ function print_help() {
 # Initialize global variables.
 BEGIN {
   FS = ":" # set the field separator
+  ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
 
   initialize_colors()
 
@@ -424,6 +430,12 @@ BEGIN {
 
 FNR == 1 {
   number_of_files_processed++
+  if (files_processed) {
+    files_processed = files_processed " " FILENAME
+  } else {   # I don't want an extra space before or after (affects the diff)
+    files_processed = FILENAME
+  }
+
 }
 
 # Capture the line if it is a description (but not section).
@@ -493,8 +505,9 @@ FNR == 1 {
 # Process variable, whose name
 #  1. may start with spaces
 #  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
-#  3. can be followed by spaces and one of four assignment operators =, :=, ::=, :::=
-/^ *[^.#][a-zA-Z0-9_-]* *(=|:=|::=|:::=)/ {
+#  3. can be followed by spaces and one of the assignment operators, see
+#     ASSIGNMENT_OPERATORS_PATTERN
+$0 ~ "^ *[^.#][a-zA-Z0-9_-]* *" ASSIGNMENT_OPERATORS_PATTERN {
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }
@@ -548,7 +561,7 @@ END {
     printf("%s\n", separator)
   } else {
     if (number_of_files_processed > 0) {
-      print("There are no documented targets/variables.")
+      printf("There are no documented targets/variables in %s\n", files_processed)
     }
   }
 }

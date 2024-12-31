@@ -1,5 +1,7 @@
 # Awk script for Makefile docs
 
+[![CI](https://github.com/drdv/makefile-doc/actions/workflows/main.yml/badge.svg)](https://github.com/drdv/makefile-doc/actions/workflows/main.yml)
+
 The `makefile-doc.awk` script is a POSIX-compliant extension of a simple `awk` one-liner
 I have been using for years (it was based on [this
 gist](https://gist.github.com/prwhite/8168133)). I simply needed a bit more
@@ -133,3 +135,7 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of
 the tests.
+
+## Limitations
+
+See issue #15.
