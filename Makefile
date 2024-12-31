@@ -34,6 +34,16 @@ test: $(TESTS)
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
 
+## create github release at latest tag
+release: LATEST_TAG := $(shell git describe --tags)
+release: RELEASE_NOTES := release_notes.md
+release:
+	@test -f $($(RELEASE_NOTES)) && \
+	gh release create $(LATEST_TAG) makefile-doc.awk \
+		--generate-notes \
+		--notes-file release_notes.md -t '$(LATEST_TAG)' || \
+	echo "No file $(RELEASE_NOTES)"
+
 ##@
 ##@ ----- Individual tests -----
 ##@
