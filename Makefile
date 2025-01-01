@@ -23,17 +23,24 @@ define verify-download
 		|| echo "Download of $1 cancelled"; exit 1
 endef
 
+.PHONY: help
 ## show this help
 help: $(AWK_BIN)/$(AWK)
 	@$< $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
-## run all tests
 .PHONY: test
+## run all tests
 test: $(TESTS)
 
+.PHONY: test-all-awk
+## run all tests with all awk versions
+test-all-awk: ; $(foreach X,awk mawk nawk bawk wak,$(MAKE) test AWK=$(X);)
+
+.PHONY: clean-bin
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
 
+.PHONY: release
 ## create github release at latest tag
 release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
@@ -48,12 +55,15 @@ release:
 ##@ ----- Individual tests -----
 ##@
 
+.PHONY: test-default test-deprecated test-padding test-connected test-backticks \
+	test-vars test-no-vars test-vars-assignment test-no-anchors
+
 ## multiple individual test targets:
 $(TESTS): $(AWK_BIN)/$(AWK)
 	@$(eval CMD_LINE := $$(shell head -n 1 $(TEST_RECIPES)/$@))
 	@diff -u \
 		<(tail -n +2 $(TEST_RECIPES)/$@) \
-		<($(AWK_BIN)/$(AWK) -f makefile-doc.awk $(CMD_LINE:>=)) || \
+		<($< -f makefile-doc.awk $(CMD_LINE:>=)) || \
 	(echo "failed $@"; exit 1)
 	@echo "passed $@ ($(AWK))"
 
