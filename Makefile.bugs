@@ -26,4 +26,7 @@ mawk-20250102: awk-deps
 ## reproduce GNU Make (potential) bug 20250102
 ## execute using: make -f Makefile.bugs make-20250102
 make-20250102:
-	@$(MAKE) -f reproduce-bug-make-20250102.mk
+	@$(MAKE) -f reproduce-bug-make-20250102.mk with-target-specific-variable
+	@$(MAKE) -f reproduce-bug-make-20250102.mk with-target-specific-override-variable FOO=123
+	@$(MAKE) -f reproduce-bug-make-20250102.mk without-target-specific-variable
+	@$(MAKE) -f reproduce-bug-make-20250102.mk info
