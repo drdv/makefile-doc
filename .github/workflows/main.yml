@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - reproduce-bugs
+      - main # disable for the moment
 
 jobs:
   build:

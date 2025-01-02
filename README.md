@@ -1,4 +1,4 @@
-# This branch reproduces some bugs I've found
+# Reproduction of some bugs I've found
 
 + help: `make -f Makefile.bugs MAKEFILE_LIST=Makefile.bugs`
 + bug `mawk-20241225`: `yes | make -f Makefile.bugs mawk-20241225`
