@@ -17,6 +17,8 @@ mawk-20241225: awk-deps
 	@ln -fs $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
 	@./reproduce-bug-mawk-20241226.sh
 
+## reproduce mawk bug 20250102
+## execute using: yes | make -f Makefile.bugs mawk-20250102
 mawk-20250102: awk-deps
 	@ln -fs $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
 	@./reproduce-bug-mawk-20250102.sh
