@@ -106,7 +106,8 @@ function parse_variable_name(whole_line_string) {
   for (indx_local=1;
        indx_local<=length_array_posix(ARRAY_OF_VARIABLE_QUALIFIERS);
        indx_local++) {
-    sub(ARRAY_OF_VARIABLE_QUALIFIERS[indx_local], "", variable_name_local)
+    # use gsub to strip multiple occurrences of a qualifier
+    gsub(ARRAY_OF_VARIABLE_QUALIFIERS[indx_local], "", variable_name_local)
   }
   sub(/[ ]+/, "", variable_name_local)
   return variable_name_local
