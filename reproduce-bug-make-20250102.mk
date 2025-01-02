@@ -6,18 +6,27 @@ $(info [2] BAR: $(BAR)) # OK
 FOO += v3
 $(info [3] BAR: $(BAR)) # OK
 
-with-target-specific-variable: override FOO += v41
-with-target-specific-variable:
-	$(info ------ with-target-specific-variable ------ )
+with-target-specific-variable-append: override FOO += v41
+with-target-specific-variable-append:
+	$(info ------ with-target-specific-variable-append ------ )
 	@echo "[4] BAR: $(BAR)" # OK
 	@$(eval FOO += v51)
 	@echo "[5] BAR: $(BAR)" # not what I expect to see
 	@$(eval FOO := v61)
 	@echo "[6] BAR: $(BAR)" # not what I expect to see
 
-with-target-specific-override-variable: override FOO += v41
-with-target-specific-override-variable:
-	$(info ------ with-target-specific-override-variable ------ )
+with-target-specific-override-variable-append: override FOO += v41
+with-target-specific-override-variable-append:
+	$(info ------ with-target-specific-override-variable-append ------ )
+	@echo "[4] BAR: $(BAR)" # OK
+	@$(eval FOO += v51)
+	@echo "[5] BAR: $(BAR)" # not what I expect to see
+	@$(eval FOO := v61)
+	@echo "[6] BAR: $(BAR)" # not what I expect to see
+
+with-target-specific-variable-set: FOO := v41
+with-target-specific-variable-set:
+	$(info ------ with-target-specific-variable-set ------ )
 	@echo "[4] BAR: $(BAR)" # OK
 	@$(eval FOO += v51)
 	@echo "[5] BAR: $(BAR)" # not what I expect to see
@@ -27,11 +36,11 @@ with-target-specific-override-variable:
 without-target-specific-variable:
 without-target-specific-variable:
 	$(info ------ without-target-specific-variable ------ )
-	@echo "[7] BAR: $(BAR)" # OK
+	@echo "[4] BAR: $(BAR)" # OK
 	@$(eval FOO += v52)
-	@echo "[8] BAR: $(BAR)" # OK
+	@echo "[5] BAR: $(BAR)" # OK
 	@$(eval FOO := v62)
-	@echo "[9] BAR: $(BAR)" # OK
+	@echo "[6] BAR: $(BAR)" # OK
 
 info:
 	$(info ------ info ------ )
