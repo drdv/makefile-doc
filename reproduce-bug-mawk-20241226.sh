@@ -12,7 +12,7 @@ mawk_version=$(./test/bin/mawk --version | awk '/^mawk/ {print $2 " " $3}')     
 
 echo "============================================================"
 printf "string: %s\n" "$string"
-printf " regex: %s\n" "$regex"
+printf "regex: %s\n" "$regex"
 echo "============================================================"
 echo "results:"
 echo "============================================================"
@@ -24,10 +24,10 @@ awk_executables["wak"]="$wak_version"
 awk_executables["bawk"]="$bawk_version"
 awk_executables["mawk"]="$mawk_version"
 
-printf "[%7s %15s] %s\n" "mac-awk" "$macosawk_version" "$string"
+printf "[%7s, %15s] %s\n" "mac-awk" "$macosawk_version" "$string"
 for k in "${!awk_executables[@]}"; do
     awk="$k"
     ver="${awk_executables[$k]}"
-    printf "[%7s %15s] %s\n" "$awk" "$ver" $(echo $string | ./test/bin/"$awk" "/$regex/ { print \$0 }")
+    printf "[%7s, %15s] %s\n" "$awk" "$ver" "$(echo "$string" | ./test/bin/"$awk" "/$regex/ { print \$0 }")"
 done
 echo "============================================================"

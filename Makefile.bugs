@@ -16,3 +16,7 @@ awk-deps: $(AWK_BIN)/awk $(AWK_BIN)/nawk $(AWK_BIN)/mawk $(AWK_BIN)/bawk $(AWK_B
 mawk-20241225: awk-deps
 	@ln -fs $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
 	@./reproduce-bug-mawk-20241226.sh
+
+mawk-20250102: awk-deps
+	@ln -fs $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
+	@./reproduce-bug-mawk-20250102.sh
