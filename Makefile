@@ -65,7 +65,7 @@ $(TESTS): $(AWK_BIN)/$(AWK)
 		<(tail -n +2 $(TEST_RECIPES)/$@) \
 		<($< -f makefile-doc.awk $(CMD_LINE:>=)) || \
 	(echo "failed $@"; exit 1)
-	@echo "passed $@ ($(AWK))"
+	@echo "passed $@ ($(notdir $<))"
 
 # add docs
 test-default:         ##  + test default behavior
@@ -77,6 +77,7 @@ test-vars:            ##  + test with default `VARS=1`
 test-no-vars:         ##  + test with `VARS=0`
 test-vars-assignment: ##  + test variable assignments
 test-no-anchors:      ##  + test no anchors
+test-vars-qualifiers: ##  + test variable qualifiers
 
 # ----------------------------------------------------
 # Targets for downloading various awk implementations

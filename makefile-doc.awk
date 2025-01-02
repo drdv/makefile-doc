@@ -59,6 +59,18 @@ function length_array_posix(array) {
   return array_numb_elements_local
 }
 
+function join(array, delimiter) {
+  string_local = ""
+  for (indx_local=1; indx_local<=length_array_posix(array); indx_local++) {
+    if (indx_local == 1) {
+      string_local = array[indx_local]
+    } else {
+      string_local = string_local delimiter array[indx_local]
+    }
+  }
+  return string_local
+}
+
 function get_tag_from_description(string) {
   if (match(string, /^ *(##!|##%|##)/)) {
     tag_local = substr(string, RSTART, RLENGTH)
@@ -89,6 +101,13 @@ function parse_inline_descriptions(whole_line_string) {
 function parse_variable_name(whole_line_string) {
   split(whole_line_string, array_whole_line, ASSIGNMENT_OPERATORS_PATTERN)
   variable_name_local = array_whole_line[1]
+
+  # here we need to preserve order in order to remove unexport and not just export
+  for (indx_local=1;
+       indx_local<=length_array_posix(ARRAY_OF_VARIABLE_QUALIFIERS);
+       indx_local++) {
+    sub(ARRAY_OF_VARIABLE_QUALIFIERS[indx_local], "", variable_name_local)
+  }
   sub(/[ ]+/, "", variable_name_local)
   return variable_name_local
 }
@@ -371,8 +390,12 @@ function print_help() {
 # Initialize global variables.
 BEGIN {
   FS = ":" # set the field separator
-  ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
 
+  ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
+  split("override unexport export private", ARRAY_OF_VARIABLE_QUALIFIERS, " ")
+  VARIABLES_REGEX = sprintf("^ *( *(%s) *)* *[^.#][a-zA-Z0-9_-]* *%s",
+                            join(ARRAY_OF_VARIABLE_QUALIFIERS, "|"),
+                            ASSIGNMENT_OPERATORS_PATTERN)
   initialize_colors()
 
   VARS = VARS == "" ? 1 : VARS
@@ -507,7 +530,8 @@ FNR == 1 {
 #  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
 #  3. can be followed by spaces and one of the assignment operators, see
 #     ASSIGNMENT_OPERATORS_PATTERN
-$0 ~ "^ *[^.#][a-zA-Z0-9_-]* *" ASSIGNMENT_OPERATORS_PATTERN {
+
+$0 ~ VARIABLES_REGEX {
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }
@@ -547,7 +571,9 @@ END {
   # process variables
   # When all variables are deprecated and DEPRECATED = 0, just a header is displayed.
   if (max_variable_length > 0 && VARS) {
-    printf("\n%s\n%s\n%s\n", separator, HEADER_VARIABLES, separator)
+    variables_display_pattern = max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
+
+    printf(variables_display_pattern, separator, HEADER_VARIABLES, separator)
     for (indx = 1; indx <= length_array_posix(VARIABLES); indx++) {
       variable = VARIABLES[indx]
       description = format_description_data(variable,
