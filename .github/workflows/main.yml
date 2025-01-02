@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - reproduce-bugs
 
 jobs:
   build:
@@ -15,11 +15,6 @@ jobs:
 
       - name: run tests
         run: |
-          awk --version
           make --version
-          make test
-          make test AWK_FLAGS=--posix
-          yes | make test AWK=mawk
-          yes | make test AWK=nawk
-          yes | make test AWK=bawk
-          yes | make test AWK=wak
+          make --help
+          make -f Makefile.bugs make-20250102

@@ -22,3 +22,8 @@ mawk-20241225: awk-deps
 mawk-20250102: awk-deps
 	@ln -fs $(shell realpath $(AWK_BIN)/awk) $(AWK_BIN)/gawk
 	@./reproduce-bug-mawk-20250102.sh
+
+## reproduce GNU Make (potential) bug 20250102
+## execute using: make -f Makefile.bugs make-20250102
+make-20250102:
+	@$(MAKE) -f reproduce-bug-make-20250102.mk
