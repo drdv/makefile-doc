@@ -1,6 +1,4 @@
-# Awk script for Makefile docs
-
-This branch reproduces some bugs I've found with awk executables.
+# This branch reproduces some bugs I've found
 
 + help: `make -f Makefile.bugs MAKEFILE_LIST=Makefile.bugs`
 + bug `mawk-20241225`: `yes | make -f Makefile.bugs mawk-20241225`
