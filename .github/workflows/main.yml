@@ -19,7 +19,7 @@ jobs:
           make --help
           make -f Makefile.bugs make-20250102 > results-make-20250102.txt
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: results-make-20250102
-          path: results-make-20250102.txt
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: results-make-20250102
+      #     path: results-make-20250102.txt
