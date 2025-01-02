@@ -81,6 +81,9 @@ I refer to targets / variables as anchors (for docs/sections).
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&`. Double-colon grouped
   targets are handled as well.
 
++ Variable assignments can be prefixed with any or all of the special keywords `export`,
+  `unexport`, `override`, or `private` (in the documentation they are stripped).
+
 + See `test/Makefile*` for examples.
 
 **Note**: in general, using inline comments with variables is not a good idea because
