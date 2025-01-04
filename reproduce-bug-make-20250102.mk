@@ -6,7 +6,7 @@ $(info [2] BAR: $(BAR)) # OK
 FOO += v3
 $(info [3] BAR: $(BAR)) # OK
 
-with-target-specific-variable-append: override FOO += v41
+with-target-specific-variable-append: FOO += v41
 with-target-specific-variable-append:
 	$(info ------ with-target-specific-variable-append ------ )
 	@echo "[4] BAR: $(BAR)" # OK
