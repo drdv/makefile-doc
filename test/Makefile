@@ -14,6 +14,7 @@ test-2: ## this inline doc will not be displayed because of the top doc
 test-3:
 
 ## target test-3 is defined twice
+  ## Spaces before the ## token are allowed and stripped
 ## this one will override the one above (and discard its docs)
 ##   indentation can be used for emphasis
 test-3:
@@ -68,7 +69,7 @@ first second third:
 %.tab.c %.tab.h: %.y ## target with dots in the names
 
 ##@
-##@ ----- Section 2 -----
+  ##@ ----- Section 2 -----
 ##@
 
 $(TARGET-NAME): ## target stored in a variable
@@ -96,3 +97,11 @@ endef
 target-without-docs:
 
 t: ## A one letter target
+
+##
+test-11: ## The top empty description shadows this
+
+   ##
+   ## --
+##
+test-12:
