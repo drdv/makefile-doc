@@ -59,9 +59,10 @@ release:
 	test-vars test-no-vars test-vars-assignment test-no-anchors
 
 ## multiple individual test targets:
+# --ignore-space-at-eol is needed as empty descriptions still add OFFSET
 $(TESTS): $(AWK_BIN)/$(AWK)
 	@$(eval CMD_LINE := $$(shell head -n 1 $(TEST_RECIPES)/$@))
-	@diff -u \
+	@git diff --ignore-space-at-eol \
 		<(tail -n +2 $(TEST_RECIPES)/$@) \
 		<($< -f makefile-doc.awk $(CMD_LINE:>=)) || \
 	(echo "failed $@"; exit 1)

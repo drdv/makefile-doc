@@ -463,7 +463,7 @@ FNR == 1 {
 }
 
 # Capture the line if it is a description (but not section).
-/^ *##[^@]/ {
+/^ *##([^@].*)?/ {
   description_string = $0
   sub(/^ */, "", description_string)
   save_description_data(description_string)

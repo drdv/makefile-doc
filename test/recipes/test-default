@@ -7,6 +7,7 @@ Available targets:
 [34mtest-1             [0m   test inline docs without top docs
 [34mtest-2             [0m   test inline docs with top docs
 [34mtest-3             [0m   target test-3 is defined twice
+                      Spaces before the ## token are allowed and stripped
                       this one will override the one above (and discard its docs)
                         indentation can be used for emphasis
 [31mtest-4             [0m   use exclamation mark for targets that are signifficant in some way
@@ -43,6 +44,10 @@ Available targets:
                        + $2: country code {fr, bg, jp, ...}
 [34mtarget-with-spaces [0m   target with spaces before and after
 [34mt                  [0m   A one letter target
+[34mtest-11            [0m
+[34mtest-12            [0m
+                      --
+
 [34mhelp               [0m   associate this with the help target (and not `.PHONY`)
                       second line in the description of the target help
 -----------------------
