@@ -28,6 +28,11 @@ endef
 help: $(AWK_BIN)/$(AWK)
 	@$< $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
+deploy-local: DEPLOY_DIR := $(HOME)/.local/share/makefile-doc
+deploy-local:
+	@mkdir -p $(DEPLOY_DIR)
+	@cp makefile-doc.awk $(DEPLOY_DIR)
+
 .PHONY: test
 ## run all tests
 test: $(TESTS)

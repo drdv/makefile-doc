@@ -15,6 +15,7 @@
 #   * DEPRECATED: {0, (1)} 1 show deprecated anchors; 0 don't show
 #   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
 #   * CONNECTED: {0, (1)} 1 ignore docs followed by an empty line; 0 join them
+#   + EXPANDED_TARGETS: TARGET[:NEW_NAME_OF_TARGET]:EXPANDED_TARGET[;...]
 #   * see as well the color codes below
 #
 # Notes:
@@ -176,7 +177,12 @@ function get_max_anchor_length(anchors) {
   max_len_local = 0
   for (key_local in anchors) { # order is not important
     anchor_local = anchors[key_local]
-    len_local = length(anchor_local)
+    if (anchor_local in EXPANDED_TARGETS_DICT_RENAMED) {
+      len_local = length(EXPANDED_TARGETS_DICT_RENAMED[anchor_local])
+    }
+    else {
+      len_local = length(anchor_local)
+    }
     if (len_local > max_len_local) {
       max_len_local = len_local
     }
@@ -292,6 +298,36 @@ function update_display_parameters(description) {
   }
 }
 
+function form_expanded_targets() {
+  # Form the global variable EXPANDED_TARGETS_DICT
+  #
+  # The format is:
+  # TARGET[:NEW_NAME_OF_TARGET]:EXPANDED_TARGET[;...]
+  #
+  numb_expanded_targets_local = split(EXPANDED_TARGETS, expanded_targets_key_value_local, ";")
+  for (indx_local=1;
+       indx_local<=numb_expanded_targets_local;
+       indx_local++) {
+    split(expanded_targets_key_value_local[indx_local], key_value_parts_local, ":")
+    gsub(/^ +| +$/, "", key_value_parts_local[1])
+    if (length_array_posix(key_value_parts_local) == 2) {
+      EXPANDED_TARGETS_DICT[key_value_parts_local[1]] = key_value_parts_local[2]
+    } else {
+      EXPANDED_TARGETS_DICT[key_value_parts_local[1]] = key_value_parts_local[3]
+      EXPANDED_TARGETS_DICT_RENAMED[key_value_parts_local[1]] = key_value_parts_local[2]
+    }
+
+  }
+}
+
+function display_expanded_target(target, len_anchors) {
+  split(EXPANDED_TARGETS_DICT[target], value_parts_local, " ")
+  for (key_local in value_parts_local)
+    printf("%s%s\n",
+           sprintf("%*s ", len_anchors + OFFSET, ""),
+           value_parts_local[key_local])
+}
+
 function display_anchor_with_data(anchor, description, section, len_anchors) {
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed.
@@ -300,16 +336,22 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
   }
 
   if (DISPLAY_PARAMS["show"]) {
+    if (anchor in EXPANDED_TARGETS_DICT_RENAMED)
+      renamed_anchor = EXPANDED_TARGETS_DICT_RENAMED[anchor]
+    else
+      renamed_anchor = anchor
+
     DISPLAY_PATTERN = "%s%-" len_anchors "s%s"
     formatted_anchor = sprintf(DISPLAY_PATTERN,
                                DISPLAY_PARAMS["color"],
-                               format_anchor_name(anchor),
+                               format_anchor_name(renamed_anchor),
                                COLOR_RESET_CODE)
     if (PADDING != " ") {
       gsub(/ /, PADDING, formatted_anchor)
     }
     printf("%s%s\n", formatted_anchor, description)
   }
+  display_expanded_target(anchor, len_anchors)
 }
 
 function count_numb_double_colon(new_target) {
@@ -556,6 +598,10 @@ $0 ~ VARIABLES_REGEX {
 
 # Display results (except for warnings all stdout is here).
 END {
+  # EXPANDED_TARGETS_DICT_RENAMED should be formed before get_max_anchor_length
+  # in order to account for renamed targets
+  form_expanded_targets()
+
   max_target_length = get_max_anchor_length(TARGETS)
   max_variable_length = get_max_anchor_length(VARIABLES)
   max_anchor_length = max(max_target_length, max_variable_length)
