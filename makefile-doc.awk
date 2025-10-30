@@ -15,7 +15,7 @@
 #   * DEPRECATED: {0, (1)} 1 show deprecated anchors; 0 don't show
 #   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
 #   * CONNECTED: {0, (1)} 1 ignore docs followed by an empty line; 0 join them
-#   + EXPANDED_TARGETS: TARGET[:NEW_NAME_OF_TARGET]:EXPANDED_TARGET[;...]
+#   + EXPANDED_TARGETS: NAME[:LABEL]:[VALUE][;...]
 #   * see as well the color codes below
 #
 # Notes:
@@ -301,8 +301,7 @@ function update_display_parameters(description) {
 function form_expanded_targets() {
   # Form the global variable EXPANDED_TARGETS_DICT
   #
-  # The format is:
-  # TARGET[:NEW_NAME_OF_TARGET]:EXPANDED_TARGET[;...]
+  # The format is: NAME[:LABEL]:[VALUE][;...]
   #
   numb_expanded_targets_local = split(EXPANDED_TARGETS, expanded_targets_key_value_local, ";")
   for (indx_local=1;
@@ -420,6 +419,7 @@ function print_help() {
     print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
     print "Description: Generate docs for Makefile variables and targets"
     print "Options:"
+    printf "  EXPANDED_TARGETS: %s\n", EXPANDED_TARGETS
     printf "  VARS: %s\n", VARS
     printf "  PADDING: \"%s\"\n", PADDING
     printf "  DEPRECATED: %s\n", DEPRECATED

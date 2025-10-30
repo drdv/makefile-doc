@@ -14,7 +14,7 @@ functionality and this turned out to be a nice small project with Awk.
 Define the first target of your `Makefile` (or if it is not the first target, set
 `.DEFAULT_GOAL := help`) as:
 
-``` make
+```Makefile
 help: URL := github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
 help: DIR := $(HOME)/.local/share/makefile-doc
 help: SCR := $(DIR)/makefile-doc.awk
@@ -26,7 +26,7 @@ help: ## show this help
 This will download the awk script on the fly (if it doesn't exist in
 `~/.local/share/makefile-doc`). As an alternative of `wget` you could use `curl`:
 
-```
+```bash
 curl -sLO --create-dirs --output-dir $(DIR) $(URL)
 ```
 
@@ -34,7 +34,7 @@ curl -sLO --create-dirs --output-dir $(DIR) $(URL)
 
 Define the first target of your `Makefile` as:
 
-``` make
+```Makefile
 help: ## show help
 	@awk -f makefile-doc.awk $(MAKEFILE_LIST)
 ```
@@ -43,7 +43,7 @@ Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
 
 ## Docs syntax
 
-``` make
+```Makefile
 ## doc of a CLA variable the user might want to know about
 MY_VARIABLE = 42
 
@@ -95,6 +95,7 @@ value"](https://www.gnu.org/software/make/manual/html_node/Simple-Assignment.htm
 The following options can be passed to `awk` using `-v option=value` (possible values
 are given in `{...}`, `(.)` shows the default)
 
++ `EXPANDED_TARGETS`: see [Expanded targets](#expanded-targets)
 * `VARS`: `{0, (1)}` 1 show documented variables; 0 don't show
 * `PADDING`: `{(" "), ".", ...}` a single padding character between anchors and docs
 * `DEPRECATED`: `{0, (1)}` 1 show deprecated anchors; 0 don't show
@@ -113,8 +114,51 @@ are given in `{...}`, `(.)` shows the default)
 
 Running `awk -f makefile-doc.awk` outputs help with values of options.
 
-Cloning this repository (at tag `v0.1`) and running `make` outputs:
-![makefile-doc.awk](img/example.png)
+## Expanded targets
+
+Sometimes it is necessary to document a target specified in terms of a variable or an
+expression. In such cases it might be useful to replace the actual target name with a
+label and (space separated) list of values. This can be achieved by setting `-v
+EXPANDED_TARGETS` equal to `NAME[:LABEL]:[VALUE][;...]`. For example, executing `make` with
+```Makefile
+NOTES := my-budget trip-info misc
+OPEN_NOTES := $(addprefix open-,$(NOTES))
+
+help: VFLAG := -v EXPANDED_TARGETS='$$(OPEN_NOTES):open-:$(NOTES)'
+help: ## Show this help
+	@awk $(VFLAG) -f makefile-doc.awk $(MAKEFILE_LIST)
+
+## Notes:
+$(OPEN_NOTES):
+```
+
+produces
+
+```
+-----------------------
+Available targets:
+-----------------------
+help    Show this help
+open-   Notes:
+        my-budget
+        trip-info
+        misc
+-----------------------
+```
+
+Or if instead we use `VFLAG := -v EXPANDED_TARGETS='$$(OPEN_NOTES):$(OPEN_NOTES)'`, we would have:
+
+```
+-----------------------
+Available targets:
+-----------------------
+help            Show this help
+$(OPEN_NOTES)   Notes:
+                open-my-budget
+                open-trip-info
+                open-misc
+-----------------------
+```
 
 ## Dependencies
 
