@@ -105,3 +105,16 @@ test-11: ## The top empty description shadows this
    ## --
 ##
 test-12:
+
+## Top description to remain
+test-13: ## This shouldn't affect the description
+test-13: ## Neither should this
+test-13: ## Nor this
+test-13: ##
+test-13: ## etc.
+
+## But this top description will be overriden by the following target
+test-14:
+
+test-14:
+test-14: ## An empty line marks the start of a new target
