@@ -96,6 +96,7 @@ The following options can be passed to `awk` using `-v option=value` (possible v
 are given in `{...}`, `(.)` shows the default)
 
 + `EXPANDED_TARGETS`: see [Expanded targets](#expanded-targets)
++ `TARGET_REGEX`: regex to use for target matching
 * `VARS`: `{0, (1)}` 1 show documented variables; 0 don't show
 * `PADDING`: `{(" "), ".", ...}` a single padding character between anchors and docs
 * `DEPRECATED`: `{0, (1)}` 1 show deprecated anchors; 0 don't show

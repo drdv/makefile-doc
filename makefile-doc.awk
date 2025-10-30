@@ -16,6 +16,7 @@
 #   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
 #   * CONNECTED: {0, (1)} 1 ignore docs followed by an empty line; 0 join them
 #   + EXPANDED_TARGETS: NAME[:LABEL]:[VALUE][;...]
+#   + TARGET_REGEX: regex to use for target matching
 #   * see as well the color codes below
 #
 # Notes:
@@ -445,6 +446,7 @@ BEGIN {
                             ASSIGNMENT_OPERATORS_PATTERN)
   initialize_colors()
 
+  TARGET_REGEX = TARGET_REGEX == "" ? "^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$)" : TARGET_REGEX
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
@@ -540,16 +542,14 @@ FNR == 1 {
 #  3. and can have spaces before the final colon.
 #  4. There can be multiple space-separated targets on one line (they are captured
 #     together).
-#  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected, even though
-#     they are of limited value as we don't have access to the value of the TARGET-NAME
-#     variable.
+#  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected.
 #  6. After the final colon we require either at least one space of end of line -- this
 #     is because otherwise we would match VAR := value.
 #  7. FS = ":" is assumed.
 #
 # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
 #
-/^ *[^.#][ a-zA-Z0-9$_\/%.(){}-]* *&?(:|::)( |$)/ {
+$0 ~ TARGET_REGEX {
   target_name = $1
 
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
