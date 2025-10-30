@@ -322,10 +322,14 @@ function form_expanded_targets() {
 
 function display_expanded_target(target, len_anchors) {
   split(EXPANDED_TARGETS_DICT[target], value_parts_local, " ")
-  for (key_local in value_parts_local)
+  for (indx_local=1;
+       indx_local<=length_array_posix(value_parts_local);
+       indx_local++) {
+    # the + 1 is because of the usual one space we add between the token ## and the docs
     printf("%s%s\n",
-           sprintf("%*s ", len_anchors + OFFSET, ""),
-           value_parts_local[key_local])
+           sprintf("%" len_anchors + OFFSET + 1 "s", ""),
+           value_parts_local[indx_local])
+  }
 }
 
 function display_anchor_with_data(anchor, description, section, len_anchors) {
