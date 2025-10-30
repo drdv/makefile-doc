@@ -25,8 +25,9 @@ endef
 
 .PHONY: help
 ## show this help
+help: VFLAG := -v EXPANDED_TARGETS='$$(TESTS):test-:$(subst test-,,$(TESTS))'
 help: $(AWK_BIN)/$(AWK)
-	@$< $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
+	@$< $(VFLAG) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
 deploy-local: DEPLOY_DIR := $(HOME)/.local/share/makefile-doc
 deploy-local:
@@ -53,7 +54,7 @@ release:
 	@test -f $($(RELEASE_NOTES)) && \
 	gh release create $(LATEST_TAG) makefile-doc.awk \
 		--generate-notes \
-		--notes-file release_notes.md -t '$(LATEST_TAG)' || \
+		--notes-file $(RELEASE_NOTES) -t '$(LATEST_TAG)' || \
 	echo "No file $(RELEASE_NOTES)"
 
 ##@
@@ -63,27 +64,15 @@ release:
 .PHONY: test-default test-deprecated test-padding test-connected test-backticks \
 	test-vars test-no-vars test-vars-assignment test-no-anchors
 
-## multiple individual test targets:
+##
 # --ignore-space-at-eol is needed as empty descriptions still add OFFSET
+$(TESTS): CMD_LINE = $(shell head -n 1 $(TEST_RECIPES)/$@)
 $(TESTS): $(AWK_BIN)/$(AWK)
-	@$(eval CMD_LINE := $$(shell head -n 1 $(TEST_RECIPES)/$@))
 	@git diff --ignore-space-at-eol \
 		<(tail -n +2 $(TEST_RECIPES)/$@) \
 		<($< -f makefile-doc.awk $(CMD_LINE:>=)) || \
 	(echo "failed $@"; exit 1)
 	@echo "passed $@ ($(notdir $<))"
-
-# add docs
-test-default:         ##  + test default behavior
-test-deprecated:      ##  + test setting `DEPRECATED=0`
-test-padding:         ##  + test setting `PADDING=.`
-test-connected:       ##  + test setting `CONNECTED=0`
-test-backticks:       ##  + test setting `COLOR_BACKTICKS=1`
-test-vars:            ##  + test with default `VARS=1`
-test-no-vars:         ##  + test with `VARS=0`
-test-vars-assignment: ##  + test variable assignments
-test-no-anchors:      ##  + test no anchors
-test-vars-qualifiers: ##  + test variable qualifiers
 
 # ----------------------------------------------------
 # Targets for downloading various awk implementations
