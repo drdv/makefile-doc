@@ -409,6 +409,8 @@ BEGIN {
     exit 1
   }
 
+  WIP_TARGET = ""
+
   if (ARGC == 1) {
     print_help()
     exit 1
@@ -474,6 +476,9 @@ FNR == 1 {
   if (CONNECTED) {
     forget_descriptions_data()
   }
+
+  # An empty line ends the definition of a target
+  WIP_TARGET = ""
 }
 
 # New section (all lines in a multi-line sections should start with ##@)
@@ -499,24 +504,25 @@ FNR == 1 {
 # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
 #
 /^ *[^.#][ a-zA-Z0-9$_\/%.(){}-]* *&?(:|::)( |$)/ {
+  target_name = $1
+
+  # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
+  # for the reason to use \\&, see AWK's Gory-Details!
+  # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
+  sub(/ *&/, "\\&", target_name)
+  if ($0 ~ "::") {
+    target_name = sprintf("[%s]:%s",
+                          target_name,
+                          count_numb_double_colon(target_name))
+  }
+
   # look for inline descriptions only if there aren't any descriptions above the target
-  if (length_array_posix(DESCRIPTION_DATA) == 0) {
+  if (length_array_posix(DESCRIPTION_DATA) == 0 && WIP_TARGET != target_name) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    target_name = $1
-
-    # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
-    # for the reason to use \\&, see AWK's Gory-Details!
-    # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
-    sub(/ *&/, "\\&", target_name)
-    if ($0 ~ "::") {
-      target_name = sprintf("[%s]:%s",
-                            target_name,
-                            count_numb_double_colon(target_name))
-    }
-
+    WIP_TARGET = target_name
     TARGETS_INDEX = associate_data_with_anchor(trim_start_end_spaces(target_name),
                                                TARGETS,
                                                TARGETS_INDEX,

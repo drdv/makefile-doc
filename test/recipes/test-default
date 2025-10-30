@@ -1,5 +1,6 @@
 > test/Makefile test/Makefile.inc
 [35m[test/Makefile] redefined docs of target: test-3[0m
+[35m[test/Makefile] redefined docs of target: test-14[0m
 [35m[test/Makefile.inc] redefined docs of target: test-10[0m
 -----------------------
 Available targets:
@@ -48,6 +49,8 @@ Available targets:
 [34mtest-12            [0m
                       --
 
+[34mtest-13            [0m   Top description to remain
+[34mtest-14            [0m   An empty line marks the start of a new target
 [34mhelp               [0m   associate this with the help target (and not `.PHONY`)
                       second line in the description of the target help
 -----------------------
