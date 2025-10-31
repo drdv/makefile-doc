@@ -1,3 +1,4 @@
+DEBUG =
 CONNECTED =
 PADDING =
 HEADER =
@@ -14,6 +15,7 @@ AWK_FLAGS :=
 ## second line in the description of the target help
 help:
 	@bin/$(AWK) $(AWK_FLAGS) -v PADDING=$(PADDING) \
+		-v DEBUG=$(DEBUG) \
 		-v CONNECTED=$(CONNECTED) \
 		-v DEPRECATED=$(DEPRECATED) \
 		-v COLOR_BACKTICKS=$(COLOR_BACKTICKS) \

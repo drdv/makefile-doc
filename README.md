@@ -95,13 +95,16 @@ value"](https://www.gnu.org/software/make/manual/html_node/Simple-Assignment.htm
 The following options can be passed to `awk` using `-v option=value` (possible values
 are given in `{...}`, `(.)` shows the default)
 
++ `DEBUG`: {(0), 1} output debug info (in an org-mode format)
++ `DEBUG_FILE`: debug info file
 + `EXPANDED_TARGETS`: see [Expanded targets](#expanded-targets)
-+ `TARGET_REGEX`: regex to use for target matching
-* `VARS`: `{0, (1)}` 1 show documented variables; 0 don't show
++ `TARGETS_REGEX`: regex to use for matching targets
++ `VARIABLES_REGEX`: regex to use for matching variables
+* `VARS`: `{0, (1)}` show documented variables
 * `PADDING`: `{(" "), ".", ...}` a single padding character between anchors and docs
-* `DEPRECATED`: `{0, (1)}` 1 show deprecated anchors; 0 don't show
+* `DEPRECATED`: `{0, (1)}` show deprecated anchors
 * `OFFSET`: `{0, 1, (2), ...}` number of spaces to offset docs from anchors
-* `CONNECTED`: `{0, (1)}` 1 ignore docs followed by an empty line; 0 join them
+* `CONNECTED`: `{0, (1)}` ignore docs followed by an empty line
 + Colors:
   + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`
   + `COLOR_ATTENTION`: (`31`: red) for anchors whose docs start with `##!`
