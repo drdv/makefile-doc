@@ -14,6 +14,9 @@ AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 
+## Debug info is generated if set
+DEBUG :=
+
 # using $1 instead of $(AWK) is necessary for a target like
 # deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
 define verify-download
@@ -25,7 +28,8 @@ endef
 
 .PHONY: help
 ## show this help
-help: VFLAG := -v EXPANDED_TARGETS='$$(TESTS):test-:$(subst test-,,$(TESTS))'
+help: VFLAG := -v EXPANDED_TARGETS='$$(TESTS):test-:$(subst test-,,$(TESTS))' \
+	-v DEBUG=$(DEBUG)
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAG) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
