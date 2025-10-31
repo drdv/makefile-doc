@@ -95,7 +95,7 @@ value"](https://www.gnu.org/software/make/manual/html_node/Simple-Assignment.htm
 The following options can be passed to `awk` using `-v option=value` (possible values
 are given in `{...}`, `(.)` shows the default)
 
-+ `DEBUG`: {(0), 1} output debug info (in an org-mode format)
++ `DEBUG`: `{(0), 1}` output debug info (in an org-mode format)
 + `DEBUG_FILE`: debug info file
 + `EXPANDED_TARGETS`: see [Expanded targets](#expanded-targets)
 + `TARGETS_REGEX`: regex to use for matching targets
