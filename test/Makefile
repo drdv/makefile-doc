@@ -30,6 +30,7 @@ test-4:
 ##@
 ##@ ----- Section 1 -----
 ##@
+dummy-target: # this target shouldn't have documentation
 
 ## this is not shown due to the blank like (see IGNORE_EMPTY)
 
