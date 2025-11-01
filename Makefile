@@ -4,18 +4,14 @@ TEST_RECIPES := $(TEST_DIR)/recipes
 
 TESTS := $(notdir $(wildcard $(TEST_RECIPES)/*))
 
-## awk executable to use:
-##  + awk (system's default)
-##  + mawk
-##  + nawk
-##  + bawk (busybox awk)
-##  + wak
+## Debug info is generated if set
+DEBUG :=
+
+## Supported AWK variants:
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
-
-## Debug info is generated if set
-DEBUG :=
+SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
 
 # using $1 instead of $(AWK) is necessary for a target like
 # deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
@@ -28,7 +24,7 @@ endef
 
 .PHONY: help
 ## show this help
-help: VFLAG := -v EXPANDED_TARGETS='$$(TESTS):test-:$(subst test-,,$(TESTS))' \
+help: VFLAG := -v EXPANDED_TARGETS='$$(TESTS):test-:$(subst test-,,$(TESTS));AWK:$(SUPPORTED_AWK_VARIANTS)' \
 	-v DEBUG=$(DEBUG)
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAG) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
@@ -44,14 +40,15 @@ test: $(TESTS)
 
 .PHONY: test-all-awk
 ## run all tests with all awk versions
-test-all-awk: ; $(foreach X,awk mawk nawk bawk wak,$(MAKE) test AWK=$(X);)
+test-all-awk:
+	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
 .PHONY: clean-bin
 clean-bin: ##! remove all downloaded awk varsions
 	@rm -rf $(AWK_BIN)
 
 .PHONY: release
-## create github release at latest tag
+##! create github release at latest tag
 release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
 release:
@@ -76,7 +73,7 @@ $(TESTS): $(AWK_BIN)/$(AWK)
 		<(tail -n +2 $(TEST_RECIPES)/$@) \
 		<($< -f makefile-doc.awk $(CMD_LINE:>=)) || \
 	(echo "failed $@"; exit 1)
-	@echo "passed $@ ($(notdir $<))"
+	@echo "[$(notdir $<)] passed $@"
 
 # ----------------------------------------------------
 # Targets for downloading various awk implementations
@@ -124,8 +121,18 @@ $(AWK_BIN)/wak:
 	@cd $@-src && make
 	@cp $@-src/wak $@
 
+# requires: sudo dnf install golang
+$(AWK_BIN)/goawk: URL := github.com/benhoyt/goawk/archive/refs/tags/v1.29.1.tar.gz
+$(AWK_BIN)/goawk:
+	@$(call verify-download,goawk)
+	@wget -P $(AWK_BIN) $(URL)
+	@mkdir -p $@-src
+	@tar xvf $(AWK_BIN)/v1.29.1.tar.gz -C $@-src --strip-components=1
+	@cd $@-src && go build -o goawk goawk.go
+	@cp $@-src/goawk $@
+
 $(AWK_BIN)/%: # a catch-all target for AWK values
 	@echo "==================================================="
-	@echo "Expected value for AWK: awk, mawk, nawk, bawk, wak."
+	@echo "Supported AWK variants: $(SUPPORTED_AWK_VARIANTS)"
 	@echo "==================================================="
 	@exit 1
