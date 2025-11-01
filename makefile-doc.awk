@@ -33,6 +33,7 @@
 #      * ##@ section (displayed in COLOR_SECTION)
 #
 # Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
+#   + COLOR_ENCODING: {(ANSI), HTML}
 #   * COLOR_DEFAULT: (34) blue
 #   * COLOR_ATTENTION: (31) red
 #   * COLOR_DEPRECATED: (33) yellow
@@ -41,7 +42,8 @@
 #   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
-#   for blue is the 34 in `\033[34m`.
+#   for blue is the 34 in `\033[34m`. When the COLOR_ENCODING is HTML, colors are
+#   controlled using the class attribute e.g., the value for blue is "ansi34" etc.
 #
 # SUB:
 #   Contains substitutions for targets and variables. For example, consider a variable
@@ -343,8 +345,7 @@ function update_display_parameters(description) {
   } else if (tag_local == "##%") {
     DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
     DISPLAY_PARAMS["show"] = DEPRECATED
-  }
-  else if (tag_local == "##") {
+  } else if (tag_local == "##") {
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
@@ -448,21 +449,39 @@ function trim_start_end_spaces(string_local) {
   return string_local
 }
 
-function ansi_color(string) {
-  return "\033[" string "m"
+function define_color(parameter) {
+  if (COLOR_ENCODING == "ANSI") {
+    return "\033[" parameter "m"
+  } else if (COLOR_ENCODING == "HTML") {
+    if (parameter) {
+      return "<span class=\"ansi" parameter "\">"
+    } else {
+      return "</span>"  # parameter == 0
+    }
+  }
 }
 
 function initialize_colors() {
-  COLOR_DEFAULT_CODE = ansi_color(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
-  COLOR_ATTENTION_CODE = ansi_color(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
-  COLOR_DEPRECATED_CODE = ansi_color(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
-  COLOR_WARNING_CODE = ansi_color(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
-  COLOR_SECTION_CODE = ansi_color(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
+  COLOR_ENCODING = COLOR_ENCODING == "" ? "ANSI" : toupper(COLOR_ENCODING)
+  if (COLOR_ENCODING != "ANSI" && COLOR_ENCODING != "HTML") {
+    print("Ignorring invalid COLOR_ENCODING: " COLOR_ENCODING " (using ANSI instead).")
+    COLOR_ENCODING = "ANSI"
+  }
+  COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
+  COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
+  COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
+  COLOR_WARNING_CODE = define_color(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
+  COLOR_SECTION_CODE = define_color(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
 
   COLOR_BACKTICKS = COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS
-  COLOR_BACKTICKS_CODE = ansi_color(COLOR_BACKTICKS)
+  COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS)
 
-  COLOR_RESET_CODE = ansi_color(0)
+  COLOR_RESET_CODE = define_color(0)
+
+  if (COLOR_ENCODING == "HTML") {
+    HTML_CLOSE_PRE = "</pre>"
+    HTML_STYLE_AND_OPEN_PRE = "<head>\n  <style type=\"text/css\">\n    .ansi31 { color: #d70000; }\n    .ansi32 { color: #5f8700; }\n    .ansi33 { color: #af8700; }\n    .ansi34 { color: #0087ff; }\n    .ansi35 { color: #af005f; }\n  </style>\n</head>\n<pre>"
+  }
 }
 
 # It would be nice to extract the options from the docstring of this script (there could
@@ -873,6 +892,10 @@ END {
 
   debug_END()
 
+  if (COLOR_ENCODING == "HTML") {
+    print(HTML_STYLE_AND_OPEN_PRE)
+  }
+
   # process targets
   if (max_target_length > 0) {
     printf("%s\n%s\n%s\n", separator, HEADER_TARGETS, separator)
@@ -908,6 +931,10 @@ END {
     if (number_of_files_processed > 0) {
       printf("There are no documented targets/variables in %s\n", files_processed)
     }
+  }
+
+  if (COLOR_ENCODING == "HTML") {
+    print(HTML_CLOSE_PRE)
   }
 
   if (DEBUG) {

@@ -25,7 +25,8 @@ endef
 .PHONY: help
 ## show this help
 help: VFLAG := -v SUB='$$(TESTS):test-:$(subst test-,,$(TESTS));AWK:$(SUPPORTED_AWK_VARIANTS)' \
-	-v DEBUG=$(DEBUG)
+	-v DEBUG=$(DEBUG) \
+	-v COLOR_ENCODING=$(COLOR_ENCODING)
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAG) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
