@@ -4,6 +4,7 @@ PADDING =
 HEADER =
 DEPRECATED =
 COLOR_BACKTICKS =
+COLOR_ENCODING =
 
 AWK := awk
 AWK_FLAGS :=
@@ -19,6 +20,7 @@ help:
 		-v CONNECTED=$(CONNECTED) \
 		-v DEPRECATED=$(DEPRECATED) \
 		-v COLOR_BACKTICKS=$(COLOR_BACKTICKS) \
+		-v COLOR_ENCODING=$(COLOR_ENCODING) \
 		-f ../makefile-doc.awk $(MAKEFILE_LIST)
 
 test-10: ##% some target

@@ -1,0 +1,64 @@
+> -v COLOR_ENCODING=html test/Makefile
+<span class="ansi35">[test/Makefile] redefined docs of target: test-3</span>
+<span class="ansi35">[test/Makefile] redefined docs of target: test-14</span>
+<head>
+  <style type="text/css">
+    .ansi31 { color: #d70000; }
+    .ansi32 { color: #5f8700; }
+    .ansi33 { color: #af8700; }
+    .ansi34 { color: #0087ff; }
+    .ansi35 { color: #af005f; }
+  </style>
+</head>
+<pre>
+-----------------------
+Available targets:
+-----------------------
+<span class="ansi34">test-1             </span>   test inline docs without top docs
+<span class="ansi34">test-2             </span>   test inline docs with top docs
+<span class="ansi34">test-3             </span>   target test-3 is defined twice
+                      Spaces before the ## token are allowed and stripped
+                      this one will override the one above (and discard its docs)
+                        indentation can be used for emphasis
+<span class="ansi31">test-4             </span>   use exclamation mark for targets that are signifficant in some way
+                      shouldn't have an exclamation mark for subsequent notes
+<span class="ansi32">
+ ----- Section 1 -----
+</span>
+<span class="ansi31">test-5             </span>   but this will be shown instead
+<span class="ansi33">test-6             </span>   this target is kept just in case
+                      even though it is obsolete
+                      some note (space befor ## is stripped)
+                      note that the above three lines are not dropped
+<span class="ansi33">test-7             </span>   deprecated target with inline doc
+<span class="ansi34">test-8             </span>   target test-8 depends on target test-6
+<span class="ansi34">test-9             </span>   target test-9 depends on target test-6 as well
+<span class="ansi33">test-10            </span>   this is overridden in Makefile.inc as it is processed second
+<span class="ansi34">%.c                </span>   here is a pattern rule
+<span class="ansi34">%.o                </span>   and here is another one
+<span class="ansi34">bin/%.o            </span>   and yet another one
+<span class="ansi34">first second third </span>   three targets on one line with spaces between them
+<span class="ansi34">%.tab.c %.tab.h    </span>   target with dots in the names
+<span class="ansi32">
+ ----- Section 2 -----
+</span>
+<span class="ansi34">$(TARGET-NAME)     </span>   target stored in a variable
+<span class="ansi31">${TARGET-NAME}     </span>   target stored in a variable
+                      make with issue a warning that this target
+                      overrides the one above (if they are not empty)
+                      but the awk script doesn't detect this becuase it
+                      doesn't have access to the value of TARGET-NAME.
+<span class="ansi34">$(t1) ${t2} t3     </span>   bug from issue #12
+<span class="ansi34">result-$(1)-$2.html</span>   documentation of a family of targets (with two parameters)
+                       + $1: month {jan, ..., dec}
+                       + $2: country code {fr, bg, jp, ...}
+<span class="ansi34">target-with-spaces </span>   target with spaces before and after
+<span class="ansi34">t                  </span>   A one letter target
+<span class="ansi34">test-11            </span>
+<span class="ansi34">test-12            </span>
+                      --
+
+<span class="ansi34">test-13            </span>   Top description to remain
+<span class="ansi34">test-14            </span>   An empty line marks the start of a new target
+-----------------------
+</pre>
