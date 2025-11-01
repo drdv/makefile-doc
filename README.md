@@ -172,6 +172,7 @@ $(OPEN_NOTES)   Notes:
   + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905` (with  `-W posix` flag)
   + [busybox awk](https://www.busybox.net/) `1.35.0`
   + [wak](https://github.com/raygard/wak) `v24.10`
+  + [goawk](https://github.com/benhoyt/goawk) `v1.29.1`
 + `GNU Make`
 
 ## Running the tests
@@ -181,8 +182,9 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 
 + `make test AWK=mawk`
 + `make test AWK=nawk`
-+ `make test AWK=bawk` (binaries not available for macos)
++ `make test AWK=bawk` (binaries are not available for macos)
 + `make test AWK=wak`
++ `make test AWK=goawk`
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of
 the tests.
