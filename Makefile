@@ -24,11 +24,11 @@ endef
 
 .PHONY: help
 ## show this help
-help: VFLAG := -v SUB='$$(TESTS):test-:$(subst test-,,$(TESTS));AWK:$(SUPPORTED_AWK_VARIANTS)' \
+help: VFLAGS := -v SUB='$$(TESTS):test-:$(subst test-,,$(TESTS));AWK:$(SUPPORTED_AWK_VARIANTS)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_ENCODING=$(COLOR_ENCODING)
 help: $(AWK_BIN)/$(AWK)
-	@$< $(VFLAG) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
+	@$< $(VFLAGS) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
 
 deploy-local: DEPLOY_DIR := $(HOME)/.local/share/makefile-doc
 deploy-local:
