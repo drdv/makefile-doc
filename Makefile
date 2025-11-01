@@ -39,12 +39,12 @@ deploy-local:
 test: $(TESTS)
 
 .PHONY: test-all-awk
-## run all tests with all awk versions
+## run all tests with all supported awk variants
 test-all-awk:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
 .PHONY: clean-bin
-clean-bin: ##! remove all downloaded awk varsions
+clean-bin: ##! remove all downloaded awk variants
 	@rm -rf $(AWK_BIN)
 
 .PHONY: release
@@ -59,7 +59,7 @@ release:
 	echo "No file $(RELEASE_NOTES)"
 
 ##@
-##@ ----- Individual tests -----
+##@------ Individual tests ------
 ##@
 
 .PHONY: test-default test-deprecated test-padding test-connected test-backticks \
