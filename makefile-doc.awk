@@ -12,7 +12,7 @@
 # Options (set using -v option=value, possible values given in {...}, (.) is the default):
 #   + DEBUG: {(0), 1} output debug info (in an org-mode format)
 #   + DEBUG_FILE: debug info file
-#   + EXPANDED_TARGETS: NAME[:LABEL]:[VALUE][;...], see below
+#   + SUB: NAME[:LABEL]:[VALUE][;...], see below
 #   + TARGETS_REGEX: regex for matching targets
 #   + VARIABLES_REGEX: regex for matching variables
 #   * VARS: {0, (1)} show documented variables
@@ -43,8 +43,18 @@
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
 #   for blue is the 34 in `\033[34m`.
 #
-# Expanded_targets:
-#   FIXME: to document
+# SUB:
+#   Contains substitutions for targets and variables. For example, consider a variable
+#   named AWK whose possible values are contained in a variable SUPPORTED_AWK_VARIANTS,
+#   then passing -v SUB='AWK:$(SUPPORTED_AWK_VARIANTS)' would add the values of
+#   SUPPORTED_AWK_VARIANTS to the documentation of the variable AWK. This mechanism is
+#   also useful when documenting targets defined in terms of variables/expressions,
+#   which we might want to rename in addition to adding a list of expanded targets to
+#   the documentation. The format of a substitution is NAME[:LABEL]:[VALUE][;...]
+#   + NAME is the name of the variable/target to substitute in the documentation
+#   + LABEL is an optional label for renaming the variable/target
+#   + VALUE are optional space-separated values to include
+#   + multiple ;-separated substitutions can be passed
 #
 # Code conventions:
 #   * Variables in a function, to which an assignment is made, should have names ending
@@ -224,8 +234,8 @@ function get_max_anchor_length(anchors) {
   max_len_local = 0
   for (key_local in anchors) { # order is not important
     anchor_local = anchors[key_local]
-    if (anchor_local in EXPANDED_TARGETS_DICT_RENAMED) {
-      len_local = length(EXPANDED_TARGETS_DICT_RENAMED[anchor_local])
+    if (anchor_local in SUB_DICT_RENAMED) {
+      len_local = length(SUB_DICT_RENAMED[anchor_local])
     }
     else {
       len_local = length(anchor_local)
@@ -346,29 +356,29 @@ function update_display_parameters(description) {
   }
 }
 
-function form_expanded_targets() {
-  # Form the global variables: EXPANDED_TARGETS_DICT, EXPANDED_TARGETS_DICT_RENAMED
+function form_substitutions() {
+  # Form the global variables: SUB_DICT, SUB_DICT_RENAMED
   #
   # The format is: NAME[:LABEL]:[VALUE][;...]
   #
-  numb_expanded_targets_local = split(EXPANDED_TARGETS, expanded_targets_key_value_local, ";")
+  numb_substitutions_local = split(SUB, substitutions_key_value_local, ";")
   for (indx_local=1;
-       indx_local<=numb_expanded_targets_local;
+       indx_local<=numb_substitutions_local;
        indx_local++) {
-    split(expanded_targets_key_value_local[indx_local], key_value_parts_local, ":")
+    split(substitutions_key_value_local[indx_local], key_value_parts_local, ":")
     gsub(/^ +| +$/, "", key_value_parts_local[1])
     if (length_array_posix(key_value_parts_local) == 2) {
-      EXPANDED_TARGETS_DICT[key_value_parts_local[1]] = key_value_parts_local[2]
+      SUB_DICT[key_value_parts_local[1]] = key_value_parts_local[2]
     } else {
-      EXPANDED_TARGETS_DICT[key_value_parts_local[1]] = key_value_parts_local[3]
-      EXPANDED_TARGETS_DICT_RENAMED[key_value_parts_local[1]] = key_value_parts_local[2]
+      SUB_DICT[key_value_parts_local[1]] = key_value_parts_local[3]
+      SUB_DICT_RENAMED[key_value_parts_local[1]] = key_value_parts_local[2]
     }
 
   }
 }
 
-function display_expanded_target(target, len_anchors) {
-  split(EXPANDED_TARGETS_DICT[target], value_parts_local, " ")
+function display_substitutions(anchor, len_anchors) {
+  split(SUB_DICT[anchor], value_parts_local, " ")
   for (indx_local=1;
        indx_local<=length_array_posix(value_parts_local);
        indx_local++) {
@@ -387,8 +397,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    if (anchor in EXPANDED_TARGETS_DICT_RENAMED)
-      renamed_anchor = EXPANDED_TARGETS_DICT_RENAMED[anchor]
+    if (anchor in SUB_DICT_RENAMED)
+      renamed_anchor = SUB_DICT_RENAMED[anchor]
     else
       renamed_anchor = anchor
 
@@ -402,7 +412,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
     }
     printf("%s%s\n", formatted_anchor, description)
   }
-  display_expanded_target(anchor, len_anchors)
+  display_substitutions(anchor, len_anchors)
 }
 
 function count_numb_double_colon(new_target) {
@@ -469,7 +479,7 @@ function print_help() {
     print "Options:"
     printf "  DEBUG ([bool] output debug info): %s\n", DEBUG
     printf "  DEBUG_FILE (debug info file): %s\n", DEBUG_FILE
-    printf "  EXPANDED_TARGETS (NAME[:LABEL]:[VALUE][;...]): %s\n", EXPANDED_TARGETS
+    printf "  SUB (NAME[:LABEL]:[VALUE][;...]): %s\n", SUB
     printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
     printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
     printf "  VARS ([bool] show documented variables): %s\n", VARS
@@ -539,7 +549,7 @@ function debug_init() {
   debug(DEBUG_INDENT_STACK " debug_init")
   debug("+ ~FS~: " FS)
   debug("+ ~DEBUG_FILE~: " DEBUG_FILE)
-  debug("+ ~EXPANDED_TARGETS~: " EXPANDED_TARGETS)
+  debug("+ ~SUB~: " SUB)
   debug("+ ~TARGETS_REGEX~: " TARGETS_REGEX)
   debug("+ ~VARIABLES_REGEX~: " VARIABLES_REGEX)
   debug("+ ~VARS~: " VARS)
@@ -610,8 +620,8 @@ function debug_END() {
   debug_dict(VARIABLES_DESCRIPTION_DATA, "VARIABLES_DESCRIPTION_DATA")
   debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA")
 
-  debug_dict(EXPANDED_TARGETS_DICT, "EXPANDED_TARGETS_DICT")
-  debug_dict(EXPANDED_TARGETS_DICT_RENAMED, "EXPANDED_TARGETS_DICT_RENAMED")
+  debug_dict(SUB_DICT, "SUB_DICT")
+  debug_dict(SUB_DICT_RENAMED, "SUB_DICT_RENAMED")
   debug_indent_up()
 }
 
@@ -852,9 +862,9 @@ END {
   debug(DEBUG_INDENT_STACK " END")
   debug_indent_down()
 
-  # EXPANDED_TARGETS_DICT_RENAMED should be formed before get_max_anchor_length
+  # SUB_DICT_RENAMED should be formed before get_max_anchor_length
   # in order to account for renamed targets
-  form_expanded_targets()
+  form_substitutions()
 
   max_target_length = get_max_anchor_length(TARGETS)
   max_variable_length = get_max_anchor_length(VARIABLES)

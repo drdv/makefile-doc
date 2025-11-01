@@ -97,7 +97,7 @@ are given in `{...}`, `(.)` shows the default)
 
 + `DEBUG`: `{(0), 1}` output debug info (in an org-mode format)
 + `DEBUG_FILE`: debug info file
-+ `EXPANDED_TARGETS`: see [Expanded targets](#expanded-targets)
++ `SUB`: see [Substitutions](#substitutions)
 + `TARGETS_REGEX`: regex to use for matching targets
 + `VARIABLES_REGEX`: regex to use for matching variables
 * `VARS`: `{0, (1)}` show documented variables
@@ -118,17 +118,17 @@ are given in `{...}`, `(.)` shows the default)
 
 Running `awk -f makefile-doc.awk` outputs help with values of options.
 
-## Expanded targets
+## Substitutions
 
 Sometimes it is necessary to document a target specified in terms of a variable or an
 expression. In such cases it might be useful to replace the actual target name with a
 label and (space separated) list of values. This can be achieved by setting `-v
-EXPANDED_TARGETS` equal to `NAME[:LABEL]:[VALUE][;...]`. For example, executing `make` with
+SUB` equal to `NAME[:LABEL]:[VALUE][;...]`. For example, executing `make` with
 ```Makefile
 NOTES := my-budget trip-info misc
 OPEN_NOTES := $(addprefix open-,$(NOTES))
 
-help: VFLAG := -v EXPANDED_TARGETS='$$(OPEN_NOTES):open-:$(NOTES)'
+help: VFLAG := -v SUB='$$(OPEN_NOTES):open-:$(NOTES)'
 help: ## Show this help
 	@awk $(VFLAG) -f makefile-doc.awk $(MAKEFILE_LIST)
 
@@ -150,7 +150,7 @@ open-   Notes:
 -----------------------
 ```
 
-Or if instead we use `VFLAG := -v EXPANDED_TARGETS='$$(OPEN_NOTES):$(OPEN_NOTES)'`, we would have:
+Or if instead we use `VFLAG := -v SUB='$$(OPEN_NOTES):$(OPEN_NOTES)'`, we would have:
 
 ```
 -----------------------
@@ -161,6 +161,24 @@ $(OPEN_NOTES)   Notes:
                 open-my-budget
                 open-trip-info
                 open-misc
+-----------------------
+```
+
+The same mechanism can be used for documenting variables. For example the `Makefile` of
+this project documents the possible choices for the variable `AWK` using `-v
+SUB=AWK:$(SUPPORTED_AWK_VARIANTS)`, which results in
+
+```
+-----------------------
+Command-line arguments:
+-----------------------
+AWK            Supported AWK variants:
+               awk
+               mawk
+               nawk
+               bawk
+               wak
+               goawk
 -----------------------
 ```
 
