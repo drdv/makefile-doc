@@ -347,7 +347,7 @@ function update_display_parameters(description) {
 }
 
 function form_expanded_targets() {
-  # Form the global variable EXPANDED_TARGETS_DICT
+  # Form the global variables: EXPANDED_TARGETS_DICT, EXPANDED_TARGETS_DICT_RENAMED
   #
   # The format is: NAME[:LABEL]:[VALUE][;...]
   #
