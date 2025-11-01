@@ -304,7 +304,8 @@ function format_description_data(anchor_name,
   }
 
   update_display_parameters(description_local)
-  sub(/(##|##!|##%)/, "", description_local) # strip the tag (keep the leading space)
+  # the order of alternatives is important when using goawk
+  sub(/(##!|##%|##)/, "", description_local) # strip the tag (keep the leading space)
   return colorize_description_backticks(description_local)
 }
 
