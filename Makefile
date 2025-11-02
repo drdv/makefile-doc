@@ -105,12 +105,13 @@ $(AWK_BIN)/mawk:
 	@cd $@-src && ./configure && make
 	@cp $@-src/mawk $@
 
-$(AWK_BIN)/nawk: URL := github.com/onetrueawk/awk/archive/refs/tags/20240728.tar.gz
+$(AWK_BIN)/nawk: RELEASE := 20240728
+$(AWK_BIN)/nawk: URL := github.com/onetrueawk/awk/archive/refs/tags/$(RELEASE).tar.gz
 $(AWK_BIN)/nawk:
 	@$(call verify-download,nawk)
 	@wget -P $(AWK_BIN) $(URL)
 	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/20240728.tar.gz -C $@-src --strip-components=1
+	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
 	@cd $@-src && make
 	@cp $@-src/a.out $@
 
@@ -125,22 +126,24 @@ else
 	@mv $(AWK_BIN)/busybox_AWK $@ && chmod +x $@
 endif
 
-$(AWK_BIN)/wak: URL := github.com/raygard/wak/archive/refs/tags/v24.10.tar.gz
+$(AWK_BIN)/wak: RELEASE := v24.10
+$(AWK_BIN)/wak: URL := github.com/raygard/wak/archive/refs/tags/$(RELEASE).tar.gz
 $(AWK_BIN)/wak:
 	@$(call verify-download,wak)
 	@wget -P $(AWK_BIN) $(URL)
 	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/v24.10.tar.gz -C $@-src --strip-components=1
+	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
 	@cd $@-src && make
 	@cp $@-src/wak $@
 
 # requires: sudo dnf install golang
-$(AWK_BIN)/goawk: URL := github.com/benhoyt/goawk/archive/refs/tags/v1.29.1.tar.gz
+$(AWK_BIN)/goawk: RELEASE := v1.30.0
+$(AWK_BIN)/goawk: URL := github.com/benhoyt/goawk/archive/refs/tags/$(RELEASE).tar.gz
 $(AWK_BIN)/goawk:
 	@$(call verify-download,goawk)
 	@wget -P $(AWK_BIN) $(URL)
 	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/v1.29.1.tar.gz -C $@-src --strip-components=1
+	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
 	@cd $@-src && go build -o goawk goawk.go
 	@cp $@-src/goawk $@
 
