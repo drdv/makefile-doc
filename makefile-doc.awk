@@ -321,7 +321,8 @@ function format_description_data(anchor_name,
   }
 
   update_display_parameters(description_local)
-  # the order of alternatives is important when using goawk
+  # The order of alternatives is important when using goawk v1.29.1 and below.
+  # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description_local) # strip the tag (keep the leading space)
   return colorize_description_backticks(description_local)
 }
