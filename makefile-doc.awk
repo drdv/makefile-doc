@@ -62,12 +62,13 @@
 #   + multiple ;-separated substitutions can be passed
 #
 # Code conventions:
-#   * Variables in a function, to which an assignment is made, should have names ending
-#     in _local (because AWK is a bit special in that respect).
-#   * The code is meant to run with all major awk implementations, and as a result we
+#   * All local variables in functions should be defined in the function signature (AWK
+#     is a bit special in that respect).
+#   * The code is meant to run with most major awk implementations, and as a result we
 #     need to stick to basic syntax. For example we cannot use a match function with
 #     a third argument (an array that stores the groups) and have to fall-back to using
-#     RSTART, RLENGTH. We cannot use arrays of arrays (as in gnu awk) etc.
+#     RSTART, RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use %*
+#     patterns etc.
 
 function max(var1, var2) {
   if (var1 >= var2) {
@@ -83,88 +84,96 @@ function min(var1, var2) {
   return var2
 }
 
-function repeated_string(string, n) {
-  empty_string_of_length_n_local = sprintf("%" n "s", "")
+function repeated_string(string, n, #locals
+                         s) {
+  s = sprintf("%" n "s", "")
   if (string) {
-    gsub(/ /, string, empty_string_of_length_n_local)
+    gsub(/ /, string, s)
   }
-  return empty_string_of_length_n_local
+  return s
 }
 
 # in POSIX-compliant AWK the length function works on strings but not on arrays
-function length_array_posix(array) {
-  array_numb_elements_local = 0
-  for (counter_local in array) {
-    array_numb_elements_local++
+function length_array_posix(array, #locals
+                            key, n) {
+  n = 0
+  for (key in array) {
+    n++
   }
-  return array_numb_elements_local
+  return n
 }
 
-function join(array, delimiter) {
-  string_local = ""
-  for (indx_local=1; indx_local<=length_array_posix(array); indx_local++) {
-    if (indx_local == 1) {
-      string_local = array[indx_local]
+function join(array, delimiter, #locals
+              string, k) {
+  string = ""
+  for (k=1; k<=length_array_posix(array); k++) {
+    if (k == 1) {
+      string = array[k]
     } else {
-      string_local = string_local delimiter array[indx_local]
+      string = string delimiter array[k]
     }
   }
-  return string_local
+  return string
 }
 
-function get_tag_from_description(string) {
+function get_tag_from_description(string, #locals
+                                  tag) {
   if (match(string, /^ *(##!|##%|##)/)) {
-    tag_local = substr(string, RSTART, RLENGTH)
-    sub(/ */, "", tag_local)
-    return tag_local
+    tag = substr(string, RSTART, RLENGTH)
+    sub(/ */, "", tag)
+    return tag
   }
   return 0
 }
 
+# Updates global variables: DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX
 function save_description_data(string) {
   DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX] = string
   DESCRIPTION_DATA_INDEX++
 
   debug(DEBUG_INDENT_STACK " save_description_data")
   debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA")
+  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_indent_up()
 }
 
+# Updates global variables: DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX
 function forget_descriptions_data() {
   delete DESCRIPTION_DATA
   DESCRIPTION_DATA_INDEX = 1
 
   debug(DEBUG_INDENT_STACK " forget_descriptions_data")
   debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA")
+  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_indent_up()
 }
 
-function parse_inline_descriptions(whole_line_string) {
+function parse_inline_descriptions(whole_line_string, #locals
+                                   inline_string) {
   debug(DEBUG_INDENT_STACK " parse_inline_descriptions")
   debug_indent_down()
   if (match(whole_line_string, / *(##!|##%|##)/)) {
-    inline_string_local = substr(whole_line_string, RSTART)
-    sub(/^ */, "", inline_string_local)
-    save_description_data(inline_string_local)
+    inline_string = substr(whole_line_string, RSTART)
+    sub(/^ */, "", inline_string)
+    save_description_data(inline_string)
   }
   debug_indent_up()
 }
 
-function parse_variable_name(whole_line_string) {
+function parse_variable_name(whole_line_string, #locals
+                             variable_name, k) {
   split(whole_line_string, array_whole_line, ASSIGNMENT_OPERATORS_PATTERN)
-  variable_name_local = array_whole_line[1]
+  variable_name = array_whole_line[1]
 
   # here we need to preserve order in order to remove unexport and not just export
-  for (indx_local=1;
-       indx_local<=length_array_posix(ARRAY_OF_VARIABLE_QUALIFIERS);
-       indx_local++) {
+  for (k=1;
+       k<=length_array_posix(ARRAY_OF_VARIABLE_QUALIFIERS);
+       k++) {
     # use gsub to strip multiple occurrences of a qualifier
-    gsub(ARRAY_OF_VARIABLE_QUALIFIERS[indx_local], "", variable_name_local)
+    gsub(ARRAY_OF_VARIABLE_QUALIFIERS[k], "", variable_name)
   }
-  sub(/[ ]+/, "", variable_name_local)
-  return variable_name_local
+  sub(/[ ]+/, "", variable_name)
+  return variable_name
 }
 
 function associate_data_with_anchor(anchor_name,
@@ -181,8 +190,8 @@ function associate_data_with_anchor(anchor_name,
   debug_array(anchors, anchors_index, "anchors", anchor_type)
   debug_dict(anchors_description_data, "anchors_description_data", anchor_type)
   debug_dict(anchors_section_data, "anchors_section_data", anchor_type)
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA")
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA")
+  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
+  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
   debug_indent_up()
 
   if (anchor_name in anchors_description_data) {
@@ -230,23 +239,25 @@ function associate_data_with_anchor(anchor_name,
   return anchors_index
 }
 
+# Updates global variables: SECTION_DATA, SECTION_DATA_INDEX
 function save_section_data(string) {
   SECTION_DATA[SECTION_DATA_INDEX] = string
   SECTION_DATA_INDEX++
 
   debug(DEBUG_INDENT_STACK " save_section_data")
   debug_indent_down()
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA")
+  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
   debug_indent_up()
 }
 
+# Updates global variables: SECTION_DATA, SECTION_DATA_INDEX
 function forget_section_data() {
   delete SECTION_DATA
   SECTION_DATA_INDEX = 1
 
   debug(DEBUG_INDENT_STACK " forget_section_data")
   debug_indent_down()
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA")
+  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
   debug_indent_up()
 }
 
@@ -258,36 +269,31 @@ function get_associated_section_data(anchor_name,
   return 0 # means that there is no associated section data with this anchor
 }
 
-function get_max_anchor_length(anchors) {
-  max_len_local = 0
-  for (key_local in anchors) { # order is not important
-    anchor_local = anchors[key_local]
-    if (anchor_local in SUB_DICT_LABEL) {
-      len_local = length(SUB_DICT_LABEL[anchor_local])
+function get_max_anchor_length(anchors, #locals
+                               max_len, key, anchor, n) {
+  max_len = 0
+  for (key in anchors) { # order is not important
+    anchor = anchors[key]
+    if (anchor in SUB_DICT_LABEL) {
+      n = length(SUB_DICT_LABEL[anchor])
+    } else {
+      n = length(anchor)
     }
-    else {
-      len_local = length(anchor_local)
-    }
-    if (len_local > max_len_local) {
-      max_len_local = len_local
+    if (n > max_len) {
+      max_len = n
     }
   }
-  return max_len_local
+  return max_len
 }
 
-function get_separator(len_anchors) {
-  # busybox's awk doesn't support %* patterns (so I use a loop)
-  separator_local = ""
-  for (indx_local = 1;
-       indx_local <= max(len_anchors,
-                         max(length(HEADER_TARGETS), length(HEADER_VARIABLES)));
-       indx_local++) {
-    separator_local = separator_local "-"
-  }
-  return separator_local
+function get_separator(character, len_anchors) {
+  return repeated_string(character, max(len_anchors,
+                                        max(length(HEADER_TARGETS),
+                                            length(HEADER_VARIABLES))))
 }
 
-function substitute_backticks_patterns(string) {
+function substitute_backticks_patterns(string, #locals
+                                       before_match, inside_match, after_match) {
   # --------------------------------------------------------------------------
   # Since I cannot use this code in mawk and nawk, I implemented a manual hack
   # --------------------------------------------------------------------------
@@ -295,20 +301,19 @@ function substitute_backticks_patterns(string) {
   # return gensub(/`([^`]+)`/, replace_with, "g", description) # only for gawk
   # --------------------------------------------------------------------------
 
-  string_local = string
-  while (match(string_local, /`([^`]+)`/)) {
-    before_match_local = substr(string_local, 1, RSTART - 1)
-    inside_match_local = substr(string_local, RSTART + 1, RLENGTH - 2)
-    after_match_local = substr(string_local, RSTART + RLENGTH)
+  while (match(string, /`([^`]+)`/)) {
+    before_match = substr(string, 1, RSTART - 1)
+    inside_match = substr(string, RSTART + 1, RLENGTH - 2)
+    after_match = substr(string, RSTART + RLENGTH)
 
-    string_local = sprintf(repeated_string("%s", 5),
-                           before_match_local,
-                           COLOR_BACKTICKS_CODE,
-                           inside_match_local,
-                           COLOR_RESET_CODE,
-                           after_match_local)
+    string = sprintf(repeated_string("%s", 5),
+                     before_match,
+                     COLOR_BACKTICKS_CODE,
+                     inside_match,
+                     COLOR_RESET_CODE,
+                     after_match)
   }
-  return string_local
+  return string
 }
 
 function colorize_description_backticks(description) {
@@ -323,56 +328,62 @@ function colorize_description_backticks(description) {
 # introduce indentation for lines below the first one.
 function format_description_data(anchor_name,
                                  anchors_description_data,
-                                 len_anchor_names) {
+                                 len_anchor_names,
+                                 #locals
+                                 k, array_of_lines, line, description) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
-  split(anchors_description_data[anchor_name], array_of_lines_local, "\n")
+  split(anchors_description_data[anchor_name], array_of_lines, "\n")
 
   # the tag for the first line is stripped below (after the parameter update)
-  description_local = repeated_string("", OFFSET) array_of_lines_local[1]
+  description = repeated_string("", OFFSET) array_of_lines[1]
 
-  for (indx_local = 2;
-       indx_local <= length_array_posix(array_of_lines_local);
-       indx_local++) {
-    line_local = array_of_lines_local[indx_local]
-    sub(/^(##|##!|##%)/, "", line_local) # strip the tag
-    description_local = sprintf("%s\n%s%s",
-                                description_local,
-                                repeated_string("", OFFSET + len_anchor_names),
-                                line_local)
+  for (k=2;
+       k<=length_array_posix(array_of_lines);
+       k++) {
+    line = array_of_lines[k]
+    sub(/^(##|##!|##%)/, "", line) # strip the tag
+    description = sprintf("%s\n%s%s",
+                          description,
+                          repeated_string("", OFFSET + len_anchor_names),
+                          line)
   }
 
-  update_display_parameters(description_local)
+  update_display_parameters(description)
   # The order of alternatives is important when using goawk v1.29.1 and below.
   # Starting from goawk v1.30.0 this problem has been fixed.
-  sub(/(##!|##%|##)/, "", description_local) # strip the tag (keep the leading space)
-  return colorize_description_backticks(description_local)
+  sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
+  return colorize_description_backticks(description)
 }
 
-function assemble_description_data() {
-  description_local = DESCRIPTION_DATA[1]
-  for (indx_local = 2; indx_local<=length_array_posix(DESCRIPTION_DATA); indx_local++) {
-    description_local = description_local "\n" DESCRIPTION_DATA[indx_local]
+function assemble_description_data(             \
+    description, k) {
+  description = DESCRIPTION_DATA[1]
+  for (k=2; k<=length_array_posix(DESCRIPTION_DATA); k++) {
+    description = description "\n" DESCRIPTION_DATA[k]
   }
-  return description_local
+  return description
 }
 
-function assemble_section_data() {
-  section_local = SECTION_DATA[1]
-  for (indx_local = 2; indx_local <= length_array_posix(SECTION_DATA); indx_local++) {
-    section_local = section_local "\n" SECTION_DATA[indx_local]
+function assemble_section_data(                 \
+    section, k) {
+  section = SECTION_DATA[1]
+  for (k=2; k<=length_array_posix(SECTION_DATA); k++) {
+    section = section "\n" SECTION_DATA[k]
   }
-  return section_local
+  return section
 }
 
-function update_display_parameters(description) {
-  tag_local = get_tag_from_description(description)
-  if (tag_local == "##!") {
+# Updates global variables: DISPLAY_PARAMS
+function update_display_parameters(description, #locals
+                                   tag) {
+  tag = get_tag_from_description(description)
+  if (tag == "##!") {
     DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
     DISPLAY_PARAMS["show"] = 1
-  } else if (tag_local == "##%") {
+  } else if (tag == "##%") {
     DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
     DISPLAY_PARAMS["show"] = DEPRECATED
-  } else if (tag_local == "##") {
+  } else if (tag == "##") {
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
@@ -384,87 +395,99 @@ function update_display_parameters(description) {
   }
 }
 
-# record the parameters of a single substitution in CURRENT_SUB_DICT_PARAMS
-function extract_substitution_params(string_with_parameters) {
+# Updates global variables: CURRENT_SUB_DICT_PARAMS (parameters of one substitution)
+function extract_substitution_params(string_with_parameters, #locals
+                                     temp_placeholder, k, key_values, pair, key) {
   delete CURRENT_SUB_DICT_PARAMS
-  temp_placeholder_local = "\034" # the “file separator” ASCII control character
+  temp_placeholder = "\034" # the “file separator” ASCII control character
 
   # temporarily replace escaped commas
-  gsub(/\\,/, temp_placeholder_local, string_with_parameters)
-  for (indx_local=1;
-       indx_local<=split(string_with_parameters, key_values_local, ",");
-       indx_local++) {
-    gsub(temp_placeholder_local, ",", key_values_local[indx_local]) # restore commas
-    split(key_values_local[indx_local], pair_local, ":")
-    gsub(SPACES_TABS_REGEX, "", pair_local[1])
-    CURRENT_SUB_DICT_PARAMS[pair_local[1]] = pair_local[2]
+  gsub(/\\,/, temp_placeholder, string_with_parameters)
+  for (k=1;
+       k<=split(string_with_parameters, key_values, ",");
+       k++) {
+    gsub(temp_placeholder, ",", key_values[k]) # restore commas
+    split(key_values[k], pair, ":")
+    gsub(SPACES_TABS_REGEX, "", pair[1])
+    CURRENT_SUB_DICT_PARAMS[pair[1]] = pair[2]
   }
 
-  for (key_local in SUB_DICT_PARAMS_DEFAULTS) {
-    if (!(key_local in CURRENT_SUB_DICT_PARAMS)) {
-      CURRENT_SUB_DICT_PARAMS[key_local] = SUB_DICT_PARAMS_DEFAULTS[key_local]
+  for (key in SUB_DICT_PARAMS_DEFAULTS) {
+    if (!(key in CURRENT_SUB_DICT_PARAMS)) {
+      CURRENT_SUB_DICT_PARAMS[key] = SUB_DICT_PARAMS_DEFAULTS[key]
     }
   }
 }
 
-function form_substitutions() {
-  # Form the global variables: SUB_DICT_PARAMS, SUB_DICT_LABEL, SUB_DICT_VALUES
-  numb_substitutions_local = split(SUB, split_substitutions_local, ";")
-  for (indx_local=1;
-       indx_local<=numb_substitutions_local;
-       indx_local++) {
-
-    str_local = split_substitutions_local[indx_local]
+# Updates global variables: SUB_DICT_PARAMS, SUB_DICT_LABEL, SUB_DICT_VALUES
+function form_substitutions(                                            \
+    split_substitutions, k, string, substitution_params, substitution_rest,
+    key_value_parts) {
+  for (k=1;
+       k<=split(SUB, split_substitutions, ";");
+       k++) {
+    string = split_substitutions[k]
 
     # Extract optional params in a <...> prefix
-    if (match(str_local, /^<([^>]*)>/)) {
-      substitution_params_local = substr(str_local, RSTART+1, RLENGTH-2) # strip < and >
-      substitution_rest_local = substr(str_local, RSTART + RLENGTH)
+    if (match(string, /^<([^>]*)>/)) {
+      substitution_params = substr(string, RSTART+1, RLENGTH-2) # strip < and >
+      substitution_rest = substr(string, RSTART + RLENGTH)
     } else {
-      substitution_params_local = ""
-      substitution_rest_local = str_local
+      substitution_params = ""
+      substitution_rest = string
     }
 
-    split(substitution_rest_local, key_value_parts_local, ":")
-    gsub(SPACES_TABS_REGEX, "", key_value_parts_local[1])
+    split(substitution_rest, key_value_parts, ":")
+    gsub(SPACES_TABS_REGEX, "", key_value_parts[1])
 
-    SUB_DICT_PARAMS[key_value_parts_local[1]] = substitution_params_local
-    if (length_array_posix(key_value_parts_local) == 2) {
-      SUB_DICT_VALUES[key_value_parts_local[1]] = key_value_parts_local[2]
+    SUB_DICT_PARAMS[key_value_parts[1]] = substitution_params
+    if (length_array_posix(key_value_parts) == 2) {
+      SUB_DICT_VALUES[key_value_parts[1]] = key_value_parts[2]
     } else {
-      SUB_DICT_VALUES[key_value_parts_local[1]] = key_value_parts_local[3]
-      SUB_DICT_LABEL[key_value_parts_local[1]] = key_value_parts_local[2]
+      SUB_DICT_VALUES[key_value_parts[1]] = key_value_parts[3]
+      SUB_DICT_LABEL[key_value_parts[1]] = key_value_parts[2]
     }
   }
 }
 
-function display_substitutions(anchor, len_anchors) {
-  split(SUB_DICT_VALUES[anchor], value_parts_local, " ")
+function display_substitutions(anchor, len_anchors, #locals
+                               k, n, L, M, I, value_parts, offset, cond_indent) {
+  split(SUB_DICT_VALUES[anchor], value_parts, " ")
+
   if (CURRENT_SUB_DICT_PARAMS["N"] < 0) {
-    n_local = length_array_posix(value_parts_local)
+    n = length_array_posix(value_parts)
   } else {
-    n_local = min(CURRENT_SUB_DICT_PARAMS["N"], length_array_posix(value_parts_local))
+    n = min(CURRENT_SUB_DICT_PARAMS["N"], length_array_posix(value_parts))
   }
 
-  for (indx_local=1; indx_local<=n_local; indx_local++) {
+  for (k=1; k<=n; k++) {
+    L = CURRENT_SUB_DICT_PARAMS["L"]
+    M = CURRENT_SUB_DICT_PARAMS["M"]
+    I = CURRENT_SUB_DICT_PARAMS["I"]
 
-    cond__space_local = CURRENT_SUB_DICT_PARAMS["L"] == 0 ||
-                        (CURRENT_SUB_DICT_PARAMS["L"] > 0 && indx_local > 1)
+    # -----------------------------
+    # NO INDENT: !M && !L
+    #    INDENT: !M &&  L && k == 1
+    # NO INDENT: !M &&  L && k  > 1
+    # NO INDENT:  M && !L && k == 1
+    #    INDENT:  M && !L && k  > 1
+    #    INDENT:  M &&  L
+    # -----------------------------
     # the + 1 is because of the usual one space we add between the token ## and the docs
-    printf(repeated_string("%s", 8),
-           repeated_string("", cond__space_local ? 1 : len_anchors + OFFSET + 1),
-           indx_local == 1 ? CURRENT_SUB_DICT_PARAMS["I"] : "",
+    indentation = len_anchors + OFFSET + 1 + (M ? length(I) : 0)
+    cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
+    printf(repeated_string("%s", 7),
+           repeated_string("", cond_indent ? indentation : 1),
+           k == 1 ? I : "",
            CURRENT_SUB_DICT_PARAMS["P"],
-           value_parts_local[indx_local],
-           indx_local == n_local ? "" : CURRENT_SUB_DICT_PARAMS["S"],
-           indx_local == n_local ? CURRENT_SUB_DICT_PARAMS["T"] : "",
-           CURRENT_SUB_DICT_PARAMS["L"] >= 0 ? "" : "\n")
-  }
-  if (CURRENT_SUB_DICT_PARAMS["L"] >= 0) {
-    print("")
+           value_parts[k],
+           k == n ? "" : CURRENT_SUB_DICT_PARAMS["S"],
+           k == n ? CURRENT_SUB_DICT_PARAMS["T"] : "",
+           M ? "\n" : "")
   }
 }
 
+# Updates global variables: CURRENT_SUB_DICT_PARAMS (see extract_substitution_params)
 function display_anchor_with_data(anchor, description, section, len_anchors) {
   extract_substitution_params(SUB_DICT_PARAMS[anchor])
 
@@ -480,8 +503,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
     else
       renamed_anchor = anchor
 
-    DISPLAY_PATTERN = "%s%-" len_anchors "s%s"
-    formatted_anchor = sprintf(DISPLAY_PATTERN,
+    formatted_anchor = sprintf("%s%-" len_anchors "s%s",
                                DISPLAY_PARAMS["color"],
                                format_anchor_name(renamed_anchor),
                                COLOR_RESET_CODE)
@@ -491,45 +513,44 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
     printf("%s%s%s",
            formatted_anchor,
            description,
-           CURRENT_SUB_DICT_PARAMS["L"] >= 0 ? "" : "\n")
-  }
-  if (CURRENT_SUB_DICT_PARAMS["L"] > 0) {
-    print("")
+           CURRENT_SUB_DICT_PARAMS["L"] ? "\n" : "")
   }
   display_substitutions(anchor, len_anchors)
 }
 
-function count_numb_double_colon(new_target) {
-  counter_local = 1
-  prefix_local = "[" new_target "]"
-  n_prefix_local = length(prefix_local)
-  for (indx_local in TARGETS) { # order is not important
-    target_local = TARGETS[indx_local]
-    if (length(target_local) >= n_prefix_local &&
-        substr(target_local, 1, n_prefix_local) == prefix_local) {
-      counter_local++
+function count_numb_double_colon(new_target, #locals
+                                 counter, prefix, n_prefix, target, key) {
+  counter = 1
+  prefix = "[" new_target "]"
+  n_prefix = length(prefix)
+  for (key in TARGETS) { # order is not important
+    target = TARGETS[key]
+    if (length(target) >= n_prefix &&
+        substr(target, 1, n_prefix) == prefix) {
+      counter++
     }
   }
-  return counter_local
+  return counter
 }
 
 # modifies only double-colon targets:
 # [double_colon_target_name]:1 -> double_colon_target_name:1
-function format_anchor_name(target) {
+function format_anchor_name(target, #locals
+                            target_name, target_index) {
   if (match(target, /\[.+\]/)) {
-    target_name_local = substr(target, RSTART+1, RLENGTH-2)
+    target_name = substr(target, RSTART+1, RLENGTH-2)
     if (match(target, /:([0-9]*)/)) {
-      target_index_local = substr(target, RSTART+1, RLENGTH-1)
+      target_index = substr(target, RSTART+1, RLENGTH-1)
     }
-    return target_name_local ":" target_index_local
+    return target_name ":" target_index
   }
   return target
 }
 
-function trim_start_end_spaces(string_local) {
-  sub(/^ */, "", string_local)
-  sub(/ *$/, "", string_local)
-  return string_local
+function strip_start_end_spaces(string) {
+  sub(/^ */, "", string)
+  sub(/ *$/, "", string)
+  return string
 }
 
 function define_color(parameter) {
@@ -544,6 +565,7 @@ function define_color(parameter) {
   }
 }
 
+# Updates global variables: COLOR_*, HTML_*
 function initialize_colors() {
   COLOR_ENCODING = COLOR_ENCODING == "" ? "ANSI" : toupper(COLOR_ENCODING)
   if (COLOR_ENCODING != "ANSI" && COLOR_ENCODING != "HTML") {
@@ -570,9 +592,9 @@ function initialize_colors() {
 # It would be nice to extract the options from the docstring of this script (there could
 # be some sort of prefix before each option). Unfortunately, I can get the script passed
 # with the -f flag only using gawk (so, names of options are hard-coded in print_help):
-# for (indx_local in PROCINFO["argv"]) {
-#   if (PROCINFO["argv"][indx_local] == "-f") {
-#     printf PROCINFO["argv"][indx_local + 1]
+# for (key in PROCINFO["argv"]) {
+#   if (PROCINFO["argv"][key] == "-f") {
+#     printf PROCINFO["argv"][key + 1]
 #   }
 # }
 function print_help() {
@@ -600,6 +622,10 @@ function print_help() {
 
 # =============================================================================
 # DEBUG STUFF
+#
+# While debug(message) outputs messages only when the DEBUG option is defined, the
+# message itself gets formed always (same for functions calling debug(...)). I don't
+# know how to solve this in a nice way and I don't want to use everywhere if (DEBUG) ...
 # =============================================================================
 function debug(message) {
   if (DEBUG) {
@@ -620,39 +646,28 @@ function debug_pattern_rule(title) {
   debug_indent_down()
 }
 
-function debug_array(array, array_next_index, array_name, array_note) {
-  if (array_note) {
-    array_note_local = ", note: " array_note
-  } else {
-    array_note_local = ""
-  }
+function debug_array(array, array_next_index, array_name, array_note, #locals
+                     k) {
   debug(sprintf("%s [A] %s (length: %s, next index: %s%s)",
                 DEBUG_INDENT_STACK,
                 array_name,
                 length_array_posix(array),
                 array_next_index,
-                array_note_local))
-  for (array_indx_local=1;
-       array_indx_local<=length_array_posix(array);
-       array_indx_local++) {
-    debug("+ " array[array_indx_local])
+                array_note ? ", note: " array_note : array_note))
+  for (k=1; k<=length_array_posix(array); k++) {
+    debug("+ " array[k])
   }
 }
 
-function debug_dict(array, array_name, array_note) {
-  if (array_note) {
-    array_note_local = ", note: " array_note
-  } else {
-    array_note_local = ""
-  }
-
+function debug_dict(array, array_name, array_note, #locals
+                    key) {
   debug(sprintf("%s [D] %s (length: %s%s)",
                 DEBUG_INDENT_STACK,
                 array_name,
                 length_array_posix(array),
-                array_note_local))
-  for (array_key_local in array) {
-    debug("+ " array_key_local ": " array[array_key_local])
+                array_note ? ", note: " array_note : array_note))
+  for (key in array) {
+    debug("+ " key ": " array[key])
   }
 }
 
@@ -701,7 +716,7 @@ function debug_target_matched() {
   debug("+ ~target_name~: " target_name)
   debug("+ ~WIP_TARGET~: " WIP_TARGET)
   debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA")
+  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_indent_up()
 }
 
@@ -709,7 +724,7 @@ function debug_variable_matched() {
   debug(DEBUG_INDENT_STACK " debug_variable_matched")
   debug("+ ~variable_name~: " variable_name)
   debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA")
+  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_indent_up()
 }
 
@@ -720,19 +735,19 @@ function debug_END() {
   debug("+ ~max_anchor_length~: " max_anchor_length)
   debug("+ ~separator~: " separator)
   debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA")
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA")
+  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
+  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
 
-  debug_array(TARGETS, TARGETS_INDEX, "TARGETS")
-  debug_dict(TARGETS_DESCRIPTION_DATA, "TARGETS_DESCRIPTION_DATA")
-  debug_dict(TARGETS_SECTION_DATA, "TARGETS_SECTION_DATA")
+  debug_array(TARGETS, TARGETS_INDEX, "TARGETS", "")
+  debug_dict(TARGETS_DESCRIPTION_DATA, "TARGETS_DESCRIPTION_DATA", "")
+  debug_dict(TARGETS_SECTION_DATA, "TARGETS_SECTION_DATA", "")
 
-  debug_array(VARIABLES, VARIABLES_INDEX, "VARIABLES")
-  debug_dict(VARIABLES_DESCRIPTION_DATA, "VARIABLES_DESCRIPTION_DATA")
-  debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA")
+  debug_array(VARIABLES, VARIABLES_INDEX, "VARIABLES", "")
+  debug_dict(VARIABLES_DESCRIPTION_DATA, "VARIABLES_DESCRIPTION_DATA", "")
+  debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA", "")
 
-  debug_dict(SUB_DICT_VALUES, "SUB_DICT_VALUES")
-  debug_dict(SUB_DICT_LABEL, "SUB_DICT_LABEL")
+  debug_dict(SUB_DICT_VALUES, "SUB_DICT_VALUES", "")
+  debug_dict(SUB_DICT_LABEL, "SUB_DICT_LABEL", "")
   debug_indent_up()
 }
 
@@ -740,8 +755,8 @@ function debug_END() {
 
 # Initialize global variables.
 BEGIN {
-  DEBUG_FILE = DEBUG_FILE == "" ? ".debug-makefile-doc.org" : DEBUG_FILE
   if (DEBUG) {
+    DEBUG_FILE = DEBUG_FILE == "" ? ".debug-makefile-doc.org" : DEBUG_FILE
     DEBUG_INDENT_STACK = "*"
     printf "" > DEBUG_FILE
   }
@@ -769,30 +784,27 @@ BEGIN {
     exit 1
   }
 
+  SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
+  if (ARGC == 1) {
+    if (SHOW_HELP) {
+      print_help()
+    }
+    exit 1
+  }
+
   # ------------------------------------------------------
-  # default substitution parameters
+  # default substitution parameters (don't change the defaults)
   # ------------------------------------------------------
-  # L < 0 : each value is displayed on a separate line
-  # L == 0: all lines are displayed one the same line as the target/variable
-  # L == 1: all lines are displayed one the line after the target/variable
-  SUB_DICT_PARAMS_DEFAULTS["L"] = -1
-  SUB_DICT_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display
+  # L == 0: start display on the last line of the docs for the target/variable
+  # L == 1: start display on the line following the docs for the target/variable
+  SUB_DICT_PARAMS_DEFAULTS["L"] = 1
+  SUB_DICT_PARAMS_DEFAULTS["M"] = 1 # 1 for multi-line display, 0 for single-line display
+  SUB_DICT_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
   SUB_DICT_PARAMS_DEFAULTS["S"] = "" # separator
   SUB_DICT_PARAMS_DEFAULTS["P"] = "" # prefix
   SUB_DICT_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
   SUB_DICT_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
   # ------------------------------------------------------
-
-  SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
-  WIP_TARGET = ""
-
-  if (ARGC == 1) {
-    print_help()
-    exit 1
-  }
-
-  HEADER_TARGETS = "Available targets:"
-  HEADER_VARIABLES = "Command-line arguments:"
 
   # initialize global arrays (i.e., hash tables) for clarity
   # index variables start from 1 because this is the standard in awk
@@ -828,6 +840,13 @@ BEGIN {
 
   split("", DISPLAY_PARAMS)
 
+  HEADER_TARGETS = "Available targets:"
+  HEADER_VARIABLES = "Command-line arguments:"
+  number_of_files_processed = 0
+  files_processed = ""
+  SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
+  WIP_TARGET = ""
+
   debug_init()
 }
 
@@ -844,7 +863,7 @@ FNR == 1 {
   number_of_files_processed++
   if (files_processed) {
     files_processed = files_processed " " FILENAME
-  } else {   # I don't want an extra space before or after (affects the diff)
+  } else {
     files_processed = FILENAME
   }
   debug_FNR1()
@@ -935,7 +954,7 @@ $0 ~ TARGETS_REGEX {
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
     WIP_TARGET = target_name
     debug(DEBUG_INDENT_STACK " [assign] ~WIP_TARGET~: " WIP_TARGET)
-    TARGETS_INDEX = associate_data_with_anchor(trim_start_end_spaces(target_name),
+    TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces(target_name),
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
@@ -962,7 +981,7 @@ $0 ~ VARIABLES_REGEX {
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    variable_name = trim_start_end_spaces(parse_variable_name($0))
+    variable_name = strip_start_end_spaces(parse_variable_name($0))
     debug_variable_matched()
     VARIABLES_INDEX = associate_data_with_anchor(variable_name,
                                                  VARIABLES,
@@ -994,7 +1013,7 @@ END {
   max_target_length = get_max_anchor_length(TARGETS)
   max_variable_length = get_max_anchor_length(VARIABLES)
   max_anchor_length = max(max_target_length, max_variable_length)
-  separator = get_separator(max_anchor_length)
+  separator = get_separator("-", max_anchor_length)
 
   debug_END()
 
