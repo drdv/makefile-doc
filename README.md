@@ -106,6 +106,7 @@ are given in `{...}`, `(.)` shows the default)
 * `OFFSET`: `{0, 1, (2), ...}` number of spaces to offset docs from anchors
 * `CONNECTED`: `{0, (1)}` ignore docs followed by an empty line
 + Colors:
+  + `COLOR_ENCODING`: `{(ANSI), HTML}`
   + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`
   + `COLOR_ATTENTION`: (`31`: red) for anchors whose docs start with `##!`
   + `COLOR_DEPRECATED`: (`33`: yellow) for anchors whose docs start with `##%`

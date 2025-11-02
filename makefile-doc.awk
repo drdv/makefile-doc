@@ -9,7 +9,7 @@
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 #
-# Options (set using -v option=value, possible values given in {...}, (.) is the default):
+# Options (possible values are given in {...}, (.) is the default):
 #   + DEBUG: {(0), 1} output debug info (in an org-mode format)
 #   + DEBUG_FILE: debug info file
 #   + SUB: NAME[:LABEL]:[VALUE][;...], see below
@@ -152,7 +152,10 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_description_data,
                                     anchors_section_data,
                                     anchor_type) {
-  debug(DEBUG_INDENT_STACK " debug_associate_data_with_" anchor_type " (INITIAL): " anchor_name)
+  debug(sprintf("%s debug_associate_data_with_%s (INITIAL): %s",
+                DEBUG_INDENT_STACK,
+                anchor_type,
+                anchor_name))
   debug_indent_down()
   debug_array(anchors, anchors_index, "anchors", anchor_type)
   debug_dict(anchors_description_data, "anchors_description_data", anchor_type)
@@ -194,7 +197,9 @@ function associate_data_with_anchor(anchor_name,
     forget_section_data()
   }
 
-  debug(DEBUG_INDENT_STACK " debug_associate_data_with_" anchor_type " (FINAL)")
+  debug(sprintf("%s debug_associate_data_with_%s (FINAL)",
+                DEBUG_INDENT_STACK,
+                anchor_type))
   debug_indent_down()
   debug_array(anchors, anchors_index, "anchors", anchor_type)
   debug_dict(anchors_description_data, "anchors_description_data", anchor_type)
@@ -541,9 +546,14 @@ function debug_array(array, array_next_index, array_name, array_note) {
   if (array_note) {
     array_note_local = ", note: " array_note
   } else {
-    array_note_local = ")"
+    array_note_local = ""
   }
-  debug(DEBUG_INDENT_STACK " [A] " array_name " (length: " length_array_posix(array) ", next index: " array_next_index array_note_local)
+  debug(sprintf("%s [A] %s (length: %s, next index: %s%s)",
+                DEBUG_INDENT_STACK,
+                array_name,
+                length_array_posix(array),
+                array_next_index,
+                array_note_local))
   for (array_indx_local=1;
        array_indx_local<=length_array_posix(array);
        array_indx_local++) {
@@ -555,10 +565,14 @@ function debug_dict(array, array_name, array_note) {
   if (array_note) {
     array_note_local = ", note: " array_note
   } else {
-    array_note_local = ")"
+    array_note_local = ""
   }
 
-  debug(DEBUG_INDENT_STACK " [D] " array_name " (length: " length_array_posix(array) array_note_local)
+  debug(sprintf("%s [D] %s (length: %s%s)",
+                DEBUG_INDENT_STACK,
+                array_name,
+                length_array_posix(array),
+                array_note_local))
   for (array_key_local in array) {
     debug("+ " array_key_local ": " array[array_key_local])
   }
@@ -881,8 +895,7 @@ END {
   debug(DEBUG_INDENT_STACK " END")
   debug_indent_down()
 
-  # SUB_DICT_RENAMED should be formed before get_max_anchor_length
-  # in order to account for renamed targets
+  # Form SUB_DICT_RENAMED before calling get_max_anchor_length
   form_substitutions()
 
   max_target_length = get_max_anchor_length(TARGETS)
