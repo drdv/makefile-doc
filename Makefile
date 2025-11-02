@@ -24,7 +24,9 @@ endef
 
 .PHONY: help
 ## show this help
-help: VFLAGS := -v SUB='$$(TESTS):test-:$(subst test-,,$(TESTS));AWK:$(SUPPORTED_AWK_VARIANTS)' \
+help: AWK_SUB := AWK:$(SUPPORTED_AWK_VARIANTS)
+help: TESTS_SUB := $$(TESTS):test-:$(subst test-,,$(TESTS))
+help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_ENCODING=$(COLOR_ENCODING)
 help: $(AWK_BIN)/$(AWK)
