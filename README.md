@@ -124,7 +124,7 @@ Running `awk -f makefile-doc.awk` outputs help with values of options.
 Sometimes it is necessary to document a target specified in terms of a variable or an
 expression. In such cases it might be useful to replace the actual target name with a
 label and (space separated) list of values. This can be achieved by setting `-v
-SUB` equal to `NAME[:LABEL]:[VALUE][;...]`. For example, executing `make` with
+SUB` equal to `NAME[:LABEL]:[VALUES][;...]`. For example, executing `make` with
 ```Makefile
 NOTES := my-budget trip-info misc
 OPEN_NOTES := $(addprefix open-,$(NOTES))

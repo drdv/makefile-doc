@@ -12,7 +12,7 @@
 # Options (possible values are given in {...}, (.) is the default):
 #   + DEBUG: {(0), 1} output debug info (in an org-mode format)
 #   + DEBUG_FILE: debug info file
-#   + SUB: NAME[:LABEL]:[VALUE][;...], see below
+#   + SUB: see below
 #   + TARGETS_REGEX: regex for matching targets
 #   + VARIABLES_REGEX: regex for matching variables
 #   * VARS: {0, (1)} show documented variables
@@ -52,22 +52,43 @@
 #   SUPPORTED_AWK_VARIANTS to the documentation of the variable AWK. This mechanism is
 #   also useful when documenting targets defined in terms of variables/expressions,
 #   which we might want to rename in addition to adding a list of expanded targets to
-#   the documentation. The format of a substitution is NAME[:LABEL]:[VALUE][;...]
+#   the documentation. The format of a single substitution is
+#   [<p1:v1,...>]NAME[:LABEL]:[VALUES]
 #   + NAME is the name of the variable/target to substitute in the documentation
 #   + LABEL is an optional label for renaming the variable/target
-#   + VALUE are optional space-separated values to include
+#   + VALUES are optional space-separated values to include
+#   + <p1:v1,...> are optional, comma-separated, key-value pairs with parameters (to add
+#     a comma as a value it should be escaped)
 #   + multiple ;-separated substitutions can be passed
 #
 # Code conventions:
 #   * Variables in a function, to which an assignment is made, should have names ending
 #     in _local (because AWK is a bit special in that respect).
-#   * Compatibility: the code is meant to run with all major awk implementations.
+#   * The code is meant to run with all major awk implementations, and as a result we
+#     need to stick to basic syntax. For example we cannot use a match function with
+#     a third argument (an array that stores the groups) and have to fall-back to using
+#     RSTART, RLENGTH. We cannot use arrays of arrays (as in gnu awk) etc.
 
 function max(var1, var2) {
   if (var1 >= var2) {
     return var1
   }
   return var2
+}
+
+function min(var1, var2) {
+  if (var1 <= var2) {
+    return var1
+  }
+  return var2
+}
+
+function repeated_string(string, n) {
+  empty_string_of_length_n_local = sprintf("%" n "s", "")
+  if (string) {
+    gsub(/ /, string, empty_string_of_length_n_local)
+  }
+  return empty_string_of_length_n_local
 }
 
 # in POSIX-compliant AWK the length function works on strings but not on arrays
@@ -241,8 +262,8 @@ function get_max_anchor_length(anchors) {
   max_len_local = 0
   for (key_local in anchors) { # order is not important
     anchor_local = anchors[key_local]
-    if (anchor_local in SUB_DICT_RENAMED) {
-      len_local = length(SUB_DICT_RENAMED[anchor_local])
+    if (anchor_local in SUB_DICT_LABEL) {
+      len_local = length(SUB_DICT_LABEL[anchor_local])
     }
     else {
       len_local = length(anchor_local)
@@ -280,7 +301,7 @@ function substitute_backticks_patterns(string) {
     inside_match_local = substr(string_local, RSTART + 1, RLENGTH - 2)
     after_match_local = substr(string_local, RSTART + RLENGTH)
 
-    string_local = sprintf("%s%s%s%s%s",
+    string_local = sprintf(repeated_string("%s", 5),
                            before_match_local,
                            COLOR_BACKTICKS_CODE,
                            inside_match_local,
@@ -307,7 +328,7 @@ function format_description_data(anchor_name,
   split(anchors_description_data[anchor_name], array_of_lines_local, "\n")
 
   # the tag for the first line is stripped below (after the parameter update)
-  description_local = sprintf("%" OFFSET "s", "") array_of_lines_local[1]
+  description_local = repeated_string("", OFFSET) array_of_lines_local[1]
 
   for (indx_local = 2;
        indx_local <= length_array_posix(array_of_lines_local);
@@ -316,7 +337,7 @@ function format_description_data(anchor_name,
     sub(/^(##|##!|##%)/, "", line_local) # strip the tag
     description_local = sprintf("%s\n%s%s",
                                 description_local,
-                                sprintf("%" OFFSET + len_anchor_names "s", ""),
+                                repeated_string("", OFFSET + len_anchor_names),
                                 line_local)
   }
 
@@ -363,40 +384,90 @@ function update_display_parameters(description) {
   }
 }
 
+# record the parameters of a single substitution in CURRENT_SUB_DICT_PARAMS
+function extract_substitution_params(string_with_parameters) {
+  delete CURRENT_SUB_DICT_PARAMS
+  temp_placeholder_local = "\034" # the “file separator” ASCII control character
+
+  # temporarily replace escaped commas
+  gsub(/\\,/, temp_placeholder_local, string_with_parameters)
+  for (indx_local=1;
+       indx_local<=split(string_with_parameters, key_values_local, ",");
+       indx_local++) {
+    gsub(temp_placeholder_local, ",", key_values_local[indx_local]) # restore commas
+    split(key_values_local[indx_local], pair_local, ":")
+    gsub(SPACES_TABS_REGEX, "", pair_local[1])
+    CURRENT_SUB_DICT_PARAMS[pair_local[1]] = pair_local[2]
+  }
+
+  for (key_local in SUB_DICT_PARAMS_DEFAULTS) {
+    if (!(key_local in CURRENT_SUB_DICT_PARAMS)) {
+      CURRENT_SUB_DICT_PARAMS[key_local] = SUB_DICT_PARAMS_DEFAULTS[key_local]
+    }
+  }
+}
+
 function form_substitutions() {
-  # Form the global variables: SUB_DICT, SUB_DICT_RENAMED
-  #
-  # The format is: NAME[:LABEL]:[VALUE][;...]
-  #
-  numb_substitutions_local = split(SUB, substitutions_key_value_local, ";")
+  # Form the global variables: SUB_DICT_PARAMS, SUB_DICT_LABEL, SUB_DICT_VALUES
+  numb_substitutions_local = split(SUB, split_substitutions_local, ";")
   for (indx_local=1;
        indx_local<=numb_substitutions_local;
        indx_local++) {
-    split(substitutions_key_value_local[indx_local], key_value_parts_local, ":")
-    gsub(/^ +| +$/, "", key_value_parts_local[1])
-    if (length_array_posix(key_value_parts_local) == 2) {
-      SUB_DICT[key_value_parts_local[1]] = key_value_parts_local[2]
+
+    str_local = split_substitutions_local[indx_local]
+
+    # Extract optional params in a <...> prefix
+    if (match(str_local, /^<([^>]*)>/)) {
+      substitution_params_local = substr(str_local, RSTART+1, RLENGTH-2) # strip < and >
+      substitution_rest_local = substr(str_local, RSTART + RLENGTH)
     } else {
-      SUB_DICT[key_value_parts_local[1]] = key_value_parts_local[3]
-      SUB_DICT_RENAMED[key_value_parts_local[1]] = key_value_parts_local[2]
+      substitution_params_local = ""
+      substitution_rest_local = str_local
     }
 
+    split(substitution_rest_local, key_value_parts_local, ":")
+    gsub(SPACES_TABS_REGEX, "", key_value_parts_local[1])
+
+    SUB_DICT_PARAMS[key_value_parts_local[1]] = substitution_params_local
+    if (length_array_posix(key_value_parts_local) == 2) {
+      SUB_DICT_VALUES[key_value_parts_local[1]] = key_value_parts_local[2]
+    } else {
+      SUB_DICT_VALUES[key_value_parts_local[1]] = key_value_parts_local[3]
+      SUB_DICT_LABEL[key_value_parts_local[1]] = key_value_parts_local[2]
+    }
   }
 }
 
 function display_substitutions(anchor, len_anchors) {
-  split(SUB_DICT[anchor], value_parts_local, " ")
-  for (indx_local=1;
-       indx_local<=length_array_posix(value_parts_local);
-       indx_local++) {
+  split(SUB_DICT_VALUES[anchor], value_parts_local, " ")
+  if (CURRENT_SUB_DICT_PARAMS["N"] < 0) {
+    n_local = length_array_posix(value_parts_local)
+  } else {
+    n_local = min(CURRENT_SUB_DICT_PARAMS["N"], length_array_posix(value_parts_local))
+  }
+
+  for (indx_local=1; indx_local<=n_local; indx_local++) {
+
+    cond__space_local = CURRENT_SUB_DICT_PARAMS["L"] == 0 ||
+                        (CURRENT_SUB_DICT_PARAMS["L"] > 0 && indx_local > 1)
     # the + 1 is because of the usual one space we add between the token ## and the docs
-    printf("%s%s\n",
-           sprintf("%" len_anchors + OFFSET + 1 "s", ""),
-           value_parts_local[indx_local])
+    printf(repeated_string("%s", 8),
+           repeated_string("", cond__space_local ? 1 : len_anchors + OFFSET + 1),
+           indx_local == 1 ? CURRENT_SUB_DICT_PARAMS["I"] : "",
+           CURRENT_SUB_DICT_PARAMS["P"],
+           value_parts_local[indx_local],
+           indx_local == n_local ? "" : CURRENT_SUB_DICT_PARAMS["S"],
+           indx_local == n_local ? CURRENT_SUB_DICT_PARAMS["T"] : "",
+           CURRENT_SUB_DICT_PARAMS["L"] >= 0 ? "" : "\n")
+  }
+  if (CURRENT_SUB_DICT_PARAMS["L"] >= 0) {
+    print("")
   }
 }
 
 function display_anchor_with_data(anchor, description, section, len_anchors) {
+  extract_substitution_params(SUB_DICT_PARAMS[anchor])
+
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed.
   if (section) {
@@ -404,8 +475,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    if (anchor in SUB_DICT_RENAMED)
-      renamed_anchor = SUB_DICT_RENAMED[anchor]
+    if (anchor in SUB_DICT_LABEL)
+      renamed_anchor = SUB_DICT_LABEL[anchor]
     else
       renamed_anchor = anchor
 
@@ -417,7 +488,13 @@ function display_anchor_with_data(anchor, description, section, len_anchors) {
     if (PADDING != " ") {
       gsub(/ /, PADDING, formatted_anchor)
     }
-    printf("%s%s\n", formatted_anchor, description)
+    printf("%s%s%s",
+           formatted_anchor,
+           description,
+           CURRENT_SUB_DICT_PARAMS["L"] >= 0 ? "" : "\n")
+  }
+  if (CURRENT_SUB_DICT_PARAMS["L"] > 0) {
+    print("")
   }
   display_substitutions(anchor, len_anchors)
 }
@@ -504,7 +581,7 @@ function print_help() {
     print "Options:"
     printf "  DEBUG ([bool] output debug info): %s\n", DEBUG
     printf "  DEBUG_FILE (debug info file): %s\n", DEBUG_FILE
-    printf "  SUB (NAME[:LABEL]:[VALUE][;...]): %s\n", SUB
+    printf "  SUB (substitutions): %s\n", SUB
     printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
     printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
     printf "  VARS ([bool] show documented variables): %s\n", VARS
@@ -654,8 +731,8 @@ function debug_END() {
   debug_dict(VARIABLES_DESCRIPTION_DATA, "VARIABLES_DESCRIPTION_DATA")
   debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA")
 
-  debug_dict(SUB_DICT, "SUB_DICT")
-  debug_dict(SUB_DICT_RENAMED, "SUB_DICT_RENAMED")
+  debug_dict(SUB_DICT_VALUES, "SUB_DICT_VALUES")
+  debug_dict(SUB_DICT_LABEL, "SUB_DICT_LABEL")
   debug_indent_up()
 }
 
@@ -692,6 +769,21 @@ BEGIN {
     exit 1
   }
 
+  # ------------------------------------------------------
+  # default substitution parameters
+  # ------------------------------------------------------
+  # L < 0 : each value is displayed on a separate line
+  # L == 0: all lines are displayed one the same line as the target/variable
+  # L == 1: all lines are displayed one the line after the target/variable
+  SUB_DICT_PARAMS_DEFAULTS["L"] = -1
+  SUB_DICT_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display
+  SUB_DICT_PARAMS_DEFAULTS["S"] = "" # separator
+  SUB_DICT_PARAMS_DEFAULTS["P"] = "" # prefix
+  SUB_DICT_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
+  SUB_DICT_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
+  # ------------------------------------------------------
+
+  SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
   WIP_TARGET = ""
 
   if (ARGC == 1) {
@@ -896,7 +988,7 @@ END {
   debug(DEBUG_INDENT_STACK " END")
   debug_indent_down()
 
-  # Form SUB_DICT_RENAMED before calling get_max_anchor_length
+  # Form SUB_DICT_LABEL before calling get_max_anchor_length
   form_substitutions()
 
   max_target_length = get_max_anchor_length(TARGETS)
