@@ -61,6 +61,16 @@
 #     a comma as a value it should be escaped)
 #   + multiple ;-separated substitutions can be passed
 #
+# Arrays:
+#   Order is important for: DESCRIPTION_DATA, SECTION_DATA, TARGETS, VARIABLES and each
+#   of them has an associated *_INDEX integer variable. For all other arrays order is
+#   irrelevant:
+#     + DISPLAY_PARAMS
+#     + TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA
+#     + VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA
+#     + SUB_LABEL, SUB_PARAMS, SUB_VALUES, SUB_PARAMS_DEFAULTS, SUB_PARAMS_CURRENT
+#     + VARIABLE_QUALIFIERS
+#
 # Code conventions:
 #   * All local variables in functions should be defined in the function signature (awk
 #     is a bit special in that respect). Examining awkvars.out, the output of
@@ -173,10 +183,10 @@ function parse_variable_name(whole_line_string, #locals
 
   # here we need to preserve order in order to remove unexport and not just export
   for (k=1;
-       k<=length_array_posix(ARRAY_OF_VARIABLE_QUALIFIERS);
+       k<=length_array_posix(VARIABLE_QUALIFIERS);
        k++) {
     # use gsub to strip multiple occurrences of a qualifier
-    gsub(ARRAY_OF_VARIABLE_QUALIFIERS[k], "", variable_name)
+    gsub(VARIABLE_QUALIFIERS[k], "", variable_name)
   }
   sub(/[ ]+/, "", variable_name)
   return variable_name
@@ -280,8 +290,8 @@ function get_max_anchor_length(anchors, #locals
   max_len = 0
   for (key in anchors) { # order is not important
     anchor = anchors[key]
-    if (anchor in SUB_DICT_LABEL) {
-      n = length(SUB_DICT_LABEL[anchor])
+    if (anchor in SUB_LABEL) {
+      n = length(SUB_LABEL[anchor])
     } else {
       n = length(anchor)
     }
@@ -401,10 +411,10 @@ function update_display_parameters(description, #locals
   }
 }
 
-# Updates global variables: CURRENT_SUB_DICT_PARAMS (parameters of one substitution)
+# Updates global variables: SUB_PARAMS_CURRENT (parameters of one substitution)
 function extract_substitution_params(string_with_parameters, #locals
                                      temp_placeholder, k, key_values, pair, key) {
-  delete CURRENT_SUB_DICT_PARAMS
+  delete SUB_PARAMS_CURRENT
   temp_placeholder = "\034" # the “file separator” ASCII control character
 
   # temporarily replace escaped commas
@@ -415,17 +425,17 @@ function extract_substitution_params(string_with_parameters, #locals
     gsub(temp_placeholder, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
     gsub(SPACES_TABS_REGEX, "", pair[1])
-    CURRENT_SUB_DICT_PARAMS[pair[1]] = pair[2]
+    SUB_PARAMS_CURRENT[pair[1]] = pair[2]
   }
 
-  for (key in SUB_DICT_PARAMS_DEFAULTS) {
-    if (!(key in CURRENT_SUB_DICT_PARAMS)) {
-      CURRENT_SUB_DICT_PARAMS[key] = SUB_DICT_PARAMS_DEFAULTS[key]
+  for (key in SUB_PARAMS_DEFAULTS) {
+    if (!(key in SUB_PARAMS_CURRENT)) {
+      SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
     }
   }
 }
 
-# Updates global variables: SUB_DICT_PARAMS, SUB_DICT_LABEL, SUB_DICT_VALUES
+# Updates global variables: SUB_PARAMS, SUB_LABEL, SUB_VALUES
 function form_substitutions(                                            \
     split_substitutions, k, string, substitution_params, substitution_rest,
     key_value_parts) {
@@ -446,12 +456,12 @@ function form_substitutions(                                            \
     split(substitution_rest, key_value_parts, ":")
     gsub(SPACES_TABS_REGEX, "", key_value_parts[1])
 
-    SUB_DICT_PARAMS[key_value_parts[1]] = substitution_params
+    SUB_PARAMS[key_value_parts[1]] = substitution_params
     if (length_array_posix(key_value_parts) == 2) {
-      SUB_DICT_VALUES[key_value_parts[1]] = key_value_parts[2]
+      SUB_VALUES[key_value_parts[1]] = key_value_parts[2]
     } else {
-      SUB_DICT_VALUES[key_value_parts[1]] = key_value_parts[3]
-      SUB_DICT_LABEL[key_value_parts[1]] = key_value_parts[2]
+      SUB_VALUES[key_value_parts[1]] = key_value_parts[3]
+      SUB_LABEL[key_value_parts[1]] = key_value_parts[2]
     }
   }
 }
@@ -459,18 +469,18 @@ function form_substitutions(                                            \
 function display_substitutions(anchor, len_anchors, #locals
                                k, n, L, M, I, value_parts, offset,
                                cond_indent, indentation) {
-  split(SUB_DICT_VALUES[anchor], value_parts, " ")
+  split(SUB_VALUES[anchor], value_parts, " ")
 
-  if (CURRENT_SUB_DICT_PARAMS["N"] < 0) {
+  if (SUB_PARAMS_CURRENT["N"] < 0) {
     n = length_array_posix(value_parts)
   } else {
-    n = min(CURRENT_SUB_DICT_PARAMS["N"], length_array_posix(value_parts))
+    n = min(SUB_PARAMS_CURRENT["N"], length_array_posix(value_parts))
   }
 
   for (k=1; k<=n; k++) {
-    L = CURRENT_SUB_DICT_PARAMS["L"]
-    M = CURRENT_SUB_DICT_PARAMS["M"]
-    I = CURRENT_SUB_DICT_PARAMS["I"]
+    L = SUB_PARAMS_CURRENT["L"]
+    M = SUB_PARAMS_CURRENT["M"]
+    I = SUB_PARAMS_CURRENT["I"]
 
     # -----------------------------
     # NO INDENT: !M && !L
@@ -486,18 +496,18 @@ function display_substitutions(anchor, len_anchors, #locals
     printf(repeated_string("%s", 7),
            repeated_string("", cond_indent ? indentation : 1),
            k == 1 ? I : "",
-           CURRENT_SUB_DICT_PARAMS["P"],
+           SUB_PARAMS_CURRENT["P"],
            value_parts[k],
-           k == n ? "" : CURRENT_SUB_DICT_PARAMS["S"],
-           k == n ? CURRENT_SUB_DICT_PARAMS["T"] : "",
+           k == n ? "" : SUB_PARAMS_CURRENT["S"],
+           k == n ? SUB_PARAMS_CURRENT["T"] : "",
            M || (!M && k == n) ? "\n" : "")
   }
 }
 
-# Updates global variables: CURRENT_SUB_DICT_PARAMS (see extract_substitution_params)
+# Updates global variables: SUB_PARAMS_CURRENT (see extract_substitution_params)
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
                                   renamed_anchor, formatted_anchor) {
-  extract_substitution_params(SUB_DICT_PARAMS[anchor])
+  extract_substitution_params(SUB_PARAMS[anchor])
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed.
@@ -506,8 +516,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    if (anchor in SUB_DICT_LABEL)
-      renamed_anchor = SUB_DICT_LABEL[anchor]
+    if (anchor in SUB_LABEL)
+      renamed_anchor = SUB_LABEL[anchor]
     else
       renamed_anchor = anchor
 
@@ -521,7 +531,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
     printf("%s%s%s",
            formatted_anchor,
            description,
-           CURRENT_SUB_DICT_PARAMS["L"] ? "\n" : "")
+           SUB_PARAMS_CURRENT["L"] ? "\n" : "")
   }
   display_substitutions(anchor, len_anchors)
 }
@@ -762,9 +772,9 @@ function debug_END() {
   debug_dict(VARIABLES_DESCRIPTION_DATA, "VARIABLES_DESCRIPTION_DATA", "")
   debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA", "")
 
-  debug_dict(SUB_DICT_VALUES, "SUB_DICT_VALUES", "")
-  debug_dict(SUB_DICT_LABEL, "SUB_DICT_LABEL", "")
-  debug_dict(SUB_DICT_PARAMS, "SUB_DICT_PARAMS", "")
+  debug_dict(SUB_VALUES, "SUB_VALUES", "")
+  debug_dict(SUB_LABEL, "SUB_LABEL", "")
+  debug_dict(SUB_PARAMS, "SUB_PARAMS", "")
   debug_indent_up()
 }
 
@@ -783,9 +793,9 @@ BEGIN {
   FS = ":" # set the field separator
 
   ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
-  split("override unexport export private", ARRAY_OF_VARIABLE_QUALIFIERS, " ")
+  split("override unexport export private", VARIABLE_QUALIFIERS, " ")
   VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^.#][a-zA-Z0-9_-]* *%s",
-                                    join(ARRAY_OF_VARIABLE_QUALIFIERS, "|"),
+                                    join(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
   initialize_colors()
 
@@ -806,13 +816,13 @@ BEGIN {
   # ------------------------------------------------------
   # L == 0: start display on the last line of the docs for the target/variable
   # L == 1: start display on the line following the docs for the target/variable
-  SUB_DICT_PARAMS_DEFAULTS["L"] = 1
-  SUB_DICT_PARAMS_DEFAULTS["M"] = 1 # 1 for multi-line display, 0 for single-line display
-  SUB_DICT_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
-  SUB_DICT_PARAMS_DEFAULTS["S"] = "" # separator
-  SUB_DICT_PARAMS_DEFAULTS["P"] = "" # prefix
-  SUB_DICT_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
-  SUB_DICT_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
+  SUB_PARAMS_DEFAULTS["L"] = 1
+  SUB_PARAMS_DEFAULTS["M"] = 1 # 1 for multi-line display, 0 for single-line display
+  SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
+  SUB_PARAMS_DEFAULTS["S"] = "" # separator
+  SUB_PARAMS_DEFAULTS["P"] = "" # prefix
+  SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
+  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
   # ------------------------------------------------------
 
   # initialize global arrays (i.e., hash tables) for clarity
@@ -1025,7 +1035,7 @@ END {
   debug(DEBUG_INDENT_STACK " END")
   debug_indent_down()
 
-  # Form SUB_DICT_LABEL before calling get_max_anchor_length
+  # Form SUB_LABEL before calling get_max_anchor_length
   form_substitutions()
 
   g_max_target_length = get_max_anchor_length(TARGETS)
