@@ -634,11 +634,19 @@ function debug(message) {
 }
 
 function debug_indent_up() {
-  DEBUG_INDENT_STACK = substr(DEBUG_INDENT_STACK, 1, length(DEBUG_INDENT_STACK)-1)
+  if (DEBUG) {
+    if (DEBUG_INDENT_STACK == "*") {
+      printf("%sWARNING: already at top level%s\n", COLOR_WARNING_CODE, COLOR_RESET_CODE)
+    } else {
+      DEBUG_INDENT_STACK = substr(DEBUG_INDENT_STACK, 1, length(DEBUG_INDENT_STACK)-1)
+    }
+  }
 }
 
 function debug_indent_down() {
-  DEBUG_INDENT_STACK = DEBUG_INDENT_STACK "*"
+  if (DEBUG) {
+    DEBUG_INDENT_STACK = DEBUG_INDENT_STACK "*"
+  }
 }
 
 function debug_pattern_rule(title) {
