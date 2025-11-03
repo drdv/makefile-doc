@@ -44,6 +44,18 @@ test: $(TESTS)
 test-all-awk:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
+# FIXME:
+#  1. array_next_index -- no idea what is the problem
+#  2. number_of_files_processed -- it is actually initialized (maybe false-positive)
+# Warnings to ignore have been stripped below
+lint: UNINIT := (DEBUG|DEBUG_FILE|SUB|HEADER_TARGETS|HEADER_VARIABLES|DEBUG_INDENT_STACK|\
+	|COLOR_.*|VARIABLES_REGEX|TARGETS_REGEX|VARS|PADDING|DEPRECATED|OFFSET|CONNECTED)
+lint: SHADOW := (description|section|target|target_name|variable_name)
+lint: ## lint the code using GNU awk
+	@awk --lint -v SHOW_HELP=0 -f ./makefile-doc.awk 2>&1 | \
+		grep -vE "parameter \`$(SHADOW)' shadows global variable" | \
+		grep -vE "reference to uninitialized variable \`$(UNINIT)'"
+
 .PHONY: clean-bin
 clean-bin: ##! remove all downloaded awk variants
 	@rm -rf $(AWK_BIN)
