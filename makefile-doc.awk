@@ -62,13 +62,19 @@
 #   + multiple ;-separated substitutions can be passed
 #
 # Code conventions:
-#   * All local variables in functions should be defined in the function signature (AWK
-#     is a bit special in that respect).
+#   * All local variables in functions should be defined in the function signature (awk
+#     is a bit special in that respect). Examining awkvars.out, the output of
+#     awk -d -f makefile-doc.awk can help to identify unintended global variables.
+#   + The naming convention for global variables is:
+#     + long-standing/important global variables are written in all upper case
+#     + temporary variables that end-up being global (simply because of where they are
+#       defined, e.g., in the END stanza) have a prefix g_. In this way it is easy to
+#       check for unintended global variables in awkvars.out.
 #   * The code is meant to run with most major awk implementations, and as a result we
-#     need to stick to basic syntax. For example we cannot use a match function with
+#     need to stick to basic syntax. For example, we cannot use a match function with
 #     a third argument (an array that stores the groups) and have to fall-back to using
-#     RSTART, RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use %*
-#     patterns etc.
+#     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
+#     %* patterns, some regex etc.
 
 function max(var1, var2) {
   if (var1 >= var2) {
@@ -161,7 +167,7 @@ function parse_inline_descriptions(whole_line_string, #locals
 }
 
 function parse_variable_name(whole_line_string, #locals
-                             variable_name, k) {
+                             array_whole_line, variable_name, k) {
   split(whole_line_string, array_whole_line, ASSIGNMENT_OPERATORS_PATTERN)
   variable_name = array_whole_line[1]
 
@@ -489,7 +495,8 @@ function display_substitutions(anchor, len_anchors, #locals
 }
 
 # Updates global variables: CURRENT_SUB_DICT_PARAMS (see extract_substitution_params)
-function display_anchor_with_data(anchor, description, section, len_anchors) {
+function display_anchor_with_data(anchor, description, section, len_anchors, #locals
+                                  renamed_anchor, formatted_anchor) {
   extract_substitution_params(SUB_DICT_PARAMS[anchor])
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
@@ -697,14 +704,14 @@ function debug_init() {
 
 function debug_FNR1() {
   debug(DEBUG_INDENT_STACK " debug_FNR1")
-  debug("+ ~number_of_files_processed~: " number_of_files_processed)
-  debug("+ ~files_processed~: " files_processed)
+  debug("+ ~NUMBER_OF_FILES_PROCESSED~: " NUMBER_OF_FILES_PROCESSED)
+  debug("+ ~FILES_PROCESSED~: " FILES_PROCESSED)
 }
 
 function debug_description_not_section() {
   debug(DEBUG_INDENT_STACK " debug_description_not_section")
   debug("+ ~$0~: " $0)
-  debug("+ ~description_string~: " description_string)
+  debug("+ ~g_description_string~: " g_description_string)
 }
 
 function debug_empty_line() {
@@ -715,14 +722,14 @@ function debug_empty_line() {
 function debug_new_section() {
   debug(DEBUG_INDENT_STACK " debug_new_section")
   debug("+ ~$0~: " $0)
-  debug("+ ~section_string~: " section_string)
+  debug("+ ~g_section_string~: " g_section_string)
 }
 
 function debug_target_matched() {
   debug(DEBUG_INDENT_STACK " debug_target_matched")
   debug("+ ~$0~: " $0)
   debug("+ ~$1~: " $1)
-  debug("+ ~target_name~: " target_name)
+  debug("+ ~g_target_name~: " g_target_name)
   debug("+ ~WIP_TARGET~: " WIP_TARGET)
   debug_indent_down()
   debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
@@ -731,7 +738,7 @@ function debug_target_matched() {
 
 function debug_variable_matched() {
   debug(DEBUG_INDENT_STACK " debug_variable_matched")
-  debug("+ ~variable_name~: " variable_name)
+  debug("+ ~g_variable_name~: " g_variable_name)
   debug_indent_down()
   debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_indent_up()
@@ -739,10 +746,10 @@ function debug_variable_matched() {
 
 function debug_END() {
   debug(DEBUG_INDENT_STACK " debug_END")
-  debug("+ ~max_target_length~: " max_target_length)
-  debug("+ ~max_variable_length~: " max_variable_length)
-  debug("+ ~max_anchor_length~: " max_anchor_length)
-  debug("+ ~separator~: " separator)
+  debug("+ ~g_max_target_length~: " g_max_target_length)
+  debug("+ ~g_max_variable_length~: " g_max_variable_length)
+  debug("+ ~g_max_anchor_length~: " g_max_anchor_length)
+  debug("+ ~g_separator~: " g_separator)
   debug_indent_down()
   debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
@@ -844,8 +851,8 @@ BEGIN {
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
-  number_of_files_processed = 0
-  files_processed = ""
+  NUMBER_OF_FILES_PROCESSED = 0
+  FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
   WIP_TARGET = ""
 
@@ -871,11 +878,11 @@ FNR == 1 {
   debug_indent_down()
   debug_pattern_rule("file counter")
 
-  number_of_files_processed++
-  if (files_processed) {
-    files_processed = files_processed " " FILENAME
+  NUMBER_OF_FILES_PROCESSED++
+  if (FILES_PROCESSED) {
+    FILES_PROCESSED = FILES_PROCESSED " " FILENAME
   } else {
-    files_processed = FILENAME
+    FILES_PROCESSED = FILENAME
   }
   debug_FNR1()
   debug_indent_up()
@@ -885,12 +892,12 @@ FNR == 1 {
 /^ *##([^@]|$)/ {
   debug_pattern_rule("description")
 
-  description_string = $0
-  sub(/^ */, "", description_string)
+  g_description_string = $0
+  sub(/^ */, "", g_description_string)
 
   debug_description_not_section()
 
-  save_description_data(description_string)
+  save_description_data(g_description_string)
 
   PATTERN_RULE_MATCHED = 1
   debug_indent_up()
@@ -916,12 +923,12 @@ FNR == 1 {
 /^ *##@/ {
   debug_pattern_rule("new section")
 
-  section_string = $0
-  sub(/ *##@/, "", section_string) # strip the tags (they are not needed anymore)
+  g_section_string = $0
+  sub(/ *##@/, "", g_section_string) # strip the tags (they are not needed anymore)
 
   debug_new_section()
 
-  save_section_data(section_string)
+  save_section_data(g_section_string)
 
   PATTERN_RULE_MATCHED = 1
   debug_indent_up()
@@ -943,29 +950,29 @@ FNR == 1 {
 $0 ~ TARGETS_REGEX {
   debug_pattern_rule("target")
 
-  target_name = $1
+  g_target_name = $1
 
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
   # for the reason to use \\&, see AWK's Gory-Details!
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
-  sub(/ *&/, "\\&", target_name)
+  sub(/ *&/, "\\&", g_target_name)
   if ($0 ~ "::") {
-    target_name = sprintf("[%s]:%s",
-                          target_name,
-                          count_numb_double_colon(target_name))
+    g_target_name = sprintf("[%s]:%s",
+                            g_target_name,
+                            count_numb_double_colon(g_target_name))
   }
 
   debug_target_matched()
 
   # look for inline descriptions only if there aren't any descriptions above the target
-  if (length_array_posix(DESCRIPTION_DATA) == 0 && WIP_TARGET != target_name) {
+  if (length_array_posix(DESCRIPTION_DATA) == 0 && WIP_TARGET != g_target_name) {
     parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    WIP_TARGET = target_name
+    WIP_TARGET = g_target_name
     debug(DEBUG_INDENT_STACK " [assign] ~WIP_TARGET~: " WIP_TARGET)
-    TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces(target_name),
+    TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces(g_target_name),
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
@@ -992,9 +999,9 @@ $0 ~ VARIABLES_REGEX {
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    variable_name = strip_start_end_spaces(parse_variable_name($0))
+    g_variable_name = strip_start_end_spaces(parse_variable_name($0))
     debug_variable_matched()
-    VARIABLES_INDEX = associate_data_with_anchor(variable_name,
+    VARIABLES_INDEX = associate_data_with_anchor(g_variable_name,
                                                  VARIABLES,
                                                  VARIABLES_INDEX,
                                                  VARIABLES_DESCRIPTION_DATA,
@@ -1021,10 +1028,10 @@ END {
   # Form SUB_DICT_LABEL before calling get_max_anchor_length
   form_substitutions()
 
-  max_target_length = get_max_anchor_length(TARGETS)
-  max_variable_length = get_max_anchor_length(VARIABLES)
-  max_anchor_length = max(max_target_length, max_variable_length)
-  separator = get_separator("-", max_anchor_length)
+  g_max_target_length = get_max_anchor_length(TARGETS)
+  g_max_variable_length = get_max_anchor_length(VARIABLES)
+  g_max_anchor_length = max(g_max_target_length, g_max_variable_length)
+  g_separator = get_separator("-", g_max_anchor_length)
 
   debug_END()
 
@@ -1033,39 +1040,39 @@ END {
   }
 
   # process targets
-  if (max_target_length > 0) {
-    printf("%s\n%s\n%s\n", separator, HEADER_TARGETS, separator)
+  if (g_max_target_length > 0) {
+    printf("%s\n%s\n%s\n", g_separator, HEADER_TARGETS, g_separator)
 
-    for (indx = 1; indx <= length_array_posix(TARGETS); indx++) { # enforce order
-      target = TARGETS[indx]
-      description = format_description_data(target,
-                                            TARGETS_DESCRIPTION_DATA,
-                                            max_anchor_length)
-      section = get_associated_section_data(target, TARGETS_SECTION_DATA)
-      display_anchor_with_data(target, description, section, max_anchor_length)
+    for (g_indx = 1; g_indx <= length_array_posix(TARGETS); g_indx++) { # enforce order
+      g_target = TARGETS[g_indx]
+      g_description = format_description_data(g_target,
+                                              TARGETS_DESCRIPTION_DATA,
+                                              g_max_anchor_length)
+      g_section = get_associated_section_data(g_target, TARGETS_SECTION_DATA)
+      display_anchor_with_data(g_target, g_description, g_section, g_max_anchor_length)
     }
   }
 
   # process variables
   # When all variables are deprecated and DEPRECATED = 0, just a header is displayed.
-  if (max_variable_length > 0 && VARS) {
-    variables_display_pattern = max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
+  if (g_max_variable_length > 0 && VARS) {
+    g_variables_display_pattern = g_max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
 
-    printf(variables_display_pattern, separator, HEADER_VARIABLES, separator)
-    for (indx = 1; indx <= length_array_posix(VARIABLES); indx++) {
-      variable = VARIABLES[indx]
-      description = format_description_data(variable,
-                                            VARIABLES_DESCRIPTION_DATA,
-                                            max_anchor_length)
-      section = get_associated_section_data(variable, VARIABLES_SECTION_DATA)
-      display_anchor_with_data(variable, description, section, max_anchor_length)
+    printf(g_variables_display_pattern, g_separator, HEADER_VARIABLES, g_separator)
+    for (g_indx = 1; g_indx <= length_array_posix(VARIABLES); g_indx++) {
+      g_variable = VARIABLES[g_indx]
+      g_description = format_description_data(g_variable,
+                                              VARIABLES_DESCRIPTION_DATA,
+                                              g_max_anchor_length)
+      g_section = get_associated_section_data(g_variable, VARIABLES_SECTION_DATA)
+      display_anchor_with_data(g_variable, g_description, g_section, g_max_anchor_length)
     }
   }
-  if (max_target_length > 0 || (max_variable_length > 0 && VARS)) {
-    printf("%s\n", separator)
+  if (g_max_target_length > 0 || (g_max_variable_length > 0 && VARS)) {
+    printf("%s\n", g_separator)
   } else {
-    if (number_of_files_processed > 0) {
-      printf("There are no documented targets/variables in %s\n", files_processed)
+    if (NUMBER_OF_FILES_PROCESSED > 0) {
+      printf("There are no documented targets/variables in %s\n", FILES_PROCESSED)
     }
   }
 

@@ -30,7 +30,7 @@ help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_ENCODING=$(COLOR_ENCODING)
 help: $(AWK_BIN)/$(AWK)
-	@$< $(VFLAGS) $(AWK_FLAGS) -f ./makefile-doc.awk $(MAKEFILE_LIST)
+	@$< $(VFLAGS) $(AWK_FLAGS) -f makefile-doc.awk $(MAKEFILE_LIST)
 
 deploy-local: DEPLOY_DIR := $(HOME)/.local/share/makefile-doc
 deploy-local:
@@ -46,14 +46,21 @@ test: $(TESTS)
 test-all-awk:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
+## lint the code using GNU awk
 # Warnings to ignore have been stripped below
 lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PADDING|\
 		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX)
-lint: SHADOW := (description|section|target|target_name|variable_name)
-lint: ## lint the code using GNU awk
-	@awk --lint -v SHOW_HELP=0 -f ./makefile-doc.awk 2>&1 | \
-		grep -vE "reference to uninitialized variable \`$(UNINIT)'" | \
-		grep -vE "parameter \`$(SHADOW)' shadows global variable" || exit 0
+lint: check-variables
+	@awk --lint -v SHOW_HELP=0 -f makefile-doc.awk 2>&1 | \
+		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || exit 0
+
+## verify names of variables
+check-variables: AWK_CODE := '{if($$1!~/^[A-Z_]+$$/ && $$1!~/^g_[a-z_]+$$/) print $$1 " violates naming rules"}'
+check-variables: AWKVARS_FILE := awkvars.out
+check-variables:
+	@$(AWK) -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f makefile-doc.awk || exit 0
+	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
+	@ rm -f $(AWKVARS_FILE)
 
 .PHONY: clean-bin
 clean-bin: ##! remove all downloaded awk variants
