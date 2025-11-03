@@ -24,8 +24,8 @@ endef
 
 .PHONY: help
 ## show this help
-help: AWK_SUB := AWK:$(SUPPORTED_AWK_VARIANTS)
-help: TESTS_SUB := $$(TESTS):test-:$(subst test-,,$(TESTS))
+help: AWK_SUB := <L:0,M:0>AWK:$(SUPPORTED_AWK_VARIANTS)
+help: TESTS_SUB := <L:0,M:0>$$(TESTS):test-:$(subst test-,,$(TESTS))
 help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_ENCODING=$(COLOR_ENCODING)
@@ -46,17 +46,14 @@ test: $(TESTS)
 test-all-awk:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
-# FIXME:
-#  1. array_next_index -- no idea what is the problem
-#  2. number_of_files_processed -- it is actually initialized (maybe false-positive)
 # Warnings to ignore have been stripped below
-lint: UNINIT := (DEBUG|DEBUG_FILE|SUB|HEADER_TARGETS|HEADER_VARIABLES|DEBUG_INDENT_STACK|\
-	|COLOR_.*|VARIABLES_REGEX|TARGETS_REGEX|VARS|PADDING|DEPRECATED|OFFSET|CONNECTED)
+lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PADDING|\
+		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX)
 lint: SHADOW := (description|section|target|target_name|variable_name)
 lint: ## lint the code using GNU awk
 	@awk --lint -v SHOW_HELP=0 -f ./makefile-doc.awk 2>&1 | \
-		grep -vE "parameter \`$(SHADOW)' shadows global variable" | \
-		grep -vE "reference to uninitialized variable \`$(UNINIT)'"
+		grep -vE "reference to uninitialized variable \`$(UNINIT)'" | \
+		grep -vE "parameter \`$(SHADOW)' shadows global variable" || exit 0
 
 .PHONY: clean-bin
 clean-bin: ##! remove all downloaded awk variants

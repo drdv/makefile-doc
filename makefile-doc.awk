@@ -451,7 +451,8 @@ function form_substitutions(                                            \
 }
 
 function display_substitutions(anchor, len_anchors, #locals
-                               k, n, L, M, I, value_parts, offset, cond_indent) {
+                               k, n, L, M, I, value_parts, offset,
+                               cond_indent, indentation) {
   split(SUB_DICT_VALUES[anchor], value_parts, " ")
 
   if (CURRENT_SUB_DICT_PARAMS["N"] < 0) {
@@ -483,7 +484,7 @@ function display_substitutions(anchor, len_anchors, #locals
            value_parts[k],
            k == n ? "" : CURRENT_SUB_DICT_PARAMS["S"],
            k == n ? CURRENT_SUB_DICT_PARAMS["T"] : "",
-           M ? "\n" : "")
+           M || (!M && k == n) ? "\n" : "")
   }
 }
 
@@ -663,7 +664,7 @@ function debug_array(array, array_next_index, array_name, array_note, #locals
                 array_next_index,
                 array_note ? ", note: " array_note : array_note))
   for (k=1; k<=length_array_posix(array); k++) {
-    debug("+ " array[k])
+    debug("+ " k ": " array[k])
   }
 }
 
@@ -756,6 +757,7 @@ function debug_END() {
 
   debug_dict(SUB_DICT_VALUES, "SUB_DICT_VALUES", "")
   debug_dict(SUB_DICT_LABEL, "SUB_DICT_LABEL", "")
+  debug_dict(SUB_DICT_PARAMS, "SUB_DICT_PARAMS", "")
   debug_indent_up()
 }
 
@@ -789,14 +791,6 @@ BEGIN {
   CONNECTED = CONNECTED == "" ? 1 : CONNECTED
   if (length(PADDING) != 1) {
     printf("%sPADDING should have length 1%s\n", COLOR_WARNING_CODE, COLOR_RESET_CODE)
-    exit 1
-  }
-
-  SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
-  if (ARGC == 1) {
-    if (SHOW_HELP) {
-      print_help()
-    }
     exit 1
   }
 
@@ -856,6 +850,15 @@ BEGIN {
   WIP_TARGET = ""
 
   debug_init()
+
+  # we could exit faster but this causes the linter to not see defined variables
+  SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
+  if (ARGC == 1) {
+    if (SHOW_HELP) {
+      print_help()
+    }
+    exit 1
+  }
 }
 
 {
