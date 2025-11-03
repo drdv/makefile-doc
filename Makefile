@@ -4,10 +4,10 @@ TEST_RECIPES := $(TEST_DIR)/recipes
 
 TESTS := $(notdir $(wildcard $(TEST_RECIPES)/*))
 
-## Debug info is generated if set
+## if set, debug info is generated in an org file
 DEBUG :=
 
-## Supported AWK variants:
+##
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
@@ -24,8 +24,8 @@ endef
 
 .PHONY: help
 ## show this help
-help: AWK_SUB := <L:0,M:0>AWK:$(SUPPORTED_AWK_VARIANTS)
-help: TESTS_SUB := <L:0,M:0>$$(TESTS):test-:$(subst test-,,$(TESTS))
+help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(SUPPORTED_AWK_VARIANTS)
+help: TESTS_SUB := <L:0,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
 help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_ENCODING=$(COLOR_ENCODING)
@@ -80,9 +80,6 @@ release:
 ##@
 ##@------ Individual tests ------
 ##@
-
-.PHONY: test-default test-deprecated test-padding test-connected test-backticks \
-	test-vars test-no-vars test-vars-assignment test-no-anchors
 
 ##
 # --ignore-space-at-eol is needed as empty descriptions still add OFFSET

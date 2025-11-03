@@ -491,7 +491,7 @@ function display_substitutions(anchor, len_anchors, #locals
     #    INDENT:  M &&  L
     # -----------------------------
     # the + 1 is because of the usual one space we add between the token ## and the docs
-    indentation = len_anchors + OFFSET + 1 + (M ? length(I) : 0)
+    indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
     cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
     printf(repeated_string("%s", 7),
            repeated_string("", cond_indent ? indentation : 1),
@@ -508,6 +508,7 @@ function display_substitutions(anchor, len_anchors, #locals
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
                                   renamed_anchor, formatted_anchor) {
   extract_substitution_params(SUB_PARAMS[anchor])
+  debug_dict(SUB_PARAMS_CURRENT, "SUB_PARAMS_CURRENT", anchor)
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed.
@@ -775,6 +776,7 @@ function debug_END() {
   debug_dict(SUB_VALUES, "SUB_VALUES", "")
   debug_dict(SUB_LABEL, "SUB_LABEL", "")
   debug_dict(SUB_PARAMS, "SUB_PARAMS", "")
+  debug_dict(SUB_PARAMS_DEFAULTS, "SUB_PARAMS_DEFAULTS", "")
   debug_indent_up()
 }
 
@@ -1044,6 +1046,8 @@ END {
   g_separator = get_separator("-", g_max_anchor_length)
 
   debug_END()
+  debug(DEBUG_INDENT_STACK " extracted_sub_params")
+  debug_indent_down()
 
   if (COLOR_ENCODING == "HTML") {
     print(HTML_STYLE_AND_OPEN_PRE)
@@ -1078,6 +1082,8 @@ END {
       display_anchor_with_data(g_variable, g_description, g_section, g_max_anchor_length)
     }
   }
+  debug_indent_down()
+
   if (g_max_target_length > 0 || (g_max_variable_length > 0 && VARS)) {
     printf("%s\n", g_separator)
   } else {
