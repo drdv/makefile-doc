@@ -2,7 +2,8 @@
 # Test substitutions
 # ======================================================================================
 
-VARIABLE_EXPANDED_TARGET :=
+## Some target:
+$(TARGET):
 
-##
-$(VARIABLE_EXPANDED_TARGET):
+## Some variable:
+AWK :=

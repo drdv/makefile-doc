@@ -7,11 +7,15 @@ TESTS := $(notdir $(wildcard $(TEST_RECIPES)/*))
 ## if set, debug info is generated in an org file
 DEBUG :=
 
-##
+## Supported awk variants:
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
+
+## if set, the expected value of a test recipe is updated
+## e.g., `make test-default UPDATE_RECIPE=1`
+UPDATE_RECIPE :=
 
 # using $1 instead of $(AWK) is necessary for a target like
 # deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
@@ -25,9 +29,10 @@ endef
 .PHONY: help
 ## show this help
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(SUPPORTED_AWK_VARIANTS)
-help: TESTS_SUB := <L:0,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
+help: TESTS_SUB := <L:1,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
 help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
+	-v COLOR_BACKTICKS=33 \
 	-v COLOR_ENCODING=$(COLOR_ENCODING)
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAGS) $(AWK_FLAGS) -f makefile-doc.awk $(MAKEFILE_LIST)
@@ -52,15 +57,18 @@ lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PA
 		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX)
 lint: check-variables
 	@awk --lint -v SHOW_HELP=0 -f makefile-doc.awk 2>&1 | \
-		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || exit 0
+		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
 
 ## verify names of variables
-check-variables: AWK_CODE := '{if($$1!~/^[A-Z_]+$$/ && $$1!~/^g_[a-z_]+$$/) print $$1 " violates naming rules"}'
+check-variables: AWK_CODE := '\
+	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
+	END { if (length(a) == 0) print "check-variables: OK"; else \
+	{for(k in a) print "["a[k]"] violates naming rules"} }'
 check-variables: AWKVARS_FILE := awkvars.out
 check-variables:
 	@$(AWK) -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f makefile-doc.awk || exit 0
 	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
-	@ rm -f $(AWKVARS_FILE)
+	@rm -f $(AWKVARS_FILE)
 
 .PHONY: clean-bin
 clean-bin: ##! remove all downloaded awk variants
@@ -81,15 +89,24 @@ release:
 ##@------ Individual tests ------
 ##@
 
-##
-# --ignore-space-at-eol is needed as empty descriptions still add OFFSET
-$(TESTS): CMD_LINE = $(shell head -n 1 $(TEST_RECIPES)/$@)
+## Recipes:
+## ---------
+$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES)/$@)
+$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES)/$@
+$(TESTS): CMD_RESULT = $< -f makefile-doc.awk $(RECIPE_COMMAND_LINE:>=)
+# --ignore-space-at-eol is needed as empty descriptions add OFFSET
+$(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
+		<($(CMD_RECIPE_EXPECTED)) \
+		<($(CMD_RESULT))
+$(TESTS): TMP_FILE = /tmp/$@_updated
 $(TESTS): $(AWK_BIN)/$(AWK)
-	@git diff --ignore-space-at-eol \
-		<(tail -n +2 $(TEST_RECIPES)/$@) \
-		<($< -f makefile-doc.awk $(CMD_LINE:>=)) || \
-	(echo "failed $@"; exit 1)
-	@echo "[$(notdir $<)] passed $@"
+# I cannot use RECIPE_COMMAND_LINE here because it is a recursively expanded variable
+# and its value might contain e.g., $(TARGET) which Make will try to expand further
+	@$(if $(UPDATE_RECIPE),\
+		head -n 1 $(TEST_RECIPES)/$@ > $(TMP_FILE);\
+		$(CMD_RESULT)\
+		| tee -a $(TMP_FILE) && mv $(TMP_FILE) $(TEST_RECIPES)/$@,\
+	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
 
 # ----------------------------------------------------
 # Targets for downloading various awk implementations
