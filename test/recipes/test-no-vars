@@ -1,4 +1,4 @@
-> -v VARS=0 test/Makefile.vars-1
+-v VARS=0 test/Makefile.vars-1
 -----------------------
 Available targets:
 -----------------------

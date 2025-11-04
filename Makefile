@@ -1,8 +1,8 @@
 SHELL := bash
 TEST_DIR := test
-TEST_RECIPES := $(TEST_DIR)/recipes
+TEST_RECIPES_DIR := $(TEST_DIR)/recipes
 
-TESTS := $(notdir $(wildcard $(TEST_RECIPES)/*))
+TESTS := $(notdir $(wildcard $(TEST_RECIPES_DIR)/*))
 
 ## if set, debug info is generated in an org file
 DEBUG :=
@@ -91,21 +91,26 @@ release:
 
 ## Recipes:
 ## ---------
-$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES)/$@)
-$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES)/$@
-$(TESTS): CMD_RESULT = $< -f makefile-doc.awk $(RECIPE_COMMAND_LINE:>=)
+$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
+$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
+$(TESTS): CMD_RESULT = $< -f makefile-doc.awk $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
 $(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
 		<($(CMD_RECIPE_EXPECTED)) \
 		<($(CMD_RESULT))
 $(TESTS): TMP_FILE = /tmp/$@_updated
 $(TESTS): $(AWK_BIN)/$(AWK)
-# I cannot use RECIPE_COMMAND_LINE here because it is a recursively expanded variable
-# and its value might contain e.g., $(TARGET) which Make will try to expand further
+# The reason for using echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" is that, the value of
+# RECIPE_COMMAND_LINE may contain e.g., $(TARGET) and we need to make sure that the
+# shell doesn't try to expand it. Unfortunately, we cannot simply use echo
+# '$(RECIPE_COMMAND_LINE)' because the value of RECIPE_COMMAND_LINE already contains
+# single quotes. While it doesn't contain doble-quotes, doing echo
+# "$(RECIPE_COMMAND_LINE)" is not possible because the single quotes around $(TARGET)
+# loose their "powers" when surrounded by double-quotes. So we have to escape the $.
 	@$(if $(UPDATE_RECIPE),\
-		head -n 1 $(TEST_RECIPES)/$@ > $(TMP_FILE);\
+		echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" > $(TMP_FILE);\
 		$(CMD_RESULT)\
-		| tee -a $(TMP_FILE) && mv $(TMP_FILE) $(TEST_RECIPES)/$@,\
+		| tee -a $(TMP_FILE) && mv $(TMP_FILE) $(TEST_RECIPES_DIR)/$@,\
 	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
 
 # ----------------------------------------------------

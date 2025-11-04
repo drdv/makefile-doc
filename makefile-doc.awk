@@ -640,6 +640,7 @@ function print_help() {
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
     printf "  CONNECTED (ignore docs followed by an empty line): %s\n", CONNECTED
+    printf "  COLOR_ENCODING: %s\n", COLOR_ENCODING
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE

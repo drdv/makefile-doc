@@ -1,4 +1,4 @@
-> -v COLOR_ENCODING=html test/Makefile
+-v COLOR_ENCODING=html test/Makefile
 <span class="ansi35">[test/Makefile] redefined docs of target: test-3</span>
 <span class="ansi35">[test/Makefile] redefined docs of target: test-14</span>
 <head>

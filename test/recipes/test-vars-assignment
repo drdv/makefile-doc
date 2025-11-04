@@ -1,4 +1,4 @@
-> test/Makefile.vars-2
+test/Makefile.vars-2
 [35m[test/Makefile.vars-2] redefined docs of variable: a4[0m
 [35m[test/Makefile.vars-2] redefined docs of variable: b4[0m
 [35m[test/Makefile.vars-2] redefined docs of variable: c4[0m
