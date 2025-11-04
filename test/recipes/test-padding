@@ -1,4 +1,4 @@
-> -v PADDING=. test/Makefile.inc
+-v PADDING=. test/Makefile.inc
 -----------------------
 Available targets:
 -----------------------

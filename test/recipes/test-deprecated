@@ -1,4 +1,4 @@
-> -v DEPRECATED=0 test/Makefile.inc
+-v DEPRECATED=0 test/Makefile.inc
 -----------------------
 Available targets:
 -----------------------

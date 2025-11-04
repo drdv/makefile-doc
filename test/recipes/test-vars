@@ -1,4 +1,4 @@
-> test/Makefile.vars-1
+test/Makefile.vars-1
 [35m[test/Makefile.vars-1] redefined docs of variable: VAR6[0m
 -----------------------
 Available targets:

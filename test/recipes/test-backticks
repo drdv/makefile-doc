@@ -1,4 +1,4 @@
-> -v COLOR_BACKTICKS=1 test/Makefile.inc
+-v COLOR_BACKTICKS=1 test/Makefile.inc
 -----------------------
 Available targets:
 -----------------------

@@ -1,2 +1,2 @@
-> -v VARS=0 test/Makefile.vars-2
+-v VARS=0 test/Makefile.vars-2
 There are no documented targets/variables in test/Makefile.vars-2
