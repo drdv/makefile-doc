@@ -56,10 +56,20 @@
 #   [<p1:v1,...>]NAME[:LABEL]:[VALUES]
 #   + NAME is the name of the variable/target to substitute in the documentation
 #   + LABEL is an optional label for renaming the variable/target
-#   + VALUES are optional space-separated values to include
-#   + <p1:v1,...> are optional, comma-separated, key-value pairs with parameters (to add
-#     a comma as a value it should be escaped)
+#   + VALUES are optional space-separated values to include (a comma can appear as a
+#     part of a value if it is escaped, i.e., \\,)
+#   + <p1:v1,...> are optional, comma-separated, key-value pairs with parameters
 #   + multiple ;-separated substitutions can be passed
+#
+# SUB parameters:
+#   Each substitution can include parameters <p1:v1,...>:
+#   + L:0/L:1 values are displayed starting from the current/next line
+#   + M:0/M:1 single/multi-line display
+#   + N       max number of values to display (-1, the default, means no limit)
+#   + S       value-separator
+#   + P       prefix (added to each value)
+#   + I       initial string, e.g., {
+#   + T       termination string, e.g., }
 #
 # Arrays:
 #   Order is important for: DESCRIPTION_DATA, SECTION_DATA, TARGETS, VARIABLES and each
@@ -784,8 +794,8 @@ function debug_END() {
 
 # Initialize global variables.
 BEGIN {
+  DEBUG_FILE = DEBUG_FILE == "" ? ".debug-makefile-doc.org" : DEBUG_FILE
   if (DEBUG) {
-    DEBUG_FILE = DEBUG_FILE == "" ? ".debug-makefile-doc.org" : DEBUG_FILE
     DEBUG_INDENT_STACK = "*"
     printf "" > DEBUG_FILE
   }
@@ -816,10 +826,8 @@ BEGIN {
   # ------------------------------------------------------
   # default substitution parameters (don't change the defaults)
   # ------------------------------------------------------
-  # L == 0: start display on the last line of the docs for the target/variable
-  # L == 1: start display on the line following the docs for the target/variable
-  SUB_PARAMS_DEFAULTS["L"] = 1
-  SUB_PARAMS_DEFAULTS["M"] = 1 # 1 for multi-line display, 0 for single-line display
+  SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
+  SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
   SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
   SUB_PARAMS_DEFAULTS["S"] = "" # separator
   SUB_PARAMS_DEFAULTS["P"] = "" # prefix
