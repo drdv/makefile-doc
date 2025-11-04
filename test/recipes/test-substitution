@@ -1,9 +1,0 @@
-> -v SUB='$(VARIABLE_EXPANDED_TARGET):prefixed-:one two three' test/Makefile.targets-1
------------------------
-Available targets:
------------------------
-[34mprefixed-[0m
-            one
-            two
-            three
------------------------

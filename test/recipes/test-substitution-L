@@ -1,0 +1,19 @@
+> -v SUB='<L:1>$(TARGET):counter-:one two three;<L:0>AWK:awk mawk nawk bawk wak goawk' test/Makefile.targets-1
+-----------------------
+Available targets:
+-----------------------
+[34mcounter-[0m   Some target:
+           one
+           two
+           three
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mAWK     [0m   Some variable: awk
+           mawk
+           nawk
+           bawk
+           wak
+           goawk
+-----------------------
