@@ -151,37 +151,21 @@ open-   Notes:
 -----------------------
 ```
 
-Or if instead we use `VFLAG := -v SUB='$$(OPEN_NOTES):$(OPEN_NOTES)'`, we would have:
+The same mechanism can be used for documenting variables. In addition to a name, label
+and values, a substitution may contain optional parameters:
+`[<p1:v1,...>]NAME[:LABEL]:[VALUES]` that can be used to control the way values are
+shown. The supported parameters are:
 
-```
------------------------
-Available targets:
------------------------
-help            Show this help
-$(OPEN_NOTES)   Notes:
-                open-my-budget
-                open-trip-info
-                open-misc
------------------------
-```
++ `L:0/L:1` values are displayed starting from the current/next line
++ `M:0/M:1` single/multi-line display
++ `N`       max number of values to display (-1, the default, means no limit)
++ `S`       value-separator
++ `P`       prefix (added to each value)
++ `I`       initial string, e.g., `{`
++ `T`       termination string, e.g., `}`
 
-The same mechanism can be used for documenting variables. For example the `Makefile` of
-this project documents the possible choices for the variable `AWK` using `-v
-SUB=AWK:$(SUPPORTED_AWK_VARIANTS)`, which results in
-
-```
------------------------
-Command-line arguments:
------------------------
-AWK            Supported AWK variants:
-               awk
-               mawk
-               nawk
-               bawk
-               wak
-               goawk
------------------------
-```
+See the `Makefile` of this project and the test recipes in
+`test/recipes/test-substitution-*` for examples.
 
 ## Dependencies
 
