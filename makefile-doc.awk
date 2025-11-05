@@ -10,6 +10,7 @@
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 #
 # Options (possible values are given in {...}, (.) is the default):
+#   + OUTPUT_FORMAT: {(ANSI), HTML}
 #   + DEBUG: {(0), 1} output debug info (in an org-mode format)
 #   + DEBUG_FILE: debug info file
 #   + SUB: see below
@@ -33,7 +34,6 @@
 #      * ##@ section (displayed in COLOR_SECTION)
 #
 # Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
-#   + COLOR_ENCODING: {(ANSI), HTML}
 #   * COLOR_DEFAULT: (34) blue
 #   * COLOR_ATTENTION: (31) red
 #   * COLOR_DEPRECATED: (33) yellow
@@ -42,7 +42,7 @@
 #   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
-#   for blue is the 34 in `\033[34m`. When the COLOR_ENCODING is HTML, colors are
+#   for blue is the 34 in `\033[34m`. When the OUTPUT_FORMAT is HTML, colors are
 #   controlled using the class attribute e.g., the value for blue is "ansi34" etc.
 #
 # SUB:
@@ -583,9 +583,9 @@ function strip_start_end_spaces(string) {
 }
 
 function define_color(parameter) {
-  if (COLOR_ENCODING == "ANSI") {
+  if (OUTPUT_FORMAT == "ANSI") {
     return "\033[" parameter "m"
-  } else if (COLOR_ENCODING == "HTML") {
+  } else if (OUTPUT_FORMAT == "HTML") {
     if (parameter) {
       return "<span class=\"ansi" parameter "\">"
     } else {
@@ -596,10 +596,10 @@ function define_color(parameter) {
 
 # Updates global variables: COLOR_*, HTML_*
 function initialize_colors() {
-  COLOR_ENCODING = COLOR_ENCODING == "" ? "ANSI" : toupper(COLOR_ENCODING)
-  if (COLOR_ENCODING != "ANSI" && COLOR_ENCODING != "HTML") {
-    print("Ignorring invalid COLOR_ENCODING: " COLOR_ENCODING " (using ANSI instead).")
-    COLOR_ENCODING = "ANSI"
+  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
+  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML") {
+    print("Ignorring invalid OUTPUT_FORMAT: " OUTPUT_FORMAT " (using ANSI instead).")
+    OUTPUT_FORMAT = "ANSI"
   }
   COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
   COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
@@ -612,7 +612,7 @@ function initialize_colors() {
 
   COLOR_RESET_CODE = define_color(0)
 
-  if (COLOR_ENCODING == "HTML") {
+  if (OUTPUT_FORMAT == "HTML") {
     HTML_CLOSE_PRE = "</pre>"
     HTML_STYLE_AND_OPEN_PRE = "<head>\n  <style type=\"text/css\">\n    .ansi31 { color: #d70000; }\n    .ansi32 { color: #5f8700; }\n    .ansi33 { color: #af8700; }\n    .ansi34 { color: #0087ff; }\n    .ansi35 { color: #af005f; }\n  </style>\n</head>\n<pre>"
   }
@@ -640,7 +640,7 @@ function print_help() {
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
     printf "  CONNECTED (ignore docs followed by an empty line): %s\n", CONNECTED
-    printf "  COLOR_ENCODING: %s\n", COLOR_ENCODING
+    printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
@@ -1058,7 +1058,7 @@ END {
   debug(DEBUG_INDENT_STACK " extracted_sub_params")
   debug_indent_down()
 
-  if (COLOR_ENCODING == "HTML") {
+  if (OUTPUT_FORMAT == "HTML") {
     print(HTML_STYLE_AND_OPEN_PRE)
   }
 
@@ -1101,7 +1101,7 @@ END {
     }
   }
 
-  if (COLOR_ENCODING == "HTML") {
+  if (OUTPUT_FORMAT == "HTML") {
     print(HTML_CLOSE_PRE)
   }
 
