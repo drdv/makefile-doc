@@ -95,6 +95,7 @@ value"](https://www.gnu.org/software/make/manual/html_node/Simple-Assignment.htm
 The following options can be passed to `awk` using `-v option=value` (possible values
 are given in `{...}`, `(.)` shows the default)
 
++ `OUTPUT_FORMAT`: `{(ANSI), HTML}`
 + `DEBUG`: `{(0), 1}` output debug info (in an org-mode format)
 + `DEBUG_FILE`: debug info file
 + `SUB`: see [Substitutions](#substitutions)
@@ -106,7 +107,6 @@ are given in `{...}`, `(.)` shows the default)
 * `OFFSET`: `{0, 1, (2), ...}` number of spaces to offset docs from anchors
 * `CONNECTED`: `{0, (1)}` ignore docs followed by an empty line
 + Colors:
-  + `COLOR_ENCODING`: `{(ANSI), HTML}`
   + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`
   + `COLOR_ATTENTION`: (`31`: red) for anchors whose docs start with `##!`
   + `COLOR_DEPRECATED`: (`33`: yellow) for anchors whose docs start with `##%`

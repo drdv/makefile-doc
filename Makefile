@@ -4,14 +4,17 @@ TEST_RECIPES_DIR := $(TEST_DIR)/recipes
 
 TESTS := $(notdir $(wildcard $(TEST_RECIPES_DIR)/*))
 
-## if set, debug info is generated in an org file
-DEBUG :=
-
 ## Supported awk variants:
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
+
+## {ansi, html}
+OUTPUT_FORMAT :=
+
+## if set, debug info is generated in an org file
+DEBUG :=
 
 ## if set, the expected value of a test recipe is updated
 ## e.g., `make test-default UPDATE_RECIPE=1`
@@ -33,7 +36,7 @@ help: TESTS_SUB := <L:1,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TEST
 help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_BACKTICKS=33 \
-	-v COLOR_ENCODING=$(COLOR_ENCODING)
+	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAGS) $(AWK_FLAGS) -f makefile-doc.awk $(MAKEFILE_LIST)
 
