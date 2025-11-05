@@ -4,7 +4,7 @@ TEST_RECIPES_DIR := $(TEST_DIR)/recipes
 
 TESTS := $(notdir $(wildcard $(TEST_RECIPES_DIR)/*))
 
-## Supported awk variants:
+## supported awk variants:
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
@@ -31,9 +31,10 @@ endef
 
 .PHONY: help
 ## show this help
-help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(SUPPORTED_AWK_VARIANTS)
+help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
 help: TESTS_SUB := <L:1,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
-help: VFLAGS := -v SUB='$(TESTS_SUB);$(AWK_SUB)' \
+help: VFLAGS := \
+	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
 	-v COLOR_BACKTICKS=33 \
 	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
@@ -57,7 +58,7 @@ test-all-awk:
 ## lint the code using GNU awk
 # Warnings to ignore have been stripped below
 lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PADDING|\
-		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX)
+		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME)
 lint: check-variables
 	@awk --lint -v SHOW_HELP=0 -f makefile-doc.awk 2>&1 | \
 		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
@@ -87,6 +88,24 @@ release:
 		--generate-notes \
 		--notes-file $(RELEASE_NOTES) -t '$(LATEST_TAG)' || \
 	echo "No file $(RELEASE_NOTES)"
+
+%.png: DPI := 300
+%.png: %.pdf Makefile
+	@magick -density $(DPI) $*.pdf -quality 90 $@
+	@rm -f $*.pdf
+
+%.pdf: Makefile
+	@$(MAKE) --no-print-directory help OUTPUT_FORMAT=latex > $*.tex
+	@tectonic $*.tex
+	@rm -f $*.tex
+
+%.html: Makefile
+	@$(MAKE) --no-print-directory help OUTPUT_FORMAT=html > $*.html
+
+bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
+bugs-bawk:
+	@$(AWK_BIN)/bawk $(PARAMS)
+	@podman run -it --rm -v $(PWD):/work:Z -w /work docker.io/library/busybox:latest awk $(PARAMS)
 
 ##@
 ##@------ Individual tests ------
