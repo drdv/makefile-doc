@@ -10,20 +10,6 @@
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 #
-# Options (possible values are given in {...}, (.) is the default):
-#   + OUTPUT_FORMAT: {(ANSI), HTML}
-#   + DEBUG: {(0), 1} output debug info (in an org-mode format)
-#   + DEBUG_FILE: debug info file
-#   + SUB: see below
-#   + TARGETS_REGEX: regex for matching targets
-#   + VARIABLES_REGEX: regex for matching variables
-#   * VARS: {0, (1)} show documented variables
-#   * PADDING: {(" "), ".", ...} a single padding character between anchors and docs
-#   * DEPRECATED: {0, (1)} show deprecated anchors
-#   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
-#   * CONNECTED: {0, (1)} ignore docs followed by an empty line
-#   * see as well the color codes below
-#
 # Notes:
 #   * In the code, the term anchor is used to refer to Makefile targets / variables.
 #   * Docs can be placed above an anchor or inline (the latter is discarded if the
@@ -32,7 +18,22 @@
 #      * ##  default anchors (displayed in COLOR_DEFAULT)
 #      * ##! special anchors (displayed in COLOR_ATTENTION)
 #      * ##% deprecated anchor (displayed in COLOR_DEPRECATED)
-#      * ##@ section (displayed in COLOR_SECTION)
+#   * The token ##@ can be used to create sections (displayed in COLOR_SECTION)
+#
+# Options (possible values are given in {...}, (.) denotes the default):
+#   + OUTPUT_FORMAT: {(ANSI), HTML, LATEX}
+#   + EXPORT_THEME: see below
+#   + SUB: see below
+#   + DEBUG: {(0), 1} output debug info (in an org-mode format)
+#   + DEBUG_FILE: debug info file
+#   + TARGETS_REGEX: regex for matching targets
+#   + VARIABLES_REGEX: regex for matching variables
+#   * VARS: {0, (1)} show documented variables
+#   * PADDING: {(" "), ".", ...} a single padding character between anchors and docs
+#   * DEPRECATED: {0, (1)} show deprecated anchors
+#   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
+#   * CONNECTED: {0, (1)} ignore docs followed by an empty line
+#   * see as well the color codes below
 #
 # Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
 #   * COLOR_DEFAULT: (34) blue
@@ -43,8 +44,15 @@
 #   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
-#   for blue is the 34 in `\033[34m`. When the OUTPUT_FORMAT is HTML, colors are
-#   controlled using the class attribute e.g., the value for blue is "ansi34" etc.
+#   for blue is the 34 in `\033[34m`. Supported ANSI parameters are: 0, 1, 3, 4, 9,
+#   30-37, 40-47, 90-97, 100-107 (see array ANSI_TO_HTML_COLOR).
+#
+#   + EXPORT_THEME: user-defined mapping between ANSI color parameters and HEX color
+#     codes (without the hash tag). For example -v EXPORT_THEME=32:d33682,35:859900
+#     would change the way the ANSI colors corresponding to the parameters 32 and 35 are
+#     exported to HTML and LATEX (in effect, exchanging their default values in this
+#     example). This can be used to define a custom theme for HTML and LATEX output (it
+#     has no effect on ANSI output).
 #
 # SUB:
 #   Contains substitutions for targets and variables. For example, consider a variable
@@ -72,30 +80,26 @@
 #   + I       initial string, e.g., {
 #   + T       termination string, e.g., }
 #
-# Arrays:
-#   Order is important for: DESCRIPTION_DATA, SECTION_DATA, TARGETS, VARIABLES and each
-#   of them has an associated *_INDEX integer variable. For all other arrays order is
-#   irrelevant:
-#     + DISPLAY_PARAMS
-#     + TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA
-#     + VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA
-#     + SUB_LABEL, SUB_PARAMS, SUB_VALUES, SUB_PARAMS_DEFAULTS, SUB_PARAMS_CURRENT
-#     + VARIABLE_QUALIFIERS
-#
 # Code conventions:
 #   * All local variables in functions should be defined in the function signature (awk
-#     is a bit special in that respect). Examining awkvars.out, the output of
-#     awk -d -f makefile-doc.awk can help to identify unintended global variables.
+#     is a bit special in that respect).
 #   + The naming convention for global variables is:
 #     + long-standing/important global variables are written in all upper case
 #     + temporary variables that end-up being global (simply because of where they are
-#       defined, e.g., in the END stanza) have a prefix g_. In this way it is easy to
-#       check for unintended global variables in awkvars.out.
+#       defined, e.g., in the END stanza) have a prefix g_.
 #   * The code is meant to run with most major awk implementations, and as a result we
 #     need to stick to basic syntax. For example, we cannot use a match function with
 #     a third argument (an array that stores the groups) and have to fall-back to using
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
-#     %* patterns, some regex etc.
+#     %* patterns, some kinds of regex etc.
+#   + Notes on the arrays in the code:
+#     Order is important for: DESCRIPTION_DATA, SECTION_DATA, TARGETS, VARIABLES and
+#     each of them has an associated *_INDEX integer variable. For all other arrays
+#     order is irrelevant. The key ones are:
+#     + DISPLAY_PARAMS
+#     + TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA
+#     + VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA
+#     + SUB_LABEL, SUB_PARAMS, SUB_VALUES, SUB_PARAMS_DEFAULTS, SUB_PARAMS_CURRENT
 
 function max(var1, var2) {
   if (var1 >= var2) {
@@ -153,7 +157,6 @@ function get_tag_from_description(string, #locals
   return 0
 }
 
-# Updates global variables: DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX
 function save_description_data(string) {
   DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX] = string
   DESCRIPTION_DATA_INDEX++
@@ -164,7 +167,6 @@ function save_description_data(string) {
   debug_indent_up()
 }
 
-# Updates global variables: DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX
 function forget_descriptions_data() {
   delete DESCRIPTION_DATA
   DESCRIPTION_DATA_INDEX = 1
@@ -196,13 +198,13 @@ function parse_variable_name(whole_line_string, #locals
   for (k=1;
        k<=length_array_posix(VARIABLE_QUALIFIERS);
        k++) {
-    # use gsub to strip multiple occurrences of a qualifier
     gsub(VARIABLE_QUALIFIERS[k], "", variable_name)
   }
   sub(/[ ]+/, "", variable_name)
   return variable_name
 }
 
+# this is the key function (FIXME: make the debugging code less intrusive)
 function associate_data_with_anchor(anchor_name,
                                     anchors,
                                     anchors_index,
@@ -266,7 +268,6 @@ function associate_data_with_anchor(anchor_name,
   return anchors_index
 }
 
-# Updates global variables: SECTION_DATA, SECTION_DATA_INDEX
 function save_section_data(string) {
   SECTION_DATA[SECTION_DATA_INDEX] = string
   SECTION_DATA_INDEX++
@@ -277,7 +278,6 @@ function save_section_data(string) {
   debug_indent_up()
 }
 
-# Updates global variables: SECTION_DATA, SECTION_DATA_INDEX
 function forget_section_data() {
   delete SECTION_DATA
   SECTION_DATA_INDEX = 1
@@ -291,7 +291,7 @@ function forget_section_data() {
 function get_associated_section_data(anchor_name,
                                      anchor_section_data) {
   if (anchor_name in anchor_section_data) {
-    return anchor_section_data[anchor_name]
+    return apply_output_specific_formatting(anchor_section_data[anchor_name])
   }
   return 0 # means that there is no associated section data with this anchor
 }
@@ -327,7 +327,6 @@ function substitute_backticks_patterns(string, #locals
   # replace_with = COLOR_BACKTICKS_CODE "\\1" COLOR_RESET_CODE
   # return gensub(/`([^`]+)`/, replace_with, "g", description) # only for gawk
   # --------------------------------------------------------------------------
-
   while (match(string, /`([^`]+)`/)) {
     before_match = substr(string, 1, RSTART - 1)
     inside_match = substr(string, RSTART + 1, RLENGTH - 2)
@@ -379,7 +378,7 @@ function format_description_data(anchor_name,
   # The order of alternatives is important when using goawk v1.29.1 and below.
   # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
-  return colorize_description_backticks(description)
+  return colorize_description_backticks(apply_output_specific_formatting(description))
 }
 
 function assemble_description_data(             \
@@ -400,7 +399,6 @@ function assemble_section_data(                 \
   return section
 }
 
-# Updates global variables: DISPLAY_PARAMS
 function update_display_parameters(description, #locals
                                    tag) {
   tag = get_tag_from_description(description)
@@ -422,7 +420,6 @@ function update_display_parameters(description, #locals
   }
 }
 
-# Updates global variables: SUB_PARAMS_CURRENT (parameters of one substitution)
 function extract_substitution_params(string_with_parameters, #locals
                                      temp_placeholder, k, key_values, pair, key) {
   delete SUB_PARAMS_CURRENT
@@ -446,7 +443,6 @@ function extract_substitution_params(string_with_parameters, #locals
   }
 }
 
-# Updates global variables: SUB_PARAMS, SUB_LABEL, SUB_VALUES
 function form_substitutions(                                            \
     split_substitutions, k, string, substitution_params, substitution_rest,
     key_value_parts) {
@@ -479,7 +475,7 @@ function form_substitutions(                                            \
 
 function display_substitutions(anchor, len_anchors, #locals
                                k, n, L, M, I, value_parts, offset,
-                               cond_indent, indentation) {
+                               cond_indent, indentation, text) {
   split(SUB_VALUES[anchor], value_parts, " ")
 
   if (SUB_PARAMS_CURRENT["N"] < 0) {
@@ -504,42 +500,69 @@ function display_substitutions(anchor, len_anchors, #locals
     # the + 1 is because of the usual one space we add between the token ## and the docs
     indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
     cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
-    printf(repeated_string("%s", 7),
-           repeated_string("", cond_indent ? indentation : 1),
-           k == 1 ? I : "",
-           SUB_PARAMS_CURRENT["P"],
-           value_parts[k],
-           k == n ? "" : SUB_PARAMS_CURRENT["S"],
-           k == n ? SUB_PARAMS_CURRENT["T"] : "",
-           M || (!M && k == n) ? "\n" : "")
+    text = sprintf(repeated_string("%s", 7),
+                   repeated_string("", cond_indent ? indentation : 1),
+                   k == 1 ? I : "",
+                   SUB_PARAMS_CURRENT["P"],
+                   value_parts[k],
+                   k == n ? "" : SUB_PARAMS_CURRENT["S"],
+                   k == n ? SUB_PARAMS_CURRENT["T"] : "",
+                   M || (!M && k == n) ? "\n" : "")
+    printf(colorize_description_backticks(apply_output_specific_formatting(text)))
   }
 }
 
-# Updates global variables: SUB_PARAMS_CURRENT (see extract_substitution_params)
+# we have to escape {...} in \begin{alltt} ... \end{alltt}
+function escape_braces_for_latex_output(text) {
+  if (OUTPUT_FORMAT == "LATEX") {
+    gsub(/\{/, "\\{", text)
+    gsub(/\}/, "\\}", text)
+  }
+  return text
+}
+
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
-                                  renamed_anchor, formatted_anchor) {
+                                  renamed_anchor, formatted_anchor, padding,
+                                  normalized_anchor_name) {
   extract_substitution_params(SUB_PARAMS[anchor])
   debug_dict(SUB_PARAMS_CURRENT, "SUB_PARAMS_CURRENT", anchor)
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed.
   if (section) {
-    printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
+    if (COLOR_SECTION_CODE) {
+      printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
+    } else {
+      printf("%s\n", section)
+    }
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    if (anchor in SUB_LABEL)
+    if (anchor in SUB_LABEL) {
       renamed_anchor = SUB_LABEL[anchor]
-    else
+    } else {
       renamed_anchor = anchor
+    }
 
-    formatted_anchor = sprintf("%s%-" len_anchors "s%s",
-                               DISPLAY_PARAMS["color"],
-                               format_anchor_name(renamed_anchor),
-                               COLOR_RESET_CODE)
+    normalized_anchor_name = process_double_colon_targets(renamed_anchor)
+    formatted_anchor = apply_output_specific_formatting(normalized_anchor_name)
+    padding = repeated_string("", len_anchors - length(normalized_anchor_name))
+    # handle padding manually because there is a difference between the actual text and
+    # the visible text (for latex)
+    if (DISPLAY_PARAMS["color"]) {
+      formatted_anchor = sprintf("%s%s%s%s",
+                                 DISPLAY_PARAMS["color"],
+                                 formatted_anchor,
+                                 padding,
+                                 COLOR_RESET_CODE)
+    } else {
+      formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
+    }
+
     if (PADDING != " ") {
       gsub(/ /, PADDING, formatted_anchor)
     }
+
     printf("%s%s%s",
            formatted_anchor,
            description,
@@ -563,10 +586,9 @@ function count_numb_double_colon(new_target, #locals
   return counter
 }
 
-# modifies only double-colon targets:
 # [double_colon_target_name]:1 -> double_colon_target_name:1
-function format_anchor_name(target, #locals
-                            target_name, target_index) {
+function process_double_colon_targets(target, #locals
+                                      target_name, target_index) {
   if (match(target, /\[.+\]/)) {
     target_name = substr(target, RSTART+1, RLENGTH-2)
     if (match(target, /:([0-9]*)/)) {
@@ -577,45 +599,261 @@ function format_anchor_name(target, #locals
   return target
 }
 
+# add here formatting functions to be applied before colors have been added
+function apply_output_specific_formatting(text) {
+  return escape_braces_for_latex_output(text)
+}
+
 function strip_start_end_spaces(string) {
   sub(/^ */, "", string)
   sub(/ *$/, "", string)
   return string
 }
 
-function define_color(parameter) {
-  if (OUTPUT_FORMAT == "ANSI") {
-    return "\033[" parameter "m"
-  } else if (OUTPUT_FORMAT == "HTML") {
-    if (parameter) {
-      return "<span class=\"ansi" parameter "\">"
-    } else {
-      return "</span>"  # parameter == 0
+# the user can change separately colors in the ranges 30-37 and 40-47
+function set_user_defined_color_theme(                                  \
+    html_colors_split, key, ansi_html_map, ansi_param, html_color_code) {
+  # format: ANSI_PARAM:HTML_COLOR_CODE[,...]
+  if (EXPORT_THEME) {
+    split(EXPORT_THEME, html_colors_split, ",")
+    for (key in html_colors_split) {
+      split(html_colors_split[key], ansi_html_map, ":")
+      ansi_param = ansi_html_map[1]
+      html_color_code = ansi_html_map[2]
+      # values in the range 0-9 cannot be modified
+      if (ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR) {
+        ANSI_TO_HTML_COLOR[ansi_param] = html_color_code
+      }
     }
   }
 }
 
-# Updates global variables: COLOR_*, HTML_*
+# The solarized theme is used by default
+# https://github.com/altercation/solarized?tab=readme-ov-file#the-values
+function define_ansi_to_html_colors(\
+    k) {
+  # no foreground/background by default
+  ANSI_TO_HTML_COLOR["BG"] = -1 # "000000"
+  ANSI_TO_HTML_COLOR["FG"] = -1 # "AAAAAA"
+
+  ANSI_TO_HTML_COLOR[0] = ""
+  ANSI_TO_HTML_COLOR[1] = "bold"
+  ANSI_TO_HTML_COLOR[3] = "italic"
+  ANSI_TO_HTML_COLOR[4] = "underline"
+  ANSI_TO_HTML_COLOR[9] = "line-through"
+
+  ANSI_TO_HTML_COLOR[30] = "073642" # black
+  ANSI_TO_HTML_COLOR[31] = "dc322f" # red
+  ANSI_TO_HTML_COLOR[32] = "859900" # green
+  ANSI_TO_HTML_COLOR[33] = "b58900" # yellow
+  ANSI_TO_HTML_COLOR[34] = "268bd2" # blue
+  ANSI_TO_HTML_COLOR[35] = "d33682" # magenta
+  ANSI_TO_HTML_COLOR[36] = "2aa198" # cyan
+  ANSI_TO_HTML_COLOR[37] = "eee8d5" # white
+
+  ANSI_TO_HTML_COLOR[90] = "002b36" # brblack
+  ANSI_TO_HTML_COLOR[91] = "cb4b16" # brred
+  ANSI_TO_HTML_COLOR[92] = "586e75" # brgreen
+  ANSI_TO_HTML_COLOR[93] = "657b83" # bryellow
+  ANSI_TO_HTML_COLOR[94] = "839496" # brblue
+  ANSI_TO_HTML_COLOR[95] = "6c71c4" # brmagenta
+  ANSI_TO_HTML_COLOR[96] = "93a1a1" # brcyan
+  ANSI_TO_HTML_COLOR[97] = "fdf6e3" # brwhite
+
+  for (k=30; k<=37; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
+  for (k=90; k<=97; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
+
+  set_user_defined_color_theme()
+}
+
+function define_ansi_to_html_attributes(\
+    k) {
+  ANSI_TO_HTML_ATTR[0] = ""
+  ANSI_TO_HTML_ATTR[1] = "font-weight"
+  ANSI_TO_HTML_ATTR[3] = "font-style"
+  ANSI_TO_HTML_ATTR[4] = "text-decoration"
+  ANSI_TO_HTML_ATTR[9] = "text-decoration"
+
+  for (k=30; k<=37; k++) { ANSI_TO_HTML_ATTR[k] = "color" }
+  for (k=40; k<=47; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
+  for (k=90; k<=97; k++) { ANSI_TO_HTML_ATTR[k] = "color" }
+  for (k=100; k<=107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
+}
+
+function define_ansi_to_latex_function(\
+    k) {
+  ANSI_TO_LATEX_FUN[0] = ""
+  ANSI_TO_LATEX_FUN[1] = "\\textbf"
+  ANSI_TO_LATEX_FUN[3] = "\\emph"
+  ANSI_TO_LATEX_FUN[4] = "\\uline"
+  ANSI_TO_LATEX_FUN[9] = "\\sout"
+
+  for (k=30; k<=37; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
+  for (k=40; k<=47; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+  for (k=90; k<=97; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
+  for (k=100; k<=107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+}
+
+function define_color_labels() {
+  COLOR_LABELS["DEFAULT"] = "color-default"
+  COLOR_LABELS["ATTENTION"] = "color-attention"
+  COLOR_LABELS["DEPRECATED"] = "color-deprecated"
+  COLOR_LABELS["SECTION"] = "color-section"
+  COLOR_LABELS["WARNING"] = "color-warning"
+  COLOR_LABELS["BACKTICKS"] = "color-backticks"
+  COLOR_LABELS["FG"] = "makefile-doc-fg"
+  COLOR_LABELS["BG"] = "makefile-doc-bg"
+}
+
+# here ansi_color_param is the normal ANSI color params, e.g., 30-37, but it could as
+# well be "FG" or "BG"
+function ansi_color_param_to_html_style(ansi_color_param, label, #locals
+                                        template, attr) {
+  if (ansi_color_param == "FG" || ansi_color_param == "BG") {
+    if (ANSI_TO_HTML_COLOR[ansi_color_param] == -1) {
+      return "" # indicates to not set any style
+    }
+    return sprintf("    .%s { %s: #%s; }\n",
+                   COLOR_LABELS[label],
+                   ansi_color_param == "FG" ? "color" : "background-color",
+                   ANSI_TO_HTML_COLOR[ansi_color_param])
+  }
+
+  template = "    .%s %s\n"
+  if (ansi_color_param && ansi_color_param in ANSI_TO_HTML_COLOR) {
+    attr = ANSI_TO_HTML_ATTR[ansi_color_param]
+    return sprintf(template,
+                   COLOR_LABELS[label],
+                   sprintf("{ %s: %s%s; }",
+                           attr,
+                           (attr == "color" || attr == "background-color")? "#" : "",
+                           ANSI_TO_HTML_COLOR[ansi_color_param]))
+  }
+
+  return sprintf(template, COLOR_LABELS[label], "{}")
+}
+
+function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
+  if (ansi_color_param == "FG" || ansi_color_param == "BG") {
+    if (ANSI_TO_HTML_COLOR[ansi_color_param] == -1) {
+      return "" # indicates to not set any style
+    }
+    if (is_fgbg_definition) {
+      return sprintf("\\definecolor{%s}{HTML}{%s}\n",
+                     COLOR_LABELS[ansi_color_param],
+                     ANSI_TO_HTML_COLOR[ansi_color_param])
+    } else {
+      if (ansi_color_param == "FG") {
+        return sprintf("\\color{%s}\n", COLOR_LABELS["FG"])
+      } else if (ansi_color_param == "BG") {
+        return sprintf("\\pagecolor{%s}\n", COLOR_LABELS["BG"])
+      }
+    }
+  }
+
+  if (ansi_color_param &&
+      ansi_color_param in ANSI_TO_HTML_COLOR &&
+      ansi_color_param > 9) {
+    return ANSI_TO_HTML_COLOR[ansi_color_param]
+  }
+  return "000000"
+}
+
+# ansi_color_param:
+# == 0: no color
+#  > 0: some color
+#  < 0: reset token  (the user cannot set -1 from outside, see validate_ansi_param())
+function define_color(ansi_color_param, color_label_key) {
+  if (!ansi_color_param) {
+    return "" # token for "no color annotation should be applied at all"
+  }
+
+  if (OUTPUT_FORMAT == "ANSI") {
+    if (ansi_color_param == -1) {
+      return "\033[0m"
+    } else {
+      return "\033[" ansi_color_param "m"
+    }
+  } else if (OUTPUT_FORMAT == "HTML") {
+    if (ansi_color_param == -1) {
+      return "</span>"
+    } else {
+      return "<span class=\"" COLOR_LABELS[color_label_key] "\">"
+    }
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    if (ansi_color_param == -1) {
+      return "}"
+    } else {
+      if (ansi_color_param > 9) {
+        return ANSI_TO_LATEX_FUN[ansi_color_param] "{" COLOR_LABELS[color_label_key] "}{"
+      } else {
+        return ANSI_TO_LATEX_FUN[ansi_color_param] "{"
+      }
+    }
+  }
+}
+
+function validate_ansi_param(ansi_param) {
+  if (ansi_param in ANSI_TO_HTML_COLOR) {
+    # The explicit cast to int here is needed only because of a busybox awk bug
+    # see misc/busybox_awk_bug_20251107.awk
+    return int(ansi_param)
+  }
+  return 0
+}
+
 function initialize_colors() {
+  define_ansi_to_html_colors()
+  define_ansi_to_html_attributes()
+  define_ansi_to_latex_function()
+  define_color_labels()
+
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
-  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML") {
+  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
     print("Ignorring invalid OUTPUT_FORMAT: " OUTPUT_FORMAT " (using ANSI instead).")
     OUTPUT_FORMAT = "ANSI"
   }
-  COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
-  COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
-  COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
-  COLOR_WARNING_CODE = define_color(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
-  COLOR_SECTION_CODE = define_color(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
 
-  COLOR_BACKTICKS = COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS
-  COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS)
+  COLOR_DEFAULT = validate_ansi_param(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
+  COLOR_ATTENTION = validate_ansi_param(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
+  COLOR_DEPRECATED = validate_ansi_param(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
+  COLOR_WARNING = validate_ansi_param(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
+  COLOR_SECTION = validate_ansi_param(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
+  COLOR_BACKTICKS = validate_ansi_param(COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
 
-  COLOR_RESET_CODE = define_color(0)
+  COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_WARNING_CODE = define_color(COLOR_WARNING, "WARNING")
+  COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = define_color(-1)
 
   if (OUTPUT_FORMAT == "HTML") {
-    HTML_CLOSE_PRE = "</pre>"
-    HTML_STYLE_AND_OPEN_PRE = "<head>\n  <style type=\"text/css\">\n    .ansi31 { color: #d70000; }\n    .ansi32 { color: #5f8700; }\n    .ansi33 { color: #af8700; }\n    .ansi34 { color: #0087ff; }\n    .ansi35 { color: #af005f; }\n  </style>\n</head>\n<pre>"
+    HTML_FOOTER = "</pre>\n</div>"
+    HTML_HEADER = sprintf("<head>\n  <style type=\"text/css\">\n%s%s%s%s%s%s%s%s  </style>\n</head>\n<div class=\"makefile-doc-fg makefile-doc-bg\">\n<pre>",
+                          ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION"),
+                          ansi_color_param_to_html_style(COLOR_SECTION, "SECTION"),
+                          ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED"),
+                          ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT"),
+                          ansi_color_param_to_html_style(COLOR_WARNING, "WARNING"),
+                          ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS"),
+                          ansi_color_param_to_html_style("FG", "FG"),
+                          ansi_color_param_to_html_style("BG", "BG"))
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
+    # FIXME: I don't see a better way to store this
+    LATEX_HEADER = sprintf("\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{xcolor}\n\\usepackage{alltt}\n\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n\\usepackage{varwidth}\n\\usepackage[active,tightpage]{preview}\n\\usepackage[normalem]{ulem}\n\n\\setlength{\\fboxsep}{0pt}\n\n\\newcommand{\\bgcolor}[2]{\\colorbox{#1}{\\vphantom{Ay}#2}}\n\n\\PreviewEnvironment{varwidth}\n\n%s%s\\definecolor{color-attention}{HTML}{%s}\n\\definecolor{color-section}{HTML}{%s}\n\\definecolor{color-deprecated}{HTML}{%s}\n\\definecolor{color-default}{HTML}{%s}\n\\definecolor{color-warning}{HTML}{%s}\n\\definecolor{color-backticks}{HTML}{%s}\n\n\\pagestyle{empty}\n\\begin{document}\n\n\\begin{varwidth}{\\linewidth}\n%s%s\n\\begin{alltt}",
+                           ansi_color_param_to_latex_color("FG", 1),
+                           ansi_color_param_to_latex_color("BG", 1),
+                           ansi_color_param_to_latex_color(COLOR_ATTENTION),
+                           ansi_color_param_to_latex_color(COLOR_SECTION),
+                           ansi_color_param_to_latex_color(COLOR_DEPRECATED),
+                           ansi_color_param_to_latex_color(COLOR_DEFAULT),
+                           ansi_color_param_to_latex_color(COLOR_WARNING),
+                           ansi_color_param_to_latex_color(COLOR_BACKTICKS),
+                           ansi_color_param_to_latex_color("FG"),
+                           ansi_color_param_to_latex_color("BG"))
   }
 }
 
@@ -632,9 +870,10 @@ function print_help() {
     print "Description: Generate docs for Makefile variables and targets"
     print "Options:"
     printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
+    printf "  EXPORT_THEME (theme for HTML/LATEX output): %s\n", EXPORT_THEME
+    printf "  SUB (substitutions): %s\n", SUB
     printf "  DEBUG ([bool] output debug info): %s\n", DEBUG
     printf "  DEBUG_FILE (debug info file): %s\n", DEBUG_FILE
-    printf "  SUB (substitutions): %s\n", SUB
     printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
     printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
     printf "  VARS ([bool] show documented variables): %s\n", VARS
@@ -968,7 +1207,6 @@ FNR == 1 {
 #  7. FS = ":" is assumed.
 #
 # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
-#
 $0 ~ TARGETS_REGEX {
   debug_pattern_rule("target")
 
@@ -979,6 +1217,7 @@ $0 ~ TARGETS_REGEX {
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
   sub(/ *&/, "\\&", g_target_name)
   if ($0 ~ "::") {
+    # surround double-colon targets in square brackets to make them easy to count
     g_target_name = sprintf("[%s]:%s",
                             g_target_name,
                             count_numb_double_colon(g_target_name))
@@ -1011,7 +1250,6 @@ $0 ~ TARGETS_REGEX {
 #  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
 #  3. can be followed by spaces and one of the assignment operators, see
 #     ASSIGNMENT_OPERATORS_PATTERN
-
 $0 ~ VARIABLES_REGEX {
   debug_pattern_rule("variable")
   debug("+ ~$0~: " $0)
@@ -1060,7 +1298,9 @@ END {
   debug_indent_down()
 
   if (OUTPUT_FORMAT == "HTML") {
-    print(HTML_STYLE_AND_OPEN_PRE)
+    print(HTML_HEADER)
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    print(LATEX_HEADER)
   }
 
   # process targets
@@ -1103,7 +1343,9 @@ END {
   }
 
   if (OUTPUT_FORMAT == "HTML") {
-    print(HTML_CLOSE_PRE)
+    print(HTML_FOOTER)
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    print(LATEX_FOOTER)
   }
 
   if (DEBUG) {
