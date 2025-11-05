@@ -1,3 +1,4 @@
+#!/usr/bin/awk -f
 # Generate docs for Makefile variables and targets
 #
 #    File: makefile-doc.awk
@@ -630,6 +631,7 @@ function print_help() {
     print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
     print "Description: Generate docs for Makefile variables and targets"
     print "Options:"
+    printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
     printf "  DEBUG ([bool] output debug info): %s\n", DEBUG
     printf "  DEBUG_FILE (debug info file): %s\n", DEBUG_FILE
     printf "  SUB (substitutions): %s\n", SUB
@@ -640,7 +642,6 @@ function print_help() {
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
     printf "  CONNECTED (ignore docs followed by an empty line): %s\n", CONNECTED
-    printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
