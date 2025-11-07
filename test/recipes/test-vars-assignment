@@ -1,11 +1,11 @@
 test/Makefile.vars-2
-[35m[test/Makefile.vars-2] redefined docs of variable: a4[0m
-[35m[test/Makefile.vars-2] redefined docs of variable: b4[0m
-[35m[test/Makefile.vars-2] redefined docs of variable: c4[0m
-[35m[test/Makefile.vars-2] redefined docs of variable: d4[0m
-[35m[test/Makefile.vars-2] redefined docs of variable: e4[0m
-[35m[test/Makefile.vars-2] redefined docs of variable: f4[0m
-[35m[test/Makefile.vars-2] redefined docs of variable: g4[0m
+[test/Makefile.vars-2] redefined docs of variable: a4
+[test/Makefile.vars-2] redefined docs of variable: b4
+[test/Makefile.vars-2] redefined docs of variable: c4
+[test/Makefile.vars-2] redefined docs of variable: d4
+[test/Makefile.vars-2] redefined docs of variable: e4
+[test/Makefile.vars-2] redefined docs of variable: f4
+[test/Makefile.vars-2] redefined docs of variable: g4
 -----------------------
 Command-line arguments:
 -----------------------
