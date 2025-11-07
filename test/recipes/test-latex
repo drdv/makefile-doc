@@ -1,0 +1,86 @@
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v EXPORT_THEME=BG:AAAAAA,34:010101 test/Makefile
+\textcolor{color-warning}{[test/Makefile] redefined docs of target: test-3}
+\textcolor{color-warning}{[test/Makefile] redefined docs of target: test-14}
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{alltt}
+\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
+\usepackage{varwidth}
+\usepackage[active,tightpage]{preview}
+\usepackage[normalem]{ulem}
+
+\setlength{\fboxsep}{0pt}
+
+\newcommand{\bgcolor}[2]{\colorbox{#1}{\vphantom{Ay}#2}}
+
+\PreviewEnvironment{varwidth}
+
+\definecolor{makefile-doc-bg}{HTML}{AAAAAA}
+\definecolor{color-attention}{HTML}{dc322f}
+\definecolor{color-section}{HTML}{000000}
+\definecolor{color-deprecated}{HTML}{000000}
+\definecolor{color-default}{HTML}{010101}
+\definecolor{color-warning}{HTML}{d33682}
+\definecolor{color-backticks}{HTML}{268bd2}
+
+\pagestyle{empty}
+\begin{document}
+
+\begin{varwidth}{\linewidth}
+\pagecolor{makefile-doc-bg}
+
+\begin{alltt}
+-----------------------
+Available targets:
+-----------------------
+\textcolor{color-default}{test-1             }   test inline docs without top docs
+\textcolor{color-default}{test-2             }   test inline docs with top docs
+\textcolor{color-default}{test-3             }   target test-3 is defined twice
+                      Spaces before the ## token are allowed and stripped
+                      this one will override the one above (and discard its docs)
+                        indentation can be used for emphasis
+\textcolor{color-attention}{test-4             }   use exclamation mark for targets that are signifficant in some way
+                      shouldn't have an exclamation mark for subsequent notes
+
+ ----- Section 1 -----
+
+\textcolor{color-attention}{test-5             }   but this will be shown instead
+test-6                this target is kept just in case
+                      even though it is obsolete
+                      some note (space befor ## is stripped)
+                      note that the above three lines are not dropped
+test-7                deprecated target with inline doc
+\textcolor{color-default}{test-8             }   target test-8 depends on target test-6
+\textcolor{color-default}{test-9             }   target test-9 depends on target test-6 as well
+test-10               this is overridden in Makefile.inc as it is processed second
+\textcolor{color-default}{%.c                }   here is a pattern rule
+\textcolor{color-default}{%.o                }   and here is another one
+\textcolor{color-default}{bin/%.o            }   and yet another one
+\textcolor{color-default}{first second third }   three targets on one line with spaces between them
+\textcolor{color-default}{%.tab.c %.tab.h    }   target with dots in the names
+
+ ----- Section 2 -----
+
+\textcolor{color-default}{$(TARGET-NAME)     }   target stored in a variable
+\textcolor{color-attention}{$\{TARGET-NAME\}     }   target stored in a variable
+                      make with issue a warning that this target
+                      overrides the one above (if they are not empty)
+                      but the awk script doesn't detect this becuase it
+                      doesn't have access to the value of TARGET-NAME.
+\textcolor{color-default}{$(t1) $\{t2\} t3     }   bug from issue #12
+\textcolor{color-default}{result-$(1)-$2.html}   documentation of a family of targets (with two parameters)
+                       + $1: month \{jan, ..., dec\}
+                       + $2: country code \{fr, bg, jp, ...\}
+\textcolor{color-default}{target-with-spaces }   target with spaces before and after
+\textcolor{color-default}{t                  }   A one letter target
+\textcolor{color-default}{test-11            }  
+\textcolor{color-default}{test-12            }  
+                      --
+                     
+\textcolor{color-default}{test-13            }   Top description to remain
+\textcolor{color-default}{test-14            }   An empty line marks the start of a new target
+-----------------------
+\end{alltt}
+\end{varwidth}
+\end{document}

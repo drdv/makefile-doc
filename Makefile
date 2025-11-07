@@ -74,7 +74,7 @@ lint: check-variables
 	@awk --lint -v SHOW_HELP=0 -f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
 
-## verify names of variables
+## verify for unintended global variables
 check-variables: AWK_CODE := '\
 	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
 	END { if (length(a) == 0) print "check-variables: OK"; else \
