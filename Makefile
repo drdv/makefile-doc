@@ -20,6 +20,8 @@ DEBUG :=
 ## e.g., `make test-default UPDATE_RECIPE=1`
 UPDATE_RECIPE :=
 
+MAKEFILE_DOC := makefile-doc.awk
+
 # using $1 instead of $(AWK) is necessary for a target like
 # deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
 define verify-download
@@ -39,12 +41,12 @@ help: VFLAGS := \
 	-v COLOR_BACKTICKS=33 \
 	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
 help: $(AWK_BIN)/$(AWK)
-	@$< $(VFLAGS) $(AWK_FLAGS) -f makefile-doc.awk $(MAKEFILE_LIST)
+	@$< $(VFLAGS) $(AWK_FLAGS) -f $(MAKEFILE_DOC) $(MAKEFILE_LIST)
 
 deploy-local: DEPLOY_DIR := $(HOME)/.local/share/makefile-doc
 deploy-local:
 	@mkdir -p $(DEPLOY_DIR)
-	@cp makefile-doc.awk $(DEPLOY_DIR)
+	@cp $(MAKEFILE_DOC) $(DEPLOY_DIR)
 
 .PHONY: test
 ## run all tests
@@ -55,12 +57,21 @@ test: $(TESTS)
 test-all-awk:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
-## lint the code using GNU awk
+## run the tests with goawk and generate a coverage report
+cover.html: AWK := goawk
+cover.html: COVER_FILE := cover.out
+cover.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
+cover.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(TEST_RECIPES_DIR)/$(recipe))
+	@$(MAKE) --no-print-directory test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
+	@go tool cover -html=$(COVER_FILE) -o $@
+	@rm -f $(COVER_FILE)
+
+## lint the code using gawk
 # Warnings to ignore have been stripped below
 lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PADDING|\
 		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME)
 lint: check-variables
-	@awk --lint -v SHOW_HELP=0 -f makefile-doc.awk 2>&1 | \
+	@awk --lint -v SHOW_HELP=0 -f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
 
 ## verify names of variables
@@ -70,7 +81,7 @@ check-variables: AWK_CODE := '\
 	{for(k in a) print "["a[k]"] violates naming rules"} }'
 check-variables: AWKVARS_FILE := awkvars.out
 check-variables:
-	@$(AWK) -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f makefile-doc.awk || exit 0
+	@$(AWK) -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || exit 0
 	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
 	@rm -f $(AWKVARS_FILE)
 
@@ -84,7 +95,7 @@ release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
 release:
 	@test -f $($(RELEASE_NOTES)) && \
-	gh release create $(LATEST_TAG) makefile-doc.awk \
+	gh release create $(LATEST_TAG) $(MAKEFILE_DOC) \
 		--generate-notes \
 		--notes-file $(RELEASE_NOTES) -t '$(LATEST_TAG)' || \
 	echo "No file $(RELEASE_NOTES)"
@@ -115,7 +126,7 @@ bugs-bawk:
 ## ---------
 $(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
 $(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
-$(TESTS): CMD_RESULT = $< -f makefile-doc.awk $(RECIPE_COMMAND_LINE)
+$(TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
 $(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
 		<($(CMD_RECIPE_EXPECTED)) \

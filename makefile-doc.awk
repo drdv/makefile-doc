@@ -630,7 +630,7 @@ function set_user_defined_color_theme(                                  \
 
 # The solarized theme is used by default
 # https://github.com/altercation/solarized?tab=readme-ov-file#the-values
-function define_ansi_to_html_colors(\
+function define_ansi_to_html_colors(            \
     k) {
   # no foreground/background by default
   ANSI_TO_HTML_COLOR["BG"] = -1 # "000000"
@@ -666,7 +666,7 @@ function define_ansi_to_html_colors(\
   set_user_defined_color_theme()
 }
 
-function define_ansi_to_html_attributes(\
+function define_ansi_to_html_attributes(        \
     k) {
   ANSI_TO_HTML_ATTR[0] = ""
   ANSI_TO_HTML_ATTR[1] = "font-weight"
@@ -680,7 +680,7 @@ function define_ansi_to_html_attributes(\
   for (k=100; k<=107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
-function define_ansi_to_latex_function(\
+function define_ansi_to_latex_function(         \
     k) {
   ANSI_TO_LATEX_FUN[0] = ""
   ANSI_TO_LATEX_FUN[1] = "\\textbf"
@@ -807,12 +807,6 @@ function initialize_colors() {
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
   define_color_labels()
-
-  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
-  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    print("Ignorring invalid OUTPUT_FORMAT: " OUTPUT_FORMAT " (using ANSI instead).")
-    OUTPUT_FORMAT = "ANSI"
-  }
 
   COLOR_DEFAULT = validate_ansi_param(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
   COLOR_ATTENTION = validate_ansi_param(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
@@ -1042,6 +1036,12 @@ BEGIN {
   }
   debug(DEBUG_INDENT_STACK " BEGIN")
   debug_indent_down()
+
+  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
+  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
+    print("Ignorring invalid OUTPUT_FORMAT: " OUTPUT_FORMAT " (using ANSI instead).")
+    OUTPUT_FORMAT = "ANSI"
+  }
 
   FS = ":" # set the field separator
 
