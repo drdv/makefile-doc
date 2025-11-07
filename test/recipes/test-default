@@ -1,7 +1,7 @@
 test/Makefile test/Makefile.inc
-[35m[test/Makefile] redefined docs of target: test-3[0m
-[35m[test/Makefile] redefined docs of target: test-14[0m
-[35m[test/Makefile.inc] redefined docs of target: test-10[0m
+[test/Makefile] redefined docs of target: test-3
+[test/Makefile] redefined docs of target: test-14
+[test/Makefile.inc] redefined docs of target: test-10
 -----------------------
 Available targets:
 -----------------------

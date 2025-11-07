@@ -110,7 +110,7 @@ are given in `{...}`, `(.)` shows the default)
   + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`
   + `COLOR_ATTENTION`: (`31`: red) for anchors whose docs start with `##!`
   + `COLOR_DEPRECATED`: (`33`: yellow) for anchors whose docs start with `##%`
-  + `COLOR_WARNING`: (`35`: magenta) for warnings
+  + `COLOR_WARNING`: (`35`: magenta) currently not used
   + `COLOR_SECTION`: (`32`: green) for sections
   + `COLOR_BACKTICKS`: (`0`, disabled) used for text in backticks in docs
 

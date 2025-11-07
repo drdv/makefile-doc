@@ -1,6 +1,6 @@
--v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v EXPORT_THEME=BG:AAAAAA,34:010101 test/Makefile
-\textcolor{color-warning}{[test/Makefile] redefined docs of target: test-3}
-\textcolor{color-warning}{[test/Makefile] redefined docs of target: test-14}
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v EXPORT_THEME=FG:000000,34:010101 test/Makefile
+[test/Makefile] redefined docs of target: test-3
+[test/Makefile] redefined docs of target: test-14
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{xcolor}
@@ -16,7 +16,7 @@
 
 \PreviewEnvironment{varwidth}
 
-\definecolor{makefile-doc-bg}{HTML}{AAAAAA}
+\definecolor{makefile-doc-fg}{HTML}{000000}
 \definecolor{color-attention}{HTML}{dc322f}
 \definecolor{color-section}{HTML}{000000}
 \definecolor{color-deprecated}{HTML}{000000}
@@ -28,7 +28,7 @@
 \begin{document}
 
 \begin{varwidth}{\linewidth}
-\pagecolor{makefile-doc-bg}
+\color{makefile-doc-fg}
 
 \begin{alltt}
 -----------------------
@@ -74,10 +74,10 @@ test-10               this is overridden in Makefile.inc as it is processed seco
                        + $2: country code \{fr, bg, jp, ...\}
 \textcolor{color-default}{target-with-spaces }   target with spaces before and after
 \textcolor{color-default}{t                  }   A one letter target
-\textcolor{color-default}{test-11            }  
-\textcolor{color-default}{test-12            }  
+\textcolor{color-default}{test-11            }
+\textcolor{color-default}{test-12            }
                       --
-                     
+
 \textcolor{color-default}{test-13            }   Top description to remain
 \textcolor{color-default}{test-14            }   An empty line marks the start of a new target
 -----------------------

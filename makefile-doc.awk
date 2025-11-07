@@ -40,7 +40,7 @@
 #   * COLOR_ATTENTION: (31) red
 #   * COLOR_DEPRECATED: (33) yellow
 #   * COLOR_SECTION: (32) green
-#   * COLOR_WARNING: (35) magenta -- used for warnings
+#   * COLOR_WARNING: (35) magenta -- currently not used
 #   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
@@ -226,12 +226,10 @@ function associate_data_with_anchor(anchor_name,
   if (anchor_name in anchors_description_data) {
     # omit variable related warnings when they are not displayed
     if (anchor_type != "variable" || VARS) {
-      printf("%s[%s] redefined docs of %s: %s%s\n",
-             COLOR_WARNING_CODE,
+      printf("[%s] redefined docs of %s: %s\n",
              FILENAME,
              anchor_type,
-             anchor_name,
-             COLOR_RESET_CODE)
+             anchor_name) > "/dev/stderr"
     }
   } else {
     anchors[anchors_index] = anchor_name
@@ -245,11 +243,9 @@ function associate_data_with_anchor(anchor_name,
   # note that section data is associated only with documented anchors
   if (length_array_posix(SECTION_DATA) > 0) {
     if (anchor_name in anchors_section_data) {
-      printf("%s[%s] redefining associated section data: %s%s\n",
-             COLOR_WARNING_CODE,
+      printf("[%s] redefining associated section data: %s\n",
              FILENAME,
-             anchor_name,
-             COLOR_RESET_CODE)
+             anchor_name) > "/dev/stderr"
     }
 
     anchors_section_data[anchor_name] = assemble_section_data()
@@ -412,10 +408,7 @@ function update_display_parameters(description, #locals
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
-    printf("%sUnknown error (we should never be here): %s%s\n",
-           COLOR_WARNING_CODE,
-           description,
-           COLOR_RESET_CODE)
+    printf("Unknown error (we should never be here): %s\n", description) > "/dev/stderr"
     exit 1
   }
 }
@@ -900,7 +893,7 @@ function debug(message) {
 function debug_indent_up() {
   if (DEBUG) {
     if (DEBUG_INDENT_STACK == "*") {
-      printf("%sWARNING: already at top level%s\n", COLOR_WARNING_CODE, COLOR_RESET_CODE)
+      printf("Already at top level\n") > "/dev/stderr"
     } else {
       DEBUG_INDENT_STACK = substr(DEBUG_INDENT_STACK, 1, length(DEBUG_INDENT_STACK)-1)
     }
@@ -1060,7 +1053,7 @@ BEGIN {
   OFFSET = OFFSET == "" ? 2 : OFFSET
   CONNECTED = CONNECTED == "" ? 1 : CONNECTED
   if (length(PADDING) != 1) {
-    printf("%sPADDING should have length 1%s\n", COLOR_WARNING_CODE, COLOR_RESET_CODE)
+    printf("PADDING should have length 1\n") > "/dev/stderr"
     exit 1
   }
 

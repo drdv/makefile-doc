@@ -130,7 +130,7 @@ $(TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
 $(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
 		<($(CMD_RECIPE_EXPECTED)) \
-		<($(CMD_RESULT))
+		<($(CMD_RESULT) 2>&1)
 $(TESTS): TMP_FILE = /tmp/$@_updated
 $(TESTS): $(AWK_BIN)/$(AWK)
 # The reason for using echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" is that, the value of
