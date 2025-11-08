@@ -44,7 +44,7 @@
 #   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
-#   for blue is the 34 in `\033[34m`. Supported ANSI parameters are: 0, 1, 3, 4, 9,
+#   for blue is the 34 in `\033[34m`. The supported parameters are: 0, 1, 3, 4, 9,
 #   30-37, 40-47, 90-97, 100-107 (see array ANSI_TO_HTML_COLOR).
 #
 #   + EXPORT_THEME: user-defined mapping between ANSI color parameters and HEX color

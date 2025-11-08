@@ -96,9 +96,10 @@ The following options can be passed to `awk` using `-v option=value` (possible v
 are given in `{...}`, `(.)` shows the default)
 
 + `OUTPUT_FORMAT`: `{(ANSI), HTML, LATEX}`
++ `EXPORT_THEME`: see [Export to HTML and Latex](#export-to-html-and-latex)
++ `SUB`: see [Substitutions](#substitutions)
 + `DEBUG`: `{(0), 1}` output debug info (in an org-mode format)
 + `DEBUG_FILE`: debug info file
-+ `SUB`: see [Substitutions](#substitutions)
 + `TARGETS_REGEX`: regex to use for matching targets
 + `VARIABLES_REGEX`: regex to use for matching variables
 * `VARS`: `{0, (1)}` show documented variables
@@ -114,8 +115,10 @@ are given in `{...}`, `(.)` shows the default)
   + `COLOR_SECTION`: (`32`: green) for sections
   + `COLOR_BACKTICKS`: (`0`, disabled) used for text in backticks in docs
 
-  Colors are specified using the parameter in ANSI escape codes, e.g., the parameter for
-  blue is the 34 in `\033[34m`.
+  Colors are specified using the parameter in [ANSI escape
+  codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters),
+  e.g., the parameter for blue is the 34 in `\033[34m`. The supported parameters are: 0,
+  1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107.
 
 Running `awk -f makefile-doc.awk` outputs help with values of options.
 
@@ -167,22 +170,18 @@ shown. The supported parameters are:
 See the `Makefile` of this project and the test recipes in
 `test/recipes/test-substitution-*` for examples.
 
-## Themes
+## Export to HTML and Latex
 
-### Example themes
+We use
+[Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) dark
+as the default theme for exporting ANSI colors to HTML/Latex. This can easily be
+customised. The following is an example of how to use the
+[Dracula](https://github.com/dracula/dracula-theme?tab=readme-ov-file#color-palette)
+theme instead:
 
 ```Makefile
 BG_FG := BG:000000,FG:AAAAAA
-
 DRACULA := 30:21222c,31:ff5555,32:50fa7b,33:f1fa8c,34:bd93f9,35:ff79c6,36:8be9fd,37:f8f8f2,90:6272a4,91:ff6e6e,92:69ff94,93:ffffa5,94:d6acff,95:ff92df,96:a4ffff,97:ffffff,$(BG_FG)
-
-MONOKAI := 30:272822,31:f92672,32:a6e22e,33:e6db74,34:66d9ef,35:ae81ff,36:66d9ef,37:f8f8f2,90:666666,91:f92672,92:a6e22e,93:e6db74,94:819aff,95:ae81ff,96:66d9ef,97:f8f8f2,$(BG_FG)
-
-NORD := 30:2e3440,31:bf616a,32:a3be8c,33:ebcb8b,34:81a1c1,35:b48ead,36:8fbcbb,37:d8dee9,90:3b4252,91:bf616a,92:a3be8c,93:ebcb8b,94:81a1c1,95:b48ead,96:88c0d0,97:eceff4,$(BG_FG)
-
-MATERIAL := 30:263238,31:f07178,32:c3e88d,33:ffcb6b,34:82aaff,35:c792ea,36:89ddff,37:eeffff,90:212121,91:f78c6c,92:91b859,93:f6a434,94:6182b8,95:7c4dff,96:39adb5,97:fafafa,$(BG_FG)
-
-TOMORROW_NIGHT := 30:111111,31:ff9da4,32:d1f1a9,33:ffeead,34:bbdaff,35:ebbbff,36:99ffff,37:cccccc,90:333333,91:ff7882,92:b8f171,93:ffe580,94:80baff,95:d778ff,96:78ffff,97:ffffff,$(BG_FG)
 
 help: ## show this help
 	@awk \
@@ -190,7 +189,9 @@ help: ## show this help
 		-v OUTPUT_FORMAT=html \
 		-f makefile-doc.awk $(MAKEFILE_LIST)
 ```
-`
+The format expected by the option `EXPORT_THEME` is `ANSI_COLOR_PARAMETER:HEX_COLOR[,...]` (where the `HEX_COLOR` is defined
+without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspecified colors remain at their default values.
+
 ## Dependencies
 
 + `awk`, tested with (on fedora, ubuntu, macos):
