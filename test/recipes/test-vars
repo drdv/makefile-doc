@@ -1,5 +1,5 @@
 test/Makefile.vars-1
-[test/Makefile.vars-1] redefined docs of variable: VAR6
+WARNING: [test/Makefile.vars-1] redefined docs of variable: VAR6
 -----------------------
 Available targets:
 -----------------------

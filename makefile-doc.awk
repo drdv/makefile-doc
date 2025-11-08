@@ -154,7 +154,8 @@ function get_tag_from_description(string, #locals
     sub(/ */, "", tag)
     return tag
   }
-  return 0
+
+  return 0 # if we end-up here it probably means that we use a wrong regex
 }
 
 function save_description_data(string) {
@@ -226,7 +227,7 @@ function associate_data_with_anchor(anchor_name,
   if (anchor_name in anchors_description_data) {
     # omit variable related warnings when they are not displayed
     if (anchor_type != "variable" || VARS) {
-      printf("[%s] redefined docs of %s: %s\n",
+      printf("WARNING: [%s] redefined docs of %s: %s\n",
              FILENAME,
              anchor_type,
              anchor_name) > "/dev/stderr"
@@ -243,7 +244,7 @@ function associate_data_with_anchor(anchor_name,
   # note that section data is associated only with documented anchors
   if (length_array_posix(SECTION_DATA) > 0) {
     if (anchor_name in anchors_section_data) {
-      printf("[%s] redefining associated section data: %s\n",
+      printf("WARNING: [%s] redefining associated section data: %s\n",
              FILENAME,
              anchor_name) > "/dev/stderr"
     }
@@ -287,7 +288,7 @@ function forget_section_data() {
 function get_associated_section_data(anchor_name,
                                      anchor_section_data) {
   if (anchor_name in anchor_section_data) {
-    return apply_output_specific_formatting(anchor_section_data[anchor_name])
+    return colorize_description_backticks(apply_output_specific_formatting(anchor_section_data[anchor_name]))
   }
   return 0 # means that there is no associated section data with this anchor
 }
@@ -408,7 +409,7 @@ function update_display_parameters(description, #locals
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
-    printf("Unknown error (we should never be here): %s\n", description) > "/dev/stderr"
+    printf("ERROR (we shouldn't be here): %s\n", description) > "/dev/stderr"
     exit 1
   }
 }
@@ -893,7 +894,7 @@ function debug(message) {
 function debug_indent_up() {
   if (DEBUG) {
     if (DEBUG_INDENT_STACK == "*") {
-      printf("Already at top level\n") > "/dev/stderr"
+      printf("WARNING: already at top level\n") > "/dev/stderr"
     } else {
       DEBUG_INDENT_STACK = substr(DEBUG_INDENT_STACK, 1, length(DEBUG_INDENT_STACK)-1)
     }
@@ -1032,7 +1033,8 @@ BEGIN {
 
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    print("Ignorring invalid OUTPUT_FORMAT: " OUTPUT_FORMAT " (using ANSI instead).")
+    printf("WARNING: ignorring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
+           OUTPUT_FORMAT) > "/dev/stderr"
     OUTPUT_FORMAT = "ANSI"
   }
 
@@ -1053,7 +1055,7 @@ BEGIN {
   OFFSET = OFFSET == "" ? 2 : OFFSET
   CONNECTED = CONNECTED == "" ? 1 : CONNECTED
   if (length(PADDING) != 1) {
-    printf("PADDING should have length 1\n") > "/dev/stderr"
+    printf("ERROR: PADDING should have length 1\n") > "/dev/stderr"
     exit 1
   }
 
@@ -1272,7 +1274,7 @@ PATTERN_RULE_MATCHED == 0 {
   debug_indent_up()
 }
 
-# Display results (except for warnings all stdout is here).
+# Display results (all stdout is here).
 END {
   debug_indent_up()
   debug(DEBUG_INDENT_STACK " END")
@@ -1331,7 +1333,8 @@ END {
     printf("%s\n", g_separator)
   } else {
     if (NUMBER_OF_FILES_PROCESSED > 0) {
-      printf("There are no documented targets/variables in %s\n", FILES_PROCESSED)
+      printf("WARNING: no documented targets/variables in %s\n",
+             FILES_PROCESSED) > "/dev/stderr"
     }
   }
 

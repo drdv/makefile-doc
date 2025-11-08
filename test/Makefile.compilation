@@ -1,0 +1,19 @@
+## Files variable
+FILES := fileA fileB fileC
+
+## Files target
+## Second line with {`backtick`, `in`, `a`, `set`}
+$(FILES):
+
+## `another backtick test`
+A_VAR_WITH_BACKTICK :=
+
+include Makefile.targets-2
+include Makefile.targets-3
+include Makefile.vars-3
+
+##@
+##@  Section `{first second} third` stuff
+##@
+
+%.tab.c %.tab.h: %.y ## target [with dots] in the names
