@@ -1,7 +1,7 @@
 test/Makefile test/Makefile.inc
-[test/Makefile] redefined docs of target: test-3
-[test/Makefile] redefined docs of target: test-14
-[test/Makefile.inc] redefined docs of target: test-10
+WARNING: [test/Makefile] redefined docs of target: test-3
+WARNING: [test/Makefile] redefined docs of target: test-14
+WARNING: [test/Makefile.inc] redefined docs of target: test-10
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,6 @@
 -v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v EXPORT_THEME=BG:AAAAAA,34:010101 test/Makefile
-[test/Makefile] redefined docs of target: test-3
-[test/Makefile] redefined docs of target: test-14
+WARNING: [test/Makefile] redefined docs of target: test-3
+WARNING: [test/Makefile] redefined docs of target: test-14
 <head>
   <style type="text/css">
     .color-attention { color: #dc322f; }

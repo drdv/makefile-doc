@@ -1,0 +1,85 @@
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=1 -v COLOR_ATTENTION=14 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_DEPRECATED=9 -v EXPORT_THEME=FG:000000 -v EXPORT_THEME=BG:AAAAAA test/Makefile.compilation test/Makefile.targets-2 test/Makefile.targets-3 test/Makefile.vars-3
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{alltt}
+\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
+\usepackage{varwidth}
+\usepackage[active,tightpage]{preview}
+\usepackage[normalem]{ulem}
+
+\setlength{\fboxsep}{0pt}
+
+\newcommand{\bgcolor}[2]{\colorbox{#1}{\vphantom{Ay}#2}}
+
+\PreviewEnvironment{varwidth}
+
+\definecolor{makefile-doc-bg}{HTML}{AAAAAA}
+\definecolor{color-attention}{HTML}{000000}
+\definecolor{color-section}{HTML}{000000}
+\definecolor{color-deprecated}{HTML}{000000}
+\definecolor{color-default}{HTML}{268bd2}
+\definecolor{color-warning}{HTML}{d33682}
+\definecolor{color-backticks}{HTML}{000000}
+
+\pagestyle{empty}
+\begin{document}
+
+\begin{varwidth}{\linewidth}
+\pagecolor{makefile-doc-bg}
+
+\begin{alltt}
+-----------------------
+Available targets:
+-----------------------
+\textcolor{color-default}{$(FILES)            }   Files target
+                       Second line with \{\textbf{backtick}, \textbf{in}, \textbf{a}, \textbf{set}\}
+\emph{
+  Section \textbf{\{first second\} third} stuff
+}
+\textcolor{color-default}{%.tab.c %.tab.h     }   target [with dots] in the names
+\emph{
+ ----- Single-colon targets -----
+}
+\sout{single-colon-A      }   some target
+\sout{single-colon-B      }   some other target
+\emph{
+ ----- Double-column targets -----
+}
+\textcolor{color-default}{double-colon-A:1    }   This is the first double-colon target from group A
+                       It has two lines of description
+double-colon-B:1       group B first documented
+\textcolor{color-default}{double-colon-B:2    }   group B second documented
+\textcolor{color-default}{double-colon-A:2    }   This is the second double-colon target from group A
+\sout{double-colon-B:3    }   group B third documented (deprecated)
+\emph{
+ ----- Independent Targets -----
+}
+\textcolor{color-default}{first second        }   two targets
+\textcolor{color-default}{a b                 }   other two targets
+\emph{
+ ----- Grouped Targets -----
+}
+\textcolor{color-default}{me myself and I&    }   four grouped targets
+\textcolor{color-default}{the show must go on&}   five grouped targets
+\emph{
+ ----- Double-colon grouped Targets -----
+}
+\textcolor{color-default}{yes no&:1           }   two grouped targets with double-colon (version 1)
+yes no&:2              two grouped targets with double-colon (version 2)
+\sout{yes no&:3           }   two grouped targets with double-colon (version 3)
+
+-----------------------
+Command-line arguments:
+-----------------------
+\textcolor{color-default}{FILES               }   Files variable
+\textcolor{color-default}{A_VAR_WITH_BACKTICK }   \textbf{another backtick test}
+\textcolor{color-default}{X                   }   only override
+\textcolor{color-default}{Y                   }   override and export
+\textcolor{color-default}{Z                   }   override, private and export
+\textcolor{color-default}{more_LETTERS        }   test all four (even though it makes no sense)
+\textcolor{color-default}{qsub                }   test repeated qualifiers
+-----------------------
+\end{alltt}
+\end{varwidth}
+\end{document}
