@@ -228,7 +228,7 @@ function parse_variable_name(whole_line_string, #locals
   return variable_name
 }
 
-# this is the key function (FIXME: make the debugging code less intrusive)
+# it would be nice to make the debugging code less intrusive
 function associate_data_with_anchor(anchor_name,
                                     anchors,
                                     anchors_index,
@@ -588,11 +588,17 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
 }
 
 function count_numb_double_colon(new_target, #locals
-                                 counter, target, target_split, key) {
+                                 counter, target, wip_target_split, target_split, key) {
+  split(WIP_TARGET, wip_target_split, DOUBLE_COLON_SEPARATOR)
+  if (wip_target_split[1] == new_target) {
+    # if we are still dealing with the WIP target, return its index
+    return wip_target_split[2]
+  }
+
   counter = 1
   for (key in TARGETS) { # order is not important
     target = TARGETS[key]
-    split(target, target_split, "~")
+    split(target, target_split, DOUBLE_COLON_SEPARATOR)
     if (target_split[1] == new_target) {
       counter++
     }
@@ -837,7 +843,7 @@ function initialize_colors() {
                           ansi_color_param_to_html_style("BG", "BG"))
   } else if (OUTPUT_FORMAT == "LATEX") {
     LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
-    # FIXME: I don't see a better way to store this
+    # Is there a better way to store this?
     LATEX_HEADER = sprintf("\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{xcolor}\n\\usepackage{alltt}\n\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n\\usepackage{varwidth}\n\\usepackage[active,tightpage]{preview}\n\\usepackage[normalem]{ulem}\n\n\\setlength{\\fboxsep}{0pt}\n\n\\newcommand{\\bgcolor}[2]{\\colorbox{#1}{\\vphantom{Ay}#2}}\n\n\\PreviewEnvironment{varwidth}\n\n%s%s\\definecolor{color-attention}{HTML}{%s}\n\\definecolor{color-section}{HTML}{%s}\n\\definecolor{color-deprecated}{HTML}{%s}\n\\definecolor{color-default}{HTML}{%s}\n\\definecolor{color-warning}{HTML}{%s}\n\\definecolor{color-backticks}{HTML}{%s}\n\n\\pagestyle{empty}\n\\begin{document}\n\n\\begin{varwidth}{\\linewidth}\n%s%s\n\\begin{alltt}",
                            ansi_color_param_to_latex_color("FG", 1),
                            ansi_color_param_to_latex_color("BG", 1),

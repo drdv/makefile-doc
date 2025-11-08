@@ -16,4 +16,6 @@ Available targets:
 [34mdouble-colon-B~2[0m   group B second documented
 [34mdouble-colon-A~2[0m   This is the second double-colon target from group A
 [33mdouble-colon-B~3[0m   group B third documented (deprecated)
+[34mdc1~1           [0m   This is a top doc for dc1~1
+[34mdc1~2           [0m   this is dc1~2
 -----------------------
