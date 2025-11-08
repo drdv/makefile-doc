@@ -3,11 +3,11 @@ Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 Description: Generate docs for Makefile variables and targets
 Options:
   OUTPUT_FORMAT: ANSI
-  EXPORT_THEME (theme for HTML/LATEX output): 
-  SUB (substitutions): 
-  DEBUG ([bool] output debug info): 
+  EXPORT_THEME (theme for HTML/LATEX output):
+  SUB (substitutions):
+  DEBUG ([bool] output debug info):
   DEBUG_FILE (debug info file): .debug-makefile-doc.org
-  TARGETS_REGEX (regex for matching targets): ^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$)
+  TARGETS_REGEX (regex for matching targets): ^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$|.*;)
   VARIABLES_REGEX (regex for matching variables): ^ *( *(override|unexport|export|private) *)* *[^.#][a-zA-Z0-9_-]* *(=|:=|::=|:::=|!=|\?=|\+=)
   VARS ([bool] show documented variables): 1
   PADDING (a padding character between anchors and docs): " "

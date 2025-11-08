@@ -1,0 +1,13 @@
+## 1
+t1:;
+
+## 2
+t2: ;
+
+t3:;@echo 1 ## 3
+
+deps:
+	@echo deps
+
+## 4
+t4:deps; @echo 1

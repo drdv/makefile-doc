@@ -3,7 +3,7 @@
 + ~FS~: :
 + ~DEBUG_FILE~: /tmp/.debug-makefile-doc.org
 + ~SUB~: <L:0,M:0>$(TARGET):label:this that
-+ ~TARGETS_REGEX~: ^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$)
++ ~TARGETS_REGEX~: ^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$|.*;)
 + ~VARIABLES_REGEX~: ^ *( *(override|unexport|export|private) *)* *[^.#][a-zA-Z0-9_-]* *(=|:=|::=|:::=|!=|\?=|\+=)
 + ~VARS~: 1
 + ~PADDING~:
