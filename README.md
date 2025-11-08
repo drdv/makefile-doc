@@ -6,6 +6,8 @@ The `makefile-doc.awk` script is a POSIX-compliant extension of a simple `awk` o
 I have been using for years (it was based on [this
 gist](https://gist.github.com/prwhite/8168133)). I simply needed a bit more
 functionality and this turned out to be a nice small project with Awk.
+[This](https://drdv.github.io/blog/202511-makefile-doc) blog post shows an example of
+the documentation.
 
 ## How to use
 
