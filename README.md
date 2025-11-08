@@ -74,7 +74,7 @@ I refer to targets / variables as anchors (for docs/sections).
   hidden deprecated one) after a section for it to be displayed.
 
 * [Double-colon](https://www.gnu.org/software/make/manual/html_node/Double_002dColon.html)
-  targets are displayed using the format `target-name:target-index` and for each index
+  targets are displayed using the format `target-name~target-index` and for each index
   there can be a dedicated documentation.
 
 * [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
