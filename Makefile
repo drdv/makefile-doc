@@ -124,15 +124,15 @@ bugs-bawk:
 
 ## Recipes:
 ## ---------
-$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
-$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
-$(TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
+$(TESTS):: RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
+$(TESTS):: CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
+$(TESTS):: CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
-$(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
+$(TESTS):: CMD_DIFF = git diff --ignore-space-at-eol \
 		<($(CMD_RECIPE_EXPECTED)) \
 		<($(CMD_RESULT) 2>&1)
-$(TESTS): TMP_FILE = /tmp/$@_updated
-$(TESTS): $(AWK_BIN)/$(AWK)
+$(TESTS):: TMP_FILE = /tmp/$@_updated
+$(TESTS):: $(AWK_BIN)/$(AWK)
 # The reason for using echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" is that, the value of
 # RECIPE_COMMAND_LINE may contain e.g., $(TARGET) and we need to make sure that the
 # shell doesn't try to expand it. Unfortunately, we cannot simply use echo
@@ -145,6 +145,12 @@ $(TESTS): $(AWK_BIN)/$(AWK)
 		$(CMD_RESULT)\
 		| tee -a $(TMP_FILE) && mv $(TMP_FILE) $(TEST_RECIPES_DIR)/$@,\
 	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
+
+test-debug:: EXPECTED_FILE := /tmp/.debug-makefile-doc.org
+test-debug:: RESULT_FILE := test/test-debug-expected-result.org
+test-debug::
+	@git diff --ignore-space-at-eol $(RESULT_FILE) $(EXPECTED_FILE)
+	@rm $(EXPECTED_FILE)
 
 # ----------------------------------------------------
 # Targets for downloading various awk implementations

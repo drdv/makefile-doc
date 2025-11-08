@@ -134,6 +134,29 @@ function length_array_posix(array, #locals
   return n
 }
 
+# updates the array sorted_keys with the sorted keys of array
+function sort_keys(array, sorted_keys, #locals
+                   n, i, j, key, tmp) {
+  delete sorted_keys
+
+  n = 0
+  for (key in array) {
+    sorted_keys[++n] = key
+  }
+
+  # bubble sort sorted_keys (it is used only for producing debug info)
+  for(i=1; i<n; i++) {
+    for(j=1; j<=n-i; j++) {
+      if(sorted_keys[j] > sorted_keys[j+1]) {
+        tmp = sorted_keys[j];
+        sorted_keys[j] = sorted_keys[j+1];
+        sorted_keys[j+1] = tmp
+      }
+    }
+  }
+  return n
+}
+
 function join(array, delimiter, #locals
               string, k) {
   string = ""
@@ -155,7 +178,7 @@ function get_tag_from_description(string, #locals
     return tag
   }
 
-  return 0 # if we end-up here it probably means that we use a wrong regex
+  return 0 # if we end-up here it probably means that we are using a wrong regex
 }
 
 function save_description_data(string) {
@@ -926,14 +949,16 @@ function debug_array(array, array_next_index, array_name, array_note, #locals
 }
 
 function debug_dict(array, array_name, array_note, #locals
-                    key) {
+                    k, sorted_keys) {
   debug(sprintf("%s [D] %s (length: %s%s)",
                 DEBUG_INDENT_STACK,
                 array_name,
                 length_array_posix(array),
                 array_note ? ", note: " array_note : array_note))
-  for (key in array) {
-    debug("+ " key ": " array[key])
+
+  # print in sorted order for testing purposes
+  for (k=1; k<=sort_keys(array, sorted_keys); k++) {
+    debug("+ " sorted_keys[k] ": " array[sorted_keys[k]])
   }
 }
 
