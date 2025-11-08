@@ -15,7 +15,7 @@ Available targets:
 [32m
  ----- Double-colon grouped Targets -----
 [0m
-[34myes no&:1           [0m   two grouped targets with double-colon (version 1)
-[31myes no&:2           [0m   two grouped targets with double-colon (version 2)
-[33myes no&:3           [0m   two grouped targets with double-colon (version 3)
+[34myes no&~1           [0m   two grouped targets with double-colon (version 1)
+[31myes no&~2           [0m   two grouped targets with double-colon (version 2)
+[33myes no&~3           [0m   two grouped targets with double-colon (version 3)
 -----------------------

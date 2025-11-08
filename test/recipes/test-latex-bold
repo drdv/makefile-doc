@@ -46,12 +46,12 @@ Available targets:
 \emph{
  ----- Double-column targets -----
 }
-\textcolor{color-default}{double-colon-A:1    }   This is the first double-colon target from group A
+\textcolor{color-default}{double-colon-A~1    }   This is the first double-colon target from group A
                        It has two lines of description
-double-colon-B:1       group B first documented
-\textcolor{color-default}{double-colon-B:2    }   group B second documented
-\textcolor{color-default}{double-colon-A:2    }   This is the second double-colon target from group A
-\sout{double-colon-B:3    }   group B third documented (deprecated)
+double-colon-B~1       group B first documented
+\textcolor{color-default}{double-colon-B~2    }   group B second documented
+\textcolor{color-default}{double-colon-A~2    }   This is the second double-colon target from group A
+\sout{double-colon-B~3    }   group B third documented (deprecated)
 \emph{
  ----- Independent Targets -----
 }
@@ -65,9 +65,9 @@ double-colon-B:1       group B first documented
 \emph{
  ----- Double-colon grouped Targets -----
 }
-\textcolor{color-default}{yes no&:1           }   two grouped targets with double-colon (version 1)
-yes no&:2              two grouped targets with double-colon (version 2)
-\sout{yes no&:3           }   two grouped targets with double-colon (version 3)
+\textcolor{color-default}{yes no&~1           }   two grouped targets with double-colon (version 1)
+yes no&~2              two grouped targets with double-colon (version 2)
+\sout{yes no&~3           }   two grouped targets with double-colon (version 3)
 
 -----------------------
 Command-line arguments:

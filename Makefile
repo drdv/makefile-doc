@@ -34,7 +34,7 @@ endef
 .PHONY: help
 ## show this help
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
-help: TESTS_SUB := <L:1,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
+help: TESTS_SUB := <L:1,M:1>[$$(TESTS)]@1:test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
 help: VFLAGS := \
 	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v DEBUG=$(DEBUG) \
