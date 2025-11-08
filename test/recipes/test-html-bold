@@ -35,6 +35,8 @@ double-colon-B~1       group B first documented
 <span class="color-default">double-colon-B~2    </span>   group B second documented
 <span class="color-default">double-colon-A~2    </span>   This is the second double-colon target from group A
 <span class="color-deprecated">double-colon-B~3    </span>   group B third documented (deprecated)
+<span class="color-default">dc1~1               </span>   This is a top doc for dc1~1
+<span class="color-default">dc1~2               </span>   this is dc1~2
 <span class="color-section">
  ----- Independent Targets -----
 </span>

@@ -28,3 +28,12 @@ double-colon-B:: ## group B second documented
 double-colon-A:: ## This is the second double-colon target from group A
 
 double-colon-B:: ##% group B third documented (deprecated)
+
+## This is a top doc for dc1~1
+dc1:: ## this is inline (not shown) still dc1~1
+dc1:: ## ...  still dc1~1
+dc1:: ## ...  still dc1~1
+
+dc1:: ## this is dc1~2
+dc1:: ## ... dc1~2
+dc1:: ## ... dc1~2

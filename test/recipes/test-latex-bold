@@ -52,6 +52,8 @@ double-colon-B~1       group B first documented
 \textcolor{color-default}{double-colon-B~2    }   group B second documented
 \textcolor{color-default}{double-colon-A~2    }   This is the second double-colon target from group A
 \sout{double-colon-B~3    }   group B third documented (deprecated)
+\textcolor{color-default}{dc1~1               }   This is a top doc for dc1~1
+\textcolor{color-default}{dc1~2               }   this is dc1~2
 \emph{
  ----- Independent Targets -----
 }
