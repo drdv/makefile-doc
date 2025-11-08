@@ -29,12 +29,12 @@ Available targets:
 <span class="color-section">
  ----- Double-column targets -----
 </span>
-<span class="color-default">double-colon-A:1    </span>   This is the first double-colon target from group A
+<span class="color-default">double-colon-A~1    </span>   This is the first double-colon target from group A
                        It has two lines of description
-double-colon-B:1       group B first documented
-<span class="color-default">double-colon-B:2    </span>   group B second documented
-<span class="color-default">double-colon-A:2    </span>   This is the second double-colon target from group A
-<span class="color-deprecated">double-colon-B:3    </span>   group B third documented (deprecated)
+double-colon-B~1       group B first documented
+<span class="color-default">double-colon-B~2    </span>   group B second documented
+<span class="color-default">double-colon-A~2    </span>   This is the second double-colon target from group A
+<span class="color-deprecated">double-colon-B~3    </span>   group B third documented (deprecated)
 <span class="color-section">
  ----- Independent Targets -----
 </span>
@@ -48,9 +48,9 @@ double-colon-B:1       group B first documented
 <span class="color-section">
  ----- Double-colon grouped Targets -----
 </span>
-<span class="color-default">yes no&:1           </span>   two grouped targets with double-colon (version 1)
-yes no&:2              two grouped targets with double-colon (version 2)
-<span class="color-deprecated">yes no&:3           </span>   two grouped targets with double-colon (version 3)
+<span class="color-default">yes no&~1           </span>   two grouped targets with double-colon (version 1)
+yes no&~2              two grouped targets with double-colon (version 2)
+<span class="color-deprecated">yes no&~3           </span>   two grouped targets with double-colon (version 3)
 
 -----------------------
 Command-line arguments:

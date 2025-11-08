@@ -589,14 +589,14 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
 }
 
 function count_numb_double_colon(new_target, #locals
-                                 counter, prefix, n_prefix, target, key) {
+                                 counter, decorated_target, n, target, key) {
   counter = 1
-  prefix = "[" new_target "]"
-  n_prefix = length(prefix)
+  decorated_target = "[" new_target "]"
+  n = length(decorated_target)
   for (key in TARGETS) { # order is not important
     target = TARGETS[key]
-    if (length(target) >= n_prefix &&
-        substr(target, 1, n_prefix) == prefix) {
+    if (length(target) >= n &&
+        substr(target, 1, n) == decorated_target) {
       counter++
     }
   }
@@ -608,10 +608,10 @@ function process_double_colon_targets(target, #locals
                                       target_name, target_index) {
   if (match(target, /\[.+\]/)) {
     target_name = substr(target, RSTART+1, RLENGTH-2)
-    if (match(target, /:([0-9]*)/)) {
+    if (match(target, DOUBLE_COLON_SEPARATOR "([0-9]*)")) {
       target_index = substr(target, RSTART+1, RLENGTH-1)
     }
-    return target_name ":" target_index
+    return target_name DOUBLE_COLON_SEPARATOR target_index
   }
   return target
 }
@@ -1136,6 +1136,8 @@ BEGIN {
   FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
   WIP_TARGET = ""
+  # used to signify double-colon targets in the documentation
+  DOUBLE_COLON_SEPARATOR = "~"
 
   debug_init()
 
@@ -1238,8 +1240,9 @@ $0 ~ TARGETS_REGEX {
   sub(/ *&/, "\\&", g_target_name)
   if ($0 ~ "::") {
     # surround double-colon targets in square brackets to make them easy to count
-    g_target_name = sprintf("[%s]:%s",
+    g_target_name = sprintf("[%s]%s%s",
                             g_target_name,
+                            DOUBLE_COLON_SEPARATOR,
                             count_numb_double_colon(g_target_name))
   }
 
