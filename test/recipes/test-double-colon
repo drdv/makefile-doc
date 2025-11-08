@@ -5,15 +5,15 @@ Available targets:
 [32m
  ----- Single-colon targets -----
 [0m
-[33msingle-colon-A    [0m   some target
-[33msingle-colon-B    [0m   some other target
+[33msingle-colon-A  [0m   some target
+[33msingle-colon-B  [0m   some other target
 [32m
  ----- Double-column targets -----
 [0m
-[34mdouble-colon-A~1  [0m   This is the first double-colon target from group A
-                     It has two lines of description
-[31mdouble-colon-B~1  [0m   group B first documented
-[34mdouble-colon-B~2  [0m   group B second documented
-[34mdouble-colon-A~2  [0m   This is the second double-colon target from group A
-[33mdouble-colon-B~3  [0m   group B third documented (deprecated)
+[34mdouble-colon-A~1[0m   This is the first double-colon target from group A
+                   It has two lines of description
+[31mdouble-colon-B~1[0m   group B first documented
+[34mdouble-colon-B~2[0m   group B second documented
+[34mdouble-colon-A~2[0m   This is the second double-colon target from group A
+[33mdouble-colon-B~3[0m   group B third documented (deprecated)
 -----------------------

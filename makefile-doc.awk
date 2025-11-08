@@ -561,9 +561,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
       renamed_anchor = anchor
     }
 
-    normalized_anchor_name = process_double_colon_targets(renamed_anchor)
-    formatted_anchor = apply_output_specific_formatting(normalized_anchor_name)
-    padding = repeated_string("", len_anchors - length(normalized_anchor_name))
+    formatted_anchor = apply_output_specific_formatting(renamed_anchor)
+    padding = repeated_string("", len_anchors - length(renamed_anchor))
     # handle padding manually because there is a difference between the actual text and
     # the visible text (for latex)
     if (DISPLAY_PARAMS["color"]) {
@@ -589,31 +588,16 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
 }
 
 function count_numb_double_colon(new_target, #locals
-                                 counter, decorated_target, n, target, key) {
+                                 counter, target, target_split, key) {
   counter = 1
-  decorated_target = "[" new_target "]"
-  n = length(decorated_target)
   for (key in TARGETS) { # order is not important
     target = TARGETS[key]
-    if (length(target) >= n &&
-        substr(target, 1, n) == decorated_target) {
+    split(target, target_split, "~")
+    if (target_split[1] == new_target) {
       counter++
     }
   }
   return counter
-}
-
-# [double_colon_target_name]:1 -> double_colon_target_name:1
-function process_double_colon_targets(target, #locals
-                                      target_name, target_index) {
-  if (match(target, /\[.+\]/)) {
-    target_name = substr(target, RSTART+1, RLENGTH-2)
-    if (match(target, DOUBLE_COLON_SEPARATOR "([0-9]*)")) {
-      target_index = substr(target, RSTART+1, RLENGTH-1)
-    }
-    return target_name DOUBLE_COLON_SEPARATOR target_index
-  }
-  return target
 }
 
 # add here formatting functions to be applied before colors have been added
@@ -1240,7 +1224,7 @@ $0 ~ TARGETS_REGEX {
   sub(/ *&/, "\\&", g_target_name)
   if ($0 ~ "::") {
     # surround double-colon targets in square brackets to make them easy to count
-    g_target_name = sprintf("[%s]%s%s",
+    g_target_name = sprintf("%s%s%s",
                             g_target_name,
                             DOUBLE_COLON_SEPARATOR,
                             count_numb_double_colon(g_target_name))
