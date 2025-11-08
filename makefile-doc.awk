@@ -5,7 +5,7 @@
 #  Author: Dimitar Dimitrov
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
-# Version: v1.2
+# Version: v1.3
 #
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
