@@ -32,7 +32,7 @@
 #   * PADDING: {(" "), ".", ...} a single padding character between anchors and docs
 #   * DEPRECATED: {0, (1)} show deprecated anchors
 #   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
-#   * CONNECTED: {0, (1)} ignore docs followed by an empty line
+#   + RECIPEPREFIX: should have the same value as the .RECIPEPREFIX from your Makefile
 #   * see as well the color codes below
 #
 # Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
@@ -93,26 +93,72 @@
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
 #     %* patterns, some kinds of regex etc.
 #   + Notes on the arrays in the code:
-#     Order is important for: DESCRIPTION_DATA, SECTION_DATA, TARGETS, VARIABLES and
-#     each of them has an associated *_INDEX integer variable. For all other arrays
-#     order is irrelevant. The key ones are:
-#     + DISPLAY_PARAMS
-#     + TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA
-#     + VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA
-#     + SUB_LABEL, SUB_PARAMS, SUB_VALUES, SUB_PARAMS_DEFAULTS, SUB_PARAMS_CURRENT
+#     Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
+#     VARIABLES and each of them has an associated *_INDEX integer variable.
+#
+# Terminology and definitions:
+#   + A Makefile rule (without patterns) can take one of the following forms:
+#     target-name [...] [&]:[:] [prerequisits] [;] [inline recipe]
+#         [recipe]
+#
+#     target-name [...] [&]:[:] [variable assignment]
+#         [recipe]
+#
+#     where:
+#       prerequisits := normal-prerequisites | order-only-prerequisites
+#       inline recipe := [command] [; command ...]
+#       recipe := [command]
+#                 [...]
+#       variable assignment: a single variable can be assigned per rule
+#
+#     with normal-prerequisites and order-only-prerequisites being space separated lists
+#     of target names. Note that while:
+#
+#     t:; @echo 1
+#         @echo 2
+#
+#     defines one rule, the following defines two (both of which have a recipe):
+#
+#     t:; @echo 1
+#     t:
+#         @echo 2
+#
+#     and, in the second case, Make will complain:
+#       warning: overriding recipe for target 't'
+#       warning: ignoring old recipe for target 't'
+#     THe following defines three rules only the last of which has a recipe:
+#
+#     t: A := 1
+#     t: B := 2
+#     t: u v | x y ; @echo 1
+#         @echo 2
+#
+#   + Recipe: a sequence of commands executed in the shell. A recipe (and thus a rule)
+#             ends at the next target line, variable assignment, define ... endef
+#   + Target: an abstraction representing a task/goal to achieve which is defined in
+#             terms of, potentially, many rules.
+#   + Target line: the top-line (the header) of a Makefile rule
+#   + Target name: a (string) label for a target
+#   + Description of a rule: comments starting with ##, ##! or ##% placed above the
+#                 target line of a rule or inline. Inline descriptions cannot be placed
+#                 after a inline recipe.
+#   + Description precedense:
+#     + An inline description of a rule is ignorred if a top description for that rule
+#       is present.
+#     + A description of a rule with a target line on like K overrides a description of
+#       a rule defined prioer to line K. A warning is issued when this happes. This
+#       means that, in the end, the documentation of a (non-double-colon) target is
+#       taken from only one of its defining rules (the same think applies for the recipe
+#       used to build a target).
+#   + Double-colon targets: a double-colon target is a target that can have multiple
+#     recipes and each one of them can have its own description.
 
-function max(var1, var2) {
-  if (var1 >= var2) {
-    return var1
-  }
-  return var2
+function max(x, y) {
+  return (x >= y) ? x : y
 }
 
-function min(var1, var2) {
-  if (var1 <= var2) {
-    return var1
-  }
-  return var2
+function min(x, y) {
+  return (x <= y) ? x : y
 }
 
 function repeated_string(string, n, #locals
@@ -157,10 +203,42 @@ function sort_keys(array, sorted_keys, #locals
   return n
 }
 
-function join(array, delimiter, #locals
-              string, k) {
+function abs(x) {
+  return (x < 0.0) ? -x : x
+}
+
+# to enter in a recipe we first have to detect a target line
+# so this is executed always before a recipe
+function normalize_dc_target_status(key) {
+  TARGETS_DC_COUNTER[key] = abs(TARGETS_DC_COUNTER[key])
+}
+
+# there are two situations when the index is incremented:
+#  1. an inline command is detected on the target line (see target action pattern block)
+#  2. we are in a recipe
+# the index is negated in order to not increment it for every command in the current
+# recipe (normalize_dc_target_status() is called at the start of every new rule)
+function maybe_increment_dc_target_index(key, command_found) {
+  if (command_found && TARGETS_DC_COUNTER[key] > 0) {
+    TARGETS_HAS_RECIPE[form_dc_target_name(key)] = 1
+    TARGETS_DC_COUNTER[key]++
+    TARGETS_DC_COUNTER[key] *= -1
+  }
+}
+
+function form_dc_target_name(target_name_nominal) {
+  return sprintf("%s%s%s",
+                 target_name_nominal,
+                 DOUBLE_COLON_SEPARATOR,
+                 TARGETS_DC_COUNTER[target_name_nominal])
+}
+
+# assumes that array is produced from split()
+function join_splitted(array, delimiter, #locals
+                       string, k, n) {
   string = ""
-  for (k=1; k<=length_array_posix(array); k++) {
+  n = length_array_posix(array)
+  for (k=1; k<=n; k++) {
     if (k == 1) {
       string = array[k]
     } else {
@@ -168,6 +246,21 @@ function join(array, delimiter, #locals
     }
   }
   return string
+}
+
+function strip_start_end_spaces_tabs(string) {
+  sub(/^[ \t]*/, "", string)
+  sub(/[ \t]*$/, "", string)
+  return string
+}
+
+# we have to escape {...} in \begin{alltt} ... \end{alltt}
+function escape_braces_for_latex_output(text) {
+  if (OUTPUT_FORMAT == "LATEX") {
+    gsub(/\{/, "\\{", text)
+    gsub(/\}/, "\\}", text)
+  }
+  return text
 }
 
 function get_tag_from_description(string, #locals
@@ -182,8 +275,7 @@ function get_tag_from_description(string, #locals
 }
 
 function save_description_data(string) {
-  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX] = string
-  DESCRIPTION_DATA_INDEX++
+  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX++] = string
 
   debug(DEBUG_INDENT_STACK " save_description_data")
   debug_indent_down()
@@ -201,30 +293,53 @@ function forget_descriptions_data() {
   debug_indent_up()
 }
 
-function parse_inline_descriptions(whole_line_string, #locals
-                                   inline_string) {
+# When store_description == 1, we are interested in associating a description with the
+# current target but if store_description == 0 we are simply checking whether there is
+# an inline command defined on the target line. This is important in order to detect the
+# end of a target block (see the syntax of a rule in "Terminology and definitions" in
+# the docstring of this script). Note that if there is a command, there cannot be an
+# inline description (because it would be considered as a part of the command).
+function parse_inline_descriptions(whole_line, store_description, #locals
+                                   inline_description, part_before_description) {
   debug(DEBUG_INDENT_STACK " parse_inline_descriptions")
   debug_indent_down()
-  if (match(whole_line_string, / *(##!|##%|##)/)) {
-    inline_string = substr(whole_line_string, RSTART)
-    sub(/^ */, "", inline_string)
-    save_description_data(inline_string)
+
+  if (match(whole_line, /^[^#]*;/)) {
+    return 1
   }
+
+  if (store_description) {
+    if (match(whole_line, / *(##!|##%|##)/)) {
+      inline_description = substr(whole_line, RSTART)
+      sub(/^ */, "", inline_description)
+      save_description_data(inline_description)
+    }
+  }
+
   debug_indent_up()
+  return 0
 }
 
-function parse_variable_name(whole_line_string, #locals
-                             array_whole_line, variable_name, k) {
-  split(whole_line_string, array_whole_line, ASSIGNMENT_OPERATORS_PATTERN)
-  variable_name = array_whole_line[1]
+function initialize_variables_regex() {
+  ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
+  split("override unexport export private", VARIABLE_QUALIFIERS, " ")
+  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^.#][a-zA-Z0-9_-]* *%s",
+                                    join_splitted(VARIABLE_QUALIFIERS, "|"),
+                                    ASSIGNMENT_OPERATORS_PATTERN)
+}
+
+function parse_variable_name(whole_line, #locals
+                             whole_line_split, variable_name, k) {
+  split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
+  variable_name = whole_line_split[1]
 
   # here we need to preserve order in order to remove unexport and not just export
   for (k=1;
        k<=length_array_posix(VARIABLE_QUALIFIERS);
        k++) {
-    gsub(VARIABLE_QUALIFIERS[k], "", variable_name)
+    gsub("(^| )" VARIABLE_QUALIFIERS[k] "( |$)", " ", variable_name)
   }
-  sub(/[ ]+/, "", variable_name)
+  strip_start_end_spaces_tabs(variable_name)
   return variable_name
 }
 
@@ -248,20 +363,16 @@ function associate_data_with_anchor(anchor_name,
   debug_indent_up()
 
   if (anchor_name in anchors_description_data) {
-    # omit variable related warnings when they are not displayed
-    if (anchor_type != "variable" || VARS) {
-      printf("WARNING: [%s] redefined docs of %s: %s\n",
-             FILENAME,
-             anchor_type,
-             anchor_name) > "/dev/stderr"
-    }
+    printf("WARNING: [%s] redefined docs of %s: %s\n",
+           FILENAME,
+           anchor_type,
+           anchor_name) > STDERR
   } else {
     anchors[anchors_index] = anchor_name
     anchors_index++
   }
 
-  # here we might overwrite a description associatd with a redefined anchor
-  anchors_description_data[anchor_name] = assemble_description_data()
+  anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
   forget_descriptions_data()
 
   # note that section data is associated only with documented anchors
@@ -269,10 +380,10 @@ function associate_data_with_anchor(anchor_name,
     if (anchor_name in anchors_section_data) {
       printf("WARNING: [%s] redefining associated section data: %s\n",
              FILENAME,
-             anchor_name) > "/dev/stderr"
+             anchor_name) > STDERR
     }
 
-    anchors_section_data[anchor_name] = assemble_section_data()
+    anchors_section_data[anchor_name] = assemble_description_section_data(SECTION_DATA)
     forget_section_data()
   }
 
@@ -289,8 +400,7 @@ function associate_data_with_anchor(anchor_name,
 }
 
 function save_section_data(string) {
-  SECTION_DATA[SECTION_DATA_INDEX] = string
-  SECTION_DATA_INDEX++
+  SECTION_DATA[SECTION_DATA_INDEX++] = string
 
   debug(DEBUG_INDENT_STACK " save_section_data")
   debug_indent_down()
@@ -311,9 +421,10 @@ function forget_section_data() {
 function get_associated_section_data(anchor_name,
                                      anchor_section_data) {
   if (anchor_name in anchor_section_data) {
-    return colorize_description_backticks(apply_output_specific_formatting(anchor_section_data[anchor_name]))
+    return colorize_description_backticks(\
+        apply_output_specific_formatting(anchor_section_data[anchor_name]))
   }
-  return 0 # means that there is no associated section data with this anchor
+  return 0 # means that there is no section data associated with this anchor
 }
 
 function get_max_anchor_length(anchors, #locals
@@ -321,11 +432,7 @@ function get_max_anchor_length(anchors, #locals
   max_len = 0
   for (key in anchors) { # order is not important
     anchor = anchors[key]
-    if (anchor in SUB_LABEL) {
-      n = length(SUB_LABEL[anchor])
-    } else {
-      n = length(anchor)
-    }
+    n = (anchor in SUB_LABELS) ? length(SUB_LABELS[anchor]) : length(anchor)
     if (n > max_len) {
       max_len = n
     }
@@ -401,22 +508,13 @@ function format_description_data(anchor_name,
   return colorize_description_backticks(apply_output_specific_formatting(description))
 }
 
-function assemble_description_data(             \
-    description, k) {
-  description = DESCRIPTION_DATA[1]
-  for (k=2; k<=length_array_posix(DESCRIPTION_DATA); k++) {
-    description = description "\n" DESCRIPTION_DATA[k]
+function assemble_description_section_data(array, #locals
+                                           docs, k) {
+  docs = array[1]
+  for (k=2; k<=length_array_posix(array); k++) {
+    docs = docs "\n" array[k]
   }
-  return description
-}
-
-function assemble_section_data(                 \
-    section, k) {
-  section = SECTION_DATA[1]
-  for (k=2; k<=length_array_posix(SECTION_DATA); k++) {
-    section = section "\n" SECTION_DATA[k]
-  }
-  return section
+  return docs
 }
 
 function update_display_parameters(description, #locals
@@ -432,7 +530,7 @@ function update_display_parameters(description, #locals
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
-    printf("ERROR (we shouldn't be here): %s\n", description) > "/dev/stderr"
+    printf("ERROR (we shouldn't be here): %s\n", description) > STDERR
     exit 1
   }
 }
@@ -481,13 +579,27 @@ function form_substitutions(                                            \
     gsub(SPACES_TABS_REGEX, "", key_value_parts[1])
 
     SUB_PARAMS[key_value_parts[1]] = substitution_params
-    if (length_array_posix(key_value_parts) == 2) {
+    if (length_array_posix(key_value_parts) == 1) {
+      printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
+    }
+    else if (length_array_posix(key_value_parts) == 2) {
       SUB_VALUES[key_value_parts[1]] = key_value_parts[2]
     } else {
       SUB_VALUES[key_value_parts[1]] = key_value_parts[3]
-      SUB_LABEL[key_value_parts[1]] = key_value_parts[2]
+      SUB_LABELS[key_value_parts[1]] = key_value_parts[2]
     }
   }
+}
+
+function initialize_substitution_parameter_defaults() {
+  # don't change the defaults
+  SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
+  SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
+  SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
+  SUB_PARAMS_DEFAULTS["S"] = "" # separator
+  SUB_PARAMS_DEFAULTS["P"] = "" # prefix
+  SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
+  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
 }
 
 function display_substitutions(anchor, len_anchors, #locals
@@ -529,15 +641,6 @@ function display_substitutions(anchor, len_anchors, #locals
   }
 }
 
-# we have to escape {...} in \begin{alltt} ... \end{alltt}
-function escape_braces_for_latex_output(text) {
-  if (OUTPUT_FORMAT == "LATEX") {
-    gsub(/\{/, "\\{", text)
-    gsub(/\}/, "\\}", text)
-  }
-  return text
-}
-
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
                                   renamed_anchor, formatted_anchor, padding,
                                   normalized_anchor_name) {
@@ -555,16 +658,12 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    if (anchor in SUB_LABEL) {
-      renamed_anchor = SUB_LABEL[anchor]
-    } else {
-      renamed_anchor = anchor
-    }
-
+    renamed_anchor = (anchor in SUB_LABELS) ? SUB_LABELS[anchor] : anchor
     formatted_anchor = apply_output_specific_formatting(renamed_anchor)
-    padding = repeated_string("", len_anchors - length(renamed_anchor))
+
     # handle padding manually because there is a difference between the actual text and
     # the visible text (for latex)
+    padding = repeated_string("", len_anchors - length(renamed_anchor))
     if (DISPLAY_PARAMS["color"]) {
       formatted_anchor = sprintf("%s%s%s%s",
                                  DISPLAY_PARAMS["color"],
@@ -587,34 +686,9 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   display_substitutions(anchor, len_anchors)
 }
 
-function count_numb_double_colon(new_target, #locals
-                                 counter, target, wip_target_split, target_split, key) {
-  split(WIP_TARGET, wip_target_split, DOUBLE_COLON_SEPARATOR)
-  if (wip_target_split[1] == new_target) {
-    # if we are still dealing with the WIP target, return its index
-    return wip_target_split[2]
-  }
-
-  counter = 1
-  for (key in TARGETS) { # order is not important
-    target = TARGETS[key]
-    split(target, target_split, DOUBLE_COLON_SEPARATOR)
-    if (target_split[1] == new_target) {
-      counter++
-    }
-  }
-  return counter
-}
-
-# add here formatting functions to be applied before colors have been added
+# formatting functions to be applied just before colors have been added
 function apply_output_specific_formatting(text) {
   return escape_braces_for_latex_output(text)
-}
-
-function strip_start_end_spaces(string) {
-  sub(/^ */, "", string)
-  sub(/ *$/, "", string)
-  return string
 }
 
 # the user can change separately colors in the ranges 30-37 and 40-47
@@ -881,7 +955,6 @@ function print_help() {
     printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
-    printf "  CONNECTED (ignore docs followed by an empty line): %s\n", CONNECTED
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
@@ -907,7 +980,7 @@ function debug(message) {
 function debug_indent_up() {
   if (DEBUG) {
     if (DEBUG_INDENT_STACK == "*") {
-      printf("WARNING: already at top level\n") > "/dev/stderr"
+      printf("WARNING: already at top level\n") > STDERR
     } else {
       DEBUG_INDENT_STACK = substr(DEBUG_INDENT_STACK, 1, length(DEBUG_INDENT_STACK)-1)
     }
@@ -963,8 +1036,6 @@ function debug_init() {
   debug("+ ~PADDING~: " PADDING)
   debug("+ ~DEPRECATED~: " DEPRECATED)
   debug("+ ~OFFSET~: " OFFSET)
-  debug("+ ~CONNECTED~: " CONNECTED)
-  debug("+ ~WIP_TARGET~: " WIP_TARGET)
 }
 
 function debug_FNR1() {
@@ -979,11 +1050,6 @@ function debug_description_not_section() {
   debug("+ ~g_description_string~: " g_description_string)
 }
 
-function debug_empty_line() {
-  debug(DEBUG_INDENT_STACK " debug_empty_line")
-  debug("+ [before reset] ~WIP_TARGET~:" WIP_TARGET)
-}
-
 function debug_new_section() {
   debug(DEBUG_INDENT_STACK " debug_new_section")
   debug("+ ~$0~: " $0)
@@ -995,7 +1061,6 @@ function debug_target_matched() {
   debug("+ ~$0~: " $0)
   debug("+ ~$1~: " $1)
   debug("+ ~g_target_name~: " g_target_name)
-  debug("+ ~WIP_TARGET~: " WIP_TARGET)
   debug_indent_down()
   debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
   debug_indent_up()
@@ -1028,7 +1093,7 @@ function debug_END() {
   debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA", "")
 
   debug_dict(SUB_VALUES, "SUB_VALUES", "")
-  debug_dict(SUB_LABEL, "SUB_LABEL", "")
+  debug_dict(SUB_LABELS, "SUB_LABELS", "")
   debug_dict(SUB_PARAMS, "SUB_PARAMS", "")
   debug_dict(SUB_PARAMS_DEFAULTS, "SUB_PARAMS_DEFAULTS", "")
   debug_indent_up()
@@ -1038,7 +1103,12 @@ function debug_END() {
 
 # Initialize global variables.
 BEGIN {
-  DEBUG_FILE = DEBUG_FILE == "" ? ".debug-makefile-doc.org" : DEBUG_FILE
+  STDERR = "/dev/stderr"
+  if (UNIT_TEST) {
+    exit
+  }
+
+  DEBUG_FILE = DEBUG_FILE == "" ? ".makefile-doc-debug.org" : DEBUG_FILE
   if (DEBUG) {
     DEBUG_INDENT_STACK = "*"
     printf "" > DEBUG_FILE
@@ -1049,52 +1119,62 @@ BEGIN {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
     printf("WARNING: ignorring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
-           OUTPUT_FORMAT) > "/dev/stderr"
+           OUTPUT_FORMAT) > STDERR
     OUTPUT_FORMAT = "ANSI"
   }
 
   FS = ":" # set the field separator
 
-  ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
-  split("override unexport export private", VARIABLE_QUALIFIERS, " ")
-  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^.#][a-zA-Z0-9_-]* *%s",
-                                    join(VARIABLE_QUALIFIERS, "|"),
-                                    ASSIGNMENT_OPERATORS_PATTERN)
+  initialize_variables_regex()
   initialize_colors()
 
+  # Names of variables:
+  #  1. may start with spaces
+  #  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
+  #  3. can be followed by spaces and one of the assignment operators, see
+  #     ASSIGNMENT_OPERATORS_PATTERN
   VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
+
+  # Names of targets:
+  #  1. may start with spaces
+  #  2. but not with a # or with a dot (in order to jump over e.g., .PHONY)
+  #  3. and can have spaces before the final colon.
+  #  4. There can be multiple space-separated targets on one line (they are captured
+  #     together).
+  #  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected.
+  #  6. After the final colon, we require either at least one space or end of line -- this
+  #     is because otherwise we would match VAR := value.
+  #  7. FS = ":" is assumed.
+  #
+  # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
   TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$|.*;)" : TARGETS_REGEX
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
   OFFSET = OFFSET == "" ? 2 : OFFSET
-  CONNECTED = CONNECTED == "" ? 1 : CONNECTED
   if (length(PADDING) != 1) {
-    printf("ERROR: PADDING should have length 1\n") > "/dev/stderr"
+    printf("ERROR: PADDING should have length 1\n") > STDERR
     exit 1
   }
 
-  # ------------------------------------------------------
-  # default substitution parameters (don't change the defaults)
-  # ------------------------------------------------------
-  SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
-  SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
-  SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
-  SUB_PARAMS_DEFAULTS["S"] = "" # separator
-  SUB_PARAMS_DEFAULTS["P"] = "" # prefix
-  SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
-  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
-  # ------------------------------------------------------
+  initialize_substitution_parameter_defaults()
 
   # initialize global arrays (i.e., hash tables) for clarity
   # index variables start from 1 because this is the standard in awk
 
-  # map target name to description (order is not important)
+  # map target name to description
   split("", TARGETS_DESCRIPTION_DATA)
 
-  # map target name to section data (order is not important)
+  # map target name to section data
   # a section uses a targtet / variable as an anchor
   split("", TARGETS_SECTION_DATA)
+
+  # shows whether a target has a recipe
+  split("", TARGETS_HAS_RECIPE)
+
+  # contains the index for the current double-colon target (the key doesn't include ~k)
+  # see function maybe_increment_dc_target_index()
+  split("", TARGETS_DC_COUNTER)
 
   # map index to target name (order is important)
   split("", TARGETS)
@@ -1108,13 +1188,13 @@ BEGIN {
   split("", SECTION_DATA)
   SECTION_DATA_INDEX = 1
 
-  # map variable name to description (order is not important)
+  # map variable name to description
   split("", VARIABLES_DESCRIPTION_DATA)
 
-  # map variable name to section (order is not important)
+  # map variable name to section
   split("", VARIABLES_SECTION_DATA)
 
-  # map index to variable name (order is important)
+  # map index to variable name
   split("", VARIABLES)
   VARIABLES_INDEX = 1
 
@@ -1125,9 +1205,15 @@ BEGIN {
   NUMBER_OF_FILES_PROCESSED = 0
   FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
-  WIP_TARGET = ""
+
   # used to signify double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
+
+  IN_MULTILINE_BACKSLASH_COMMENT = 0
+  IN_MULTILINE_BACKSLASH_COMMAND = 0
+  IN_DEFINE_ENDEF_BLOCK = 0
+  IN_RULE = ""
+  RECIPEPREFIX = "^\t"
 
   debug_init()
 
@@ -1139,10 +1225,6 @@ BEGIN {
     }
     exit 1
   }
-}
-
-{
-  PATTERN_RULE_MATCHED = 0
 }
 
 FNR == 1 {
@@ -1161,6 +1243,62 @@ FNR == 1 {
   debug_indent_up()
 }
 
+# Skip backslash multiline comment
+# FIXME: at some point we might allow for them to constitute anchor documentation
+#        but for the moment they are simply ignored
+/^ *#[^\\]*?([\\]{2})*\\$/ || IN_MULTILINE_BACKSLASH_COMMENT {
+  if (!IN_MULTILINE_BACKSLASH_COMMENT) {
+    # printf("--> LINE: %s (start of a backslash multiline comment) %s\n", FNR, $0)
+    IN_MULTILINE_BACKSLASH_COMMENT = 1
+  } else if (!($0 ~ /^[^\\]*?([\\]{2})*\\$/)) {
+    # printf("--> LINE: %s (last line of backslash multiline comment) %s\n", FNR, $0)
+    IN_MULTILINE_BACKSLASH_COMMENT = 0
+  } else {
+    # printf("--> LINE: %s (still in backslash multiline comment) %s\n", FNR, $0)
+  }
+
+  next
+}
+
+# Skip define ... endef blocks
+/^ *define */ || IN_DEFINE_ENDEF_BLOCK {
+  if (!IN_DEFINE_ENDEF_BLOCK) {
+    # printf("--> LINE: %s (start of a define) %s\n", FNR, $0)
+    IN_DEFINE_ENDEF_BLOCK = 1
+  } else if ($0 ~ /^ *endef$/) {
+    # printf("--> LINE: %s (still in define block) %s\n", FNR, $0)
+    IN_DEFINE_ENDEF_BLOCK = 0
+  } else {
+    # printf("--> LINE: %s (still in define block) %s\n", FNR, $0)
+  }
+
+  IN_RULE = ""
+  next
+}
+
+IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
+  # printf("--> LINE: %s (in recipe of rule: %s)\n", FNR, IN_RULE)
+  forget_descriptions_data()
+  maybe_increment_dc_target_index(IN_RULE, 1)
+
+  # match odd number of slashes at the end
+  if ($0 ~ sprintf("%s[^\\\\]*?([\\\\]{2})*\\\\$", RECIPEPREFIX)) {
+    # printf("--> LINE: %s (in backslash multiline command) %s\n", FNR, $0)
+    IN_MULTILINE_BACKSLASH_COMMAND = 1
+  } else {
+    if (IN_MULTILINE_BACKSLASH_COMMAND) {
+      # printf("--> LINE: %s (last line of backslash multiline command) %s\n", FNR, $0)
+    }
+    IN_MULTILINE_BACKSLASH_COMMAND = 0
+  }
+
+  next
+}
+
+{
+  PATTERN_RULE_MATCHED = 0
+}
+
 # Capture the line if it is a description (but not a section).
 /^ *##([^@]|$)/ {
   debug_pattern_rule("description")
@@ -1176,20 +1314,11 @@ FNR == 1 {
   debug_indent_up()
 }
 
-# Flush accumulated descriptions if followed by an empty line.
+# Flush accumulated descriptions if followed by an empty line
 /^$/ {
   debug_pattern_rule("empty line")
-  debug_empty_line()
-
-  if (CONNECTED) {
-    forget_descriptions_data()
-  }
-
-  # An empty line ends the definition of a target
-  WIP_TARGET = ""
 
   PATTERN_RULE_MATCHED = 1
-  debug_indent_up()
 }
 
 # New section (all lines in a multi-line sections should start with ##@)
@@ -1207,46 +1336,34 @@ FNR == 1 {
   debug_indent_up()
 }
 
-# Process target, whose name
-#  1. may start with spaces
-#  2. but not with a # or with a dot (in order to jump over e.g., .PHONY)
-#  3. and can have spaces before the final colon.
-#  4. There can be multiple space-separated targets on one line (they are captured
-#     together).
-#  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected.
-#  6. After the final colon, we require either at least one space or end of line -- this
-#     is because otherwise we would match VAR := value.
-#  7. FS = ":" is assumed.
-#
-# Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
 $0 ~ TARGETS_REGEX {
   debug_pattern_rule("target")
 
-  g_target_name = $1
+  g_contains_inline_command = parse_inline_descriptions(\
+      $0,
+      length_array_posix(DESCRIPTION_DATA) == 0)
 
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
   # for the reason to use \\&, see AWK's Gory-Details!
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
-  sub(/ *&/, "\\&", g_target_name)
-  if ($0 ~ "::") {
-    # surround double-colon targets in square brackets to make them easy to count
-    g_target_name = sprintf("%s%s%s",
-                            g_target_name,
-                            DOUBLE_COLON_SEPARATOR,
-                            count_numb_double_colon(g_target_name))
+  g_target_name_nominal = $1
+  sub(/ *&/, "\\&", g_target_name_nominal)
+
+  if ($0 ~ "::") { # handle double-colon targets
+    if (!(g_target_name_nominal in TARGETS_DC_COUNTER)) {
+      TARGETS_DC_COUNTER[g_target_name_nominal] = 1
+    }
+
+    normalize_dc_target_status(g_target_name_nominal)
+    g_target_name = form_dc_target_name(g_target_name_nominal)
+  } else {
+    g_target_name = g_target_name_nominal
   }
 
   debug_target_matched()
 
-  # look for inline descriptions only if there aren't any descriptions above the target
-  if (length_array_posix(DESCRIPTION_DATA) == 0 && WIP_TARGET != g_target_name) {
-    parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
-  }
-
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    WIP_TARGET = g_target_name
-    debug(DEBUG_INDENT_STACK " [assign] ~WIP_TARGET~: " WIP_TARGET)
-    TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces(g_target_name),
+    TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
@@ -1254,25 +1371,22 @@ $0 ~ TARGETS_REGEX {
                                                "target")
   }
 
+  maybe_increment_dc_target_index(g_target_name_nominal, g_contains_inline_command)
+  IN_RULE = g_target_name_nominal
   PATTERN_RULE_MATCHED = 1
   debug_indent_up()
 }
 
-# Process variable, whose name
-#  1. may start with spaces
-#  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
-#  3. can be followed by spaces and one of the assignment operators, see
-#     ASSIGNMENT_OPERATORS_PATTERN
 $0 ~ VARIABLES_REGEX {
   debug_pattern_rule("variable")
   debug("+ ~$0~: " $0)
 
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
-    parse_inline_descriptions($0) # this might modify DESCRIPTION_DATA
+    parse_inline_descriptions($0, 1)
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    g_variable_name = strip_start_end_spaces(parse_variable_name($0))
+    g_variable_name = strip_start_end_spaces_tabs(parse_variable_name($0))
     debug_variable_matched()
     VARIABLES_INDEX = associate_data_with_anchor(g_variable_name,
                                                  VARIABLES,
@@ -1282,6 +1396,7 @@ $0 ~ VARIABLES_REGEX {
                                                  "variable")
   }
 
+  IN_RULE = ""
   PATTERN_RULE_MATCHED = 1
   debug_indent_up()
 }
@@ -1294,12 +1409,15 @@ PATTERN_RULE_MATCHED == 0 {
 
 # Display results (all stdout is here).
 END {
+  if (UNIT_TEST) {
+    exit 0
+  }
+
   debug_indent_up()
   debug(DEBUG_INDENT_STACK " END")
   debug_indent_down()
 
-  # Form SUB_LABEL before calling get_max_anchor_length
-  form_substitutions()
+  form_substitutions() # form SUB_LABELS before calling get_max_anchor_length
 
   g_max_target_length = get_max_anchor_length(TARGETS)
   g_max_variable_length = get_max_anchor_length(VARIABLES)
@@ -1320,7 +1438,7 @@ END {
   if (g_max_target_length > 0) {
     printf("%s\n%s\n%s\n", g_separator, HEADER_TARGETS, g_separator)
 
-    for (g_indx = 1; g_indx <= length_array_posix(TARGETS); g_indx++) { # enforce order
+    for (g_indx = 1; g_indx <= length_array_posix(TARGETS); g_indx++) {
       g_target = TARGETS[g_indx]
       g_description = format_description_data(g_target,
                                               TARGETS_DESCRIPTION_DATA,
@@ -1331,7 +1449,7 @@ END {
   }
 
   # process variables
-  # When all variables are deprecated and DEPRECATED = 0, just a header is displayed.
+  # when all variables are deprecated and DEPRECATED = 0, just a header is displayed
   if (g_max_variable_length > 0 && VARS) {
     g_variables_display_pattern = g_max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
 
@@ -1352,7 +1470,7 @@ END {
   } else {
     if (NUMBER_OF_FILES_PROCESSED > 0) {
       printf("WARNING: no documented targets/variables in %s\n",
-             FILES_PROCESSED) > "/dev/stderr"
+             FILES_PROCESSED) > STDERR
     }
   }
 

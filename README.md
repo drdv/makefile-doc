@@ -43,6 +43,9 @@ help: ## show help
 
 Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
 
+It is assumed that `.RECIPEPREFIX` is a TAB, if this is not the case you should pass `-v
+RECIPEPREFIX=.RECIPEPREFIX` to `awk`.
+
 ## Docs syntax
 
 ```Makefile
@@ -108,7 +111,7 @@ are given in `{...}`, `(.)` shows the default)
 * `PADDING`: `{(" "), ".", ...}` a single padding character between anchors and docs
 * `DEPRECATED`: `{0, (1)}` show deprecated anchors
 * `OFFSET`: `{0, 1, (2), ...}` number of spaces to offset docs from anchors
-* `CONNECTED`: `{0, (1)}` ignore docs followed by an empty line
++ `RECIPEPREFIX`: should have the same value as the `.RECIPEPREFIX` from your `Makefile`
 + Colors:
   + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`
   + `COLOR_ATTENTION`: (`31`: red) for anchors whose docs start with `##!`

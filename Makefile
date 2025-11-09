@@ -1,10 +1,14 @@
 SHELL := bash
 TEST_DIR := test
 TEST_RECIPES_DIR := $(TEST_DIR)/recipes
+UNIT_TEST_DIR := $(TEST_DIR)/unit
 
 TESTS := $(notdir $(wildcard $(TEST_RECIPES_DIR)/*))
+UNIT_TESTS := $(subst $(UNIT_TEST_DIR)/unittest.awk,,$(wildcard $(UNIT_TEST_DIR)/*.awk))
+# we want unittest.awk to be the first one in the list
+UNIT_TESTS_AWK_FLAGS := -f $(UNIT_TEST_DIR)/unittest.awk $(patsubst %,-f %,$(UNIT_TESTS))
 
-## supported awk variants:
+## Supported awk variants:
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
@@ -13,14 +17,15 @@ SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
 ## {ansi, html}
 OUTPUT_FORMAT :=
 
-## if set, debug info is generated in an org file
+## If set, debug info is generated in an org file
 DEBUG :=
 
-## if set, the expected value of a test recipe is updated
+## If set, the expected value of a test recipe is updated
 ## e.g., `make test-default UPDATE_RECIPE=1`
 UPDATE_RECIPE :=
 
 MAKEFILE_DOC := makefile-doc.awk
+COVER_FILE := cover.out
 
 # using $1 instead of $(AWK) is necessary for a target like
 # deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
@@ -32,7 +37,7 @@ define verify-download
 endef
 
 .PHONY: help
-## show this help
+## Show this help
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
 help: TESTS_SUB := <L:1,M:1>$$(TESTS)~1:test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
 help: VFLAGS := \
@@ -49,48 +54,72 @@ deploy-local:
 	@cp $(MAKEFILE_DOC) $(DEPLOY_DIR)
 
 .PHONY: test
-## run all tests
+## Run all tests
 test: $(TESTS)
 
 .PHONY: test-all-awk
-## run all tests with all supported awk variants
+## Run all tests with all supported awk variants
 test-all-awk:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
 
-## run the tests with goawk and generate a coverage report
-cover.html: AWK := goawk
-cover.html: COVER_FILE := cover.out
-cover.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
-cover.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(TEST_RECIPES_DIR)/$(recipe))
+# The suppressed warning is expected (see test_utils_substitutions_form_substitutions_3)
+coverage-utests.html: AWK := goawk
+coverage-utests.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
+coverage-utests.html: UNITTEST_VERBOSE:=0
+coverage-utests.html: $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest.awk
+	@$(AWK_BIN)/$(AWK) \
+		-v UNIT_TEST=1 \
+		-v UNITTEST_VERBOSE=$(UNITTEST_VERBOSE) \
+		$(UNIT_TESTS_AWK_FLAGS) \
+		-f makefile-doc.awk \
+		$(AWK_FLAGS) \
+		/dev/null
+	@go tool cover -html=$(COVER_FILE) -o $@
+	@rm -f $(COVER_FILE)
+
+## Run the tests with goawk and generate a coverage report
+coverage-itests.html: override AWK := goawk
+coverage-itests.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
+coverage-itests.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(TEST_RECIPES_DIR)/$(recipe))
 	@$(MAKE) --no-print-directory test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
 	@go tool cover -html=$(COVER_FILE) -o $@
 	@rm -f $(COVER_FILE)
 
-## lint the code using gawk
+## Lint the code using gawk
 # Warnings to ignore have been stripped below
 lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PADDING|\
-		|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME)
+|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
+lint: override AWK := awk
 lint: check-variables
-	@awk --lint -v SHOW_HELP=0 -f $(MAKEFILE_DOC) 2>&1 | \
+	@$(AWK_BIN)/$(AWK) --lint \
+		-v SHOW_HELP=0 \
+		-v UNIT_TEST=0 \
+		$(UNIT_TESTS_AWK_FLAGS) \
+		-f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
 
-## verify for unintended global variables
+## Verify for unintended global variables
 check-variables: AWK_CODE := '\
 	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
 	END { if (length(a) == 0) print "check-variables: OK"; else \
 	{for(k in a) print "["a[k]"] violates naming rules"} }'
 check-variables: AWKVARS_FILE := awkvars.out
 check-variables:
-	@$(AWK) -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || exit 0
+	@$(AWK_BIN)/awk -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || exit 0
 	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
 	@rm -f $(AWKVARS_FILE)
 
 .PHONY: clean-bin
-clean-bin: ##! remove all downloaded awk variants
+clean-bin: ##! Remove all downloaded awk variants
 	@rm -rf $(AWK_BIN)
 
+## Remove coverage reports
+.PHONY: clean
+clean:
+	@rm -f coverage-utests.html coverage-itests.html
+
 .PHONY: release
-##! create github release at latest tag
+##! Create github release at latest tag
 release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
 release:
