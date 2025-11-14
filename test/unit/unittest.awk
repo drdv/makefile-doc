@@ -88,7 +88,7 @@ function unittest_report_results(    max_filename_length, k, filename, n, m,
   }
 }
 
-function unittest_consume_file(file) {
+function unittest_consume_file(file,    line) {
   close(file)  # close file if open for writing
   file_content = ""
   while ((getline line < file) > 0) {

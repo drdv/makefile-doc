@@ -1,54 +1,24 @@
-function test_utils_dc_target_msg(initial, expected, f) {
-  return sprintf("\n  initial: %s\n  %s == %s",
-                 initial,
-                 f,
-                 expected)
-}
+function test_utils_dc_target_main(    target_name_nominal, expected) {
+  target_name_nominal = "some-target"
 
-function test_utils_dc_target_main(    expected) {
-  TARGETS_DC_COUNTER[1] = 5
-  expected = 5
-  normalize_dc_target_status(1)
-  assert_equal(TARGETS_DC_COUNTER[1], expected,
-               test_utils_dc_target_msg(TARGETS_DC_COUNTER[1],
-                                        expected,
-                                        "normalize_dc_target_status(1)"))
+  expected = target_name_nominal DOUBLE_COLON_SEPARATOR "1"
+  assert_equal(form_dc_target_name(target_name_nominal), expected,
+               "form_dc_target_name(\"" target_name_nominal "\")")
 
-  TARGETS_DC_COUNTER[1] = 5
-  expected = -6
-  maybe_increment_dc_target_index(1, 1)
-  assert_equal(TARGETS_DC_COUNTER[1], expected,
-               test_utils_dc_target_msg(TARGETS_DC_COUNTER[1],
-                                        expected,
-                                        "normalize_dc_target_status(1)"))
+  TARGETS_DC_COUNTER[target_name_nominal]++
 
-  TARGETS_DC_COUNTER[1] = -6
-  expected = -6
-  maybe_increment_dc_target_index(1, 1)
-  assert_equal(TARGETS_DC_COUNTER[1], expected,
-               test_utils_dc_target_msg(TARGETS_DC_COUNTER[1],
-                                        expected,
-                                        "maybe_increment_dc_target_index(1, 1)"))
+  expected = target_name_nominal DOUBLE_COLON_SEPARATOR "2"
+  assert_equal(form_dc_target_name(target_name_nominal), expected,
+               "form_dc_target_name(\"" target_name_nominal "\")")
 
-  TARGETS_DC_COUNTER[1] = -6
-  expected = 6
-  normalize_dc_target_status(1)
-  assert_equal(TARGETS_DC_COUNTER[1], expected,
-               test_utils_dc_target_msg(TARGETS_DC_COUNTER[1],
-                                        expected,
-                                        "normalize_dc_target_status(1)"))
-
-  TARGETS_DC_COUNTER[1] = 6
-  expected = 6
-  maybe_increment_dc_target_index(1, 0)
-  assert_equal(TARGETS_DC_COUNTER[1], expected,
-               test_utils_dc_target_msg(TARGETS_DC_COUNTER[1],
-                                        expected,
-                                        "maybe_increment_dc_target_index(1, 0)"))
 }
 
 BEGIN {
+
   UNITTEST_CURRENT_FILE = "test_utils_dc_target"
+
+  DOUBLE_COLON_SEPARATOR = "~"
+  split("", TARGETS_DC_COUNTER)
 
   UNIT_TEST = UNIT_TEST == "" ? 1 : UNIT_TEST
   if (UNIT_TEST) {
