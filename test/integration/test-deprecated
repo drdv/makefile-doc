@@ -1,0 +1,44 @@
+-v DEPRECATED=0 test/Makefile.targets
+WARNING: [test/Makefile.targets:8] redefined docs of target: t3
+-----------------------
+Available targets:
+-----------------------
+[34mt1                   [0m   Top doc (take precedence over inline docs)
+[34mt2                   [0m   Test inline docs without top docs
+[34mt3                   [0m   This is a new rule with a doc
+[34mt4                   [0m   Spaces before the ## token are allowed and stripped
+                        top docs can have multiple lines
+                          indentation can be used for emphasis
+[31mt5                   [0m   Use ##!exclamation markfor targets that are signifficant in some way
+                        no need to have an exclamation mark for all lines
+[32m
+------ Section 1 -----
+[0m
+[31mt6                   [0m   Attention (inline docs)
+[34mt7                   [0m   Blank lines
+                        between docs
+                        are ignorred
+[34mt8                   [0m   Can have inline docs after dependencies
+[34mt9                   [0m   Can have inline docs after order-only dependencies
+[34mt10                  [0m   Can have inline docs after target-specific variables
+[34mt11                  [0m   We can use top docs when there is an inline command
+[32m
+------ Section 2 -----
+[0m
+[34m%.tab.c %.tab.h      [0m   This is a pattern rule
+[34m%.c                  [0m   Here is another one
+[34mbin/%.o              [0m   And another one
+[34mfirst    second third[0m   Three targets on one line
+[34m$(TARGET-NAME)       [0m   Target from a variable in `$()`
+[34m${TARGET-NAME}       [0m   Target from a variable in `${}`
+[34m$T                   [0m   Target from a variable
+[34m$(t1) ${t2} t3       [0m   Bug from issue #12
+[34mresult-$(1)-$2.html  [0m   Documentation of a family of targets (with two parameters)
+                         + $1: month {jan, ..., dec}
+                         + $2: country code {fr, bg, jp, ...}
+[34mt14                  [0m   Target with spaces before and after
+[34mt15                  [0m  
+[34mt16                  [0m   No space needed
+[34mt17                  [0m   Inline doc
+[34mt18                  [0m   Another inline doc
+-----------------------

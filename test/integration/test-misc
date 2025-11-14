@@ -1,0 +1,21 @@
+-v SUB='$(I)target:target:immediate immediate immediate immediate deferred deferred' test/Makefile.misc
+-----------------------
+Available targets:
+-----------------------
+[34mhelp  [0m   Show this help
+[34mtarget[0m   A target that demonstrates the two-phase approach. It would be nice
+         to optionally disable the newline in the $(info) function's output.
+         Execute `make target` to see the full output:
+         immediate
+         immediate
+         immediate
+         immediate
+         deferred
+         deferred
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mI     [0m   This is an instrumented variable (used for introscpection)
+[34mX     [0m   Set value of X to be used during the first pass.
+-----------------------

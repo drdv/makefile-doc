@@ -1,0 +1,93 @@
+## Top doc (take precedence over inline docs)
+t1: ## Inline doc (will not be displayed)
+
+t2: ## Test inline docs without top docs
+
+## This will not be displayed because t3 is redefined below
+t3:
+t3: ## This is a new rule with a doc
+
+  ## Spaces before the ## token are allowed and stripped
+## top docs can have multiple lines
+##   indentation can be used for emphasis
+t4:
+
+##! Use ##!exclamation markfor targets that are signifficant in some way
+## no need to have an exclamation mark for all lines
+t5:
+
+##@
+##@------ Section 1 -----
+##@
+irrelevant-target: # this target shouldn't affect the above Section
+
+t6: ##! Attention (inline docs)
+
+## Blank lines
+
+## between docs
+
+## are ignorred
+
+t7:
+
+t8: t6 ## Can have inline docs after dependencies
+
+t9: t6 | t7 ## Can have inline docs after order-only dependencies
+
+t10: A:=1 ## Can have inline docs after target-specific variables
+
+# Note that the comments after the command are not Makefile syntax
+t-no-docs:; echo 1 ## Cannot have docs here
+t-no-docs:; ## Neither here
+
+## We can use top docs when there is an inline command
+t11:; echo 1
+
+##% This target is kept just in case
+## even though it is obsolete
+# INVISIBLE COMMENTS
+# empty lines after ## are preserved
+##
+t12:
+
+t13: ##% Deprecated target with inline doc
+##@
+
+  ##@------ Section 2 -----
+##@
+%.tab.c %.tab.h: %.y: ## This is a pattern rule
+
+%.c: ## Here is another one
+
+bin/%.o: %.c ## And another one
+
+## Three targets on one line
+first    second third:
+
+$(TARGET-NAME): ## Target from a variable in `$()`
+
+${TARGET-NAME}: ## Target from a variable in `${}`
+
+$T: ## Target from a variable
+
+# Note that t3 here is not treated separately
+# and it doesn't override the docs of t3 from above
+$(t1) ${t2} t3: ## Bug from issue #12
+
+define canned-recipes
+## Documentation of a family of targets (with two parameters)
+##  + $1: month {jan, ..., dec}
+##  + $2: country code {fr, bg, jp, ...}
+result-$(1)-$2.html: data-$1.toml data_handler.py
+	@python data_handler.py --important-flag $2 data-$1.toml
+	@echo 1
+endef
+
+## Target with spaces before and after
+  t14  :
+
+target-without-docs:
+
+##
+t15: ## The top empty description shadows this

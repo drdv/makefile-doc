@@ -1,0 +1,2 @@
+-v VARS=0 test/Makefile.vars-assignment
+WARNING: no documented targets/variables in test/Makefile.vars-assignment

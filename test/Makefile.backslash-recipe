@@ -1,0 +1,53 @@
+## t-t0
+t0: ## i-t0
+	@echo maybe
+T0 := 1 ## v-t0 (this is a variable)
+
+## t-t1
+t1: ## i-t1
+	@echo maybe\
+T1 := 1 ## v-t1 (this is not a variable)
+
+## t-t2
+t2: ## i-t2
+	@echo maybe\\
+T2 := 1 ## v-t2 (this is a variable)
+
+## t-t3
+t3: ## i-t3
+	@echo maybe\\\
+T3 := 1 ## v-t3 (this is not a variable)
+
+## t-t4
+t4: ## i-t4
+	@echo maybe\\\\
+T4 := 1 ## v-t4 (this is a variable)
+
+## t-t5
+t5: ## i-t5
+	@echo maybe\\\\\
+T5 := 1 ## v-t5 (this is not a variable)
+
+t6: ## i-t6
+	@echo maybe\
+T6_1 := 1 \
+T6_2 := 2 \
+		T6_3 := 3 \
+T6_3 := 4 \
+	T6_4 := 5 \
+T6_5 := 6 # BAD not a variable
+
+t7: ## i-t7
+
+	## This ia a shell command\
+	this is a part of the same command as above\
+	so is this\
+	and this
+T7 ?= 1## T7
+
+t8: ## i-t7
+	## BAD
+	T8_1 ?= 1
+
+	## BAD
+	T8_2 := 1

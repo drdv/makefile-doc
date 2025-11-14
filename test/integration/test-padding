@@ -1,0 +1,12 @@
+-v PADDING=. test/Makefile.padding
+------------------------
+Available targets:
+------------------------
+[34mt.......................[0m   A target with a short name
+[34mlonger-target-name......[0m   More characters
+
+------------------------
+Command-line arguments:
+------------------------
+[34mA_______________________[0m   And the winner is ...
+------------------------

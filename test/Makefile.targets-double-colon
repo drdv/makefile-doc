@@ -1,0 +1,34 @@
+## This is the first double-colon target from group A
+## It has two lines of description
+double-colon-A::
+
+double-colon-B:: ##! group B first documented
+
+double-colon-B:: # not documented
+
+double-colon-B:: ## group B second documented
+
+double-colon-A:: ## This is the second double-colon target from group A
+
+double-colon-B:: ##% group B third documented (deprecated)
+
+## This is a top doc for dc~1
+dc:: ## this is inline (not shown) still dc~1
+dc:: A:=2 ## dc~2 even if there is no recipe
+dc::; @echo $(A)
+	@echo $(A)
+	@echo $(A)
+dc:: A:=2 ## dc~3 if the user says so
+dc::; @echo $(A)
+dc::
+dc:: A:=3
+dc::
+dc::
+	@echo $(A)
+	@echo $(A)
+	@echo $(A)
+	@echo $(A)
+	@echo $(A)
+dc:: A:=3
+dc:: ## dc~4
+dc::; @echo $(A)

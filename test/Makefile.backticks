@@ -1,0 +1,11 @@
+b1: ## {`A`, `set`, `with`, `elements`}
+b2: ## `All in backticks`
+
+##@
+##@  Section `{first second} third` stuff
+##@
+
+b3: ## No backticks
+
+## `a variable`
+B :=

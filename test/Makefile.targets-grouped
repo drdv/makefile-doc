@@ -1,0 +1,30 @@
+##@
+##@ ----- Independent Targets -----
+##@
+
+first second: ## two targets
+
+## other two targets
+a b  :
+
+##@
+##@ ----- Grouped Targets -----
+##@
+
+## four grouped targets
+me myself and I  &:
+
+the show must go on&:    ## five grouped targets
+
+lonely &:## a bit pointless grouping one target
+
+##@
+##@ ----- Double-colon grouped Targets -----
+##@
+
+## two grouped targets with double-colon (recipe 1)
+yes no&::
+
+yes no  &::##! two {`grouped`, `targets`, `with`, `double-colon`} (recipe 2)
+
+yes no    &::    ##% two grouped {targets} with double-colon (recipe 3)

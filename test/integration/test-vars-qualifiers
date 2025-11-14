@@ -1,0 +1,12 @@
+test/Makefile.vars-qualifiers
+-----------------------
+Command-line arguments:
+-----------------------
+[34mX               [0m   only override
+[34mY               [0m   override and export
+[34mZ               [0m   override, private and export
+[34mmore_LETTERS    [0m   test all four (even though it makes no sense)
+[34mqsub            [0m   test repeated qualifiers
+[34moverride1       [0m   test qualifiers in variable name
+[34moverride_private[0m   test qualifiers in variable name
+-----------------------

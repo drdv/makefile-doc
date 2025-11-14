@@ -1,0 +1,11 @@
+-v 'RECIPEPREFIX=>' test/Makefile.recipeprefix
+-----------------------
+Available targets:
+-----------------------
+[34mt[0m   A target
+
+-----------------------
+Command-line arguments:
+-----------------------
+[31mV[0m   A variable
+-----------------------

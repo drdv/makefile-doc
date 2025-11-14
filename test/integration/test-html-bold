@@ -1,0 +1,113 @@
+-v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=1 -v COLOR_ATTENTION=14 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_DEPRECATED=9 -v EXPORT_THEME=FG:000000 -v EXPORT_THEME=BG:AAAAAA test/Makefile.targets test/Makefile.targets-double-colon test/Makefile.targets-grouped test/Makefile.vars
+WARNING: [test/Makefile.targets:8] redefined docs of target: t3
+WARNING: [test/Makefile.vars:33] redefined docs of variable: VAR6
+<head>
+  <style type="text/css">
+    .color-attention {}
+    .color-section { font-style: italic; }
+    .color-deprecated { text-decoration: line-through; }
+    .color-default { color: #268bd2; }
+    .color-warning { color: #d33682; }
+    .color-backticks { font-weight: bold; }
+    .makefile-doc-bg { background-color: #AAAAAA; }
+  </style>
+</head>
+<div class="makefile-doc-fg makefile-doc-bg">
+<pre>
+-----------------------
+Available targets:
+-----------------------
+<span class="color-default">t1                   </span>   Top doc (take precedence over inline docs)
+<span class="color-default">t2                   </span>   Test inline docs without top docs
+<span class="color-default">t3                   </span>   This is a new rule with a doc
+<span class="color-default">t4                   </span>   Spaces before the ## token are allowed and stripped
+                        top docs can have multiple lines
+                          indentation can be used for emphasis
+t5                      Use ##!exclamation markfor targets that are signifficant in some way
+                        no need to have an exclamation mark for all lines
+<span class="color-section">
+------ Section 1 -----
+</span>
+t6                      Attention (inline docs)
+<span class="color-default">t7                   </span>   Blank lines
+                        between docs
+                        are ignorred
+<span class="color-default">t8                   </span>   Can have inline docs after dependencies
+<span class="color-default">t9                   </span>   Can have inline docs after order-only dependencies
+<span class="color-default">t10                  </span>   Can have inline docs after target-specific variables
+<span class="color-default">t11                  </span>   We can use top docs when there is an inline command
+<span class="color-deprecated">t12                  </span>   This target is kept just in case
+                        even though it is obsolete
+                       
+<span class="color-deprecated">t13                  </span>   Deprecated target with inline doc
+<span class="color-section">
+------ Section 2 -----
+</span>
+<span class="color-default">%.tab.c %.tab.h      </span>   This is a pattern rule
+<span class="color-default">%.c                  </span>   Here is another one
+<span class="color-default">bin/%.o              </span>   And another one
+<span class="color-default">first    second third</span>   Three targets on one line
+<span class="color-default">$(TARGET-NAME)       </span>   Target from a variable in <span class="color-backticks">$()</span>
+<span class="color-default">${TARGET-NAME}       </span>   Target from a variable in <span class="color-backticks">${}</span>
+<span class="color-default">$T                   </span>   Target from a variable
+<span class="color-default">$(t1) ${t2} t3       </span>   Bug from issue #12
+<span class="color-default">result-$(1)-$2.html  </span>   Documentation of a family of targets (with two parameters)
+                         + $1: month {jan, ..., dec}
+                         + $2: country code {fr, bg, jp, ...}
+<span class="color-default">t14                  </span>   Target with spaces before and after
+<span class="color-default">t15                  </span>  
+<span class="color-default">t16                  </span>   No space needed
+<span class="color-default">t17                  </span>   Inline doc
+<span class="color-default">t18                  </span>   Another inline doc
+<span class="color-default">double-colon-A~1     </span>   This is the first double-colon target from group A
+                        It has two lines of description
+double-colon-B~1        group B first documented
+<span class="color-default">double-colon-B~2     </span>   group B second documented
+<span class="color-default">double-colon-A~2     </span>   This is the second double-colon target from group A
+<span class="color-deprecated">double-colon-B~3     </span>   group B third documented (deprecated)
+<span class="color-default">dc~1                 </span>   This is a top doc for dc~1
+<span class="color-default">dc~2                 </span>   dc~2 even if there is no recipe
+<span class="color-default">dc~3                 </span>   dc~3 if the user says so
+<span class="color-default">dc~4                 </span>   dc~4
+<span class="color-section">
+ ----- Independent Targets -----
+</span>
+<span class="color-default">first second         </span>   two targets
+<span class="color-default">a b                  </span>   other two targets
+<span class="color-section">
+ ----- Grouped Targets -----
+</span>
+<span class="color-default">me myself and I&     </span>   four grouped targets
+<span class="color-default">the show must go on& </span>   five grouped targets
+<span class="color-default">lonely&              </span>   a bit pointless grouping one target
+<span class="color-section">
+ ----- Double-colon grouped Targets -----
+</span>
+<span class="color-default">yes no&~1            </span>   two grouped targets with double-colon (recipe 1)
+yes no&~2               two {<span class="color-backticks">grouped</span>, <span class="color-backticks">targets</span>, <span class="color-backticks">with</span>, <span class="color-backticks">double-colon</span>} (recipe 2)
+<span class="color-deprecated">yes no&~3            </span>   two grouped {targets} with double-colon (recipe 3)
+<span class="color-section">
+ ----- This section in anchored on a target -----
+</span>
+<span class="color-deprecated">some-target          </span>   some target (that will comsume the above section)
+
+-----------------------
+Command-line arguments:
+-----------------------
+<span class="color-default">VAR1_1               </span>   First variable (with value)
+<span class="color-default">VAR1_0               </span>   First variable (without value)
+<span class="color-default">VAR2_1               </span>   Second variable (with value)
+<span class="color-default">VAR2_0               </span>   Second variable (without value)
+<span class="color-default">VAR3_1               </span>       Third variable (with value)
+<span class="color-default">VAR3_0               </span>       Third variable (without value)
+<span class="color-default">VAR4                 </span>   Top comment with value (to expand)
+<span class="color-default">VAR5                 </span>   Inline comment with value (to expand)
+<span class="color-section">
+ ----- Will be associated with the next anchor (which happens to be a variable) -----
+</span>
+<span class="color-deprecated">VAR6                 </span>   Overwrites previous docs for this variable (change to deprecated)
+<span class="color-default">x                    </span>   A one letter variable
+<span class="color-default">y                    </span>   A one letter variable inline docs
+-----------------------
+</pre>
+</div>

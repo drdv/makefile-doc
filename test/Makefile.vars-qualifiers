@@ -1,0 +1,20 @@
+## only override
+override X := 1
+
+## override and export
+  override   export Y := 1
+
+## override, private and export
+  override     private  export     Z:=1
+
+## test all four (even though it makes no sense)
+unexport  override     private  export     more_LETTERS:=1
+
+## test repeated qualifiers
+   override  unexport private  override     private  export     qsub:=1
+
+## test qualifiers in variable name
+   override  unexport private  override     private  export     override1:=1
+
+## test qualifiers in variable name
+   override  unexport private  override     private  export     override_private := 1
