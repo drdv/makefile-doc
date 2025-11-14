@@ -1,0 +1,61 @@
+test/Makefile.vars-assignment
+WARNING: [test/Makefile.vars-assignment:19] redefined docs of variable: a4
+WARNING: [test/Makefile.vars-assignment:35] redefined docs of variable: b4
+WARNING: [test/Makefile.vars-assignment:51] redefined docs of variable: c4
+WARNING: [test/Makefile.vars-assignment:67] redefined docs of variable: d4
+WARNING: [test/Makefile.vars-assignment:83] redefined docs of variable: e4
+WARNING: [test/Makefile.vars-assignment:99] redefined docs of variable: f4
+WARNING: [test/Makefile.vars-assignment:115] redefined docs of variable: g4
+-----------------------
+Command-line arguments:
+-----------------------
+[32m
+ ----- recursive assignments
+[0m
+[34ma1[0m   case 1
+[34ma2[0m   case 2
+[34ma3[0m   case 3
+[33ma4[0m      case 5
+[32m
+ ----- simply expanded variables with :=
+[0m
+[34mb1[0m   case 1
+[34mb2[0m   case 2
+[34mb3[0m   case 3
+[33mb4[0m      case 5
+[32m
+ ----- simply expanded variables with ::=
+[0m
+[34mc1[0m   case 1
+[34mc2[0m   case 2
+[34mc3[0m   case 3
+[33mc4[0m      case 5
+[32m
+ ----- immediately expanded variable
+[0m
+[34md1[0m   case 1
+[34md2[0m   case 2
+[34md3[0m   case 3
+[33md4[0m      case 5
+[32m
+ ----- shell assignment
+[0m
+[34me1[0m   case 1
+[34me2[0m   case 2
+[34me3[0m   case 3
+[33me4[0m      case 5
+[32m
+ ----- conditional assignment
+[0m
+[34mf1[0m   case 1
+[34mf2[0m   case 2
+[34mf3[0m   case 3
+[33mf4[0m      case 5
+[32m
+ ----- append assignment
+[0m
+[34mg1[0m   case 1
+[34mg2[0m   case 2
+[34mg3[0m   case 3
+[33mg4[0m      case 5
+-----------------------

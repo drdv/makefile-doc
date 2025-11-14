@@ -44,7 +44,7 @@ help: ## show help
 Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
 
 It is assumed that `.RECIPEPREFIX` is a TAB, if this is not the case you should pass `-v
-RECIPEPREFIX=.RECIPEPREFIX` to `awk`.
+RECIPEPREFIX=$(.RECIPEPREFIX)` to `awk`.
 
 ## Docs syntax
 

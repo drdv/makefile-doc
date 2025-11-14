@@ -1,0 +1,19 @@
+help: SCR := makefile-doc.awk
+help: VFLAG := -v SUB='$$(I)target:target:immediate immediate immediate immediate deferred deferred'
+help: ## Show this help
+	@awk $(VFLAG) -f $(SCR) $(MAKEFILE_LIST)
+
+## This is an instrumented variable (used for introscpection)
+I = $(info $(X))
+
+## Set value of X to be used during the first pass.
+X = immediate
+
+## A target that demonstrates the two-phase approach. It would be nice
+## to optionally disable the newline in the $(info) function's output.
+## Execute `make target` to see the full output:
+$(I)target: $(I)% : $(I) | $(I); $(I)
+	$(I)
+
+# Redefine X (to be used during the second pass).
+X = deferred

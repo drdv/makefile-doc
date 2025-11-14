@@ -1,0 +1,11 @@
+test/Makefile.section
+WARNING: [test/Makefile.section:11] redefined docs of target: t1
+WARNING: [test/Makefile.section:11] redefined associated section data: t1
+-----------------------
+Available targets:
+-----------------------
+[32m
+------ S2 ------
+[0m
+[34mt1[0m   t2
+-----------------------

@@ -4,6 +4,84 @@ function test_utils_regex_main() {
   test_utils_regex_substitute_backticks_patterns()
   test_utils_regex_strip_start_end_spaces_tabs()
   test_utils_regex_escape_braces_for_latex_output()
+  test_utils_regex_parse_inline_descriptions()
+}
+
+function test_utils_regex_parse_inline_descriptions(    text, expected) {
+  split("", DESCRIPTION_DATA)
+  DESCRIPTION_DATA_INDEX = 1
+
+  expected = "## some ;description"
+  text = "target: " expected
+  parse_inline_descriptions(text)
+  assert_equal(DESCRIPTION_DATA[1],
+               expected,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "##! some description;"
+  text = "target: " expected
+  parse_inline_descriptions(text)
+  assert_equal(DESCRIPTION_DATA[2],
+               expected,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "##% some description"
+  text = "target: " expected
+  parse_inline_descriptions(text)
+  assert_equal(DESCRIPTION_DATA[3],
+               expected,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "## some description"
+  text = "target:; " expected
+  parse_inline_descriptions(text)
+  assert_equal(length_array_posix(DESCRIPTION_DATA),
+               3,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "##! some description"
+  text = "target:; @echo 1 " expected
+  parse_inline_descriptions(text)
+  assert_equal(length_array_posix(DESCRIPTION_DATA),
+               3,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "##% some description"
+  text = "target: ; @echo 1 ; echo 2 " expected
+  parse_inline_descriptions(text)
+  assert_equal(length_array_posix(DESCRIPTION_DATA),
+               3,
+               "parse_inline_descriptions(\"" text "\")")
+
+  text = "target: "
+  parse_inline_descriptions(text)
+  assert_equal(length_array_posix(DESCRIPTION_DATA),
+               3,
+               "parse_inline_descriptions(\"" text "\")")
+
+  text = "target: deps1 deps2 | deps3"
+  parse_inline_descriptions(text)
+  assert_equal(length_array_posix(DESCRIPTION_DATA),
+               3,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "## some description"
+  text = "target: deps1 deps2 | deps3 ; echo 1 " expected
+  parse_inline_descriptions(text)
+  assert_equal(length_array_posix(DESCRIPTION_DATA),
+               3,
+               "parse_inline_descriptions(\"" text "\")")
+
+  expected = "## some description"
+  text = "target: deps1 deps2 | deps3" expected
+  parse_inline_descriptions(text)
+  assert_equal(DESCRIPTION_DATA[4],
+               expected,
+               "parse_inline_descriptions(\"" text "\")")
+
+  assert_equal(DESCRIPTION_DATA_INDEX,
+               5,
+               "DESCRIPTION_DATA_INDEX == 5")
 }
 
 function test_utils_regex_escape_braces_for_latex_output(    text, expected) {

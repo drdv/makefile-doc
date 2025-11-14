@@ -1,0 +1,5 @@
+## Some target:
+$(TARGET):
+
+## Some variable:
+AWK :=

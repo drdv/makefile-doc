@@ -1,0 +1,15 @@
+.RECIPEPREFIX := >
+
+## comment\
+but not a description
+t: ## A target
+> @echo 1
+> @echo 2
+> @echo 3
+> ## this is a comment\
+in the recipe\
+spanning multiple lines and causing trouble in the shell
+
+> ## Not a variable\
+N := 1 ##! Not a variable
+V := 1 ##! A variable

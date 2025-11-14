@@ -1,9 +1,9 @@
 SHELL := bash
 TEST_DIR := test
-TEST_RECIPES_DIR := $(TEST_DIR)/recipes
+INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 UNIT_TEST_DIR := $(TEST_DIR)/unit
 
-TESTS := $(notdir $(wildcard $(TEST_RECIPES_DIR)/*))
+TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 UNIT_TESTS := $(subst $(UNIT_TEST_DIR)/unittest.awk,,$(wildcard $(UNIT_TEST_DIR)/*.awk))
 # we want unittest.awk to be the first one in the list
 UNIT_TESTS_AWK_FLAGS := -f $(UNIT_TEST_DIR)/unittest.awk $(patsubst %,-f %,$(UNIT_TESTS))
@@ -36,7 +36,7 @@ endef
 .PHONY: help
 ## Show this help
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
-help: TESTS_SUB := <L:1,M:1>$$(TESTS)~1:test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
+help: TESTS_SUB := <L:1,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
 help: VFLAGS := \
 	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v COLOR_BACKTICKS=33 \
@@ -76,14 +76,14 @@ coverage-utests.html: $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest.aw
 ## Run the tests with goawk and generate a coverage report
 coverage-itests.html: override AWK := goawk
 coverage-itests.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
-coverage-itests.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(TEST_RECIPES_DIR)/$(recipe))
+coverage-itests.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(INTEGRATION_TEST_DIR)/$(recipe))
 	@$(MAKE) --no-print-directory test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
 	@go tool cover -html=$(COVER_FILE) -o $@
 	@rm -f $(COVER_FILE)
 
 ## Lint the code using gawk
 # Warnings to ignore have been stripped below
-lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|CONNECTED|DEPRECATED|\
+lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
 lint: override AWK := awk
 lint: check-variables
@@ -149,8 +149,8 @@ bugs-bawk:
 
 ## Recipes:
 ## ---------
-$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
-$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
+$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
+$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(INTEGRATION_TEST_DIR)/$@
 $(TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
 $(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
@@ -165,10 +165,10 @@ $(TESTS): $(AWK_BIN)/$(AWK)
 # single quotes. While it doesn't contain doble-quotes, doing echo
 # "$(RECIPE_COMMAND_LINE)" is not possible because the single quotes around $(TARGET)
 # loose their "powers" when surrounded by double-quotes. So we have to escape the $.
-	@$(if $(UPDATE_RECIPE),\
+	@$(if $(filter 1 yes,$(UPDATE_RECIPE)),\
 		echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" > $(TMP_FILE);\
 		$(CMD_RESULT)\
-		| tee -a $(TMP_FILE) && mv $(TMP_FILE) $(TEST_RECIPES_DIR)/$@,\
+		2>&1 | tee -a $(TMP_FILE) && mv $(TMP_FILE) $(INTEGRATION_TEST_DIR)/$@,\
 	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
 
 # ----------------------------------------------------

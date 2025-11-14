@@ -241,13 +241,12 @@ function forget_descriptions_data() {
 
 function parse_inline_descriptions(whole_line, #locals
                                    inline_description, part_before_description) {
-  if (match(whole_line, / *(##!|##%|##)/)) {
+  if (!(match(whole_line, /^[^#]*;/)) &&
+      match(whole_line, / *(##!|##%|##)/)) {
     inline_description = substr(whole_line, RSTART)
     sub(/^ */, "", inline_description)
     save_description_data(inline_description)
   }
-
-  return 0
 }
 
 function initialize_variables_regex() {
@@ -280,10 +279,13 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_section_data,
                                     anchor_type) {
   if (anchor_name in anchors_description_data) {
-    printf("WARNING: [%s] redefined docs of %s: %s\n",
-           FILENAME,
-           anchor_type,
-           anchor_name) > STDERR
+    if (!(anchor_type == "variable" && !VARS)) {
+      printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
+             FILENAME,
+             FNR,
+             anchor_type,
+             anchor_name) > STDERR
+    }
   } else {
     anchors[anchors_index] = anchor_name
     anchors_index++
@@ -295,8 +297,9 @@ function associate_data_with_anchor(anchor_name,
   # note that section data is associated only with documented anchors
   if (length_array_posix(SECTION_DATA) > 0) {
     if (anchor_name in anchors_section_data) {
-      printf("WARNING: [%s] redefining associated section data: %s\n",
+      printf("WARNING: [%s:%s] redefined associated section data: %s\n",
              FILENAME,
+             FNR,
              anchor_name) > STDERR
     }
 
@@ -850,6 +853,7 @@ function print_help() {
     printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
+    printf "  RECIPEPREFIX: %s\n", RECIPEPREFIX
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
@@ -877,6 +881,8 @@ BEGIN {
 
   initialize_variables_regex()
   initialize_colors()
+
+  RECIPEPREFIX = RECIPEPREFIX == 0 ? "^\t" : RECIPEPREFIX
 
   # Names of variables:
   #  1. may start with spaces
@@ -959,7 +965,6 @@ BEGIN {
   IN_MULTILINE_BACKSLASH_COMMAND = 0
   IN_DEFINE_ENDEF_BLOCK = 0
   IN_RULE = ""
-  RECIPEPREFIX = "^\t"
 
   # we could exit faster but this causes the linter to not see defined variables
   SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
@@ -997,20 +1002,13 @@ FNR == 1 {
   next
 }
 
-# Skip define ... endef blocks
+# This has no effect for now
 /^ *define */ || IN_DEFINE_ENDEF_BLOCK {
   if (!IN_DEFINE_ENDEF_BLOCK) {
-    # printf("--> LINE: %s (start of a define) %s\n", FNR, $0)
     IN_DEFINE_ENDEF_BLOCK = 1
   } else if ($0 ~ /^ *endef$/) {
-    # printf("--> LINE: %s (still in define block) %s\n", FNR, $0)
     IN_DEFINE_ENDEF_BLOCK = 0
-  } else {
-    # printf("--> LINE: %s (still in define block) %s\n", FNR, $0)
   }
-
-  IN_RULE = ""
-  next
 }
 
 IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
@@ -1062,7 +1060,7 @@ IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
 
 $0 ~ TARGETS_REGEX {
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
-    g_contains_inline_command = parse_inline_descriptions($0)
+    parse_inline_descriptions($0)
   }
 
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`

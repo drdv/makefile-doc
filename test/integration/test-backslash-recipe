@@ -1,0 +1,22 @@
+test/Makefile.backslash-recipe
+-----------------------
+Available targets:
+-----------------------
+[34mt0[0m   t-t0
+[34mt1[0m   t-t1
+[34mt2[0m   t-t2
+[34mt3[0m   t-t3
+[34mt4[0m   t-t4
+[34mt5[0m   t-t5
+[34mt6[0m   i-t6
+[34mt7[0m   i-t7
+[34mt8[0m   i-t7
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mT0[0m   v-t0 (this is a variable)
+[34mT2[0m   v-t2 (this is a variable)
+[34mT4[0m   v-t4 (this is a variable)
+[34mT7[0m   T7
+-----------------------

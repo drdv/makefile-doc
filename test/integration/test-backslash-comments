@@ -1,0 +1,13 @@
+test/Makefile.backslash-comments
+-----------------------
+Available targets:
+-----------------------
+[34mt-with-docs[0m   Include in the docs because of the inline description
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mvvv0       [0m   987
+[34mvvv2       [0m   987\\
+[34mvvv4       [0m   987\\\\
+-----------------------

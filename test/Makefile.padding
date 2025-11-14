@@ -1,0 +1,6 @@
+t: ## A target with a short name
+
+longer-target-name: ## More characters
+
+## And the winner is ...
+A_______________________ := 1
