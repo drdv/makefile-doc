@@ -148,7 +148,7 @@
 #     + A description of a rule with a target line on like K overrides a description of
 #       a rule defined prioer to line K. A warning is issued when this happes. This
 #       means that, in the end, the documentation of a (non-double-colon) target is
-#       taken from only one of its defining rules (the same think applies for the recipe
+#       taken from only one of its defining rules (the same thing applies for the recipe
 #       used to build a target).
 #   + Double-colon targets: a double-colon target is a target that can have multiple
 #     recipes and each one of them can have its own description.
@@ -207,26 +207,11 @@ function abs(x) {
   return (x < 0.0) ? -x : x
 }
 
-# to enter in a recipe we first have to detect a target line
-# so this is executed always before a recipe
-function normalize_dc_target_status(key) {
-  TARGETS_DC_COUNTER[key] = abs(TARGETS_DC_COUNTER[key])
-}
-
-# there are two situations when the index is incremented:
-#  1. an inline command is detected on the target line (see target action pattern block)
-#  2. we are in a recipe
-# the index is negated in order to not increment it for every command in the current
-# recipe (normalize_dc_target_status() is called at the start of every new rule)
-function maybe_increment_dc_target_index(key, command_found) {
-  if (command_found && TARGETS_DC_COUNTER[key] > 0) {
-    TARGETS_HAS_RECIPE[form_dc_target_name(key)] = 1
-    TARGETS_DC_COUNTER[key]++
-    TARGETS_DC_COUNTER[key] *= -1
-  }
-}
-
 function form_dc_target_name(target_name_nominal) {
+  if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
+    TARGETS_DC_COUNTER[target_name_nominal] = 1
+  }
+
   return sprintf("%s%s%s",
                  target_name_nominal,
                  DOUBLE_COLON_SEPARATOR,
@@ -293,27 +278,15 @@ function forget_descriptions_data() {
   debug_indent_up()
 }
 
-# When store_description == 1, we are interested in associating a description with the
-# current target but if store_description == 0 we are simply checking whether there is
-# an inline command defined on the target line. This is important in order to detect the
-# end of a target block (see the syntax of a rule in "Terminology and definitions" in
-# the docstring of this script). Note that if there is a command, there cannot be an
-# inline description (because it would be considered as a part of the command).
-function parse_inline_descriptions(whole_line, store_description, #locals
+function parse_inline_descriptions(whole_line, #locals
                                    inline_description, part_before_description) {
   debug(DEBUG_INDENT_STACK " parse_inline_descriptions")
   debug_indent_down()
 
-  if (match(whole_line, /^[^#]*;/)) {
-    return 1
-  }
-
-  if (store_description) {
-    if (match(whole_line, / *(##!|##%|##)/)) {
-      inline_description = substr(whole_line, RSTART)
-      sub(/^ */, "", inline_description)
-      save_description_data(inline_description)
-    }
+  if (match(whole_line, / *(##!|##%|##)/)) {
+    inline_description = substr(whole_line, RSTART)
+    sub(/^ */, "", inline_description)
+    save_description_data(inline_description)
   }
 
   debug_indent_up()
@@ -1169,11 +1142,7 @@ BEGIN {
   # a section uses a targtet / variable as an anchor
   split("", TARGETS_SECTION_DATA)
 
-  # shows whether a target has a recipe
-  split("", TARGETS_HAS_RECIPE)
-
-  # contains the index for the current double-colon target (the key doesn't include ~k)
-  # see function maybe_increment_dc_target_index()
+  # the index for the next double-colon target (the key doesn't include ~k)
   split("", TARGETS_DC_COUNTER)
 
   # map index to target name (order is important)
@@ -1279,7 +1248,6 @@ FNR == 1 {
 IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
   # printf("--> LINE: %s (in recipe of rule: %s)\n", FNR, IN_RULE)
   forget_descriptions_data()
-  maybe_increment_dc_target_index(IN_RULE, 1)
 
   # match odd number of slashes at the end
   if ($0 ~ sprintf("%s[^\\\\]*?([\\\\]{2})*\\\\$", RECIPEPREFIX)) {
@@ -1339,39 +1307,30 @@ IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
 $0 ~ TARGETS_REGEX {
   debug_pattern_rule("target")
 
-  g_contains_inline_command = parse_inline_descriptions(\
-      $0,
-      length_array_posix(DESCRIPTION_DATA) == 0)
+  if (length_array_posix(DESCRIPTION_DATA) == 0) {
+    g_contains_inline_command = parse_inline_descriptions($0)
+  }
 
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
-  # for the reason to use \\&, see AWK's Gory-Details!
+  # for the reason to use \\&, see:
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
   g_target_name_nominal = $1
   sub(/ *&/, "\\&", g_target_name_nominal)
 
-  if ($0 ~ "::") { # handle double-colon targets
-    if (!(g_target_name_nominal in TARGETS_DC_COUNTER)) {
-      TARGETS_DC_COUNTER[g_target_name_nominal] = 1
-    }
-
-    normalize_dc_target_status(g_target_name_nominal)
-    g_target_name = form_dc_target_name(g_target_name_nominal)
-  } else {
-    g_target_name = g_target_name_nominal
-  }
-
   debug_target_matched()
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
+    g_target_name = ($0 ~ "::") ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal
+
     TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
                                                TARGETS_SECTION_DATA,
                                                "target")
+    TARGETS_DC_COUNTER[g_target_name_nominal]++
   }
 
-  maybe_increment_dc_target_index(g_target_name_nominal, g_contains_inline_command)
   IN_RULE = g_target_name_nominal
   PATTERN_RULE_MATCHED = 1
   debug_indent_up()
@@ -1382,7 +1341,7 @@ $0 ~ VARIABLES_REGEX {
   debug("+ ~$0~: " $0)
 
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
-    parse_inline_descriptions($0, 1)
+    parse_inline_descriptions($0)
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
