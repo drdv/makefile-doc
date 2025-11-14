@@ -17,9 +17,6 @@ SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
 ## {ansi, html}
 OUTPUT_FORMAT :=
 
-## If set, debug info is generated in an org file
-DEBUG :=
-
 ## If set, the expected value of a test recipe is updated
 ## e.g., `make test-default UPDATE_RECIPE=1`
 UPDATE_RECIPE :=
@@ -42,7 +39,6 @@ help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS
 help: TESTS_SUB := <L:1,M:1>$$(TESTS)~1:test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
 help: VFLAGS := \
 	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
-	-v DEBUG=$(DEBUG) \
 	-v COLOR_BACKTICKS=33 \
 	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
 help: $(AWK_BIN)/$(AWK)
@@ -87,8 +83,8 @@ coverage-itests.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(TEST_RECIPES_D
 
 ## Lint the code using gawk
 # Warnings to ignore have been stripped below
-lint: UNINIT := (DEBUG|DEBUG_FILE|DEBUG_INDENT_STACK|SUB|COLOR_.*|VARS|OFFSET|PADDING|\
-|CONNECTED|DEPRECATED|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
+lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|CONNECTED|DEPRECATED|\
+				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
 lint: override AWK := awk
 lint: check-variables
 	@$(AWK_BIN)/$(AWK) --lint \
@@ -153,15 +149,15 @@ bugs-bawk:
 
 ## Recipes:
 ## ---------
-$(TESTS):: RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
-$(TESTS):: CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
-$(TESTS):: CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
+$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(TEST_RECIPES_DIR)/$@)
+$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(TEST_RECIPES_DIR)/$@
+$(TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
-$(TESTS):: CMD_DIFF = git diff --ignore-space-at-eol \
+$(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
 		<($(CMD_RECIPE_EXPECTED)) \
 		<($(CMD_RESULT) 2>&1)
-$(TESTS):: TMP_FILE = /tmp/$@_updated
-$(TESTS):: $(AWK_BIN)/$(AWK)
+$(TESTS): TMP_FILE = /tmp/$@_updated
+$(TESTS): $(AWK_BIN)/$(AWK)
 # The reason for using echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" is that, the value of
 # RECIPE_COMMAND_LINE may contain e.g., $(TARGET) and we need to make sure that the
 # shell doesn't try to expand it. Unfortunately, we cannot simply use echo
@@ -174,12 +170,6 @@ $(TESTS):: $(AWK_BIN)/$(AWK)
 		$(CMD_RESULT)\
 		| tee -a $(TMP_FILE) && mv $(TMP_FILE) $(TEST_RECIPES_DIR)/$@,\
 	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
-
-test-debug:: EXPECTED_FILE := /tmp/.debug-makefile-doc.org
-test-debug:: RESULT_FILE := test/test-debug-expected-result.org
-test-debug::
-	@git diff --ignore-space-at-eol $(RESULT_FILE) $(EXPECTED_FILE)
-	@rm $(EXPECTED_FILE)
 
 # ----------------------------------------------------
 # Targets for downloading various awk implementations
