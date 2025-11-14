@@ -103,8 +103,6 @@ are given in `{...}`, `(.)` shows the default)
 + `OUTPUT_FORMAT`: `{(ANSI), HTML, LATEX}`
 + `EXPORT_THEME`: see [Export to HTML and Latex](#export-to-html-and-latex)
 + `SUB`: see [Substitutions](#substitutions)
-+ `DEBUG`: `{(0), 1}` output debug info (in an org-mode format)
-+ `DEBUG_FILE`: debug info file
 + `TARGETS_REGEX`: regex to use for matching targets
 + `VARIABLES_REGEX`: regex to use for matching variables
 * `VARS`: `{0, (1)}` show documented variables

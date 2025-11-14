@@ -24,8 +24,6 @@
 #   + OUTPUT_FORMAT: {(ANSI), HTML, LATEX}
 #   + EXPORT_THEME: see below
 #   + SUB: see below
-#   + DEBUG: {(0), 1} output debug info (in an org-mode format)
-#   + DEBUG_FILE: debug info file
 #   + TARGETS_REGEX: regex for matching targets
 #   + VARIABLES_REGEX: regex for matching variables
 #   * VARS: {0, (1)} show documented variables
@@ -180,33 +178,6 @@ function length_array_posix(array, #locals
   return n
 }
 
-# updates the array sorted_keys with the sorted keys of array
-function sort_keys(array, sorted_keys, #locals
-                   n, i, j, key, tmp) {
-  delete sorted_keys
-
-  n = 0
-  for (key in array) {
-    sorted_keys[++n] = key
-  }
-
-  # bubble sort sorted_keys (it is used only for producing debug info)
-  for(i=1; i<n; i++) {
-    for(j=1; j<=n-i; j++) {
-      if(sorted_keys[j] > sorted_keys[j+1]) {
-        tmp = sorted_keys[j];
-        sorted_keys[j] = sorted_keys[j+1];
-        sorted_keys[j+1] = tmp
-      }
-    }
-  }
-  return n
-}
-
-function abs(x) {
-  return (x < 0.0) ? -x : x
-}
-
 function form_dc_target_name(target_name_nominal) {
   if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
     TARGETS_DC_COUNTER[target_name_nominal] = 1
@@ -261,35 +232,21 @@ function get_tag_from_description(string, #locals
 
 function save_description_data(string) {
   DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX++] = string
-
-  debug(DEBUG_INDENT_STACK " save_description_data")
-  debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
-  debug_indent_up()
 }
 
 function forget_descriptions_data() {
   delete DESCRIPTION_DATA
   DESCRIPTION_DATA_INDEX = 1
-
-  debug(DEBUG_INDENT_STACK " forget_descriptions_data")
-  debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
-  debug_indent_up()
 }
 
 function parse_inline_descriptions(whole_line, #locals
                                    inline_description, part_before_description) {
-  debug(DEBUG_INDENT_STACK " parse_inline_descriptions")
-  debug_indent_down()
-
   if (match(whole_line, / *(##!|##%|##)/)) {
     inline_description = substr(whole_line, RSTART)
     sub(/^ */, "", inline_description)
     save_description_data(inline_description)
   }
 
-  debug_indent_up()
   return 0
 }
 
@@ -316,25 +273,12 @@ function parse_variable_name(whole_line, #locals
   return variable_name
 }
 
-# it would be nice to make the debugging code less intrusive
 function associate_data_with_anchor(anchor_name,
                                     anchors,
                                     anchors_index,
                                     anchors_description_data,
                                     anchors_section_data,
                                     anchor_type) {
-  debug(sprintf("%s debug_associate_data_with_%s (INITIAL): %s",
-                DEBUG_INDENT_STACK,
-                anchor_type,
-                anchor_name))
-  debug_indent_down()
-  debug_array(anchors, anchors_index, "anchors", anchor_type)
-  debug_dict(anchors_description_data, "anchors_description_data", anchor_type)
-  debug_dict(anchors_section_data, "anchors_section_data", anchor_type)
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
-  debug_indent_up()
-
   if (anchor_name in anchors_description_data) {
     printf("WARNING: [%s] redefined docs of %s: %s\n",
            FILENAME,
@@ -360,35 +304,16 @@ function associate_data_with_anchor(anchor_name,
     forget_section_data()
   }
 
-  debug(sprintf("%s debug_associate_data_with_%s (FINAL)",
-                DEBUG_INDENT_STACK,
-                anchor_type))
-  debug_indent_down()
-  debug_array(anchors, anchors_index, "anchors", anchor_type)
-  debug_dict(anchors_description_data, "anchors_description_data", anchor_type)
-  debug_dict(anchors_section_data, "anchors_section_data", anchor_type)
-  debug_indent_up()
-
   return anchors_index
 }
 
 function save_section_data(string) {
   SECTION_DATA[SECTION_DATA_INDEX++] = string
-
-  debug(DEBUG_INDENT_STACK " save_section_data")
-  debug_indent_down()
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
-  debug_indent_up()
 }
 
 function forget_section_data() {
   delete SECTION_DATA
   SECTION_DATA_INDEX = 1
-
-  debug(DEBUG_INDENT_STACK " forget_section_data")
-  debug_indent_down()
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
-  debug_indent_up()
 }
 
 function get_associated_section_data(anchor_name,
@@ -618,7 +543,6 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
                                   renamed_anchor, formatted_anchor, padding,
                                   normalized_anchor_name) {
   extract_substitution_params(SUB_PARAMS[anchor])
-  debug_dict(SUB_PARAMS_CURRENT, "SUB_PARAMS_CURRENT", anchor)
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed.
@@ -920,8 +844,6 @@ function print_help() {
     printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
     printf "  EXPORT_THEME (theme for HTML/LATEX output): %s\n", EXPORT_THEME
     printf "  SUB (substitutions): %s\n", SUB
-    printf "  DEBUG ([bool] output debug info): %s\n", DEBUG
-    printf "  DEBUG_FILE (debug info file): %s\n", DEBUG_FILE
     printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
     printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
     printf "  VARS ([bool] show documented variables): %s\n", VARS
@@ -937,157 +859,12 @@ function print_help() {
     printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
 }
 
-# =============================================================================
-# DEBUG STUFF
-#
-# While debug(message) outputs messages only when the DEBUG option is defined, the
-# message itself gets formed always (same for functions calling debug(...)). I don't
-# know how to solve this in a nice way and I don't want to use everywhere if (DEBUG) ...
-# =============================================================================
-function debug(message) {
-  if (DEBUG) {
-    printf "%s\n", message >> DEBUG_FILE
-  }
-}
-
-function debug_indent_up() {
-  if (DEBUG) {
-    if (DEBUG_INDENT_STACK == "*") {
-      printf("WARNING: already at top level\n") > STDERR
-    } else {
-      DEBUG_INDENT_STACK = substr(DEBUG_INDENT_STACK, 1, length(DEBUG_INDENT_STACK)-1)
-    }
-  }
-}
-
-function debug_indent_down() {
-  if (DEBUG) {
-    DEBUG_INDENT_STACK = DEBUG_INDENT_STACK "*"
-  }
-}
-
-function debug_pattern_rule(title) {
-  debug(DEBUG_INDENT_STACK " line: " FNR " (" title ")")
-  debug_indent_down()
-}
-
-function debug_array(array, array_next_index, array_name, array_note, #locals
-                     k) {
-  debug(sprintf("%s [A] %s (length: %s, next index: %s%s)",
-                DEBUG_INDENT_STACK,
-                array_name,
-                length_array_posix(array),
-                array_next_index,
-                array_note ? ", note: " array_note : array_note))
-  for (k=1; k<=length_array_posix(array); k++) {
-    debug("+ " k ": " array[k])
-  }
-}
-
-function debug_dict(array, array_name, array_note, #locals
-                    k, sorted_keys) {
-  debug(sprintf("%s [D] %s (length: %s%s)",
-                DEBUG_INDENT_STACK,
-                array_name,
-                length_array_posix(array),
-                array_note ? ", note: " array_note : array_note))
-
-  # print in sorted order for testing purposes
-  for (k=1; k<=sort_keys(array, sorted_keys); k++) {
-    debug("+ " sorted_keys[k] ": " array[sorted_keys[k]])
-  }
-}
-
-function debug_init() {
-  debug(DEBUG_INDENT_STACK " debug_init")
-  debug("+ ~FS~: " FS)
-  debug("+ ~DEBUG_FILE~: " DEBUG_FILE)
-  debug("+ ~SUB~: " SUB)
-  debug("+ ~TARGETS_REGEX~: " TARGETS_REGEX)
-  debug("+ ~VARIABLES_REGEX~: " VARIABLES_REGEX)
-  debug("+ ~VARS~: " VARS)
-  debug("+ ~PADDING~: " PADDING)
-  debug("+ ~DEPRECATED~: " DEPRECATED)
-  debug("+ ~OFFSET~: " OFFSET)
-}
-
-function debug_FNR1() {
-  debug(DEBUG_INDENT_STACK " debug_FNR1")
-  debug("+ ~NUMBER_OF_FILES_PROCESSED~: " NUMBER_OF_FILES_PROCESSED)
-  debug("+ ~FILES_PROCESSED~: " FILES_PROCESSED)
-}
-
-function debug_description_not_section() {
-  debug(DEBUG_INDENT_STACK " debug_description_not_section")
-  debug("+ ~$0~: " $0)
-  debug("+ ~g_description_string~: " g_description_string)
-}
-
-function debug_new_section() {
-  debug(DEBUG_INDENT_STACK " debug_new_section")
-  debug("+ ~$0~: " $0)
-  debug("+ ~g_section_string~: " g_section_string)
-}
-
-function debug_target_matched() {
-  debug(DEBUG_INDENT_STACK " debug_target_matched")
-  debug("+ ~$0~: " $0)
-  debug("+ ~$1~: " $1)
-  debug("+ ~g_target_name~: " g_target_name)
-  debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
-  debug_indent_up()
-}
-
-function debug_variable_matched() {
-  debug(DEBUG_INDENT_STACK " debug_variable_matched")
-  debug("+ ~g_variable_name~: " g_variable_name)
-  debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
-  debug_indent_up()
-}
-
-function debug_END() {
-  debug(DEBUG_INDENT_STACK " debug_END")
-  debug("+ ~g_max_target_length~: " g_max_target_length)
-  debug("+ ~g_max_variable_length~: " g_max_variable_length)
-  debug("+ ~g_max_anchor_length~: " g_max_anchor_length)
-  debug("+ ~g_separator~: " g_separator)
-  debug_indent_down()
-  debug_array(DESCRIPTION_DATA, DESCRIPTION_DATA_INDEX, "DESCRIPTION_DATA", "")
-  debug_array(SECTION_DATA, SECTION_DATA_INDEX, "SECTION_DATA", "")
-
-  debug_array(TARGETS, TARGETS_INDEX, "TARGETS", "")
-  debug_dict(TARGETS_DESCRIPTION_DATA, "TARGETS_DESCRIPTION_DATA", "")
-  debug_dict(TARGETS_SECTION_DATA, "TARGETS_SECTION_DATA", "")
-
-  debug_array(VARIABLES, VARIABLES_INDEX, "VARIABLES", "")
-  debug_dict(VARIABLES_DESCRIPTION_DATA, "VARIABLES_DESCRIPTION_DATA", "")
-  debug_dict(VARIABLES_SECTION_DATA, "VARIABLES_SECTION_DATA", "")
-
-  debug_dict(SUB_VALUES, "SUB_VALUES", "")
-  debug_dict(SUB_LABELS, "SUB_LABELS", "")
-  debug_dict(SUB_PARAMS, "SUB_PARAMS", "")
-  debug_dict(SUB_PARAMS_DEFAULTS, "SUB_PARAMS_DEFAULTS", "")
-  debug_indent_up()
-}
-
-# =============================================================================
-
 # Initialize global variables.
 BEGIN {
   STDERR = "/dev/stderr"
   if (UNIT_TEST) {
     exit
   }
-
-  DEBUG_FILE = DEBUG_FILE == "" ? ".makefile-doc-debug.org" : DEBUG_FILE
-  if (DEBUG) {
-    DEBUG_INDENT_STACK = "*"
-    printf "" > DEBUG_FILE
-  }
-  debug(DEBUG_INDENT_STACK " BEGIN")
-  debug_indent_down()
 
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
@@ -1184,8 +961,6 @@ BEGIN {
   IN_RULE = ""
   RECIPEPREFIX = "^\t"
 
-  debug_init()
-
   # we could exit faster but this causes the linter to not see defined variables
   SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
   if (ARGC == 1) {
@@ -1197,19 +972,12 @@ BEGIN {
 }
 
 FNR == 1 {
-  debug_indent_up()
-  debug(DEBUG_INDENT_STACK " FILE: " FILENAME)
-  debug_indent_down()
-  debug_pattern_rule("file counter")
-
   NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED) {
     FILES_PROCESSED = FILES_PROCESSED " " FILENAME
   } else {
     FILES_PROCESSED = FILENAME
   }
-  debug_FNR1()
-  debug_indent_up()
 }
 
 # Skip backslash multiline comment
@@ -1269,44 +1037,30 @@ IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
 
 # Capture the line if it is a description (but not a section).
 /^ *##([^@]|$)/ {
-  debug_pattern_rule("description")
-
   g_description_string = $0
   sub(/^ */, "", g_description_string)
-
-  debug_description_not_section()
 
   save_description_data(g_description_string)
 
   PATTERN_RULE_MATCHED = 1
-  debug_indent_up()
 }
 
 # Flush accumulated descriptions if followed by an empty line
 /^$/ {
-  debug_pattern_rule("empty line")
-
   PATTERN_RULE_MATCHED = 1
 }
 
 # New section (all lines in a multi-line sections should start with ##@)
 /^ *##@/ {
-  debug_pattern_rule("new section")
-
   g_section_string = $0
   sub(/ *##@/, "", g_section_string) # strip the tags (they are not needed anymore)
-
-  debug_new_section()
 
   save_section_data(g_section_string)
 
   PATTERN_RULE_MATCHED = 1
-  debug_indent_up()
 }
 
 $0 ~ TARGETS_REGEX {
-  debug_pattern_rule("target")
-
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     g_contains_inline_command = parse_inline_descriptions($0)
   }
@@ -1316,8 +1070,6 @@ $0 ~ TARGETS_REGEX {
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
   g_target_name_nominal = $1
   sub(/ *&/, "\\&", g_target_name_nominal)
-
-  debug_target_matched()
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
     g_target_name = ($0 ~ "::") ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal
@@ -1333,20 +1085,15 @@ $0 ~ TARGETS_REGEX {
 
   IN_RULE = g_target_name_nominal
   PATTERN_RULE_MATCHED = 1
-  debug_indent_up()
 }
 
 $0 ~ VARIABLES_REGEX {
-  debug_pattern_rule("variable")
-  debug("+ ~$0~: " $0)
-
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0)
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
     g_variable_name = strip_start_end_spaces_tabs(parse_variable_name($0))
-    debug_variable_matched()
     VARIABLES_INDEX = associate_data_with_anchor(g_variable_name,
                                                  VARIABLES,
                                                  VARIABLES_INDEX,
@@ -1357,13 +1104,10 @@ $0 ~ VARIABLES_REGEX {
 
   IN_RULE = ""
   PATTERN_RULE_MATCHED = 1
-  debug_indent_up()
 }
 
 PATTERN_RULE_MATCHED == 0 {
-  debug_pattern_rule("bucket")
-  debug("+ ~$0~: " $0)
-  debug_indent_up()
+  # keep here for debugging purposes
 }
 
 # Display results (all stdout is here).
@@ -1371,21 +1115,12 @@ END {
   if (UNIT_TEST) {
     exit 0
   }
-
-  debug_indent_up()
-  debug(DEBUG_INDENT_STACK " END")
-  debug_indent_down()
-
   form_substitutions() # form SUB_LABELS before calling get_max_anchor_length
 
   g_max_target_length = get_max_anchor_length(TARGETS)
   g_max_variable_length = get_max_anchor_length(VARIABLES)
   g_max_anchor_length = max(g_max_target_length, g_max_variable_length)
   g_separator = get_separator("-", g_max_anchor_length)
-
-  debug_END()
-  debug(DEBUG_INDENT_STACK " extracted_sub_params")
-  debug_indent_down()
 
   if (OUTPUT_FORMAT == "HTML") {
     print(HTML_HEADER)
@@ -1422,7 +1157,6 @@ END {
       display_anchor_with_data(g_variable, g_description, g_section, g_max_anchor_length)
     }
   }
-  debug_indent_down()
 
   if (g_max_target_length > 0 || (g_max_variable_length > 0 && VARS)) {
     printf("%s\n", g_separator)
@@ -1437,10 +1171,5 @@ END {
     print(HTML_FOOTER)
   } else if (OUTPUT_FORMAT == "LATEX") {
     print(LATEX_FOOTER)
-  }
-
-  if (DEBUG) {
-    close(DEBUG_FILE)
-    print "Debug info written in " DEBUG_FILE
   }
 }
