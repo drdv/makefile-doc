@@ -91,3 +91,7 @@ target-without-docs:
 
 ##
 t15: ## The top empty description shadows this
+
+t16:## No space needed
+t17: A:=1## Inline doc
+t18: this that## Another inline doc
