@@ -23,3 +23,8 @@ jobs:
           yes | make test AWK=nawk
           yes | make test AWK=wak
           yes | make test AWK=goawk
+          make utest AWK=awk
+          make utest AWK=mawk
+          make utest AWK=nawk
+          make utest AWK=wak
+          make utest AWK=goawk
