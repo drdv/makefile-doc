@@ -24,7 +24,7 @@ Available targets:
 [34mt11                  [0m   We can use top docs when there is an inline command
 [33mt12                  [0m   This target is kept just in case
                         even though it is obsolete
-
+                       
 [33mt13                  [0m   Deprecated target with inline doc
 [32m
 ------ Section 2 -----
@@ -41,5 +41,8 @@ Available targets:
                          + $1: month {jan, ..., dec}
                          + $2: country code {fr, bg, jp, ...}
 [34mt14                  [0m   Target with spaces before and after
-[34mt15                  [0m
+[34mt15                  [0m  
+[34mt16                  [0m   No space needed
+[34mt17                  [0m   Inline doc
+[34mt18                  [0m   Another inline doc
 -----------------------

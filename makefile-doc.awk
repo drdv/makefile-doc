@@ -89,7 +89,7 @@
 #     need to stick to basic syntax. For example, we cannot use a match function with
 #     a third argument (an array that stores the groups) and have to fall-back to using
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
-#     %* patterns, some kinds of regex etc.
+#     %* patterns, some regex features etc.
 #   + Notes on the arrays in the code:
 #     Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
 #     VARIABLES and each of them has an associated *_INDEX integer variable.
@@ -898,12 +898,13 @@ BEGIN {
   #  4. There can be multiple space-separated targets on one line (they are captured
   #     together).
   #  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected.
-  #  6. After the final colon, we require either at least one space or end of line -- this
-  #     is because otherwise we would match VAR := value.
-  #  7. FS = ":" is assumed.
+  #  6. FS = ":" is assumed.
   #
-  # Note: I have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
-  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)( |$|.*;)" : TARGETS_REGEX
+  # Since we cannot use negative lookahead, (:|::)([^=:]|$)( *|.*;) simulates no = after the last colon.
+  # We need to add a colon in the negative character class to prevent matching e.g., x ::= 1
+  #
+  # Note: we have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
+  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)([^=:]|$)( *|.*;)" : TARGETS_REGEX
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
@@ -1104,9 +1105,10 @@ $0 ~ VARIABLES_REGEX {
   PATTERN_RULE_MATCHED = 1
 }
 
-PATTERN_RULE_MATCHED == 0 {
-  # keep here for debugging purposes
-}
+# keep here for debugging purposes
+# PATTERN_RULE_MATCHED == 0 {
+#
+# }
 
 # Display results (all stdout is here).
 END {
