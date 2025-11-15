@@ -1,9 +1,11 @@
 SHELL := bash
+MAKEFLAGS := --no-print-directory --warn-undefined-variables --no-builtin-rules
 TEST_DIR := test
-INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
-UNIT_TEST_DIR := $(TEST_DIR)/unit
 
-TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
+INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
+INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
+
+UNIT_TEST_DIR := $(TEST_DIR)/unit
 UNIT_TESTS := $(subst $(UNIT_TEST_DIR)/unittest.awk,,$(wildcard $(UNIT_TEST_DIR)/*.awk))
 # we want unittest.awk to be the first one in the list
 UNIT_TESTS_AWK_FLAGS := -f $(UNIT_TEST_DIR)/unittest.awk $(patsubst %,-f %,$(UNIT_TESTS))
@@ -22,7 +24,7 @@ OUTPUT_FORMAT :=
 UPDATE_RECIPE :=
 
 MAKEFILE_DOC := makefile-doc.awk
-COVER_FILE := cover.out
+COVER_FILE := coverage
 
 # using $1 instead of $(AWK) is necessary for a target like
 # deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
@@ -36,7 +38,7 @@ endef
 .PHONY: help
 ## Show this help
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
-help: TESTS_SUB := <L:1,M:1>$$(TESTS):test-:$(wordlist 1,5,$(subst test-,,$(TESTS))) ...
+help: TESTS_SUB := <L:1,M:1>$$(INTEGRATION_TESTS):test-:$(wordlist 1,5,$(subst test-,,$(INTEGRATION_TESTS))) ...
 help: VFLAGS := \
 	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
 	-v COLOR_BACKTICKS=33 \
@@ -44,44 +46,52 @@ help: VFLAGS := \
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAGS) $(AWK_FLAGS) -f $(MAKEFILE_DOC) $(MAKEFILE_LIST)
 
-deploy-local: DEPLOY_DIR := $(HOME)/.local/share/makefile-doc
-deploy-local:
-	@mkdir -p $(DEPLOY_DIR)
-	@cp $(MAKEFILE_DOC) $(DEPLOY_DIR)
-
 .PHONY: test
-## Run all tests
-test: $(TESTS)
+## Run integration tests
+test: $(INTEGRATION_TESTS)
 
-.PHONY: test-all-awk
-## Run all tests with all supported awk variants
-test-all-awk:
-	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) --no-print-directory test AWK=$(X);)
-
-# The suppressed warning is expected (see test_utils_substitutions_form_substitutions_3)
-coverage-utests.html: AWK := goawk
-coverage-utests.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
-coverage-utests.html: UNITTEST_VERBOSE:=0
-coverage-utests.html: $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest.awk
+## Run unit tests
+.PHONY: utest
+utest: UNITTEST_VERBOSE :=
+utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest.awk
 	@$(AWK_BIN)/$(AWK) \
+		-v AWK=$(AWK) \
 		-v UNIT_TEST=1 \
 		-v UNITTEST_VERBOSE=$(UNITTEST_VERBOSE) \
 		$(UNIT_TESTS_AWK_FLAGS) \
 		-f makefile-doc.awk \
 		$(AWK_FLAGS) \
 		/dev/null
-	@go tool cover -html=$(COVER_FILE) -o $@
-	@rm -f $(COVER_FILE)
 
-## Run the tests with goawk and generate a coverage report
-coverage-itests.html: override AWK := goawk
-coverage-itests.html: AWK_FLAGS := -coverprofile $(COVER_FILE) -coverappend
-coverage-itests.html: $(MAKEFILE_DOC) $(foreach recipe,$(TESTS),$(INTEGRATION_TEST_DIR)/$(recipe))
-	@$(MAKE) --no-print-directory test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
-	@go tool cover -html=$(COVER_FILE) -o $@
-	@rm -f $(COVER_FILE)
+.PHONY: test-all-awk
+## Run integration tests with all supported awk variants
+test-all:
+	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) test AWK=$(X);)
 
-## Lint the code using gawk
+.PHONY: utest-all-awk
+## Run unit tests with all supported awk variants
+utest-all:
+	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) utest AWK=$(X);)
+
+## Run integration/unit tests with `goawk` and generate a coverage report
+coverage.html: coverage-tests.html coverage-utests.html
+	@{ cat $(COVER_FILE).integration; tail -n +2 $(COVER_FILE).unit; } > $(COVER_FILE).all
+	@go tool cover -html=$(COVER_FILE).all -o $@
+
+# Run the integration tests with goawk and generate a coverage report
+coverage-tests.html: override AWK := goawk
+coverage-tests.html: AWK_FLAGS := -coverprofile $(COVER_FILE).integration -coverappend
+coverage-tests.html: $(MAKEFILE_DOC) $(foreach recipe,$(INTEGRATION_TESTS),$(INTEGRATION_TEST_DIR)/$(recipe))
+	@$(MAKE) test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
+	@go tool cover -html=$(COVER_FILE).integration -o $@
+
+# Run the unit tests with goawk and generate a coverage report
+coverage-utests.html: override AWK := goawk
+coverage-utests.html: override AWK_FLAGS := -coverprofile $(COVER_FILE).unit -coverappend
+coverage-utests.html: utest
+	@go tool cover -html=$(COVER_FILE).unit -o $@
+
+## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
 lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
@@ -94,7 +104,8 @@ lint: check-variables
 		-f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
 
-## Verify for unintended global variables
+# Verify for unintended global variables
+.PHONY: check-variables
 check-variables: AWK_CODE := '\
 	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
 	END { if (length(a) == 0) print "check-variables: OK"; else \
@@ -112,7 +123,8 @@ clean-bin: ##! Remove all downloaded awk variants
 ## Remove coverage reports
 .PHONY: clean
 clean:
-	@rm -f coverage-utests.html coverage-itests.html
+	@rm -f $(COVER_FILE).all $(COVER_FILE).integration $(COVER_FILE).unit \
+			coverage-tests.html coverage-utests.html coverage.html
 
 .PHONY: release
 ##! Create github release at latest tag
@@ -125,39 +137,21 @@ release:
 		--notes-file $(RELEASE_NOTES) -t '$(LATEST_TAG)' || \
 	echo "No file $(RELEASE_NOTES)"
 
-%.png: DPI := 300
-%.png: %.pdf Makefile
-	@magick -density $(DPI) $*.pdf -quality 90 $@
-	@rm -f $*.pdf
-
-%.pdf: Makefile
-	@$(MAKE) --no-print-directory help OUTPUT_FORMAT=latex > $*.tex
-	@tectonic $*.tex
-	@rm -f $*.tex
-
-%.html: Makefile
-	@$(MAKE) --no-print-directory help OUTPUT_FORMAT=html > $*.html
-
-bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
-bugs-bawk:
-	@$(AWK_BIN)/bawk $(PARAMS)
-	@podman run -it --rm -v $(PWD):/work:Z -w /work docker.io/library/busybox:latest awk $(PARAMS)
-
 ##@
-##@------ Individual tests ------
+##@------ Individual integration tests ------
 ##@
 
 ## Recipes:
 ## ---------
-$(TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
-$(TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(INTEGRATION_TEST_DIR)/$@
-$(TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
+$(INTEGRATION_TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
+$(INTEGRATION_TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(INTEGRATION_TEST_DIR)/$@
+$(INTEGRATION_TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
-$(TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
+$(INTEGRATION_TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
 		<($(CMD_RECIPE_EXPECTED)) \
 		<($(CMD_RESULT) 2>&1)
-$(TESTS): TMP_FILE = /tmp/$@_updated
-$(TESTS): $(AWK_BIN)/$(AWK)
+$(INTEGRATION_TESTS): TMP_FILE = /tmp/$@_updated
+$(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
 # The reason for using echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" is that, the value of
 # RECIPE_COMMAND_LINE may contain e.g., $(TARGET) and we need to make sure that the
 # shell doesn't try to expand it. Unfortunately, we cannot simply use echo
@@ -171,10 +165,9 @@ $(TESTS): $(AWK_BIN)/$(AWK)
 		2>&1 | tee -a $(TMP_FILE) && mv $(TMP_FILE) $(INTEGRATION_TEST_DIR)/$@,\
 	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
 
-# ----------------------------------------------------
+# --------------------------------------------------------------------------
 # Targets for downloading various awk implementations
-# ----------------------------------------------------
-
+# --------------------------------------------------------------------------
 $(AWK_BIN)/awk:
 	@mkdir -p $(AWK_BIN)
 	@ln -s $(shell which awk) $@
@@ -235,3 +228,24 @@ $(AWK_BIN)/%: # a catch-all target for AWK values
 	@echo "Supported AWK variants: $(SUPPORTED_AWK_VARIANTS)"
 	@echo "==================================================="
 	@exit 1
+
+# --------------------------------------------------------------------------
+# Internal stuff
+# --------------------------------------------------------------------------
+demo.html: Makefile
+	@$(MAKE) help OUTPUT_FORMAT=html > $@
+
+demo.pdf: %.pdf : Makefile
+	@$(MAKE) help OUTPUT_FORMAT=latex > $*.tex
+	@tectonic $*.tex
+	@rm -f $*.tex
+
+demo.png: DPI := 300
+demo.png: %.png : demo.pdf Makefile
+	@magick -density $(DPI) $*.pdf -quality 90 $@
+	@rm -f $*.pdf
+
+bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
+bugs-bawk:
+	@$(AWK_BIN)/bawk $(PARAMS)
+	@podman run -it --rm -v $(PWD):/work:Z -w /work docker.io/library/busybox:latest awk $(PARAMS)

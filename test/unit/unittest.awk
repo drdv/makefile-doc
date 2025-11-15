@@ -57,7 +57,7 @@ function unittest_register_results() {
 function unittest_report_results(    max_filename_length, k, filename, n, m,
                                      total_numb_tests, total_numb_failed) {
   printf("===========================================\n")
-  printf("Test results\n")
+  printf("Test results with %s\n", AWK)
   printf("===========================================\n")
   max_filename_length = 0
   for (filename in UNITTEST_NUMB_TESTS_RUN) {
@@ -108,6 +108,7 @@ BEGIN {
 }
 
 END {
+  AWK = AWK == "" ? "awk" : AWK
   UNIT_TEST = UNIT_TEST == "" ? 1 : UNIT_TEST
   if (UNIT_TEST) {
     unittest_report_results()
