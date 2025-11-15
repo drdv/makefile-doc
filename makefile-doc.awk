@@ -110,46 +110,23 @@
 #       variable assignment: a single variable can be assigned per rule
 #
 #     with normal-prerequisites and order-only-prerequisites being space separated lists
-#     of target names. Note that while:
-#
-#     t:; @echo 1
-#         @echo 2
-#
-#     defines one rule, the following defines two (both of which have a recipe):
-#
-#     t:; @echo 1
-#     t:
-#         @echo 2
-#
-#     and, in the second case, Make will complain:
-#       warning: overriding recipe for target 't'
-#       warning: ignoring old recipe for target 't'
-#     THe following defines three rules only the last of which has a recipe:
-#
-#     t: A := 1
-#     t: B := 2
-#     t: u v | x y ; @echo 1
-#         @echo 2
-#
+#     of target names.
 #   + Recipe: a sequence of commands executed in the shell. A recipe (and thus a rule)
-#             ends at the next target line, variable assignment, define ... endef
+#     ends at the next target line, variable assignment, define ... endef
 #   + Target: an abstraction representing a task/goal to achieve which is defined in
-#             terms of, potentially, many rules.
+#     terms of, potentially, many rules.
+#     + Normal (single-colon) targets can have only one recipe and to mirror this we
+#       allow for them to have only one description.
+#     + double-colon targets (i.e., targets defined by double-colon rules) can have
+#       multiple descriptions (as they can have multiple recipes).
 #   + Target line: the top-line (the header) of a Makefile rule
 #   + Target name: a (string) label for a target
 #   + Description of a rule: comments starting with ##, ##! or ##% placed above the
-#                 target line of a rule or inline. Inline descriptions cannot be placed
-#                 after a inline recipe.
-#   + Description precedense:
-#     + An inline description of a rule is ignorred if a top description for that rule
-#       is present.
-#     + A description of a rule with a target line on like K overrides a description of
-#       a rule defined prioer to line K. A warning is issued when this happes. This
-#       means that, in the end, the documentation of a (non-double-colon) target is
-#       taken from only one of its defining rules (the same thing applies for the recipe
-#       used to build a target).
-#   + Double-colon targets: a double-colon target is a target that can have multiple
-#     recipes and each one of them can have its own description.
+#     target line of a rule or inline. Inline descriptions cannot be placed after an
+#     inline recipe.
+#   + The last rule with a description defines the description of a normal target, while
+#     every double-colon rule with a description defines a double-colon target with a
+#     new ~index.
 
 function max(x, y) {
   return (x >= y) ? x : y
@@ -900,8 +877,9 @@ BEGIN {
   #  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected.
   #  6. FS = ":" is assumed.
   #
-  # Since we cannot use negative lookahead, (:|::)([^=:]|$)( *|.*;) simulates no = after the last colon.
-  # We need to add a colon in the negative character class to prevent matching e.g., x ::= 1
+  # Since we cannot use negative lookahead, (:|::)([^=:]|$)( *|.*;) simulates no = after
+  # the last colon. We need to add a colon in the negative character class to prevent
+  # matching e.g., x ::= 1
   #
   # Note: we have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
   TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)([^=:]|$)( *|.*;)" : TARGETS_REGEX
@@ -926,7 +904,7 @@ BEGIN {
   # a section uses a targtet / variable as an anchor
   split("", TARGETS_SECTION_DATA)
 
-  # the index for the next double-colon target (the key doesn't include ~k)
+  # the index for the next double-colon rule with description (the key doesn't include ~k)
   split("", TARGETS_DC_COUNTER)
 
   # map index to target name (order is important)
@@ -959,7 +937,7 @@ BEGIN {
   FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
 
-  # used to signify double-colon targets in the documentation
+  # used to decorate double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
 
   IN_MULTILINE_BACKSLASH_COMMENT = 0
@@ -986,18 +964,14 @@ FNR == 1 {
   }
 }
 
-# Skip backslash multiline comment
+# Skip backslash multiline comments
 # FIXME: at some point we might allow for them to constitute anchor documentation
 #        but for the moment they are simply ignored
 /^ *#[^\\]*?([\\]{2})*\\$/ || IN_MULTILINE_BACKSLASH_COMMENT {
   if (!IN_MULTILINE_BACKSLASH_COMMENT) {
-    # printf("--> LINE: %s (start of a backslash multiline comment) %s\n", FNR, $0)
     IN_MULTILINE_BACKSLASH_COMMENT = 1
   } else if (!($0 ~ /^[^\\]*?([\\]{2})*\\$/)) {
-    # printf("--> LINE: %s (last line of backslash multiline comment) %s\n", FNR, $0)
     IN_MULTILINE_BACKSLASH_COMMENT = 0
-  } else {
-    # printf("--> LINE: %s (still in backslash multiline comment) %s\n", FNR, $0)
   }
 
   next
@@ -1013,17 +987,12 @@ FNR == 1 {
 }
 
 IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
-  # printf("--> LINE: %s (in recipe of rule: %s)\n", FNR, IN_RULE)
   forget_descriptions_data()
 
   # match odd number of slashes at the end
   if ($0 ~ sprintf("%s[^\\\\]*?([\\\\]{2})*\\\\$", RECIPEPREFIX)) {
-    # printf("--> LINE: %s (in backslash multiline command) %s\n", FNR, $0)
     IN_MULTILINE_BACKSLASH_COMMAND = 1
   } else {
-    if (IN_MULTILINE_BACKSLASH_COMMAND) {
-      # printf("--> LINE: %s (last line of backslash multiline command) %s\n", FNR, $0)
-    }
     IN_MULTILINE_BACKSLASH_COMMAND = 0
   }
 
@@ -1105,7 +1074,7 @@ $0 ~ VARIABLES_REGEX {
   PATTERN_RULE_MATCHED = 1
 }
 
-# keep here for debugging purposes
+# keep here for debugging purposes (it is commented-out because of a goawk bug)
 # PATTERN_RULE_MATCHED == 0 {
 #
 # }

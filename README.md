@@ -59,7 +59,7 @@ target1:
 target2: ## inline doc (ignored if there are top docs as well)
 ```
 
-I refer to targets / variables as anchors (for docs/sections).
+We refer to targets / variables as anchors (for docs/sections).
 
 + Docs of anchors start with tokens `##` or `##!` or `##%` (they can be both above an
   anchor or inline).
@@ -79,7 +79,7 @@ I refer to targets / variables as anchors (for docs/sections).
   hidden deprecated one) after a section for it to be displayed.
 
 * [Double-colon](https://www.gnu.org/software/make/manual/html_node/Double_002dColon.html)
-  targets are displayed using the format `target-name~target-index` and for each index
+  targets are displayed using the format `target-name~index` and for each index
   there can be a dedicated documentation.
 
 * [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
@@ -219,7 +219,3 @@ Execute `make test` (this uses the system's default `awk`). To test with a custo
 
 Note that the makefiles in `./test` are not meant to be used manually, they are part of
 the tests.
-
-## Limitations
-
-See [#15](/../../issues/15).
