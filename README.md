@@ -2,12 +2,10 @@
 
 [![CI](https://github.com/drdv/makefile-doc/actions/workflows/main.yml/badge.svg)](https://github.com/drdv/makefile-doc/actions/workflows/main.yml)
 
-The `makefile-doc.awk` script is a POSIX-compliant extension of a simple `awk` one-liner
-I have been using for years (it was based on [this
-gist](https://gist.github.com/prwhite/8168133)). I simply needed a bit more
-functionality and this turned out to be a nice small project with Awk.
-[This](https://drdv.github.io/blog/202511-makefile-doc) blog post shows an example of
-the documentation.
+The `makefile-doc.awk` script can be used to extract documentation from a Makefile. It
+is simply a more elaborate, POSIX-compliant, version of [this
+gist](https://gist.github.com/prwhite/8168133) one-liner. An example of the generated
+documentation can be seen [here](https://drdv.github.io/blog/202511-makefile-doc).
 
 ## How to use
 
@@ -42,9 +40,6 @@ help: ## show help
 ```
 
 Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
-
-It is assumed that `.RECIPEPREFIX` is a TAB, if this is not the case you should pass `-v
-RECIPEPREFIX=$(.RECIPEPREFIX)` to `awk`.
 
 ## Docs syntax
 
@@ -85,9 +80,6 @@ We refer to targets / variables as anchors (for docs/sections).
 * [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&`. Double-colon grouped
   targets are handled as well.
-
-+ Variable assignments can be prefixed with any or all of the special keywords `export`,
-  `unexport`, `override`, or `private` (in the documentation they are stripped).
 
 + See `test/Makefile*` for examples.
 
@@ -208,14 +200,13 @@ without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspeci
 
 ## Running the tests
 
-Execute `make test` (this uses the system's default `awk`). To test with a custom
-`awk`, use (you need a standard build environment):
+Execute `make test utest` (this uses the system's default `awk`). To test with a custom
+`awk`, use:
 
-+ `make test AWK=mawk`
-+ `make test AWK=nawk`
-+ `make test AWK=bawk` (binaries are not available for macos)
-+ `make test AWK=wak`
-+ `make test AWK=goawk`
++ `make test utest AWK=mawk`
++ `make test utest AWK=nawk`
++ `make test utest AWK=bawk` (binaries are not available for macos)
++ `make test utest AWK=wak`
++ `make test utest AWK=goawk`
 
-Note that the makefiles in `./test` are not meant to be used manually, they are part of
-the tests.
+You need a standard build environment.

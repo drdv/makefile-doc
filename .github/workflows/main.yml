@@ -17,14 +17,9 @@ jobs:
         run: |
           awk --version
           make --version
-          make test
-          make test AWK_FLAGS=--posix
-          yes | make test AWK=mawk
-          yes | make test AWK=nawk
-          yes | make test AWK=wak
-          yes | make test AWK=goawk
-          make utest AWK=awk
-          make utest AWK=mawk
-          make utest AWK=nawk
-          make utest AWK=wak
-          make utest AWK=goawk
+          make test utest
+          make test utest AWK_FLAGS=--posix
+          yes | make test utest AWK=mawk
+          yes | make test utest AWK=nawk
+          yes | make test utest AWK=wak
+          yes | make test utest AWK=goawk
