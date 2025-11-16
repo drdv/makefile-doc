@@ -108,6 +108,7 @@ Command-line arguments:
 <span class="color-deprecated">VAR6                 </span>   Overwrites previous docs for this variable (change to deprecated)
 <span class="color-default">x                    </span>   A one letter variable
 <span class="color-default">y                    </span>   A one letter variable inline docs
+<span class="color-default">.DEFAULT_GOAL        </span>   Default goal
 -----------------------
 </pre>
 </div>

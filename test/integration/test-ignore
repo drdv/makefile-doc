@@ -1,0 +1,13 @@
+test/Makefile.targets-ignore
+-----------------------
+Available targets:
+-----------------------
+[34m.SECONDEXPANSION[0m   Not ignored
+[34mt1              [0m   (t1) Ignore .PHONY
+[34mt2              [0m   (t2) Ignore .PHONY and .SILENT
+[34mt3              [0m   (t3) Ignore .SECONDARY
+[34mt4              [0m   (t4) Ignore .INTERMEDIATE
+[34mt5              [0m   (t5) Ignore .INTERMEDIATE and .PRECIOUS
+[34mt6              [0m   (t6)
+[34m.venv/.sentinel [0m   Create a python venv
+-----------------------

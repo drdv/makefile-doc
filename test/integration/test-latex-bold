@@ -125,6 +125,7 @@ Command-line arguments:
 \sout{VAR6                 }   Overwrites previous docs for this variable (change to deprecated)
 \textcolor{color-default}{x                    }   A one letter variable
 \textcolor{color-default}{y                    }   A one letter variable inline docs
+\textcolor{color-default}{.DEFAULT_GOAL        }   Default goal
 -----------------------
 \end{alltt}
 \end{varwidth}

@@ -14,6 +14,7 @@ t4:
 
 ##! Use ##!exclamation markfor targets that are signifficant in some way
 ## no need to have an exclamation mark for all lines
+.PHONY: t5 ## lines starting with .PHONY: are ignored
 t5:
 
 ##@

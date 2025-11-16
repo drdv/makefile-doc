@@ -8,7 +8,8 @@ function test_utils_regex_main() {
   test_utils_regex_update_display_parameters()
 }
 
-function test_utils_regex_update_display_parameters(    description) {
+function test_utils_regex_update_display_parameters(    description, stderr_content,
+                                                        stderr_content_lines) {
   STDERR = "/tmp/.makefile-doc-stderr"
 
   description = "Z## Wrong tag"
