@@ -1,5 +1,5 @@
 SHELL := bash
-MAKEFLAGS := --no-print-directory --warn-undefined-variables --no-builtin-rules
+MAKEFLAGS := --no-print-directory --warn-undefined-variables
 TEST_DIR := test
 
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
@@ -143,27 +143,27 @@ release:
 
 ## Recipes:
 ## ---------
-$(INTEGRATION_TESTS): RECIPE_COMMAND_LINE = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
-$(INTEGRATION_TESTS): CMD_RECIPE_EXPECTED = tail -n +2 $(INTEGRATION_TEST_DIR)/$@
-$(INTEGRATION_TESTS): CMD_RESULT = $< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_COMMAND_LINE)
-# --ignore-space-at-eol is needed as empty descriptions add OFFSET
-$(INTEGRATION_TESTS): CMD_DIFF = git diff --ignore-space-at-eol \
-		<($(CMD_RECIPE_EXPECTED)) \
-		<($(CMD_RESULT) 2>&1)
-$(INTEGRATION_TESTS): TMP_FILE = /tmp/$@_updated
+
+# Now we redirect to actual files because making sure that stderr and stdout
+# appear in the righ order with all AWK variants (in particular goawk) and on
+# CI was problematic
+$(INTEGRATION_TESTS): FILE_CMD = /tmp/.makefile-doc_$@_command
+$(INTEGRATION_TESTS): FILE_EXPECTED = /tmp/.makefile-doc_$@_expected
+$(INTEGRATION_TESTS): FILE_ACTUAL = /tmp/.makefile-doc_$@_actual
+$(INTEGRATION_TESTS): RECIPE_CMD = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
 $(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
-# The reason for using echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" is that, the value of
-# RECIPE_COMMAND_LINE may contain e.g., $(TARGET) and we need to make sure that the
-# shell doesn't try to expand it. Unfortunately, we cannot simply use echo
-# '$(RECIPE_COMMAND_LINE)' because the value of RECIPE_COMMAND_LINE already contains
-# single quotes. While it doesn't contain doble-quotes, doing echo
-# "$(RECIPE_COMMAND_LINE)" is not possible because the single quotes around $(TARGET)
-# loose their "powers" when surrounded by double-quotes. So we have to escape the $.
+	@echo "$(subst $,\$,$(RECIPE_CMD))" > $(FILE_CMD);
+	@tail -n +2 $(INTEGRATION_TEST_DIR)/$@ > $(FILE_EXPECTED)
+	@$< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_CMD) \
+		> $(FILE_ACTUAL).stdout 2> $(FILE_ACTUAL).stderr || exit 0
+	@{ cat $(FILE_ACTUAL).stderr; cat $(FILE_ACTUAL).stdout; } > $(FILE_ACTUAL)
+# --ignore-space-at-eol is needed as empty descriptions add OFFSET
 	@$(if $(filter 1 yes,$(UPDATE_RECIPE)),\
-		echo "$(subst $,\$,$(RECIPE_COMMAND_LINE))" > $(TMP_FILE);\
-		$(CMD_RESULT)\
-		2>&1 | tee -a $(TMP_FILE) && mv $(TMP_FILE) $(INTEGRATION_TEST_DIR)/$@,\
-	$(CMD_DIFF) || (echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
+		{ cat $(FILE_CMD); cat $(FILE_ACTUAL); } | tee -a $(FILE_ACTUAL).recipe && \
+			mv $(FILE_ACTUAL).recipe $(INTEGRATION_TEST_DIR)/$@,\
+		@git diff --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL) ||\
+			(echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
+	@rm -f $(FILE_CMD) $(FILE_EXPECTED) $(FILE_ACTUAL)*
 
 # --------------------------------------------------------------------------
 # Targets for downloading various awk implementations
