@@ -48,8 +48,8 @@ help: VFLAGS := \
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAGS) $(AWK_FLAGS) -f $(MAKEFILE_DOC) $(MAKEFILE_LIST)
 
-.PHONY: test
 ## Run integration tests
+.PHONY: test
 test: $(INTEGRATION_TESTS)
 
 ## Run unit tests
@@ -66,13 +66,13 @@ utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest
 		/dev/null
 	@rm /tmp/.makefile-doc-stderr
 
-.PHONY: test-all-awk
 ## Run integration tests with all supported awk variants
+.PHONY: test-all-awk
 test-all:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) test AWK=$(X);)
 
-.PHONY: utest-all-awk
 ## Run unit tests with all supported awk variants
+.PHONY: utest-all-awk
 utest-all:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) utest AWK=$(X);)
 
@@ -96,6 +96,7 @@ coverage-utests.html: utest
 
 ## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
+.PHONY: lint
 lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|AWK|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
 lint: override AWK := awk
@@ -123,14 +124,13 @@ check-variables:
 clean-bin: ##! Remove all downloaded awk variants
 	@rm -rf $(AWK_BIN)
 
-## Remove coverage reports
 .PHONY: clean
-clean:
+clean: ## Remove coverage reports
 	@rm -f $(COVER_FILE).all $(COVER_FILE).integration $(COVER_FILE).unit \
 			coverage-tests.html coverage-utests.html coverage.html
 
-.PHONY: release
 ##! Create github release at latest tag
+.PHONY: release
 release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
 release:
@@ -147,9 +147,9 @@ release:
 ## Recipes:
 ## ---------
 
-# Now we redirect to actual files because making sure that stderr and stdout
+# We redirect to actual files because making sure that stderr and stdout
 # appear in the righ order with all AWK variants (in particular goawk) and on
-# CI was problematic
+# CI was problematic otherwise
 $(INTEGRATION_TESTS): FILE_CMD = /tmp/.makefile-doc_$@_command
 $(INTEGRATION_TESTS): FILE_EXPECTED = /tmp/.makefile-doc_$@_expected
 $(INTEGRATION_TESTS): FILE_ACTUAL = /tmp/.makefile-doc_$@_actual

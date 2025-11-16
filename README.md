@@ -66,7 +66,7 @@ We refer to targets / variables as anchors (for docs/sections).
   color and allows to filter it out, see the `DEPRECATED` flag below).
 
 + Multi-line docs can be added above an anchor, inline docs are ignored when top docs
-  are present. Only the first line in a multi-line doc need to include a token with an
+  are present. Only the first line of a multi-line doc needs to include a token with an
   emphasis (i.e., `##!` or `##%`).
 
 + Sections can be defined using `##@`. All lines in a multi-line section should start
@@ -209,4 +209,5 @@ Execute `make test utest` (this uses the system's default `awk`). To test with a
 + `make test utest AWK=wak`
 + `make test utest AWK=goawk`
 
-You need a standard build environment.
+You need a standard build environment. To compile `nawk` ensure that `bison` is
+installed (`dnf install bison`). For `goawk` you need `golang` (`dnf install golang`).

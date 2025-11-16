@@ -58,8 +58,7 @@
 #   then passing -v SUB='AWK:$(SUPPORTED_AWK_VARIANTS)' would add the values of
 #   SUPPORTED_AWK_VARIANTS to the documentation of the variable AWK. This mechanism is
 #   also useful when documenting targets defined in terms of variables/expressions,
-#   which we might want to rename in addition to adding a list of expanded targets to
-#   the documentation. The format of a single substitution is
+#   which we might want to rename. The format of a single substitution is
 #   [<p1:v1,...>]NAME[:LABEL]:[VALUES]
 #   + NAME is the name of the variable/target to substitute in the documentation
 #   + LABEL is an optional label for renaming the variable/target
@@ -103,11 +102,11 @@
 #         [recipe]
 #
 #     where:
+#       variable assignment: a single variable can be assigned per rule
 #       prerequisits := normal-prerequisites | order-only-prerequisites
 #       inline recipe := [command] [; command ...]
 #       recipe := [command]
 #                 [...]
-#       variable assignment: a single variable can be assigned per rule
 #
 #     with normal-prerequisites and order-only-prerequisites being space separated lists
 #     of target names.
@@ -122,11 +121,10 @@
 #   + Target line: the top-line (the header) of a Makefile rule
 #   + Target name: a (string) label for a target
 #   + Description of a rule: comments starting with ##, ##! or ##% placed above the
-#     target line of a rule or inline. Inline descriptions cannot be placed after an
-#     inline recipe.
+#     target line of a rule or inline. Inline descriptions placed after an inline recipe
+#     are ignored.
 #   + The last rule with a description defines the description of a normal target, while
-#     every double-colon rule with a description defines a double-colon target with a
-#     new ~index.
+#     every double-colon rule with a description defines a new description.
 
 function max(x, y) {
   return (x >= y) ? x : y
