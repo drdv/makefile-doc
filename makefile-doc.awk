@@ -226,10 +226,21 @@ function parse_inline_descriptions(whole_line, #locals
   }
 }
 
+function detect_ignored_targets(target_line, #locals
+                                key) {
+  sub(/^[ \t]*/, "", target_line)
+  for (key in IGNORED_TARGETS) {
+    if (target_line ~ "^" IGNORED_TARGETS[key] " *:") {
+      return 1
+    }
+  }
+  return 0
+}
+
 function initialize_variables_regex() {
   ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
   split("override unexport export private", VARIABLE_QUALIFIERS, " ")
-  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^.#][a-zA-Z0-9_-]* *%s",
+  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^#][a-zA-Z0-9_-]* *%s",
                                     join_splitted(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
@@ -882,7 +893,7 @@ BEGIN {
   # matching e.g., x ::= 1
   #
   # Note: we have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
-  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^.#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)([^=:]|$)( *|.*;)" : TARGETS_REGEX
+  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)([^=:]|$)( *|.*;)" : TARGETS_REGEX
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
@@ -930,6 +941,10 @@ BEGIN {
   VARIABLES_INDEX = 1
 
   split("", DISPLAY_PARAMS)
+
+  split("\\.PHONY \\.SILENT \\.IGNORE \\.SECONDARY \\.INTERMEDIATE \\.PRECIOUS",
+        IGNORED_TARGETS,
+        " ")
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
@@ -1029,6 +1044,10 @@ IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
 }
 
 $0 ~ TARGETS_REGEX {
+  if (detect_ignored_targets($0)) {
+    next
+  }
+
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
     parse_inline_descriptions($0)
   }

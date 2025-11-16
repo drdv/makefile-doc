@@ -18,6 +18,7 @@ SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
 
 ## {ansi, html}
 OUTPUT_FORMAT :=
+EXPORT_THEME :=
 
 ## If set, the expected value of a test recipe is updated
 ## e.g., `make test-default UPDATE_RECIPE=1`
@@ -41,6 +42,7 @@ help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS
 help: TESTS_SUB := <L:1,M:1>$$(INTEGRATION_TESTS):test-:$(wordlist 1,5,$(subst test-,,$(INTEGRATION_TESTS))) ...
 help: VFLAGS := \
 	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
+	-v EXPORT_THEME=$(EXPORT_THEME) \
 	-v COLOR_BACKTICKS=33 \
 	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
 help: $(AWK_BIN)/$(AWK)
@@ -94,7 +96,7 @@ coverage-utests.html: utest
 
 ## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
-lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|\
+lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|AWK|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
 lint: override AWK := awk
 lint: check-variables
@@ -234,10 +236,10 @@ $(AWK_BIN)/%: # a catch-all target for AWK values
 # Internal stuff
 # --------------------------------------------------------------------------
 demo.html: Makefile
-	@$(MAKE) help OUTPUT_FORMAT=html > $@
+	@$(MAKE) help OUTPUT_FORMAT=html EXPORT_THEME=BG:000000,FG:F7F7F7 > $@
 
 demo.pdf: %.pdf : Makefile
-	@$(MAKE) help OUTPUT_FORMAT=latex > $*.tex
+	@$(MAKE) help OUTPUT_FORMAT=latex EXPORT_THEME=BG:000000,FG:F7F7F7 > $*.tex
 	@tectonic $*.tex
 	@rm -f $*.tex
 

@@ -1,0 +1,29 @@
+## Not ignored
+.SECONDEXPANSION:
+
+## (t1) Ignore .PHONY
+.PHONY: t1 ## BAD
+t1:
+
+## (t2) Ignore .PHONY and .SILENT
+.PHONY: t2 ## BAD
+.SILENT: t2 ## BAD
+t2:
+
+## (t3) Ignore .SECONDARY
+.SECONDARY: t3 ## BAD
+t3:
+
+## (t4) Ignore .INTERMEDIATE
+.INTERMEDIATE: t4 ## BAD
+t4:
+
+## (t5) Ignore .INTERMEDIATE and .PRECIOUS
+.PRECIOUS: t5 ## BAD
+.INTERMEDIATE: t5
+t5:
+
+t6: ## (t6)
+
+## Create a python venv
+.venv/.sentinel:
