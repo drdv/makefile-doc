@@ -872,22 +872,8 @@ BEGIN {
 
   RECIPEPREFIX = RECIPEPREFIX == 0 ? "^\t" : RECIPEPREFIX
 
-  # Names of variables:
-  #  1. may start with spaces
-  #  2. but not with a # or with a dot (in order to jump over e.g., .DEFAULT_GOAL)
-  #  3. can be followed by spaces and one of the assignment operators, see
-  #     ASSIGNMENT_OPERATORS_PATTERN
   VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
 
-  # Names of targets:
-  #  1. may start with spaces
-  #  2. but not with a # or with a dot (in order to jump over e.g., .PHONY)
-  #  3. and can have spaces before the final colon.
-  #  4. There can be multiple space-separated targets on one line (they are captured
-  #     together).
-  #  5. Targets of the form $(TARGET-NAME) and ${TARGET-NAME} are detected.
-  #  6. FS = ":" is assumed.
-  #
   # Since we cannot use negative lookahead, (:|::)([^=:]|$)( *|.*;) simulates no = after
   # the last colon. We need to add a colon in the negative character class to prevent
   # matching e.g., x ::= 1

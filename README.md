@@ -3,8 +3,8 @@
 [![CI](https://github.com/drdv/makefile-doc/actions/workflows/main.yml/badge.svg)](https://github.com/drdv/makefile-doc/actions/workflows/main.yml)
 
 The `makefile-doc.awk` script can be used to extract documentation from a Makefile. It
-is simply a more elaborate, POSIX-compliant, version of [this
-gist](https://gist.github.com/prwhite/8168133) one-liner. An example of the generated
+is simply a more elaborate, POSIX-compliant, version of
+[this](https://gist.github.com/prwhite/8168133) one-liner. An example of the generated
 documentation can be seen [here](https://drdv.github.io/blog/202511-makefile-doc).
 
 ## How to use
