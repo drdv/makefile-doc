@@ -62,6 +62,7 @@ utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest
 		-f makefile-doc.awk \
 		$(AWK_FLAGS) \
 		/dev/null
+	@rm /tmp/.makefile-doc-stderr
 
 .PHONY: test-all-awk
 ## Run integration tests with all supported awk variants

@@ -5,6 +5,21 @@ function test_utils_regex_main() {
   test_utils_regex_strip_start_end_spaces_tabs()
   test_utils_regex_escape_braces_for_latex_output()
   test_utils_regex_parse_inline_descriptions()
+  test_utils_regex_update_display_parameters()
+}
+
+function test_utils_regex_update_display_parameters(    description) {
+  STDERR = "/tmp/.makefile-doc-stderr"
+
+  description = "Z## Wrong tag"
+  update_display_parameters(description)
+  stderr_content = unittest_consume_file(STDERR)
+  split(stderr_content, stderr_content_lines, "\n")
+
+  assert_equal(stderr_content_lines[1],
+               sprintf("ERROR (we shouldn't be here): %s", description))
+
+  STDERR = "/dev/stderr"
 }
 
 function test_utils_regex_parse_inline_descriptions(    text, expected) {
