@@ -1,0 +1,6 @@
+-v SUB='<L:0>$(TARGET):renamed:' -v VARS=0 test/Makefile.substitutions
+-----------------------
+Available targets:
+-----------------------
+[34mrenamed[0m   Some target:
+-----------------------
