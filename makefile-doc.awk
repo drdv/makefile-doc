@@ -526,6 +526,10 @@ function display_substitutions(anchor, len_anchors, #locals
                    M || (!M && k == n) ? "\n" : "")
     printf(colorize_description_backticks(apply_output_specific_formatting(text)))
   }
+
+  if (!SUB_PARAMS_CURRENT["L"] && n == 0) {
+    printf("\n")
+  }
 }
 
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
