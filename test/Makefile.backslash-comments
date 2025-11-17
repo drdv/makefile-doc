@@ -40,6 +40,16 @@ vvv5 := 1 ## 5
 z5:
 	@echo $(vvv5)
 
+## Spaces\ \
+sss2 := 1 ## 2
+s2:
+	@echo $(sss2)
+
+## Spaces\ \   \ \
+sss3 := 1 ## 3
+s3:
+	@echo $(sss3)
+
 ## should ignore this comment and the variable
 ## which is a part of the above recipe
 	BAD := 1

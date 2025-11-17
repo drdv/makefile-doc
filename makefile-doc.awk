@@ -5,7 +5,7 @@
 #  Author: Dimitar Dimitrov
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
-# Version: v1.6
+# Version: v1.7
 #
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
@@ -975,6 +975,9 @@ BEGIN {
   FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
 
+  # this is equivalent to /[^\\](\\{2})*\\$/ with an extra round of escaping
+  ODD_NUMB_TERMINAL_BACKSLASHES_REGEX = "[^\\\\](\\\\{2})*\\\\$"
+
   # used to decorate double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
 
@@ -1003,12 +1006,10 @@ FNR == 1 {
 }
 
 # Skip backslash multiline comments
-# FIXME: at some point we might allow for them to constitute anchor documentation
-#        but for the moment they are simply ignored
-/^ *#[^\\]*?([\\]{2})*\\$/ || IN_MULTILINE_BACKSLASH_COMMENT {
+$0 ~ "^ *#.*" ODD_NUMB_TERMINAL_BACKSLASHES_REGEX || IN_MULTILINE_BACKSLASH_COMMENT {
   if (!IN_MULTILINE_BACKSLASH_COMMENT) {
     IN_MULTILINE_BACKSLASH_COMMENT = 1
-  } else if (!($0 ~ /^[^\\]*?([\\]{2})*\\$/)) {
+  } else if (!($0 ~ ODD_NUMB_TERMINAL_BACKSLASHES_REGEX)) {
     IN_MULTILINE_BACKSLASH_COMMENT = 0
   }
 
@@ -1026,9 +1027,7 @@ FNR == 1 {
 
 IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
   forget_descriptions_data()
-
-  # match odd number of slashes at the end
-  if ($0 ~ sprintf("%s[^\\\\]*?([\\\\]{2})*\\\\$", RECIPEPREFIX)) {
+  if ($0 ~ sprintf("%s.*%s", RECIPEPREFIX, ODD_NUMB_TERMINAL_BACKSLASHES_REGEX)) {
     IN_MULTILINE_BACKSLASH_COMMAND = 1
   } else {
     IN_MULTILINE_BACKSLASH_COMMAND = 0

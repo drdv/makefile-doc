@@ -155,7 +155,7 @@ $(INTEGRATION_TESTS): FILE_EXPECTED = /tmp/.makefile-doc_$@_expected
 $(INTEGRATION_TESTS): FILE_ACTUAL = /tmp/.makefile-doc_$@_actual
 $(INTEGRATION_TESTS): RECIPE_CMD = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
 $(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
-	@echo "$(subst $,\$,$(RECIPE_CMD))" > $(FILE_CMD);
+	@echo "$(subst $,\$,$(RECIPE_CMD))" > $(FILE_CMD)
 	@tail -n +2 $(INTEGRATION_TEST_DIR)/$@ > $(FILE_EXPECTED)
 	@$< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_CMD) \
 		> $(FILE_ACTUAL).stdout 2> $(FILE_ACTUAL).stderr || exit 0
