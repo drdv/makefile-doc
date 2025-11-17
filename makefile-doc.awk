@@ -843,7 +843,7 @@ function print_help() {
     printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
-    printf "  RECIPEPREFIX: %s\n", RECIPEPREFIX
+    printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
@@ -872,7 +872,7 @@ BEGIN {
   initialize_variables_regex()
   initialize_colors()
 
-  RECIPEPREFIX = RECIPEPREFIX == 0 ? "^\t" : RECIPEPREFIX
+  RECIPEPREFIX = RECIPEPREFIX == 0 ? "^\t" : "^"RECIPEPREFIX
 
   VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
 
