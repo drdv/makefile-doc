@@ -97,7 +97,7 @@ coverage-utests.html: utest
 ## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
 .PHONY: lint
-lint: UNINIT := (|SUB|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|AWK|\
+lint: UNINIT := (sub_array|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|AWK|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
 lint: override AWK := awk
 lint: check-variables
@@ -106,7 +106,7 @@ lint: check-variables
 		-v UNIT_TEST=0 \
 		$(UNIT_TESTS_AWK_FLAGS) \
 		-f $(MAKEFILE_DOC) 2>&1 | \
-		grep -vE "reference to uninitialized variable \`$(UNINIT)'" || echo "lint: OK"
+		grep -vE "reference to uninitialized .* \`$(UNINIT)'" || echo "lint: OK"
 
 # Verify for unintended global variables
 .PHONY: check-variables

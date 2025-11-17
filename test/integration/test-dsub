@@ -1,0 +1,16 @@
+-v SUB='t3:target3:v1 v2' -v DSUB='$(Y):S~y;$(VAR):S~var' test/Makefile.dsub
+-----------------------
+Available targets:
+-----------------------
+[34mt1     [0m   Description with a dsub: S~var
+[34mt2     [0m   This description refers to S~var as well
+[34mtarget3[0m   SUB and DSUB $(complement) each other (S~y):
+          v1
+          v2
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mX      [0m   S~var and
+          S~y will both be replaced
+-----------------------

@@ -1,4 +1,4 @@
--v SUB='<L:0>$(TARGET):renamed:' -v VARS=0 test/Makefile.substitutions
+-v SUB='<L:0>$(TARGET):renamed:' -v VARS=0 test/Makefile.sub
 -----------------------
 Available targets:
 -----------------------

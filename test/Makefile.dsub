@@ -1,0 +1,11 @@
+## Description with a dsub: $(VAR)
+t1:
+
+t2: ## This description refers to $(VAR) as well
+
+## $(VAR) and
+## $(Y) will both be replaced
+X :=
+
+## SUB and DSUB $(complement) each other ($(Y)):
+t3:
