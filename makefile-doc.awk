@@ -5,7 +5,7 @@
 #  Author: Dimitar Dimitrov
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
-# Version: v1.5
+# Version: v1.6
 #
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
@@ -24,6 +24,7 @@
 #   + OUTPUT_FORMAT: {(ANSI), HTML, LATEX}
 #   + EXPORT_THEME: see below
 #   + SUB: see below
+#   + DSUB: see below
 #   + TARGETS_REGEX: regex for matching targets
 #   + VARIABLES_REGEX: regex for matching variables
 #   * VARS: {0, (1)} show documented variables
@@ -76,6 +77,18 @@
 #   + P       prefix (added to each value)
 #   + I       initial string, e.g., {
 #   + T       termination string, e.g., }
+#
+# DSUB:
+#  Similar to SUB but performs substitutions in the original descriptions. The expected
+#  format is NAME:VALUES. For example, using -v DSUB='$$(DEPS):$(DEPS)', the target
+#
+#  DEPS := x y
+#  ## Prerequisites: $(DEPS)
+#  t: $(DEPS)
+#
+#  would be documented as: t   Prerequisites: x y
+#
+#  Values containing newline chatacters are not supported.
 #
 # Code conventions:
 #   * All local variables in functions should be defined in the function signature (awk

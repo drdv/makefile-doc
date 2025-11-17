@@ -94,7 +94,7 @@ are given in `{...}`, `(.)` shows the default)
 
 + `OUTPUT_FORMAT`: `{(ANSI), HTML, LATEX}`
 + `EXPORT_THEME`: see [Export to HTML and Latex](#export-to-html-and-latex)
-+ `SUB`: see [Substitutions](#substitutions)
++ `SUB`, `DSUB`: see [Substitutions](#substitutions)
 + `TARGETS_REGEX`: regex to use for matching targets
 + `VARIABLES_REGEX`: regex to use for matching variables
 * `VARS`: `{0, (1)}` show documented variables
@@ -164,6 +164,19 @@ shown. The supported parameters are:
 
 See the `Makefile` of this project and the test recipes in
 `test/recipes/test-substitution-*` for examples.
+
+The option `DSUB` performs substitutions in the original descriptions. The expected
+format is `NAME:VALUES`. For example, using `-v DSUB='$$(DEPS):$(DEPS)'`, the target
+
+```Makefile
+DEPS := x y
+## Prerequisites: $(DEPS)
+t: $(DEPS)
+````
+would be documented as:
+````
+t    Prerequisites: x y
+````
 
 ## Export to HTML and Latex
 
