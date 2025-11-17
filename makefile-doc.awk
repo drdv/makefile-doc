@@ -179,6 +179,18 @@ function join_splitted(array, delimiter, #locals
   return string
 }
 
+# string replacement without regex
+function string_replace(string, replacement, text,    k, pre) {
+  k = index(text, string)
+  if (string && k > 0) {
+    pre = substr(text, 1, k-1)
+    return pre replacement string_replace(string,
+                                          replacement,
+                                          substr(text, k+length(string)))
+  }
+  return text
+}
+
 function strip_start_end_spaces_tabs(string) {
   sub(/^[ \t]*/, "", string)
   sub(/[ \t]*$/, "", string)
@@ -370,7 +382,7 @@ function format_description_data(anchor_name,
                                  anchors_description_data,
                                  len_anchor_names,
                                  #locals
-                                 k, array_of_lines, line, description) {
+                                 k, array_of_lines, line, description, key) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(anchors_description_data[anchor_name], array_of_lines, "\n")
 
@@ -392,6 +404,11 @@ function format_description_data(anchor_name,
   # The order of alternatives is important when using goawk v1.29.1 and below.
   # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
+
+  for (key in DSUB_VALUES) {
+    description = string_replace(key, DSUB_VALUES[key], description)
+  }
+
   return colorize_description_backticks(apply_output_specific_formatting(description))
 }
 
@@ -445,11 +462,16 @@ function extract_substitution_params(string_with_parameters, #locals
   }
 }
 
-function form_substitutions(                                            \
-    split_substitutions, k, string, substitution_params, substitution_rest,
-    key_value_parts) {
+function form_substitutions(sub_array, sub_params_array, sub_labels_array,
+                            sub_values_array, #locals
+                            split_substitutions, k, string, substitution_params,
+                            substitution_rest, key_value_parts) {
+  delete sub_params_array
+  delete sub_labels_array
+  delete sub_values_array
+
   for (k=1;
-       k<=split(SUB, split_substitutions, ";");
+       k<=split(sub_array, split_substitutions, ";");
        k++) {
     string = split_substitutions[k]
 
@@ -465,15 +487,15 @@ function form_substitutions(                                            \
     split(substitution_rest, key_value_parts, ":")
     gsub(SPACES_TABS_REGEX, "", key_value_parts[1])
 
-    SUB_PARAMS[key_value_parts[1]] = substitution_params
+    sub_params_array[key_value_parts[1]] = substitution_params
     if (length_array_posix(key_value_parts) == 1) {
       printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
     }
     else if (length_array_posix(key_value_parts) == 2) {
-      SUB_VALUES[key_value_parts[1]] = key_value_parts[2]
+      sub_values_array[key_value_parts[1]] = key_value_parts[2]
     } else {
-      SUB_VALUES[key_value_parts[1]] = key_value_parts[3]
-      SUB_LABELS[key_value_parts[1]] = key_value_parts[2]
+      sub_values_array[key_value_parts[1]] = key_value_parts[3]
+      sub_labels_array[key_value_parts[1]] = key_value_parts[2]
     }
   }
 }
@@ -1091,7 +1113,10 @@ END {
   if (UNIT_TEST) {
     exit 0
   }
-  form_substitutions() # form SUB_LABELS before calling get_max_anchor_length
+
+  # form SUB_LABELS before calling get_max_anchor_length
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
+  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES)
 
   g_max_target_length = get_max_anchor_length(TARGETS)
   g_max_variable_length = get_max_anchor_length(VARIABLES)
