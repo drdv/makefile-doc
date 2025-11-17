@@ -134,7 +134,7 @@ clean: ## Remove coverage reports
 release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
 release:
-	@test -f $($(RELEASE_NOTES)) && \
+	@test -f $(RELEASE_NOTES) && \
 	gh release create $(LATEST_TAG) $(MAKEFILE_DOC) \
 		--generate-notes \
 		--notes-file $(RELEASE_NOTES) -t '$(LATEST_TAG)' || \
