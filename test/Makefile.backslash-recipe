@@ -28,6 +28,16 @@ t5: ## i-t5
 	@echo maybe\\\\\
 T5 := 1 ## v-t5 (this is not a variable)
 
+## spaces between backslashes
+s2:
+	@echo maybe\ \
+S2 := 1 ## v-s2 (this is not a variable)
+
+## spaces between backslashes
+s3:
+	@echo maybe\ \   \ \
+S3 := 1 ## v-s3 (this is not a variable)
+
 t6: ## i-t6
 	@echo maybe\
 T6_1 := 1 \

@@ -210,6 +210,8 @@ without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspeci
   + [wak](https://github.com/raygard/wak) `v24.10`
   + [goawk](https://github.com/benhoyt/goawk) `v1.29.1`
 + `GNU Make`
+  + version 3.81 works fine for documentation generation
+  + I run the tests with version 4.3
 
 ## Running the tests
 
