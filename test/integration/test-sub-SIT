@@ -1,4 +1,4 @@
--v SUB='<M:0,L:0,S: ,I:[,T:]>$(TARGET):counter-:one two three;<M:1,L:1,S:\\,,I:{,T:}>AWK:awk mawk nawk bawk wak goawk' test/Makefile.substitutions
+-v SUB='<M:0,L:0,S: ,I:[,T:]>$(TARGET):counter-:one two three;<M:1,L:1,S:\\,,I:{,T:}>AWK:awk mawk nawk bawk wak goawk' test/Makefile.sub
 -----------------------
 Available targets:
 -----------------------
