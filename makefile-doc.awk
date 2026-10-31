@@ -559,7 +559,7 @@ function display_substitutions(anchor, len_anchors, #locals
                    k == n ? "" : SUB_PARAMS_CURRENT["S"],
                    k == n ? SUB_PARAMS_CURRENT["T"] : "",
                    M || (!M && k == n) ? "\n" : "")
-    printf(colorize_description_backticks(apply_output_specific_formatting(text)))
+    printf("%s", colorize_description_backticks(apply_output_specific_formatting(text)))
   }
 
   if (!SUB_PARAMS_CURRENT["L"] && n == 0) {
@@ -607,8 +607,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
            formatted_anchor,
            description,
            SUB_PARAMS_CURRENT["L"] ? "\n" : "")
+    display_substitutions(anchor, len_anchors)
   }
-  display_substitutions(anchor, len_anchors)
 }
 
 # formatting functions to be applied just before colors have been added
