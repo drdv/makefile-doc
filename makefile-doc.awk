@@ -891,6 +891,7 @@ function print_help() {
 # Initialize global variables.
 BEGIN {
   STDERR = "/dev/stderr"
+  ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
   if (UNIT_TEST) {
     exit
   }
@@ -923,6 +924,7 @@ BEGIN {
   OFFSET = OFFSET == "" ? 2 : OFFSET
   if (length(PADDING) != 1) {
     printf("ERROR: PADDING should have length 1\n") > STDERR
+    ABORT = 1
     exit 1
   }
 
@@ -992,6 +994,7 @@ BEGIN {
     if (SHOW_HELP) {
       print_help()
     }
+    ABORT = 1
     exit 1
   }
 }
@@ -1124,6 +1127,10 @@ $0 ~ VARIABLES_REGEX {
 END {
   if (UNIT_TEST) {
     exit 0
+  }
+
+  if (ABORT) {
+    exit ABORT
   }
 
   # form SUB_LABELS before calling get_max_anchor_length

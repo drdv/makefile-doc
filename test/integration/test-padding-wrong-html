@@ -1,0 +1,5 @@
+#: desc: After an error in BEGIN the END block still runs and prints the HTML header and footer
+#: issue: 82
+-v PADDING=.- -v OUTPUT_FORMAT=html test/fixtures/Makefile.padding
+ERROR: PADDING should have length 1
+exit: 1
