@@ -1,4 +1,4 @@
-test/Makefile.semicolon
+test/fixtures/Makefile.semicolon
 -----------------------
 Available targets:
 -----------------------

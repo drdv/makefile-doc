@@ -1,6 +1,6 @@
--v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v EXPORT_THEME=BG:AAAAAA,34:7c3f00 test/Makefile.targets test/Makefile.targets-double-colon test/Makefile.targets-grouped test/Makefile.vars
-WARNING: [test/Makefile.targets:8] redefined docs of target: t3
-WARNING: [test/Makefile.vars:33] redefined docs of variable: VAR6
+-v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v EXPORT_THEME=BG:AAAAAA,34:7c3f00 test/fixtures/Makefile.targets test/fixtures/Makefile.targets-double-colon test/fixtures/Makefile.targets-grouped test/fixtures/Makefile.vars
+WARNING: [test/fixtures/Makefile.targets:8] redefined docs of target: t3
+WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 <head>
   <style type="text/css">
     .color-attention { color: #dc322f; }

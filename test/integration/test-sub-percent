@@ -1,6 +1,6 @@
 #: desc: % in a SUB value is interpreted as a printf format
 #: issue: 68
--v SUB='$(TARGET):t:%.o' -v COLOR_DEFAULT=0 test/Makefile.sub
+-v SUB='$(TARGET):t:%.o' -v COLOR_DEFAULT=0 test/fixtures/Makefile.sub
 -----------------------
 Available targets:
 -----------------------

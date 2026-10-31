@@ -1,2 +1,2 @@
--v PADDING=.- test/Makefile.inc
+-v PADDING=.- test/fixtures/Makefile.padding
 ERROR: PADDING should have length 1

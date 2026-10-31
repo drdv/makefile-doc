@@ -16,11 +16,11 @@ may come first and are ignored when running:
 ```
 #: desc: what this test checks
 #: issue: 123
--v SUB='...' test/Makefile.sub
+-v SUB='...' test/fixtures/Makefile.sub
 <expected output>
 ```
 
-Fixtures are the `test/Makefile.*` files. Use `UPDATE_RECIPE=1` to regenerate the
+Fixtures are the `test/fixtures/Makefile.*` files. Use `UPDATE_RECIPE=1` to regenerate the
 expected output of an integration test (check the diff by hand).
 
 ## Reporting and fixing bugs

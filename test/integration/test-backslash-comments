@@ -1,4 +1,4 @@
-test/Makefile.backslash-comments
+test/fixtures/Makefile.backslash-comments
 -----------------------
 Available targets:
 -----------------------

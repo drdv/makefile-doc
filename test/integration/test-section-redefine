@@ -1,6 +1,6 @@
-test/Makefile.section
-WARNING: [test/Makefile.section:11] redefined docs of target: t1
-WARNING: [test/Makefile.section:11] redefined associated section data: t1
+test/fixtures/Makefile.section
+WARNING: [test/fixtures/Makefile.section:11] redefined docs of target: t1
+WARNING: [test/fixtures/Makefile.section:11] redefined associated section data: t1
 -----------------------
 Available targets:
 -----------------------

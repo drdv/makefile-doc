@@ -1,6 +1,6 @@
 #: desc: SUB values are printed for a hidden deprecated anchor
 #: issue: 69
--v DEPRECATED=0 -v SUB='t2:v1 v2' -v COLOR_DEFAULT=0 test/Makefile.sub-deprecated
+-v DEPRECATED=0 -v SUB='t2:v1 v2' -v COLOR_DEFAULT=0 test/fixtures/Makefile.sub-deprecated
 -----------------------
 Available targets:
 -----------------------

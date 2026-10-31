@@ -1,4 +1,4 @@
-test/Makefile.targets-grouped
+test/fixtures/Makefile.targets-grouped
 -----------------------
 Available targets:
 -----------------------

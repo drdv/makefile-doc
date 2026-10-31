@@ -1,4 +1,4 @@
--v OUTPUT_FORMAT=missing -v SUB='$(TARGET):counter-:one two three;AWK:awk mawk nawk bawk wak goawk' test/Makefile.sub
+-v OUTPUT_FORMAT=missing -v SUB='$(TARGET):counter-:one two three;AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
 WARNING: ignorring invalid OUTPUT_FORMAT MISSING (using ANSI instead).
 -----------------------
 Available targets:

@@ -1,11 +1,11 @@
-test/Makefile.vars-assignment
-WARNING: [test/Makefile.vars-assignment:19] redefined docs of variable: a4
-WARNING: [test/Makefile.vars-assignment:35] redefined docs of variable: b4
-WARNING: [test/Makefile.vars-assignment:51] redefined docs of variable: c4
-WARNING: [test/Makefile.vars-assignment:67] redefined docs of variable: d4
-WARNING: [test/Makefile.vars-assignment:83] redefined docs of variable: e4
-WARNING: [test/Makefile.vars-assignment:99] redefined docs of variable: f4
-WARNING: [test/Makefile.vars-assignment:115] redefined docs of variable: g4
+test/fixtures/Makefile.vars-assignment
+WARNING: [test/fixtures/Makefile.vars-assignment:19] redefined docs of variable: a4
+WARNING: [test/fixtures/Makefile.vars-assignment:35] redefined docs of variable: b4
+WARNING: [test/fixtures/Makefile.vars-assignment:51] redefined docs of variable: c4
+WARNING: [test/fixtures/Makefile.vars-assignment:67] redefined docs of variable: d4
+WARNING: [test/fixtures/Makefile.vars-assignment:83] redefined docs of variable: e4
+WARNING: [test/fixtures/Makefile.vars-assignment:99] redefined docs of variable: f4
+WARNING: [test/fixtures/Makefile.vars-assignment:115] redefined docs of variable: g4
 -----------------------
 Command-line arguments:
 -----------------------
