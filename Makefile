@@ -1,6 +1,12 @@
 SHELL := bash
-MAKEFLAGS := --no-print-directory --warn-undefined-variables
+# --output-sync needs GNU make >= 4.0
+MAKEFLAGS := --no-print-directory --warn-undefined-variables --output-sync=target
 TEST_DIR := test
+
+## Tool used to download the awk variants {curl, wget}
+DOWNLOAD_TOOL ?= curl
+DOWNLOAD_curl = curl -fsSL --create-dirs --output-dir $(AWK_BIN) -O
+DOWNLOAD_wget = wget -P $(AWK_BIN)
 
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
@@ -10,9 +16,6 @@ INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 BUG_TEST_DIR := $(TEST_DIR)/bugs
 BUGS := $(notdir $(wildcard $(BUG_TEST_DIR)/*))
 BUG_TARGETS := $(addprefix bug-,$(BUGS))
-# bug tests that now pass are recorded here (cleared on every make invocation)
-BUGS_FIXED_FILE := /tmp/.makefile-doc_bugs_fixed
-$(shell rm -f $(BUGS_FIXED_FILE))
 
 # script that runs a single test recipe file (see its header for the format)
 RUN_RECIPE := $(TEST_DIR)/run-recipe.sh
@@ -28,6 +31,11 @@ AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
 
+# one target per awk variant: test@awk, test@mawk, ...
+TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
+UTEST_ALL := $(addprefix utest@,$(SUPPORTED_AWK_VARIANTS))
+BUGS_ALL := $(addprefix bugs@,$(SUPPORTED_AWK_VARIANTS))
+
 ## {ansi, html}
 OUTPUT_FORMAT :=
 EXPORT_THEME :=
@@ -37,16 +45,7 @@ EXPORT_THEME :=
 UPDATE_RECIPE :=
 
 MAKEFILE_DOC := makefile-doc.awk
-COVER_FILE := coverage
-
-# using $1 instead of $(AWK) is necessary for a target like
-# deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
-define verify-download
-	read -p "Download and build $1 [Y/n]: " ans \
-		&& ([ -z $$ans ] || [ $$ans = y ] || [ $$ans = Y ]) \
-		&& exit 0 \
-		|| echo "Download of $1 cancelled"; exit 1
-endef
+COVER_DIR := coverage-reports
 
 .PHONY: help
 ## Show this help
@@ -60,16 +59,13 @@ help: VFLAGS := \
 help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAGS) $(AWK_FLAGS) -f $(MAKEFILE_DOC) $(MAKEFILE_LIST)
 
+##@
+##@------ Tests (AWK=<variant> selects the awk) ------
+##@
+
 ## Run integration tests
 .PHONY: test
 test: $(INTEGRATION_TESTS)
-
-## Run tests of known bugs (see test/README.md)
-.PHONY: bugs
-bugs: $(BUG_TARGETS)
-	@test ! -s $(BUGS_FIXED_FILE) || { \
-		echo "Fixed bugs (move them to $(INTEGRATION_TEST_DIR)):"; \
-		sed 's/^/  /' $(BUGS_FIXED_FILE); exit 1; }
 
 ## Run unit tests
 .PHONY: utest
@@ -80,43 +76,71 @@ utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest
 		-v UNIT_TEST=1 \
 		-v UNITTEST_VERBOSE=$(UNITTEST_VERBOSE) \
 		$(UNIT_TESTS_AWK_FLAGS) \
-		-f makefile-doc.awk \
+		-f $(MAKEFILE_DOC) \
 		$(AWK_FLAGS) \
 		/dev/null
 	@rm /tmp/.makefile-doc-stderr
 
+## Run tests of known bugs, all of them even if one fails (see test/README.md)
+.PHONY: bugs
+bugs:
+	@$(if $(BUG_TARGETS),$(MAKE) -k $(BUG_TARGETS),:)
+
+##@
+##@------ All awk variants (use `make -k` to continue after a failure) ------
+##@
+
 ## Run integration tests with all supported awk variants
 .PHONY: test-all
-test-all:
-	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) test AWK=$(X);)
+test-all: $(TEST_ALL)
 
 ## Run unit tests with all supported awk variants
 .PHONY: utest-all
-utest-all:
-	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) utest AWK=$(X);)
+utest-all: $(UTEST_ALL)
 
 ## Run tests of known bugs with all supported awk variants
 .PHONY: bugs-all
-bugs-all:
-	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) bugs AWK=$(X);)
+bugs-all: $(BUGS_ALL)
 
-## Run integration/unit tests with `goawk` and generate a coverage report
-coverage.html: coverage-tests.html coverage-utests.html
-	@{ cat $(COVER_FILE).integration; tail -n +2 $(COVER_FILE).unit; } > $(COVER_FILE).all
-	@go tool cover -html=$(COVER_FILE).all -o $@
+.PHONY: $(TEST_ALL) $(UTEST_ALL) $(BUGS_ALL)
+$(TEST_ALL): test@%:
+	@$(MAKE) test AWK=$*
+$(UTEST_ALL): utest@%:
+	@$(MAKE) utest AWK=$*
+$(BUGS_ALL): bugs@%:
+	@$(MAKE) bugs AWK=$*
+
+##@
+##@------ Coverage ------
+##@
+
+## Run integration/unit tests with `goawk` and generate a coverage report (coverage-reports/all.html)
+.PHONY: coverage
+coverage: $(COVER_DIR)/all.html
+
+$(COVER_DIR)/all.html: $(COVER_DIR)/integration.html $(COVER_DIR)/unit.html
+	@{ cat $(COVER_DIR)/integration.out; tail -n +2 $(COVER_DIR)/unit.out; } > $(COVER_DIR)/all.out
+	@go tool cover -html=$(COVER_DIR)/all.out -o $@
 
 # Run the integration tests with goawk and generate a coverage report
-coverage-tests.html: override AWK := goawk
-coverage-tests.html: AWK_FLAGS := -coverprofile $(COVER_FILE).integration -coverappend
-coverage-tests.html: $(MAKEFILE_DOC) $(foreach recipe,$(INTEGRATION_TESTS),$(INTEGRATION_TEST_DIR)/$(recipe))
+$(COVER_DIR)/integration.html: override AWK := goawk
+$(COVER_DIR)/integration.html: AWK_FLAGS := -coverprofile $(COVER_DIR)/integration.out -coverappend
+$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(foreach recipe,$(INTEGRATION_TESTS),$(INTEGRATION_TEST_DIR)/$(recipe)) | $(COVER_DIR)
 	@$(MAKE) test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
-	@go tool cover -html=$(COVER_FILE).integration -o $@
+	@go tool cover -html=$(COVER_DIR)/integration.out -o $@
 
 # Run the unit tests with goawk and generate a coverage report
-coverage-utests.html: override AWK := goawk
-coverage-utests.html: override AWK_FLAGS := -coverprofile $(COVER_FILE).unit -coverappend
-coverage-utests.html: utest
-	@go tool cover -html=$(COVER_FILE).unit -o $@
+$(COVER_DIR)/unit.html: override AWK := goawk
+$(COVER_DIR)/unit.html: override AWK_FLAGS := -coverprofile $(COVER_DIR)/unit.out -coverappend
+$(COVER_DIR)/unit.html: utest | $(COVER_DIR)
+	@go tool cover -html=$(COVER_DIR)/unit.out -o $@
+
+$(COVER_DIR):
+	@mkdir -p $@
+
+##@
+##@------ Lint ------
+##@
 
 ## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
@@ -132,7 +156,7 @@ lint: check-variables
 		-f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized .* \`$(UNINIT)'" || echo "lint: OK"
 
-# Verify for unintended global variables
+## Verify that there are no unintended global variables
 .PHONY: check-variables
 check-variables: AWK_CODE := '\
 	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
@@ -144,14 +168,17 @@ check-variables:
 	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
 	@rm -f $(AWKVARS_FILE)
 
+##@
+##@------ Housekeeping ------
+##@
+
 .PHONY: clean-bin
 clean-bin: ##! Remove all downloaded awk variants
 	@rm -rf $(AWK_BIN)
 
 .PHONY: clean
 clean: ## Remove coverage reports
-	@rm -f $(COVER_FILE).all $(COVER_FILE).integration $(COVER_FILE).unit \
-			coverage-tests.html coverage-utests.html coverage.html
+	@rm -rf $(COVER_DIR)
 
 ##! Create github release at latest tag
 .PHONY: release
@@ -172,78 +199,15 @@ release:
 ## ---------
 
 # The logic is in $(RUN_RECIPE). Tests that must pass use mode `test`, known
-# bugs use mode `bug`, and UPDATE_RECIPE=1 switches to mode `update`.
+# bugs use mode `bug` (they fail when they start passing), and UPDATE_RECIPE=1
+# switches to mode `update`.
 $(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
 	@MAKEFILE_DOC=$(MAKEFILE_DOC) $(RUN_RECIPE) $(if $(filter 1 yes,$(UPDATE_RECIPE)),update,test) \
 		$< $(INTEGRATION_TEST_DIR)/$@ $(AWK_FLAGS)
 
 $(BUG_TARGETS): $(AWK_BIN)/$(AWK)
-	@MAKEFILE_DOC=$(MAKEFILE_DOC) BUGS_FIXED_FILE=$(BUGS_FIXED_FILE) $(RUN_RECIPE) bug \
+	@MAKEFILE_DOC=$(MAKEFILE_DOC) $(RUN_RECIPE) bug \
 		$< $(BUG_TEST_DIR)/$(patsubst bug-%,%,$@) $(AWK_FLAGS)
-
-# --------------------------------------------------------------------------
-# Targets for downloading various awk implementations
-# --------------------------------------------------------------------------
-$(AWK_BIN)/awk:
-	@mkdir -p $(AWK_BIN)
-	@ln -s $(shell which awk) $@
-
-$(AWK_BIN)/mawk: URL := invisible-island.net/datafiles/release/mawk.tar.gz
-$(AWK_BIN)/mawk:
-	@$(call verify-download,mawk)
-	@wget -P $(AWK_BIN) $(URL)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/mawk.tar.gz -C $@-src --strip-components=1
-	@cd $@-src && ./configure && make
-	@cp $@-src/mawk $@
-
-$(AWK_BIN)/nawk: RELEASE := 20240728
-$(AWK_BIN)/nawk: URL := github.com/onetrueawk/awk/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/nawk:
-	@$(call verify-download,nawk)
-	@wget -P $(AWK_BIN) $(URL)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && make
-	@cp $@-src/a.out $@
-
-$(AWK_BIN)/bawk: URL := busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
-$(AWK_BIN)/bawk:
-ifeq ($(shell uname),Darwin)
-	@echo "Busybox awk binaries not available for macos"
-	@exit 1
-else
-	@$(call verify-download,bawk)
-	@wget -P $(AWK_BIN) $(URL)
-	@mv $(AWK_BIN)/busybox_AWK $@ && chmod +x $@
-endif
-
-$(AWK_BIN)/wak: RELEASE := v24.10
-$(AWK_BIN)/wak: URL := github.com/raygard/wak/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/wak:
-	@$(call verify-download,wak)
-	@wget -P $(AWK_BIN) $(URL)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && make
-	@cp $@-src/wak $@
-
-# requires: sudo dnf install golang
-$(AWK_BIN)/goawk: RELEASE := v1.30.0
-$(AWK_BIN)/goawk: URL := github.com/benhoyt/goawk/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/goawk:
-	@$(call verify-download,goawk)
-	@wget -P $(AWK_BIN) $(URL)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && go build -o goawk goawk.go
-	@cp $@-src/goawk $@
-
-$(AWK_BIN)/%: # a catch-all target for AWK values
-	@echo "==================================================="
-	@echo "Supported AWK variants: $(SUPPORTED_AWK_VARIANTS)"
-	@echo "==================================================="
-	@exit 1
 
 # --------------------------------------------------------------------------
 # Internal stuff
@@ -261,7 +225,11 @@ demo.png: %.png : demo.pdf Makefile
 	@magick -density $(DPI) $*.pdf -quality 90 $@
 	@rm -f $*.pdf
 
+.PHONY: misc-bugs-bawk
 misc-bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
 misc-bugs-bawk:
 	@$(AWK_BIN)/bawk $(PARAMS)
 	@podman run -it --rm -v $(PWD):/work:Z -w /work docker.io/library/busybox:latest awk $(PARAMS)
+
+# awk variants (downloads); kept last so that `help` lists them last
+include $(TEST_DIR)/awk-variants.mk
