@@ -10,12 +10,12 @@ INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 BUG_TEST_DIR := $(TEST_DIR)/bugs
 BUGS := $(notdir $(wildcard $(BUG_TEST_DIR)/*))
 BUG_TARGETS := $(addprefix bug-,$(BUGS))
+# bug tests that now pass are recorded here (cleared on every make invocation)
 BUGS_FIXED_FILE := /tmp/.makefile-doc_bugs_fixed
 $(shell rm -f $(BUGS_FIXED_FILE))
 
-IS_BUG :=
-# a literal # (it cannot be written directly in a variable definition)
-HASH := \#
+# script that runs a single test recipe file (see its header for the format)
+RUN_RECIPE := $(TEST_DIR)/run-recipe.sh
 
 UNIT_TEST_DIR := $(TEST_DIR)/unit
 UNIT_TESTS := $(subst $(UNIT_TEST_DIR)/unittest.awk,,$(wildcard $(UNIT_TEST_DIR)/*.awk))
@@ -64,7 +64,7 @@ help: $(AWK_BIN)/$(AWK)
 .PHONY: test
 test: $(INTEGRATION_TESTS)
 
-## Run tests of known bugs (use `make -k bugs` to see all)
+## Run tests of known bugs (see test/README.md)
 .PHONY: bugs
 bugs: $(BUG_TARGETS)
 	@test ! -s $(BUGS_FIXED_FILE) || { \
@@ -86,19 +86,19 @@ utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest
 	@rm /tmp/.makefile-doc-stderr
 
 ## Run integration tests with all supported awk variants
-.PHONY: test-all-awk
+.PHONY: test-all
 test-all:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) test AWK=$(X);)
 
-## Run bug tests with all supported awk variants
+## Run unit tests with all supported awk variants
+.PHONY: utest-all
+utest-all:
+	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) utest AWK=$(X);)
+
+## Run tests of known bugs with all supported awk variants
 .PHONY: bugs-all
 bugs-all:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) bugs AWK=$(X);)
-
-## Run unit tests with all supported awk variants
-.PHONY: utest-all-awk
-utest-all:
-	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) utest AWK=$(X);)
 
 ## Run integration/unit tests with `goawk` and generate a coverage report
 coverage.html: coverage-tests.html coverage-utests.html
@@ -171,37 +171,15 @@ release:
 ## Recipes:
 ## ---------
 
-# We redirect to actual files because making sure that stderr and stdout
-# appear in the righ order with all AWK variants (in particular goawk) and on
-# CI was problematic otherwise
-$(INTEGRATION_TESTS): RECIPE_FILE = $(INTEGRATION_TEST_DIR)/$@
-$(BUG_TARGETS): RECIPE_FILE = $(BUG_TEST_DIR)/$(patsubst bug-%,%,$@)
-$(BUG_TARGETS): IS_BUG := 1
-$(INTEGRATION_TESTS) $(BUG_TARGETS): FILE_CMD = /tmp/.makefile-doc_$@_command
-$(INTEGRATION_TESTS) $(BUG_TARGETS): FILE_EXPECTED = /tmp/.makefile-doc_$@_expected
-$(INTEGRATION_TESTS) $(BUG_TARGETS): FILE_ACTUAL = /tmp/.makefile-doc_$@_actual
-# lines starting with `#:` (metadata) are not part of the recipe
-$(INTEGRATION_TESTS) $(BUG_TARGETS): RECIPE_CMD = $(shell grep -v '^$(HASH):' $(RECIPE_FILE) | head -n 1)
-$(INTEGRATION_TESTS) $(BUG_TARGETS): $(AWK_BIN)/$(AWK)
-	@echo "$(subst $,\$,$(RECIPE_CMD))" > $(FILE_CMD)
-	@grep -v '^$(HASH):' $(RECIPE_FILE) | tail -n +2 > $(FILE_EXPECTED)
-	@$< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_CMD) \
-		> $(FILE_ACTUAL).stdout 2> $(FILE_ACTUAL).stderr || exit 0
-	@{ cat $(FILE_ACTUAL).stderr; cat $(FILE_ACTUAL).stdout; } > $(FILE_ACTUAL)
-# --ignore-space-at-eol is needed as empty descriptions add OFFSET
-	@$(if $(IS_BUG),\
-		if git diff --quiet --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL); then \
-			echo "FIXED: $@"; echo "$@" >> $(BUGS_FIXED_FILE); \
-		else \
-			git diff --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL); \
-			echo "still broken: $@"; \
-		fi,\
-	$(if $(filter 1 yes,$(UPDATE_RECIPE)),\
-		{ grep '^$(HASH):' $(RECIPE_FILE); cat $(FILE_CMD); cat $(FILE_ACTUAL); } | tee -a $(FILE_ACTUAL).recipe && \
-			mv $(FILE_ACTUAL).recipe $(RECIPE_FILE),\
-		@git diff --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL) ||\
-			(echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@"))
-	@rm -f $(FILE_CMD) $(FILE_EXPECTED) $(FILE_ACTUAL)*
+# The logic is in $(RUN_RECIPE). Tests that must pass use mode `test`, known
+# bugs use mode `bug`, and UPDATE_RECIPE=1 switches to mode `update`.
+$(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
+	@MAKEFILE_DOC=$(MAKEFILE_DOC) $(RUN_RECIPE) $(if $(filter 1 yes,$(UPDATE_RECIPE)),update,test) \
+		$< $(INTEGRATION_TEST_DIR)/$@ $(AWK_FLAGS)
+
+$(BUG_TARGETS): $(AWK_BIN)/$(AWK)
+	@MAKEFILE_DOC=$(MAKEFILE_DOC) BUGS_FIXED_FILE=$(BUGS_FIXED_FILE) $(RUN_RECIPE) bug \
+		$< $(BUG_TEST_DIR)/$(patsubst bug-%,%,$@) $(AWK_FLAGS)
 
 # --------------------------------------------------------------------------
 # Targets for downloading various awk implementations
