@@ -1,0 +1,14 @@
+#: desc: % in a SUB value is interpreted as a printf format
+#: issue: 68
+-v SUB='$(TARGET):t:%.o' -v COLOR_DEFAULT=0 test/Makefile.sub
+-----------------------
+Available targets:
+-----------------------
+t     Some target:
+      %.o
+
+-----------------------
+Command-line arguments:
+-----------------------
+AWK   Some variable:
+-----------------------
