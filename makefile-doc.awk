@@ -576,6 +576,13 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   # that is not to be displayed.
   if (section) {
     if (COLOR_SECTION_CODE) {
+      # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
+      # the section color has to be restored after each reset.
+      if (OUTPUT_FORMAT == "ANSI") {
+        section = string_replace(COLOR_RESET_CODE,
+                                 COLOR_RESET_CODE COLOR_SECTION_CODE,
+                                 section)
+      }
       printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
     } else {
       printf("%s\n", section)

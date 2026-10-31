@@ -5,7 +5,8 @@
 ##@------ Awk variants ------
 ##@
 
-## Download/build all supported awk variants (run this before using `make -j`)
+## Download/build all supported awk variants
+## (needed before running tests in parallel with `make -j`)
 .PHONY: deps
 deps: $(addprefix $(AWK_BIN)/,$(SUPPORTED_AWK_VARIANTS))
 

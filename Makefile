@@ -3,7 +3,7 @@ SHELL := bash
 MAKEFLAGS := --no-print-directory --warn-undefined-variables --output-sync=target
 TEST_DIR := test
 
-## Tool used to download the awk variants {curl, wget}
+## Tool used to download the awk variants {`curl`, `wget`}
 DOWNLOAD_TOOL ?= curl
 DOWNLOAD_curl = curl -fsSL --create-dirs --output-dir $(AWK_BIN) -O
 DOWNLOAD_wget = wget -P $(AWK_BIN)
@@ -81,14 +81,11 @@ utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest
 		/dev/null
 	@rm /tmp/.makefile-doc-stderr
 
-## Run tests of known bugs, all of them even if one fails (see test/README.md)
+## Run tests of known bugs
+## fails if a bug is fixed (see test/README.md)
 .PHONY: bugs
 bugs:
 	@$(if $(BUG_TARGETS),$(MAKE) -k $(BUG_TARGETS),:)
-
-##@
-##@------ All awk variants (use `make -k` to continue after a failure) ------
-##@
 
 ## Run integration tests with all supported awk variants
 .PHONY: test-all
@@ -99,6 +96,7 @@ test-all: $(TEST_ALL)
 utest-all: $(UTEST_ALL)
 
 ## Run tests of known bugs with all supported awk variants
+## (consider using `make -k` to continue after a failure)
 .PHONY: bugs-all
 bugs-all: $(BUGS_ALL)
 
@@ -111,10 +109,11 @@ $(BUGS_ALL): bugs@%:
 	@$(MAKE) bugs AWK=$*
 
 ##@
-##@------ Coverage ------
+##@------ Coverage & lint ------
 ##@
 
-## Run integration/unit tests with `goawk` and generate a coverage report (coverage-reports/all.html)
+## Run integration/unit tests with `goawk`
+## (generate a coverage report in coverage-reports/all.html)
 .PHONY: coverage
 coverage: $(COVER_DIR)/all.html
 
@@ -137,10 +136,6 @@ $(COVER_DIR)/unit.html: utest | $(COVER_DIR)
 
 $(COVER_DIR):
 	@mkdir -p $@
-
-##@
-##@------ Lint ------
-##@
 
 ## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
@@ -172,13 +167,13 @@ check-variables:
 ##@------ Housekeeping ------
 ##@
 
-.PHONY: clean-bin
-clean-bin: ##! Remove all downloaded awk variants
-	@rm -rf $(AWK_BIN)
-
 .PHONY: clean
 clean: ## Remove coverage reports
 	@rm -rf $(COVER_DIR)
+
+.PHONY: clean-bin
+clean-bin: ##! Remove all downloaded awk variants
+	@rm -rf $(AWK_BIN)
 
 ##! Create github release at latest tag
 .PHONY: release
