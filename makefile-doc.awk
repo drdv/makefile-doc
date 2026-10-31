@@ -210,6 +210,10 @@ function strip_start_end_spaces_tabs(string) {
   return string
 }
 
+function starts_with(string, prefix) {
+  return substr(string, 1, length(prefix)) == prefix
+}
+
 # we have to escape {...} in \begin{alltt} ... \end{alltt}
 function escape_braces_for_latex_output(text) {
   if (OUTPUT_FORMAT == "LATEX") {
@@ -915,7 +919,7 @@ BEGIN {
   initialize_variables_regex()
   initialize_colors()
 
-  RECIPEPREFIX = RECIPEPREFIX == 0 ? "^\t" : "^"RECIPEPREFIX
+  RECIPEPREFIX = RECIPEPREFIX == 0 ? "\t" : RECIPEPREFIX
 
   VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
 
@@ -1035,9 +1039,9 @@ $0 ~ "^ *#.*" ODD_NUMB_TERMINAL_BACKSLASHES_REGEX || IN_MULTILINE_BACKSLASH_COMM
   }
 }
 
-IN_RULE && $0 ~ RECIPEPREFIX || IN_MULTILINE_BACKSLASH_COMMAND {
+(IN_RULE && starts_with($0, RECIPEPREFIX)) || IN_MULTILINE_BACKSLASH_COMMAND {
   forget_descriptions_data()
-  if ($0 ~ sprintf("%s.*%s", RECIPEPREFIX, ODD_NUMB_TERMINAL_BACKSLASHES_REGEX)) {
+  if (starts_with($0, RECIPEPREFIX) && substr($0, length(RECIPEPREFIX) + 1) ~ ODD_NUMB_TERMINAL_BACKSLASHES_REGEX) {
     IN_MULTILINE_BACKSLASH_COMMAND = 1
   } else {
     IN_MULTILINE_BACKSLASH_COMMAND = 0
