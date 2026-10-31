@@ -1,4 +1,4 @@
--v 'RECIPEPREFIX=>' test/Makefile.recipeprefix
+-v 'RECIPEPREFIX=>' test/fixtures/Makefile.recipeprefix
 -----------------------
 Available targets:
 -----------------------

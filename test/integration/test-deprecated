@@ -1,5 +1,5 @@
--v DEPRECATED=0 test/Makefile.targets
-WARNING: [test/Makefile.targets:8] redefined docs of target: t3
+-v DEPRECATED=0 test/fixtures/Makefile.targets
+WARNING: [test/fixtures/Makefile.targets:8] redefined docs of target: t3
 -----------------------
 Available targets:
 -----------------------

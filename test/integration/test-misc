@@ -1,4 +1,4 @@
--v SUB='$(I)target:target:immediate immediate immediate immediate deferred deferred' test/Makefile.misc
+-v SUB='$(I)target:target:immediate immediate immediate immediate deferred deferred' test/fixtures/Makefile.misc
 -----------------------
 Available targets:
 -----------------------

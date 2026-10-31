@@ -1,4 +1,4 @@
-test/Makefile.backslash-recipe
+test/fixtures/Makefile.backslash-recipe
 -----------------------
 Available targets:
 -----------------------

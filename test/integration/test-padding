@@ -1,4 +1,4 @@
--v PADDING=. test/Makefile.padding
+-v PADDING=. test/fixtures/Makefile.padding
 ------------------------
 Available targets:
 ------------------------

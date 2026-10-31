@@ -81,7 +81,7 @@ We refer to targets / variables as anchors (for docs/sections).
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&`. Double-colon grouped
   targets are handled as well.
 
-+ See `test/Makefile*` for examples.
++ See `test/fixtures/Makefile*` for examples.
 
 **Note**: in general, using inline comments with variables is not a good idea because
 ["trailing space characters are not stripped from variable
@@ -163,7 +163,7 @@ shown. The supported parameters are:
 + `T`       termination string, e.g., `}`
 
 See the `Makefile` of this project and the test recipes in
-`test/recipes/test-substitution-*` for examples.
+`test/integration/test-sub-*` for examples.
 
 The option `DSUB` performs substitutions in the original descriptions. The expected
 format is `NAME:VALUES`. For example, using `-v DSUB='$$(DEPS):$(DEPS)'`, the target
@@ -226,3 +226,5 @@ Execute `make test utest` (this uses the system's default `awk`). To test with a
 
 You need a standard build environment. To compile `nawk` ensure that `bison` is
 installed (`dnf install bison`). For `goawk` you need `golang` (`dnf install golang`).
+
+See `test/README.md` for the test format and how to report bugs.

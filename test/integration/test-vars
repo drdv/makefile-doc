@@ -1,5 +1,5 @@
-test/Makefile.vars
-WARNING: [test/Makefile.vars:33] redefined docs of variable: VAR6
+test/fixtures/Makefile.vars
+WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,6 @@
--v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=1 -v COLOR_ATTENTION=14 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_DEPRECATED=9 -v EXPORT_THEME=FG:000000 -v EXPORT_THEME=BG:AAAAAA test/Makefile.targets test/Makefile.targets-double-colon test/Makefile.targets-grouped test/Makefile.vars
-WARNING: [test/Makefile.targets:8] redefined docs of target: t3
-WARNING: [test/Makefile.vars:33] redefined docs of variable: VAR6
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=1 -v COLOR_ATTENTION=14 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_DEPRECATED=9 -v EXPORT_THEME=FG:000000 -v EXPORT_THEME=BG:AAAAAA test/fixtures/Makefile.targets test/fixtures/Makefile.targets-double-colon test/fixtures/Makefile.targets-grouped test/fixtures/Makefile.vars
+WARNING: [test/fixtures/Makefile.targets:8] redefined docs of target: t3
+WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{xcolor}

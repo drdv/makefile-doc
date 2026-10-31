@@ -1,4 +1,4 @@
-test/Makefile.targets-double-colon
+test/fixtures/Makefile.targets-double-colon
 -----------------------
 Available targets:
 -----------------------

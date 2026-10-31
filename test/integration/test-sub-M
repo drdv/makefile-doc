@@ -1,4 +1,4 @@
--v SUB='<M:0>$(TARGET):counter-:one two three;<M:1>AWK:awk mawk nawk bawk wak goawk' test/Makefile.sub
+-v SUB='<M:0>$(TARGET):counter-:one two three;<M:1>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
 -----------------------
 Available targets:
 -----------------------

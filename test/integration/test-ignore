@@ -1,4 +1,4 @@
-test/Makefile.targets-ignore
+test/fixtures/Makefile.targets-ignore
 -----------------------
 Available targets:
 -----------------------

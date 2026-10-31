@@ -1,4 +1,4 @@
--v COLOR_BACKTICKS=1 test/Makefile.backticks
+-v COLOR_BACKTICKS=1 test/fixtures/Makefile.backticks
 -----------------------
 Available targets:
 -----------------------
