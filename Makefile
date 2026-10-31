@@ -5,6 +5,18 @@ TEST_DIR := test
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 
+# Known bugs: same format as integration tests, but the expected output is the
+# correct one, so they fail until the bug is fixed.
+BUG_TEST_DIR := $(TEST_DIR)/bugs
+BUGS := $(notdir $(wildcard $(BUG_TEST_DIR)/*))
+BUG_TARGETS := $(addprefix bug-,$(BUGS))
+BUGS_FIXED_FILE := /tmp/.makefile-doc_bugs_fixed
+$(shell rm -f $(BUGS_FIXED_FILE))
+
+IS_BUG :=
+# a literal # (it cannot be written directly in a variable definition)
+HASH := \#
+
 UNIT_TEST_DIR := $(TEST_DIR)/unit
 UNIT_TESTS := $(subst $(UNIT_TEST_DIR)/unittest.awk,,$(wildcard $(UNIT_TEST_DIR)/*.awk))
 # we want unittest.awk to be the first one in the list
@@ -52,6 +64,13 @@ help: $(AWK_BIN)/$(AWK)
 .PHONY: test
 test: $(INTEGRATION_TESTS)
 
+## Run tests of known bugs (use `make -k bugs` to see all)
+.PHONY: bugs
+bugs: $(BUG_TARGETS)
+	@test ! -s $(BUGS_FIXED_FILE) || { \
+		echo "Fixed bugs (move them to $(INTEGRATION_TEST_DIR)):"; \
+		sed 's/^/  /' $(BUGS_FIXED_FILE); exit 1; }
+
 ## Run unit tests
 .PHONY: utest
 utest: UNITTEST_VERBOSE :=
@@ -70,6 +89,11 @@ utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest
 .PHONY: test-all-awk
 test-all:
 	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) test AWK=$(X);)
+
+## Run bug tests with all supported awk variants
+.PHONY: bugs-all
+bugs-all:
+	@$(foreach X,$(SUPPORTED_AWK_VARIANTS),$(MAKE) bugs AWK=$(X);)
 
 ## Run unit tests with all supported awk variants
 .PHONY: utest-all-awk
@@ -150,22 +174,33 @@ release:
 # We redirect to actual files because making sure that stderr and stdout
 # appear in the righ order with all AWK variants (in particular goawk) and on
 # CI was problematic otherwise
-$(INTEGRATION_TESTS): FILE_CMD = /tmp/.makefile-doc_$@_command
-$(INTEGRATION_TESTS): FILE_EXPECTED = /tmp/.makefile-doc_$@_expected
-$(INTEGRATION_TESTS): FILE_ACTUAL = /tmp/.makefile-doc_$@_actual
-$(INTEGRATION_TESTS): RECIPE_CMD = $(shell head -n 1 $(INTEGRATION_TEST_DIR)/$@)
-$(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
+$(INTEGRATION_TESTS): RECIPE_FILE = $(INTEGRATION_TEST_DIR)/$@
+$(BUG_TARGETS): RECIPE_FILE = $(BUG_TEST_DIR)/$(patsubst bug-%,%,$@)
+$(BUG_TARGETS): IS_BUG := 1
+$(INTEGRATION_TESTS) $(BUG_TARGETS): FILE_CMD = /tmp/.makefile-doc_$@_command
+$(INTEGRATION_TESTS) $(BUG_TARGETS): FILE_EXPECTED = /tmp/.makefile-doc_$@_expected
+$(INTEGRATION_TESTS) $(BUG_TARGETS): FILE_ACTUAL = /tmp/.makefile-doc_$@_actual
+# lines starting with `#:` (metadata) are not part of the recipe
+$(INTEGRATION_TESTS) $(BUG_TARGETS): RECIPE_CMD = $(shell grep -v '^$(HASH):' $(RECIPE_FILE) | head -n 1)
+$(INTEGRATION_TESTS) $(BUG_TARGETS): $(AWK_BIN)/$(AWK)
 	@echo "$(subst $,\$,$(RECIPE_CMD))" > $(FILE_CMD)
-	@tail -n +2 $(INTEGRATION_TEST_DIR)/$@ > $(FILE_EXPECTED)
+	@grep -v '^$(HASH):' $(RECIPE_FILE) | tail -n +2 > $(FILE_EXPECTED)
 	@$< -f $(MAKEFILE_DOC) $(AWK_FLAGS) $(RECIPE_CMD) \
 		> $(FILE_ACTUAL).stdout 2> $(FILE_ACTUAL).stderr || exit 0
 	@{ cat $(FILE_ACTUAL).stderr; cat $(FILE_ACTUAL).stdout; } > $(FILE_ACTUAL)
 # --ignore-space-at-eol is needed as empty descriptions add OFFSET
-	@$(if $(filter 1 yes,$(UPDATE_RECIPE)),\
-		{ cat $(FILE_CMD); cat $(FILE_ACTUAL); } | tee -a $(FILE_ACTUAL).recipe && \
-			mv $(FILE_ACTUAL).recipe $(INTEGRATION_TEST_DIR)/$@,\
+	@$(if $(IS_BUG),\
+		if git diff --quiet --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL); then \
+			echo "FIXED: $@"; echo "$@" >> $(BUGS_FIXED_FILE); \
+		else \
+			git diff --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL); \
+			echo "still broken: $@"; \
+		fi,\
+	$(if $(filter 1 yes,$(UPDATE_RECIPE)),\
+		{ grep '^$(HASH):' $(RECIPE_FILE); cat $(FILE_CMD); cat $(FILE_ACTUAL); } | tee -a $(FILE_ACTUAL).recipe && \
+			mv $(FILE_ACTUAL).recipe $(RECIPE_FILE),\
 		@git diff --ignore-space-at-eol $(FILE_EXPECTED) $(FILE_ACTUAL) ||\
-			(echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@")
+			(echo "failed $@"; exit 1) && echo "[$(notdir $<)] passed $@"))
 	@rm -f $(FILE_CMD) $(FILE_EXPECTED) $(FILE_ACTUAL)*
 
 # --------------------------------------------------------------------------
@@ -248,7 +283,7 @@ demo.png: %.png : demo.pdf Makefile
 	@magick -density $(DPI) $*.pdf -quality 90 $@
 	@rm -f $*.pdf
 
-bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
-bugs-bawk:
+misc-bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
+misc-bugs-bawk:
 	@$(AWK_BIN)/bawk $(PARAMS)
 	@podman run -it --rm -v $(PWD):/work:Z -w /work docker.io/library/busybox:latest awk $(PARAMS)
