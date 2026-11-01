@@ -1,0 +1,9 @@
+## d
+t:
+	\
+BOGUS := 1 ## bogus
+
+## c
+#\
+## swallowed
+X := 1 ## v

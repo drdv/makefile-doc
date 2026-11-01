@@ -1,0 +1,13 @@
+## d
+t: \
+BOGUS := 1 ## x
+
+## v
+X := a \
+  Y := b ## bogus
+
+## after a tab-indented continuation
+a: b \
+	c
+## documented
+z:
