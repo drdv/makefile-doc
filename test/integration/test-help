@@ -6,7 +6,7 @@ Options:
   OUTPUT_FORMAT: ANSI
   EXPORT_THEME (theme for HTML/LATEX output): 
   SUB (substitutions): 
-  TARGETS_REGEX (regex for matching targets): ^ *[^# 	=][^#:=	]* *&?(:|::)([^=:]|$)
+  TARGETS_REGEX (regex for matching targets): ^[ 	]*[^# 	=][^#:=]*[ 	]*&?(:|::)([^=:]|$)
   VARIABLES_REGEX (regex for matching variables): ^[ 	]*([ 	]*(override|unexport|export|private)[ 	]+)*[^ 	#:=]+[ 	]*(=|:=|::=|:::=|!=|\?=|\+=)
   VARS ([bool] show documented variables): 1
   PADDING (a padding character between anchors and docs): " "

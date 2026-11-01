@@ -955,7 +955,7 @@ BEGIN {
   #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
   #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is captured as `foo\ bar`.
   #   - Target rules continued across physical lines are not reliably recognized.
-  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^# \t=][^#:=\t]* *&?(:|::)([^=:]|$)" : TARGETS_REGEX
+  TARGETS_REGEX = TARGETS_REGEX == "" ? "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)" : TARGETS_REGEX
 
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
@@ -1122,7 +1122,8 @@ $0 ~ TARGETS_REGEX {
   # for the reason to use \\&, see:
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
   g_target_name_nominal = $1
-  sub(/ *&/, "\\&", g_target_name_nominal)
+  sub(/[ \t]*&/, "\\&", g_target_name_nominal)
+  g_target_name_nominal = strip_start_end_spaces_tabs(g_target_name_nominal)
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
     g_target_name = is_double_colon_rule($0) ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal

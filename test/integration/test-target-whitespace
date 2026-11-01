@@ -1,0 +1,23 @@
+#: desc: Target parsing does not handle tabs consistently
+#: issue: 98
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.target-whitespace
+--------------------------------
+Available targets:
+--------------------------------
+single-space                       Single-colon with spaces
+single-tab                         Single-colon with a tab
+double-colon~1                     First definition
+double-colon~2                     Second definition, spaces before ::
+double-colon~3                     Third definition, tab before ::
+multi-space-a multi-space-b        Targets separated by spaces
+multi-tab-a	multi-tab-b            Targets separated by a tab
+group-space-a group-space-b&       Grouped targets with spaces between names
+group-tab-a	group-tab-b&           Grouped targets with tabs between names
+group-tab-c	group-tab-d&           Grouped targets with tabs between names and before &
+group-dc-a group-dc-b&~1           First definition
+group-dc-a group-dc-b&~2           Second definition, spaces before &
+group-dc-a group-dc-b&~3           Third definition, tab before &
+group-dc-tab-a	group-dc-tab-b&~1   First definition
+group-dc-tab-a	group-dc-tab-b&~2   Second definition, spaces before &
+group-dc-tab-a	group-dc-tab-b&~3   Third definition, tab before &
+--------------------------------

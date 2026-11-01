@@ -1,0 +1,53 @@
+# Single-colon targets: whitespace before :
+## Single-colon with spaces
+single-space   :
+
+## Single-colon with a tab
+single-tab	:
+
+# Double-colon targets: whitespace normalization and numbering
+## First definition
+double-colon::
+
+## Second definition, spaces before ::
+double-colon   ::
+
+## Third definition, tab before ::
+double-colon	::
+
+# Multiple independent targets
+## Targets separated by spaces
+multi-space-a multi-space-b:
+
+## Targets separated by a tab
+multi-tab-a	multi-tab-b:
+
+# Grouped single-colon targets
+## Grouped targets with spaces between names
+group-space-a group-space-b&:
+
+## Grouped targets with tabs between names
+group-tab-a	group-tab-b&:
+
+## Grouped targets with tabs between names and before &
+group-tab-c	group-tab-d	&:
+
+# Grouped double-colon targets: whitespace normalization and numbering
+## First definition
+group-dc-a group-dc-b&::
+
+## Second definition, spaces before &
+group-dc-a group-dc-b   &::
+
+## Third definition, tab before &
+group-dc-a group-dc-b	&::
+
+# Grouped double-colon targets with tabs between names
+## First definition
+group-dc-tab-a	group-dc-tab-b&::
+
+## Second definition, spaces before &
+group-dc-tab-a	group-dc-tab-b   &::
+
+## Third definition, tab before &
+group-dc-tab-a	group-dc-tab-b	&::
