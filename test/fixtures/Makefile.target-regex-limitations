@@ -1,0 +1,18 @@
+## Colon in function call
+$(info a: b)
+
+## Colon in expression
+$ifeq ($(X),a:b)
+
+## Continued rule
+foo \
+  followed-by-bar-next-line:
+
+## Escaped #
+foo\#bar:
+
+## Escaped :
+foo\:bar:
+
+## Escaped space
+foo\ bar:

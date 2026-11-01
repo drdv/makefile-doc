@@ -117,6 +117,69 @@ are given in `{...}`, `(.)` shows the default)
 
 Running `awk -f makefile-doc.awk` outputs help with values of options.
 
+## Parsing limitations
+
+`makefile-doc` uses AWK regular expressions to identify Makefile targets and variable
+assignments. It is not a complete GNU Make parser. Consequently, some valid Makefile
+constructs may not be recognized correctly.
+
+### Target recognition
+
+The target-matching regex has the following known limitations:
+
+- **Colons inside variable references or function calls can cause false positives.**
+  ```makefile
+  $(info a: b)
+  ```
+  The colon may be mistaken for a rule separator.
+
+- **Escaped `#` in target names is not handled.**
+  ```makefile
+  foo\#bar:
+  ```
+  GNU Make treats `#` as part of the target name, but the regex excludes it unconditionally.
+
+- **Escaped `:` in target names is not handled.**
+  ```makefile
+  foo\:bar:
+  ```
+  The escaped colon is mistaken for the rule separator.
+
+- **Escaped spaces are not unescaped in captured target names.**
+  ```makefile
+  foo\ bar:
+  ```
+  The target is captured as `foo\ bar`, rather than `foo bar`.
+
+- **Target rules continued across physical lines are not reliably recognized.**
+  ```makefile
+  foo \
+    bar:
+  ```
+
+### Variable recognition
+
+The variable-matching regex has the following known limitations:
+
+- **Multi-line definitions using `define` are not properly handled.**
+  Assignment-looking lines inside their bodies may be mistaken for standalone variable assignments.
+  ```makefile
+  ## Documentation for FOO
+  define FOO
+  BAR := value
+  endef
+  ```
+  The documentation may incorrectly become associated with `BAR`.
+
+- **Computed variable names are not expanded.**
+  ```makefile
+  PREFIX := FOO
+
+  ## Compiler flags
+  $(PREFIX)_FLAGS := -O2
+  ```
+  The script documents `$(PREFIX)_FLAGS` rather than the expanded name `FOO_FLAGS`.
+
 ## Substitutions
 
 Sometimes it is necessary to document a target specified in terms of a variable or an

@@ -1,0 +1,25 @@
+## Variable containing .
+FOO.BAR := 1
+
+## Variable containing +
+FOO+BAR := 1
+
+## Variable containing /
+FOO/BAR := 1
+
+## Variable containing @
+FOO@BAR := 1
+
+## Target containing +
+foo+bar:
+
+## Target containing @
+foo@bar:
+
+## Target containing single quote
+## This is not correctly parsed even by makefile-mode in Emacs :)
+foo'bar:
+
+## Target containing double quote
+## ... same here
+foo"bar:

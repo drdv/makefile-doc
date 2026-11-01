@@ -1,0 +1,9 @@
+## Documentation for FOO
+define FOO
+BAR := value
+endef
+
+PREFIX := FOO
+
+## Compiler flags
+$(PREFIX)_FLAGS := -O2

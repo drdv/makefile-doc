@@ -1,0 +1,21 @@
+#: desc: Improve target and variable name recognition
+#: issue: 90
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.names
+-----------------------
+Available targets:
+-----------------------
+foo+bar   Target containing +
+foo@bar   Target containing @
+foo'bar   Target containing single quote
+          This is not correctly parsed even by makefile-mode in Emacs :)
+foo"bar   Target containing double quote
+          ... same here
+
+-----------------------
+Command-line arguments:
+-----------------------
+FOO.BAR   Variable containing .
+FOO+BAR   Variable containing +
+FOO/BAR   Variable containing /
+FOO@BAR   Variable containing @
+-----------------------
