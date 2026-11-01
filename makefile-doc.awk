@@ -1068,7 +1068,9 @@ $0 ~ "^ *#.*" ODD_NUMB_TERMINAL_BACKSLASHES_REGEX || IN_MULTILINE_BACKSLASH_COMM
 
 (IN_RULE && starts_with($0, RECIPEPREFIX)) || IN_MULTILINE_BACKSLASH_COMMAND {
   forget_descriptions_data()
-  if (starts_with($0, RECIPEPREFIX) && substr($0, length(RECIPEPREFIX) + 1) ~ ODD_NUMB_TERMINAL_BACKSLASHES_REGEX) {
+  g_recipe_text = starts_with($0, RECIPEPREFIX) ? substr($0, length(RECIPEPREFIX) + 1) : $0
+
+  if (g_recipe_text ~ ODD_NUMB_TERMINAL_BACKSLASHES_REGEX) {
     IN_MULTILINE_BACKSLASH_COMMAND = 1
   } else {
     IN_MULTILINE_BACKSLASH_COMMAND = 0
