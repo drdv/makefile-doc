@@ -147,11 +147,20 @@ function min(x, y) {
   return (x <= y) ? x : y
 }
 
+# 1. An empty string means a space.
+# 2. I used to have a gsub-based version, but it needs tricks to handle
+#    special characters like &, \ (and 0, because of `if (string)`).
+# 3. For the strings we manipulate here, the drop in speed is negligible.
+# 4. n must be a non-negative integer (a non-numeric n loops forever);
+#    OFFSET is validated in BEGIN.
 function repeated_string(string, n, #locals
-                         s) {
-  s = sprintf("%" n "s", "")
-  if (string) {
-    gsub(/ /, string, s)
+                         s, k) {
+  if (string == "") {
+    string = " "
+  }
+  s = ""
+  for (k = 1; k <= n; k++) {
+    s = s string
   }
   return s
 }
@@ -620,6 +629,9 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
     # handle padding manually because there is a difference between the actual text and
     # the visible text (for latex)
     padding = repeated_string("", len_anchors - length(renamed_anchor))
+    if (PADDING != " ") {
+      padding = string_replace(" ", PADDING, padding)
+    }
     if (DISPLAY_PARAMS["color"]) {
       formatted_anchor = sprintf("%s%s%s%s",
                                  DISPLAY_PARAMS["color"],
@@ -628,10 +640,6 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
                                  COLOR_RESET_CODE)
     } else {
       formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
-    }
-
-    if (PADDING != " ") {
-      formatted_anchor = string_replace(" ", PADDING, formatted_anchor)
     }
 
     printf("%s%s%s",
@@ -963,6 +971,12 @@ BEGIN {
   OFFSET = OFFSET == "" ? 2 : OFFSET
   if (length(PADDING) != 1) {
     printf("ERROR: PADDING should have length 1\n") > STDERR
+    ABORT = 1
+    exit 1
+  }
+
+  if (OFFSET !~ /^[0-9]+$/) {
+    printf("ERROR: OFFSET should be a non-negative integer\n") > STDERR
     ABORT = 1
     exit 1
   }
