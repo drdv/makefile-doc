@@ -1,3 +1,11 @@
+# t0:         No continuation (T0 is a Make variable).
+# t1, t3, t5: Odd number of trailing backslashes; the following unprefixed line continues the recipe.
+# t2, t4:     Even number of trailing backslashes; the following unprefixed line is a Make variable assignment.
+# s2, s3:     Backslashes separated by spaces; the final backslash continues the recipe.
+# t6:         Multiple continued physical lines, mixing prefixed and unprefixed lines. Including comments.
+# t7:         A shell comment continued across physical lines; the subsequent T7 assignment is a Make variable.
+# t8:         Tab-prefixed lines are recipe commands, not Make variable assignments or Makefile documentation.
+
 ## t-t0
 t0: ## i-t0
 	@echo maybe
@@ -45,7 +53,8 @@ T6_2 := 2 \
 		T6_3 := 3 \
 T6_3 := 4 \
 	T6_4 := 5 \
-T6_5 := 6 # BAD not a variable
+## This is shell text, not documentation
+T6_5 := 6
 
 t7: ## i-t7
 
@@ -55,7 +64,7 @@ t7: ## i-t7
 	and this
 T7 ?= 1## T7
 
-t8: ## i-t7
+t8: ## i-t8
 	## BAD
 	T8_1 ?= 1
 
