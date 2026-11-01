@@ -286,24 +286,25 @@ function initialize_variables_regex() {
   #      endef
   #  - Variable/function references in variable names are captured literally
   #    rather than expanded, e.g., `$(PREFIX)_FLAGS := ...`.
-  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^ \t#:=]+ *%s",
+  VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*([ \t]*(%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
                                     join_splitted(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
 
+# return `FOO`, given `override private export FOO := 1`
+# return `export`, given `override private export := 1` even though `export` is a qualifier
 function parse_variable_name(whole_line, #locals
-                             whole_line_split, variable_name, k) {
+                             whole_line_split, variable_name, qualifiers_pattern) {
   split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
-  variable_name = whole_line_split[1]
+  variable_name = strip_start_end_spaces_tabs(whole_line_split[1])
 
-  # here we need to preserve order in order to remove unexport and not just export
-  for (k=1;
-       k<=length_array_posix(VARIABLE_QUALIFIERS);
-       k++) {
-    gsub("(^| )" VARIABLE_QUALIFIERS[k] "( |$)", " ", variable_name)
+  qualifiers_pattern = "(" join_splitted(VARIABLE_QUALIFIERS, "|") ")"
+
+  while (match(variable_name, "^" qualifiers_pattern "[ \t]+[^ \t]")) {
+    sub("^" qualifiers_pattern "[ \t]+", "", variable_name)
   }
-  strip_start_end_spaces_tabs(variable_name)
-  return variable_name
+
+  return strip_start_end_spaces_tabs(variable_name)
 }
 
 function associate_data_with_anchor(anchor_name,

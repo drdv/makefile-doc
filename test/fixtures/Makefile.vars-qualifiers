@@ -18,3 +18,18 @@ unexport  override     private  export     more_LETTERS:=1
 
 ## test qualifiers in variable name
    override  unexport private  override     private  export     override_private := 1
+
+## test variable name that coincides with a qualifier
+unexport := 1
+
+## test variable name that coincides with a qualifier and has qualifiers
+ override  unexport private  override       export   private  := 1
+
+## Start with a leading tab
+	export := 1
+
+## Start with a leading tab and tab between variables
+	export	private U  := 1
+
+## Tab and space
+private		override	 := 1

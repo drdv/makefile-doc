@@ -1,12 +1,17 @@
-test/fixtures/Makefile.vars-qualifiers
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.vars-qualifiers
 -----------------------
 Command-line arguments:
 -----------------------
-[34mX               [0m   only override
-[34mY               [0m   override and export
-[34mZ               [0m   override, private and export
-[34mmore_LETTERS    [0m   test all four (even though it makes no sense)
-[34mqsub            [0m   test repeated qualifiers
-[34moverride1       [0m   test qualifiers in variable name
-[34moverride_private[0m   test qualifiers in variable name
+X                  only override
+Y                  override and export
+Z                  override, private and export
+more_LETTERS       test all four (even though it makes no sense)
+qsub               test repeated qualifiers
+override1          test qualifiers in variable name
+override_private   test qualifiers in variable name
+unexport           test variable name that coincides with a qualifier
+private            test variable name that coincides with a qualifier and has qualifiers
+export             Start with a leading tab
+U                  Start with a leading tab and tab between variables
+override           Tab and space
 -----------------------
