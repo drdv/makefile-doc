@@ -1,0 +1,14 @@
+#: desc: Normalize RECIPEPREFIX according to GNU Make semantics
+#: issue: 92
+-v RECIPEPREFIX=0 -v COLOR_DEFAULT=0 test/fixtures/Makefile.recipeprefix-misc
+-----------------------
+Available targets:
+-----------------------
+t1     A target
+
+-----------------------
+Command-line arguments:
+-----------------------
++BAR   Shell assignment in recipe (BAR=1) when RECIPEPREFIX=+
+       Makefile variable (+BAR=1) otherwise
+-----------------------

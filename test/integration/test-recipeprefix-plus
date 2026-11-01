@@ -1,8 +1,0 @@
-#: desc: .RECIPEPREFIX values containing regex metacharacters break with mawk
-#: issue: 84
--v 'RECIPEPREFIX=+' test/fixtures/Makefile.recipeprefix-plus
------------------------
-Available targets:
------------------------
-[34mtarget[0m   A target
------------------------

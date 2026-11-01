@@ -938,7 +938,7 @@ BEGIN {
   initialize_variables_regex()
   initialize_colors()
 
-  RECIPEPREFIX = RECIPEPREFIX == 0 ? "\t" : RECIPEPREFIX
+  RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
 
   VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
 

@@ -1,0 +1,14 @@
+#: desc: .RECIPEPREFIX values containing regex metacharacters break with mawk
+#: issue: 84
+-v 'RECIPEPREFIX=+' -v COLOR_DEFAULT=0 test/fixtures/Makefile.recipeprefix-misc
+-----------------------
+Available targets:
+-----------------------
+t1     A target
+
+-----------------------
+Command-line arguments:
+-----------------------
+0FOO   Shell assignment in recipe (FOO=1) when RECIPEPREFIX=0
+       Makefile variable (0FOO=1) otherwise
+-----------------------

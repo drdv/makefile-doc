@@ -1,0 +1,13 @@
+## A target
+t1:
++ @echo hello
+
+t2:
+## Shell assignment in recipe (BAR=1) when RECIPEPREFIX=+
+## Makefile variable (+BAR=1) otherwise
++BAR=1
+
+t3:
+## Shell assignment in recipe (FOO=1) when RECIPEPREFIX=0
+## Makefile variable (0FOO=1) otherwise
+0FOO=1
