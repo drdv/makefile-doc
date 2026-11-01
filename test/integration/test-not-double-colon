@@ -1,0 +1,8 @@
+#: desc: Single-colon targets can be incorrectly identified as double-colon targets
+#: issue: 86
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-not-double-colon
+-----------------------
+Available targets:
+-----------------------
+foo   A normal single-colon target
+-----------------------

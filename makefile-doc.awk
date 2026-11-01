@@ -166,6 +166,12 @@ function length_array_posix(array, #locals
   return n
 }
 
+function is_double_colon_rule(line, #locals
+                              pos) {
+  pos = index(line, ":")
+  return pos && substr(line, pos + 1, 1) == ":"
+}
+
 function form_dc_target_name(target_name_nominal) {
   if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
     TARGETS_DC_COUNTER[target_name_nominal] = 1
@@ -193,7 +199,8 @@ function join_splitted(array, delimiter, #locals
 }
 
 # string replacement without regex
-function string_replace(string, replacement, text,    k, pre) {
+function string_replace(string, replacement, text, #locals
+                        k, pre) {
   k = index(text, string)
   if (string && k > 0) {
     pre = substr(text, 1, k-1)
@@ -1095,7 +1102,7 @@ $0 ~ TARGETS_REGEX {
   sub(/ *&/, "\\&", g_target_name_nominal)
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {
-    g_target_name = ($0 ~ "::") ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal
+    g_target_name = is_double_colon_rule($0) ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal
 
     TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
                                                TARGETS,
