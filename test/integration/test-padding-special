@@ -1,0 +1,14 @@
+#: desc: PADDING=& does not work as expected
+#: issue: 88
+-v PADDING='&' -v COLOR_DEFAULT=0 test/fixtures/Makefile.padding
+------------------------
+Available targets:
+------------------------
+t&&&&&&&&&&&&&&&&&&&&&&&   A target with a short name
+longer-target-name&&&&&&   More characters
+
+------------------------
+Command-line arguments:
+------------------------
+A_______________________   And the winner is ...
+------------------------

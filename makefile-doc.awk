@@ -618,7 +618,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
     }
 
     if (PADDING != " ") {
-      gsub(/ /, PADDING, formatted_anchor)
+      formatted_anchor = string_replace(" ", PADDING, formatted_anchor)
     }
 
     printf("%s%s%s",
