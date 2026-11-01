@@ -1,0 +1,9 @@
+#: desc: Improve target and variable name recognition
+#: issue: 90
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.variable-regex-limitations
+-----------------------
+Command-line arguments:
+-----------------------
+BAR               Documentation for FOO
+$(PREFIX)_FLAGS   Compiler flags
+-----------------------

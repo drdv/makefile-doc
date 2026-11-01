@@ -1,0 +1,13 @@
+#: desc: Improve target and variable name recognition
+#: issue: 90
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.target-regex-limitations
+-------------------------
+Available targets:
+-------------------------
+$(info a                    Colon in function call
+$ifeq ($(X),a               Colon in expression
+followed-by-bar-next-line   Continued rule
+foo\                        Escaped #
+                            Escaped :
+foo\ bar                    Escaped space
+-------------------------

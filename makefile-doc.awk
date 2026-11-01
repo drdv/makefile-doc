@@ -274,7 +274,19 @@ function detect_ignored_targets(target_line, #locals
 function initialize_variables_regex() {
   ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
   split("override unexport export private", VARIABLE_QUALIFIERS, " ")
-  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^#][a-zA-Z0-9_-]* *%s",
+
+  # Variable matching is heuristic; this is not a complete GNU Make parser.
+  #
+  # Known limitations:
+  #  - Multi-line definitions using `define` are not recognized as variable
+  #    definitions; assignment-looking lines inside their bodies may be
+  #    mistaken for standalone assignments, e.g.:
+  #      define FOO
+  #      BAR := value
+  #      endef
+  #  - Variable/function references in variable names are captured literally
+  #    rather than expanded, e.g., `$(PREFIX)_FLAGS := ...`.
+  VARIABLES_REGEX_DEFAULT = sprintf("^ *( *(%s) *)* *[^ \t#:=]+ *%s",
                                     join_splitted(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
@@ -930,12 +942,20 @@ BEGIN {
 
   VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
 
-  # Since we cannot use negative lookahead, (:|::)([^=:]|$)( *|.*;) simulates no = after
-  # the last colon. We need to add a colon in the negative character class to prevent
-  # matching e.g., x ::= 1
+  # Target matching is heuristic; this is not a complete GNU Make parser.
   #
-  # Note: we have to use *(:|::) instead of *{1,2} because the latter doesn't work in mawk.
-  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^#][ ,a-zA-Z0-9$_/%.(){}-]* *&?(:|::)([^=:]|$)( *|.*;)" : TARGETS_REGEX
+  # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
+  # the rule separator is not followed by `:` or `=`, preventing assignment
+  # operators such as `:=` and `::=` from being mistaken for target separators.
+  #
+  # Known limitations:
+  #   - Colons inside variable references or function calls can cause false positives, e.g., `$(info a: b)`.
+  #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
+  #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
+  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is captured as `foo\ bar`.
+  #   - Target rules continued across physical lines are not reliably recognized.
+  TARGETS_REGEX = TARGETS_REGEX == "" ? "^ *[^# \t=][^#:=\t]* *&?(:|::)([^=:]|$)" : TARGETS_REGEX
+
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
