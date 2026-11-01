@@ -181,6 +181,16 @@ function is_double_colon_rule(line, #locals
   return pos && substr(line, pos + 1, 1) == ":"
 }
 
+# true if the string ends with an odd number of backslashes (a line continuation)
+function has_odd_terminal_backslashes(string, #locals
+                                      n, k) {
+  n = 0
+  for (k = length(string); k > 0 && substr(string, k, 1) == "\\"; k--) {
+    n++
+  }
+  return n % 2
+}
+
 function form_dc_target_name(target_name_nominal) {
   if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
     TARGETS_DC_COUNTER[target_name_nominal] = 1
@@ -1030,14 +1040,12 @@ BEGIN {
   FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
 
-  # this is equivalent to /[^\\](\\{2})*\\$/ with an extra round of escaping
-  ODD_NUMB_TERMINAL_BACKSLASHES_REGEX = "[^\\\\](\\\\{2})*\\\\$"
-
   # used to decorate double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
 
   IN_MULTILINE_BACKSLASH_COMMENT = 0
-  IN_MULTILINE_BACKSLASH_COMMAND = 0
+  IN_MULTILINE_BACKSLASH_RECIPE = 0
+  IN_MULTILINE_BACKSLASH_ANCHOR = 0
   IN_DEFINE_ENDEF_BLOCK = 0
   IN_RULE = ""
 
@@ -1062,10 +1070,10 @@ FNR == 1 {
 }
 
 # Skip backslash multiline comments
-$0 ~ "^ *#.*" ODD_NUMB_TERMINAL_BACKSLASHES_REGEX || IN_MULTILINE_BACKSLASH_COMMENT {
+(/^ *#/ && has_odd_terminal_backslashes($0)) || IN_MULTILINE_BACKSLASH_COMMENT {
   if (!IN_MULTILINE_BACKSLASH_COMMENT) {
     IN_MULTILINE_BACKSLASH_COMMENT = 1
-  } else if (!($0 ~ ODD_NUMB_TERMINAL_BACKSLASHES_REGEX)) {
+  } else if (!has_odd_terminal_backslashes($0)) {
     IN_MULTILINE_BACKSLASH_COMMENT = 0
   }
 
@@ -1081,14 +1089,21 @@ $0 ~ "^ *#.*" ODD_NUMB_TERMINAL_BACKSLASHES_REGEX || IN_MULTILINE_BACKSLASH_COMM
   }
 }
 
-(IN_RULE && starts_with($0, RECIPEPREFIX)) || IN_MULTILINE_BACKSLASH_COMMAND {
+# The next line(s) of a target/variable line that ends with an odd number of backslashes
+# are part of it and are skipped.
+IN_MULTILINE_BACKSLASH_ANCHOR {
+  IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
+  next
+}
+
+(IN_RULE && starts_with($0, RECIPEPREFIX)) || IN_MULTILINE_BACKSLASH_RECIPE {
   forget_descriptions_data()
   g_recipe_text = starts_with($0, RECIPEPREFIX) ? substr($0, length(RECIPEPREFIX) + 1) : $0
 
-  if (g_recipe_text ~ ODD_NUMB_TERMINAL_BACKSLASHES_REGEX) {
-    IN_MULTILINE_BACKSLASH_COMMAND = 1
+  if (has_odd_terminal_backslashes(g_recipe_text)) {
+    IN_MULTILINE_BACKSLASH_RECIPE = 1
   } else {
-    IN_MULTILINE_BACKSLASH_COMMAND = 0
+    IN_MULTILINE_BACKSLASH_RECIPE = 0
   }
 
   next
@@ -1125,6 +1140,7 @@ $0 ~ "^ *#.*" ODD_NUMB_TERMINAL_BACKSLASHES_REGEX || IN_MULTILINE_BACKSLASH_COMM
 
 $0 ~ TARGETS_REGEX {
   if (detect_ignored_targets($0)) {
+    IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
     next
   }
 
@@ -1152,6 +1168,7 @@ $0 ~ TARGETS_REGEX {
   }
 
   IN_RULE = g_target_name_nominal
+  IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
   PATTERN_RULE_MATCHED = 1
 }
 
@@ -1171,6 +1188,7 @@ $0 ~ VARIABLES_REGEX {
   }
 
   IN_RULE = ""
+  IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
   PATTERN_RULE_MATCHED = 1
 }
 

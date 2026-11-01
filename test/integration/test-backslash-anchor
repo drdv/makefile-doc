@@ -1,0 +1,15 @@
+#: desc: The continuation lines of a target or variable line are not parsed
+#: issue: 105
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.backslash-anchor
+-----------------------
+Available targets:
+-----------------------
+t   d
+a   after a tab-indented continuation
+z   documented
+
+-----------------------
+Command-line arguments:
+-----------------------
+X   v
+-----------------------
