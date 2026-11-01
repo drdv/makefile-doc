@@ -1,0 +1,2 @@
+## A normal single-colon target
+foo: ; @echo "a::b"
