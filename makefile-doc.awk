@@ -1180,7 +1180,7 @@ END {
   form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES)
 
   g_max_target_length = get_max_anchor_length(TARGETS)
-  g_max_variable_length = get_max_anchor_length(VARIABLES)
+  g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES) : 0
   g_max_anchor_length = max(g_max_target_length, g_max_variable_length)
   g_separator = get_separator("-", g_max_anchor_length)
 
