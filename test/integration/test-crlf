@@ -1,0 +1,13 @@
+#: desc: Makefiles with CRLF line endings are parsed like LF ones
+#: issue: 107
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.crlf
+-----------------------
+Available targets:
+-----------------------
+t   d
+
+-----------------------
+Command-line arguments:
+-----------------------
+X   v
+-----------------------
