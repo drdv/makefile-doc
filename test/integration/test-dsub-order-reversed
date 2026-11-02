@@ -1,0 +1,8 @@
+#: desc: DSUB substitutions are applied in the order given
+#: issue: 109
+-v COLOR_DEFAULT=0 -v DSUB='$(X)Y:two;$(X):one' test/fixtures/Makefile.dsub-order
+-----------------------
+Available targets:
+-----------------------
+t   v=two
+-----------------------
