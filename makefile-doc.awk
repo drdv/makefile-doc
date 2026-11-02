@@ -88,7 +88,10 @@
 #
 #  would be documented as: t   Prerequisites: x y
 #
-#  Values containing newline chatacters are not supported.
+#  Values containing newline characters are not supported.
+#
+#  The substitutions are applied in the order given. If a name appears more than once,
+#  the last value is used.
 #
 # Code conventions:
 #   * All local variables in functions should be defined in the function signature (awk
@@ -461,8 +464,9 @@ function format_description_data(anchor_name,
   # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
 
-  for (key in DSUB_VALUES) {
-    description = string_replace(key, DSUB_VALUES[key], description)
+  # apply the substitutions in the order given
+  for (k = 1; k <= DSUB_COUNT; k++) {
+    description = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], description)
   }
 
   return colorize_description_backticks(apply_output_specific_formatting(description))
@@ -519,12 +523,13 @@ function extract_substitution_params(string_with_parameters, #locals
 }
 
 function form_substitutions(sub_array, sub_params_array, sub_labels_array,
-                            sub_values_array, #locals
+                            sub_values_array, sub_names_array, #locals
                             split_substitutions, k, string, substitution_params,
                             substitution_rest, key_value_parts) {
   delete sub_params_array
   delete sub_labels_array
   delete sub_values_array
+  delete sub_names_array # names in the order they are given
 
   for (k=1;
        k<=split(sub_array, split_substitutions, ";");
@@ -543,6 +548,7 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     split(substitution_rest, key_value_parts, ":")
     gsub(SPACES_TABS_REGEX, "", key_value_parts[1])
 
+    sub_names_array[k] = key_value_parts[1]
     sub_params_array[key_value_parts[1]] = substitution_params
     if (length_array_posix(key_value_parts) == 1) {
       printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
@@ -1212,7 +1218,8 @@ END {
 
   # form SUB_LABELS before calling get_max_anchor_length
   form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
-  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES)
+  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
+  DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
   g_max_target_length = get_max_anchor_length(TARGETS)
   g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES) : 0

@@ -177,6 +177,8 @@ would be documented as:
 ````
 t    Prerequisites: x y
 ````
+The substitutions are applied in the order given. If a name appears more than once, the
+last value is used.
 
 ## Export to HTML and Latex
 
