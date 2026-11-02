@@ -1060,6 +1060,9 @@ BEGIN {
   }
 }
 
+# Makefiles with CRLF line endings: drop the \r
+{ sub(/\r$/, "") }
+
 FNR == 1 {
   NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED) {
