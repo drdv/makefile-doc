@@ -23,7 +23,7 @@ Available targets:
 <span class="color-default">t4                   </span>   Spaces before the ## token are allowed and stripped
                         top docs can have multiple lines
                           indentation can be used for emphasis
-<span class="color-attention">t5                   </span>   Use ##!exclamation markfor targets that are signifficant in some way
+<span class="color-attention">t5                   </span>   Use ##!exclamation markfor targets that are significant in some way
                         no need to have an exclamation mark for all lines
 
 ------ Section 1 -----
@@ -31,7 +31,7 @@ Available targets:
 <span class="color-attention">t6                   </span>   Attention (inline docs)
 <span class="color-default">t7                   </span>   Blank lines
                         between docs
-                        are ignorred
+                        are ignored
 <span class="color-default">t8                   </span>   Can have inline docs after dependencies
 <span class="color-default">t9                   </span>   Can have inline docs after order-only dependencies
 <span class="color-default">t10                  </span>   Can have inline docs after target-specific variables
@@ -89,7 +89,7 @@ yes no&~3               two grouped {targets} with double-colon (recipe 3)
 
  ----- This section in anchored on a target -----
 
-some-target             some target (that will comsume the above section)
+some-target             some target (that will consume the above section)
 
 -----------------------
 Command-line arguments:

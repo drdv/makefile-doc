@@ -111,7 +111,7 @@
 #
 # Terminology and definitions:
 #   + A Makefile rule (without patterns) can take one of the following forms:
-#     target-name [...] [&]:[:] [prerequisits] [;] [inline recipe]
+#     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
 #         [recipe]
 #
 #     target-name [...] [&]:[:] [variable assignment]
@@ -119,7 +119,7 @@
 #
 #     where:
 #       variable assignment: a single variable can be assigned per rule
-#       prerequisits := normal-prerequisites | order-only-prerequisites
+#       prerequisites := normal-prerequisites | order-only-prerequisites
 #       inline recipe := [command] [; command ...]
 #       recipe := [command]
 #                 [...]
@@ -207,10 +207,10 @@ function form_dc_target_name(target_name_nominal) {
 
 # assumes that array is produced from split()
 function join_splitted(array, delimiter, #locals
-                       string, k, n) {
+                       string, k, n_elements) {
   string = ""
-  n = length_array_posix(array)
-  for (k=1; k<=n; k++) {
+  n_elements = length_array_posix(array)
+  for (k=1; k<=n_elements; k++) {
     if (k == 1) {
       string = array[k]
     } else {
@@ -273,7 +273,7 @@ function forget_descriptions_data() {
 }
 
 function parse_inline_descriptions(whole_line, #locals
-                                   inline_description, part_before_description) {
+                                   inline_description) {
   if (!(match(whole_line, /^[^#]*;/)) &&
       match(whole_line, / *(##!|##%|##)/)) {
     inline_description = substr(whole_line, RSTART)
@@ -441,16 +441,15 @@ function format_description_data(anchor_name,
                                  anchors_description_data,
                                  len_anchor_names,
                                  #locals
-                                 k, array_of_lines, line, description, key) {
+                                 k, array_of_lines, line, description, n_elements) {
   # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(anchors_description_data[anchor_name], array_of_lines, "\n")
 
   # the tag for the first line is stripped below (after the parameter update)
   description = repeated_string("", OFFSET) array_of_lines[1]
 
-  for (k=2;
-       k<=length_array_posix(array_of_lines);
-       k++) {
+  n_elements = length_array_posix(array_of_lines)
+  for (k=2; k<=n_elements; k++) {
     line = array_of_lines[k]
     sub(/^(##|##!|##%)/, "", line) # strip the tag
     description = sprintf("%s\n%s%s",
@@ -473,9 +472,10 @@ function format_description_data(anchor_name,
 }
 
 function assemble_description_section_data(array, #locals
-                                           docs, k) {
+                                           docs, k, n_elements) {
   docs = array[1]
-  for (k=2; k<=length_array_posix(array); k++) {
+  n_elements = length_array_posix(array)
+  for (k=2; k<=n_elements; k++) {
     docs = docs "\n" array[k]
   }
   return docs
@@ -500,15 +500,14 @@ function update_display_parameters(description, #locals
 }
 
 function extract_substitution_params(string_with_parameters, #locals
-                                     temp_placeholder, k, key_values, pair, key) {
+                                     temp_placeholder, k, key_values, pair, key, n_parameter_pairs) {
   delete SUB_PARAMS_CURRENT
   temp_placeholder = "\034" # the “file separator” ASCII control character
 
   # temporarily replace escaped commas
   gsub(/\\,/, temp_placeholder, string_with_parameters)
-  for (k=1;
-       k<=split(string_with_parameters, key_values, ",");
-       k++) {
+  n_parameter_pairs = split(string_with_parameters, key_values, ",")
+  for (k=1; k<=n_parameter_pairs; k++) {
     gsub(temp_placeholder, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
     gsub(SPACES_TABS_REGEX, "", pair[1])
@@ -525,15 +524,14 @@ function extract_substitution_params(string_with_parameters, #locals
 function form_substitutions(sub_array, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, #locals
                             split_substitutions, k, string, substitution_params,
-                            substitution_rest, key_value_parts) {
+                            substitution_rest, key_value_parts, n_elements, n_substitutions) {
   delete sub_params_array
   delete sub_labels_array
   delete sub_values_array
   delete sub_names_array # names in the order they are given
 
-  for (k=1;
-       k<=split(sub_array, split_substitutions, ";");
-       k++) {
+  n_substitutions = split(sub_array, split_substitutions, ";")
+  for (k=1; k<=n_substitutions; k++) {
     string = split_substitutions[k]
 
     # Extract optional params in a <...> prefix
@@ -550,10 +548,11 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
 
     sub_names_array[k] = key_value_parts[1]
     sub_params_array[key_value_parts[1]] = substitution_params
-    if (length_array_posix(key_value_parts) == 1) {
+    n_elements = length_array_posix(key_value_parts)
+    if (n_elements == 1) {
       printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
     }
-    else if (length_array_posix(key_value_parts) == 2) {
+    else if (n_elements == 2) {
       sub_values_array[key_value_parts[1]] = key_value_parts[2]
     } else {
       sub_values_array[key_value_parts[1]] = key_value_parts[3]
@@ -574,7 +573,7 @@ function initialize_substitution_parameter_defaults() {
 }
 
 function display_substitutions(anchor, len_anchors, #locals
-                               k, n, L, M, I, value_parts, offset,
+                               k, n, L, M, I, value_parts,
                                cond_indent, indentation, text) {
   split(SUB_VALUES[anchor], value_parts, " ")
 
@@ -617,8 +616,7 @@ function display_substitutions(anchor, len_anchors, #locals
 }
 
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
-                                  renamed_anchor, formatted_anchor, padding,
-                                  normalized_anchor_name) {
+                                  renamed_anchor, formatted_anchor, padding) {
   extract_substitution_params(SUB_PARAMS[anchor])
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
@@ -953,7 +951,7 @@ BEGIN {
 
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    printf("WARNING: ignorring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
+    printf("WARNING: ignoring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
            OUTPUT_FORMAT) > STDERR
     OUTPUT_FORMAT = "ANSI"
   }
@@ -1006,7 +1004,7 @@ BEGIN {
   split("", TARGETS_DESCRIPTION_DATA)
 
   # map target name to section data
-  # a section uses a targtet / variable as an anchor
+  # a section uses a target / variable as an anchor
   split("", TARGETS_SECTION_DATA)
 
   # the index for the next double-colon rule with description (the key doesn't include ~k)
@@ -1236,7 +1234,8 @@ END {
   if (g_max_target_length > 0) {
     printf("%s\n%s\n%s\n", g_separator, HEADER_TARGETS, g_separator)
 
-    for (g_indx = 1; g_indx <= length_array_posix(TARGETS); g_indx++) {
+    g_n_elements = length_array_posix(TARGETS)
+    for (g_indx = 1; g_indx <= g_n_elements; g_indx++) {
       g_target = TARGETS[g_indx]
       g_description = format_description_data(g_target,
                                               TARGETS_DESCRIPTION_DATA,
@@ -1252,7 +1251,8 @@ END {
     g_variables_display_pattern = g_max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
 
     printf(g_variables_display_pattern, g_separator, HEADER_VARIABLES, g_separator)
-    for (g_indx = 1; g_indx <= length_array_posix(VARIABLES); g_indx++) {
+    g_n_elements = length_array_posix(VARIABLES)
+    for (g_indx = 1; g_indx <= g_n_elements; g_indx++) {
       g_variable = VARIABLES[g_indx]
       g_description = format_description_data(g_variable,
                                               VARIABLES_DESCRIPTION_DATA,

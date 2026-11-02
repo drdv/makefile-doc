@@ -12,7 +12,7 @@ t3: ## This is a new rule with a doc
 ##   indentation can be used for emphasis
 t4:
 
-##! Use ##!exclamation markfor targets that are signifficant in some way
+##! Use ##!exclamation markfor targets that are significant in some way
 ## no need to have an exclamation mark for all lines
 .PHONY: t5 ## lines starting with .PHONY: are ignored
 t5:
@@ -28,7 +28,7 @@ t6: ##! Attention (inline docs)
 
 ## between docs
 
-## are ignorred
+## are ignored
 
 t7:
 

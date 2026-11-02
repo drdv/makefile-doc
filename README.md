@@ -36,10 +36,12 @@ Define the first target of your `Makefile` as:
 
 ```Makefile
 help: ## show help
-	@awk -f makefile-doc.awk $(MAKEFILE_LIST)
+	@awk -f /path/to/makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
-Manually download and place the `makefile-doc.awk` script on your `AWKPATH`.
+Manually download and place the `makefile-doc.awk` script in a directory of your choice
+(update the path passed to `awk -f` accordingly). If your AWK implementation supports
+`AWKPATH`, you can also use it to locate the script without specifying its full path.
 
 ## Docs syntax
 
