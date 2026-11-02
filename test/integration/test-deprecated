@@ -9,7 +9,7 @@ Available targets:
 [34mt4                   [0m   Spaces before the ## token are allowed and stripped
                         top docs can have multiple lines
                           indentation can be used for emphasis
-[31mt5                   [0m   Use ##!exclamation markfor targets that are signifficant in some way
+[31mt5                   [0m   Use ##!exclamation markfor targets that are significant in some way
                         no need to have an exclamation mark for all lines
 [32m
 ------ Section 1 -----
@@ -17,7 +17,7 @@ Available targets:
 [31mt6                   [0m   Attention (inline docs)
 [34mt7                   [0m   Blank lines
                         between docs
-                        are ignorred
+                        are ignored
 [34mt8                   [0m   Can have inline docs after dependencies
 [34mt9                   [0m   Can have inline docs after order-only dependencies
 [34mt10                  [0m   Can have inline docs after target-specific variables

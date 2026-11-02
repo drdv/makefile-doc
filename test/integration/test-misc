@@ -16,6 +16,6 @@ Available targets:
 -----------------------
 Command-line arguments:
 -----------------------
-[34mI     [0m   This is an instrumented variable (used for introscpection)
+[34mI     [0m   This is an instrumented variable (used for introspection)
 [34mX     [0m   Set value of X to be used during the first pass.
 -----------------------
