@@ -1,0 +1,14 @@
+#: desc: A colon in a SUB value is kept (with a label, the value is what follows the second colon)
+#: issue: 112
+-v COLOR_DEFAULT=0 -v SUB='$(TARGET):t:/a:b' test/fixtures/Makefile.sub
+-----------------------
+Available targets:
+-----------------------
+t     Some target:
+      /a:b
+
+-----------------------
+Command-line arguments:
+-----------------------
+AWK   Some variable:
+-----------------------

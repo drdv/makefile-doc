@@ -500,7 +500,8 @@ function update_display_parameters(description, #locals
 }
 
 function extract_substitution_params(string_with_parameters, #locals
-                                     temp_placeholder, k, key_values, pair, key, n_parameter_pairs) {
+                                     temp_placeholder, k, key_values, pair,
+                                     value, key, n_parameter_pairs) {
   delete SUB_PARAMS_CURRENT
   temp_placeholder = "\034" # the “file separator” ASCII control character
 
@@ -510,8 +511,9 @@ function extract_substitution_params(string_with_parameters, #locals
   for (k=1; k<=n_parameter_pairs; k++) {
     gsub(temp_placeholder, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
+    value = substr(key_values[k], length(pair[1]) + 2) # everything after the first colon
     gsub(SPACES_TABS_REGEX, "", pair[1])
-    SUB_PARAMS_CURRENT[pair[1]] = pair[2]
+    SUB_PARAMS_CURRENT[pair[1]] = value
   }
 
   for (key in SUB_PARAMS_DEFAULTS) {
@@ -519,12 +521,24 @@ function extract_substitution_params(string_with_parameters, #locals
       SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
     }
   }
+  # L, M and N are used as numbers (the value above is a string, e.g., "0" would be true)
+  SUB_PARAMS_CURRENT["L"] += 0
+  SUB_PARAMS_CURRENT["M"] += 0
+  SUB_PARAMS_CURRENT["N"] += 0
 }
 
+# SUB:  NAME:VALUES or NAME:LABEL:VALUES (the first two colons are separators)
+# DSUB: NAME:VALUES (only the first colon is a separator, no_labels is set)
+# Everything after the last separator is the value, so it can contain colons.
+#
+# Caveat: for SUB, NAME:A:B is always read as NAME:LABEL:VALUES, so A is the label.
+# To give a value that contains a colon without renaming, repeat the name as the label:
+# t:t:/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
 function form_substitutions(sub_array, sub_params_array, sub_labels_array,
-                            sub_values_array, sub_names_array, #locals
+                            sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, string, substitution_params,
-                            substitution_rest, key_value_parts, n_elements, n_substitutions) {
+                            substitution_rest, name, label, values, colon,
+                            has_label, has_values, n_substitutions) {
   delete sub_params_array
   delete sub_labels_array
   delete sub_values_array
@@ -543,20 +557,32 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
       substitution_rest = string
     }
 
-    split(substitution_rest, key_value_parts, ":")
-    gsub(SPACES_TABS_REGEX, "", key_value_parts[1])
-
-    sub_names_array[k] = key_value_parts[1]
-    sub_params_array[key_value_parts[1]] = substitution_params
-    n_elements = length_array_posix(key_value_parts)
-    if (n_elements == 1) {
-      printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
+    name = substitution_rest
+    has_values = 0
+    has_label = 0
+    colon = index(substitution_rest, ":")
+    if (colon > 0) {
+      name = substr(substitution_rest, 1, colon - 1)
+      values = substr(substitution_rest, colon + 1)
+      has_values = 1
+      colon = no_labels ? 0 : index(values, ":")
+      if (colon > 0) {
+        label = substr(values, 1, colon - 1)
+        values = substr(values, colon + 1)
+        has_label = 1
+      }
     }
-    else if (n_elements == 2) {
-      sub_values_array[key_value_parts[1]] = key_value_parts[2]
+    gsub(SPACES_TABS_REGEX, "", name)
+
+    sub_names_array[k] = name
+    sub_params_array[name] = substitution_params
+    if (!has_values) {
+      printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
     } else {
-      sub_values_array[key_value_parts[1]] = key_value_parts[3]
-      sub_labels_array[key_value_parts[1]] = key_value_parts[2]
+      sub_values_array[name] = values
+      if (has_label) {
+        sub_labels_array[name] = label
+      }
     }
   }
 }
@@ -1216,7 +1242,7 @@ END {
 
   # form SUB_LABELS before calling get_max_anchor_length
   form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
-  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
+  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
   g_max_target_length = get_max_anchor_length(TARGETS)
