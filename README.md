@@ -164,11 +164,21 @@ shown. The supported parameters are:
 + `I`       initial string, e.g., `{`
 + `T`       termination string, e.g., `}`
 
+Only the first colons are separators in `NAME[:LABEL]:[VALUES]`, so values can contain
+colons (e.g., URLs). Without a label, `NAME:A:B` is always read as label `A` and value
+`B`. To give a value with a colon without renaming the target, repeat the name as the
+label: `-v SUB='t:t:/a:b'` gives the value `/a:b`, while `-v SUB='t:/a:b'` gives the
+label `/a` and the value `b`. The same rule applies to a parameter pair with string
+values (`S::` defines a colon separator and `P:x:y`, a prefix `x:y`). A parameter value,
+however, cannot contain `>` (it ends the `<...>` prefix). A comma in a value must be
+written `\,`, and on the command line the backslash has to be doubled (`\\,`).
+
 See the `Makefile` of this project and the test recipes in
 `test/integration/test-sub-*` for examples.
 
 The option `DSUB` performs substitutions in the original descriptions. The expected
-format is `NAME:VALUES`. For example, using `-v DSUB='$$(DEPS):$(DEPS)'`, the target
+format is `NAME:VALUES`. Everything after the first colon is the value, so it can
+contain colons. For example, using `-v DSUB='$$(DEPS):$(DEPS)'`, the target
 
 ```Makefile
 DEPS := x y
