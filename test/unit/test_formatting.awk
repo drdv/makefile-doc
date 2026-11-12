@@ -51,6 +51,29 @@ function test_escape_for_latex_output() {
   OUTPUT_FORMAT = ""
 }
 
+function test_get_max_anchor_length(    anchors, docs) {
+  init_globals()
+  anchors[1] = "t"; docs["t"] = "## doc"
+  anchors[2] = "long-deprecated"; docs["long-deprecated"] = "##% doc"
+  anchors[3] = "attention"; docs["attention"] = "##! doc"
+
+  DEPRECATED = 1
+  check("get_max_anchor_length: all anchors displayed",
+        get_max_anchor_length(anchors, docs), 15)
+  DEPRECATED = 0
+  check("get_max_anchor_length: hidden deprecated anchors are skipped",
+        get_max_anchor_length(anchors, docs), 9)
+  SUB_LABELS["t"] = "a-longer-label"
+  check("get_max_anchor_length: SUB labels are used", get_max_anchor_length(anchors, docs), 14)
+
+  delete anchors[1]
+  delete anchors[3]
+  check("get_max_anchor_length: 0 when no anchor is displayed",
+        get_max_anchor_length(anchors, docs), 0)
+  delete SUB_LABELS["t"]
+  DEPRECATED = ""
+}
+
 # initialize the colors as process_options() does (with the default color options)
 function setup_colors(output_format, export_theme) {
   OUTPUT_FORMAT = output_format
@@ -139,6 +162,7 @@ BEGIN {
   test_substitute_backticks_patterns()
   test_escape_for_latex_output()
   test_escape_for_html_output()
+  test_get_max_anchor_length()
   test_validate_ansi_param()
   test_define_color()
   test_export_theme()
