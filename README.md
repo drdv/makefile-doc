@@ -219,7 +219,7 @@ without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspeci
 + `awk`, tested with (on fedora, ubuntu, macos):
   + [gawk](https://www.gnu.org/software/gawk) `5.2.2`, `5.1.0` (with `--posix` flag)
   + [nawk](https://github.com/onetrueawk/awk) tag `20240728`
-  + [mawk](https://invisible-island.net/mawk) `1.3.4 20240905` (with  `-W posix` flag)
+  + [mawk](https://invisible-island.net/mawk) `1.3.4 20260302` (with  `-W posix` flag)
   + [busybox awk](https://www.busybox.net/) `1.35.0`
   + [wak](https://github.com/raygard/wak) `v24.10`
   + [goawk](https://github.com/benhoyt/goawk) `v1.29.1`
