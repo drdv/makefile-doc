@@ -494,8 +494,7 @@ function update_display_parameters(description, #locals
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
   } else {
-    printf("ERROR (we shouldn't be here): %s\n", description) > STDERR
-    exit 1
+    fatal(sprintf("ERROR (we shouldn't be here): %s", description))
   }
 }
 
@@ -967,60 +966,15 @@ function print_help() {
     printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
 }
 
-# Initialize global variables.
-BEGIN {
-  STDERR = "/dev/stderr"
+# Set the global state that does not depend on user options. It is called from BEGIN and
+# can be called from unit tests (also to reset the state between tests).
+function init_globals() {
+  # can be overridden with -v STDERR=file (used by the unit tests)
+  STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
-  if (UNIT_TEST) {
-    exit
-  }
-
-  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
-  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    printf("WARNING: ignoring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
-           OUTPUT_FORMAT) > STDERR
-    OUTPUT_FORMAT = "ANSI"
-  }
-
-  FS = ":" # set the field separator
+  FATAL_MSG = "" # in unit-test mode, the message of the last call to fatal()
 
   initialize_variables_regex()
-  initialize_colors()
-
-  RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
-
-  VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
-
-  # Target matching is heuristic; this is not a complete GNU Make parser.
-  #
-  # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
-  # the rule separator is not followed by `:` or `=`, preventing assignment
-  # operators such as `:=` and `::=` from being mistaken for target separators.
-  #
-  # Known limitations:
-  #   - Colons inside variable references or function calls can cause false positives, e.g., `$(info a: b)`.
-  #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
-  #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
-  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is captured as `foo\ bar`.
-  #   - Target rules continued across physical lines are not reliably recognized.
-  TARGETS_REGEX = TARGETS_REGEX == "" ? "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)" : TARGETS_REGEX
-
-  VARS = VARS == "" ? 1 : VARS
-  PADDING = PADDING == "" ? " " : PADDING
-  DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
-  OFFSET = OFFSET == "" ? 2 : OFFSET
-  if (length(PADDING) != 1) {
-    printf("ERROR: PADDING should have length 1\n") > STDERR
-    ABORT = 1
-    exit 1
-  }
-
-  if (OFFSET !~ /^[0-9]+$/) {
-    printf("ERROR: OFFSET should be a non-negative integer\n") > STDERR
-    ABORT = 1
-    exit 1
-  }
-
   initialize_substitution_parameter_defaults()
 
   # initialize global arrays (i.e., hash tables) for clarity
@@ -1078,6 +1032,62 @@ BEGIN {
   IN_MULTILINE_BACKSLASH_ANCHOR = 0
   IN_DEFINE_ENDEF_BLOCK = 0
   IN_RULE = ""
+}
+
+# Report an error and stop. In unit-test mode, record the message and return instead, so
+# that a test can check it and the remaining tests still run.
+function fatal(message) {
+  printf("%s\n", message) > STDERR
+  if (UNIT_TEST) {
+    FATAL_MSG = message
+    return
+  }
+  ABORT = 1
+  exit 1
+}
+
+# Process the user options (called from BEGIN, but not in unit-test mode).
+function process_options() {
+  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
+  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
+    printf("WARNING: ignoring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
+           OUTPUT_FORMAT) > STDERR
+    OUTPUT_FORMAT = "ANSI"
+  }
+
+  FS = ":" # set the field separator
+
+  initialize_colors()
+
+  RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
+
+  VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
+
+  # Target matching is heuristic; this is not a complete GNU Make parser.
+  #
+  # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
+  # the rule separator is not followed by `:` or `=`, preventing assignment
+  # operators such as `:=` and `::=` from being mistaken for target separators.
+  #
+  # Known limitations:
+  #   - Colons inside variable references or function calls can cause false positives, e.g., `$(info a: b)`.
+  #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
+  #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
+  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is captured as `foo\ bar`.
+  #   - Target rules continued across physical lines are not reliably recognized.
+  TARGETS_REGEX = TARGETS_REGEX == "" ? "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)" : TARGETS_REGEX
+
+  VARS = VARS == "" ? 1 : VARS
+  PADDING = PADDING == "" ? " " : PADDING
+  DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
+  OFFSET = OFFSET == "" ? 2 : OFFSET
+  if (length(PADDING) != 1) {
+    fatal("ERROR: PADDING should have length 1")
+  }
+
+  if (OFFSET !~ /^[0-9]+$/) {
+    fatal("ERROR: OFFSET should be a non-negative integer")
+  }
 
   # we could exit faster but this causes the linter to not see defined variables
   SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
@@ -1087,6 +1097,14 @@ BEGIN {
     }
     ABORT = 1
     exit 1
+  }
+}
+
+# Initialize global variables.
+BEGIN {
+  init_globals()
+  if (!UNIT_TEST) {
+    process_options()
   }
 }
 
@@ -1231,15 +1249,7 @@ $0 ~ VARIABLES_REGEX {
 # }
 
 # Display results (all stdout is here).
-END {
-  if (UNIT_TEST) {
-    exit 0
-  }
-
-  if (ABORT) {
-    exit ABORT
-  }
-
+function print_documentation() {
   # form SUB_LABELS before calling get_max_anchor_length
   form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
   form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
@@ -1301,5 +1311,14 @@ END {
     print(HTML_FOOTER)
   } else if (OUTPUT_FORMAT == "LATEX") {
     print(LATEX_FOOTER)
+  }
+}
+
+END {
+  if (ABORT) {
+    exit ABORT
+  }
+  if (!UNIT_TEST) {
+    print_documentation()
   }
 }
