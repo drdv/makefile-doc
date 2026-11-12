@@ -21,9 +21,11 @@ BUG_TARGETS := $(addprefix bug-,$(BUGS))
 RUN_RECIPE := $(TEST_DIR)/run-recipe.sh
 
 UNIT_TEST_DIR := $(TEST_DIR)/unit
-UNIT_TESTS := $(subst $(UNIT_TEST_DIR)/unittest.awk,,$(wildcard $(UNIT_TEST_DIR)/*.awk))
-# we want unittest.awk to be the first one in the list
-UNIT_TESTS_AWK_FLAGS := -f $(UNIT_TEST_DIR)/unittest.awk $(patsubst %,-f %,$(UNIT_TESTS))
+UNIT_TESTS := $(wildcard $(UNIT_TEST_DIR)/test_*.awk)
+
+# test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
+RUNNER := python3 $(TEST_DIR)/run.py
+RUNNER_FLAGS :=
 
 ## Supported awk variants:
 AWK := awk
@@ -68,18 +70,11 @@ help: $(AWK_BIN)/$(AWK)
 test: $(INTEGRATION_TESTS)
 
 ## Run unit tests
+## (e.g., `make utest RUNNER_FLAGS='-v -k regex'`)
 .PHONY: utest
-utest: UNITTEST_VERBOSE :=
-utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/unittest.awk
-	@$(AWK_BIN)/$(AWK) \
-		-v AWK=$(AWK) \
-		-v UNIT_TEST=1 \
-		-v UNITTEST_VERBOSE=$(UNITTEST_VERBOSE) \
-		$(UNIT_TESTS_AWK_FLAGS) \
-		-f $(MAKEFILE_DOC) \
-		$(AWK_FLAGS) \
-		/dev/null
-	@rm /tmp/.makefile-doc-stderr
+utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
+	@$(RUNNER) unit --awk $(AWK_BIN)/$(AWK) --script $(MAKEFILE_DOC) \
+		--awk-flags '$(AWK_FLAGS)' $(RUNNER_FLAGS)
 
 ## Run tests of known bugs
 ## fails if a bug is fixed (see test/README.md)
@@ -129,8 +124,10 @@ $(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(foreach recipe,$(INTEGRATION_TE
 	@go tool cover -html=$(COVER_DIR)/integration.out -o $@
 
 # Run the unit tests with goawk and generate a coverage report
+# (one test file at a time, as all of them append to the same coverage profile)
 $(COVER_DIR)/unit.html: override AWK := goawk
 $(COVER_DIR)/unit.html: override AWK_FLAGS := -coverprofile $(COVER_DIR)/unit.out -coverappend
+$(COVER_DIR)/unit.html: override RUNNER_FLAGS := --jobs 1
 $(COVER_DIR)/unit.html: utest | $(COVER_DIR)
 	@go tool cover -html=$(COVER_DIR)/unit.out -o $@
 
@@ -140,14 +137,13 @@ $(COVER_DIR):
 ## Lint the code using `gawk`
 # Warnings to ignore have been stripped below
 .PHONY: lint
-lint: UNINIT := (sub_array|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|AWK|\
+lint: UNINIT := (sub_array|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|STDERR|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
 lint: override AWK := awk
 lint: check-variables
 	@$(AWK_BIN)/$(AWK) --lint \
 		-v SHOW_HELP=0 \
 		-v UNIT_TEST=0 \
-		$(UNIT_TESTS_AWK_FLAGS) \
 		-f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized .* \`$(UNINIT)'" || echo "lint: OK"
 
