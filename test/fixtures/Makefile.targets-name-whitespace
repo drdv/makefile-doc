@@ -1,0 +1,11 @@
+## Two targets separated by a tab
+a	b:
+
+## Three targets separated by several spaces
+c    d   e:
+
+## Grouped targets separated by tabs
+f	g	&:
+
+## A longer target name
+longer-name:
