@@ -17,7 +17,7 @@ BUG_TEST_DIR := $(TEST_DIR)/bugs
 BUGS := $(notdir $(wildcard $(BUG_TEST_DIR)/*))
 BUG_TARGETS := $(addprefix bug-,$(BUGS))
 
-# script that runs a single test recipe file (see its header for the format)
+# script that runs a single bug test recipe file (see its header for the format)
 RUN_RECIPE := $(TEST_DIR)/run-recipe.sh
 
 UNIT_TEST_DIR := $(TEST_DIR)/unit
@@ -26,6 +26,13 @@ UNIT_TESTS := $(wildcard $(UNIT_TEST_DIR)/test_*.awk)
 # test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
 RUNNER := python3 $(TEST_DIR)/run.py
 RUNNER_FLAGS :=
+# $(call run-suite,SUITE[,OPTIONS])
+run-suite = $(RUNNER) $(1) \
+	--awk $(AWK_BIN)/$(AWK) \
+	--script $(MAKEFILE_DOC) \
+	--awk-flags='$(AWK_FLAGS)' \
+	$(2) \
+	$(RUNNER_FLAGS)
 
 ## Supported awk variants:
 AWK := awk
@@ -66,15 +73,16 @@ help: $(AWK_BIN)/$(AWK)
 ##@
 
 ## Run integration tests
+## (e.g., `make test RUNNER_FLAGS='-k sub'`)
 .PHONY: test
-test: $(INTEGRATION_TESTS)
+test: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
+	@$(call run-suite,integration)
 
 ## Run unit tests
 ## (e.g., `make utest RUNNER_FLAGS='-v -k parsing'`)
 .PHONY: utest
 utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
-	@$(RUNNER) unit --awk $(AWK_BIN)/$(AWK) --script $(MAKEFILE_DOC) \
-		--awk-flags='$(AWK_FLAGS)' $(RUNNER_FLAGS)
+	@$(call run-suite,unit)
 
 ## Run tests of known bugs
 ## fails if a bug is fixed (see test/README.md)
@@ -120,7 +128,7 @@ $(COVER_DIR)/all.html: $(COVER_DIR)/integration.html $(COVER_DIR)/unit.html
 $(COVER_DIR)/integration.html: override AWK := goawk
 $(COVER_DIR)/integration.html: AWK_FLAGS := -coverprofile $(COVER_DIR)/integration.out -coverappend
 $(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(foreach recipe,$(INTEGRATION_TESTS),$(INTEGRATION_TEST_DIR)/$(recipe)) | $(COVER_DIR)
-	@$(MAKE) test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)'
+	@$(MAKE) test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)' RUNNER_FLAGS='--jobs 1'
 	@go tool cover -html=$(COVER_DIR)/integration.out -o $@
 
 # Run the unit tests with goawk and generate a coverage report
@@ -189,12 +197,12 @@ release:
 ## Recipes:
 ## ---------
 
-# The logic is in $(RUN_RECIPE). Tests that must pass use mode `test`, known
-# bugs use mode `bug` (they fail when they start passing), and UPDATE_RECIPE=1
-# switches to mode `update`.
+# One target per recipe, run by the test runner (UPDATE_RECIPE=1 rewrites the expected
+# output). Known bugs are still run by $(RUN_RECIPE) in mode `bug` (they fail when they
+# start passing).
+.PHONY: $(INTEGRATION_TESTS) $(BUG_TARGETS)
 $(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
-	@MAKEFILE_DOC=$(MAKEFILE_DOC) $(RUN_RECIPE) $(if $(filter 1 yes,$(UPDATE_RECIPE)),update,test) \
-		$< $(INTEGRATION_TEST_DIR)/$@ $(AWK_FLAGS)
+	@$(call run-suite,integration,--name $@)
 
 $(BUG_TARGETS): $(AWK_BIN)/$(AWK)
 	@MAKEFILE_DOC=$(MAKEFILE_DOC) $(RUN_RECIPE) bug \
