@@ -1,0 +1,13 @@
+#: desc: With DEPRECATED=0, hidden anchors do not widen the anchor column
+#: bug: 124
+-v DEPRECATED=0 -v COLOR_DEFAULT=0 test/fixtures/Makefile.docs-tags-hidden-width
+-----------------------
+Available targets:
+-----------------------
+t   A target
+
+-----------------------
+Command-line arguments:
+-----------------------
+V   A variable
+-----------------------

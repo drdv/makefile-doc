@@ -1,0 +1,5 @@
+##% A deprecated target
+old:
+
+## A variable
+V := 1

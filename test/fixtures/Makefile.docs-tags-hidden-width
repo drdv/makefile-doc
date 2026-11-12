@@ -1,0 +1,8 @@
+## A target
+t:
+
+##% A deprecated target with a long name
+very-long-deprecated-name:
+
+## A variable
+V := 1
