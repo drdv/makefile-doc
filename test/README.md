@@ -4,8 +4,8 @@
 - `make utest`: unit tests (`test/unit/`)
 - `make bugs`: reproducers for known, unfixed bugs (`test/bugs/`)
 
-Add `AWK=<variant>` to run with a specific awk, or use `test-all` / `utest-all` /
-`bugs-all` for all of them.
+Add `AWK=<variant>` to run with a specific awk (or use `test@<variant>`, e.g., `make
+test@mawk`), or use `test@all` / `utest@all` / `bugs@all` for all of them.
 
 The unit and integration tests are run by `test/run.py` (Python >= 3.8, standard library
 only). Options can be passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS='-v -k
@@ -55,9 +55,9 @@ Optional metadata lines starting with `#:` may come first and are ignored when r
 ```
 
 The output must match the expected output exactly, including blanks at the end of lines and
-the final newline. Fixtures are the `test/fixtures/Makefile.*` files. Use `UPDATE_RECIPE=1`
-to regenerate the expected output of integration tests, e.g., `make test-default
-UPDATE_RECIPE=1` (check the diff by hand).
+the final newline. Fixtures are the `test/fixtures/Makefile.*` files. Use
+`RUNNER_FLAGS=--update` to regenerate the expected output of integration tests, e.g., `make
+test-default RUNNER_FLAGS=--update` (check the diff by hand).
 
 ## Reporting and fixing bugs
 
