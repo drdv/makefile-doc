@@ -1,7 +1,7 @@
 # Unit test harness for makefile-doc.awk
 #
-# A test file calls check()/check_true() for each check and done() at the end of its BEGIN
-# block. The results are printed in TAP format (https://testanything.org):
+# A test file calls check()/check_true()/check_bug() for each check and done() at the end of
+# its BEGIN block. The results are printed in TAP format (https://testanything.org):
 #
 #   ok 1 - name of a passing check
 #   not ok 2 - name of a failing check
@@ -54,6 +54,22 @@ function check(name, got, want) {
 # check that a condition is true
 function check_true(name, condition) {
   harness_result(name, condition)
+}
+
+# A check of a known, unfixed bug: `want` is the correct value and `issue` the number of the
+# issue that reports the bug. It is printed as a TAP TODO check: test/run.py accepts it while
+# it fails and reports it as an error once it passes (then replace check_bug with check).
+function check_bug(name, got, want, issue) {
+  if (issue !~ /^[0-9]+$/) {
+    harness_result(name " (check_bug needs an issue number)", 0)
+    return
+  }
+  HARNESS_N++
+  printf("%s %d - %s # TODO issue %s\n", got == want ? "ok" : "not ok", HARNESS_N, name, issue)
+  if (!(got == want)) {
+    printf("#   got:  \"%s\"\n", harness_escape(got))
+    printf("#   want: \"%s\"\n", harness_escape(want))
+  }
 }
 
 # Return what the code under test has written to STDERR since the last call, and empty the

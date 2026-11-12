@@ -30,6 +30,7 @@ BEGIN {
 ```
 
 - `check(name, got, want)` and `check_true(name, condition)` record one check each.
+- `check_bug(name, got, want, issue)` records a check of a known, unfixed bug (see below).
 - `stderr_text()` returns what the code under test wrote to `STDERR` since the last call.
 - `init_globals()` (from `makefile-doc.awk`) resets the global state; it has already been
   called when the tests start.
@@ -64,6 +65,11 @@ expected output of an integration test (check the diff by hand).
 3. **Fix:** the fix PR changes the code and moves the test from `test/bugs/` to
    `test/integration/`. `make bugs` fails when a bug test starts passing, so a forgotten
    move is caught.
+
+For a unit test, the reproducer is a `check_bug(name, got, want, issue)` call next to the
+other checks of the same function, with the *correct* `want`. It is reported as a known bug
+while it fails, and `make utest` fails once it passes: the fix PR replaces `check_bug` with
+`check`.
 
 Every file in `test/bugs/` must have an `issue:` header, so the directory never becomes
 an undocumented backlog. .
