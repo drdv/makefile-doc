@@ -4,8 +4,8 @@ Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 Description: Generate docs for Makefile variables and targets
 Options:
   OUTPUT_FORMAT: ANSI
-  EXPORT_THEME (theme for HTML/LATEX output): 
-  SUB (substitutions): 
+  EXPORT_THEME (theme for HTML/LATEX output):
+  SUB (substitutions):
   TARGETS_REGEX (regex for matching targets): ^[ 	]*[^# 	=][^#:=]*[ 	]*&?(:|::)([^=:]|$)
   VARIABLES_REGEX (regex for matching variables): ^[ 	]*([ 	]*(override|unexport|export|private)[ 	]+)*[^ 	#:=]+[ 	]*(=|:=|::=|:::=|!=|\?=|\+=)
   VARS ([bool] show documented variables): 1
