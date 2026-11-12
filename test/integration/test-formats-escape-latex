@@ -1,0 +1,46 @@
+#: desc: LaTeX output escapes backslashes (and braces) in docs
+#: bug: 122
+-v OUTPUT_FORMAT=latex -v COLOR_DEFAULT=0 -v COLOR_SECTION=0 test/fixtures/Makefile.formats-escape
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{alltt}
+\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
+\usepackage{varwidth}
+\usepackage[active,tightpage]{preview}
+\usepackage[normalem]{ulem}
+
+\setlength{\fboxsep}{0pt}
+
+\newcommand{\bgcolor}[2]{\colorbox{#1}{\vphantom{Ay}#2}}
+
+\PreviewEnvironment{varwidth}
+
+\definecolor{color-attention}{HTML}{dc322f}
+\definecolor{color-section}{HTML}{000000}
+\definecolor{color-deprecated}{HTML}{b58900}
+\definecolor{color-default}{HTML}{000000}
+\definecolor{color-warning}{HTML}{d33682}
+\definecolor{color-backticks}{HTML}{000000}
+
+\pagestyle{empty}
+\begin{document}
+
+\begin{varwidth}{\linewidth}
+
+\begin{alltt}
+-----------------------
+Available targets:
+-----------------------
+ Section with <tags> & ampersands
+test   Run the tests (use AWK=<variant> & co)
+a b&   Grouped targets (displayed with a &)
+
+-----------------------
+Command-line arguments:
+-----------------------
+VAR    A variable with a \textbackslash{} backslash and \{braces\}
+-----------------------
+\end{alltt}
+\end{varwidth}
+\end{document}
