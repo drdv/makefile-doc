@@ -1,0 +1,18 @@
+## Docs above a banner (discarded)
+###
+# A comment below the banner
+t1:
+
+#####
+## Docs below a banner
+t2:
+
+  ####  
+t3:
+
+### Docs starting with three # (kept)
+t4:
+
+## Docs of a variable above a banner (discarded)
+###
+V := 1
