@@ -1240,7 +1240,9 @@ $0 ~ TARGETS_REGEX {
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
   # for the reason to use \\&, see:
   # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
+  # GNU Make treats any run of spaces and tabs between target names as one separator
   g_target_name_nominal = $1
+  gsub(/[ \t]+/, " ", g_target_name_nominal)
   sub(/[ \t]*&/, "\\&", g_target_name_nominal)
   g_target_name_nominal = strip_start_end_spaces_tabs(g_target_name_nominal)
 

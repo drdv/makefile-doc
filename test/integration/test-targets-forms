@@ -3,13 +3,13 @@
 -----------------------
 Available targets:
 -----------------------
-%.tab.c %.tab.h         A pattern rule
-%.c                     Another pattern rule
-bin/%.o                 A pattern rule with a prerequisite
-first    second third   Three targets on one line (spaces between them are kept)
-t1                      Target with spaces before and after
-$(TARGET-NAME)          Target from a variable in `$()`
-${TARGET-NAME}          Target from a variable in `${}`
-$T                      Target from a one-letter variable
-$(t1) ${t2} t3          Variables and a name (issue #12)
+%.tab.c %.tab.h      A pattern rule
+%.c                  Another pattern rule
+bin/%.o              A pattern rule with a prerequisite
+first second third   Three targets on one line (separated by several spaces)
+t1                   Target with spaces before and after
+$(TARGET-NAME)       Target from a variable in `$()`
+${TARGET-NAME}       Target from a variable in `${}`
+$T                   Target from a one-letter variable
+$(t1) ${t2} t3       Variables and a name (issue #12)
 -----------------------
