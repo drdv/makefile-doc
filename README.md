@@ -190,11 +190,11 @@ contain colons. For example, using `-v DSUB='$$(DEPS):$(DEPS)'`, the target
 DEPS := x y
 ## Prerequisites: $(DEPS)
 t: $(DEPS)
-````
+```
 would be documented as:
-````
+```
 t    Prerequisites: x y
-````
+```
 The substitutions are applied in the order given. If a name appears more than once, the
 last value is used.
 
@@ -228,7 +228,7 @@ without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspeci
   + [mawk](https://invisible-island.net/mawk) `1.3.4 20260302` (with  `-W posix` flag)
   + [busybox awk](https://www.busybox.net/) `1.35.0`
   + [wak](https://github.com/raygard/wak) `v24.10`
-  + [goawk](https://github.com/benhoyt/goawk) `v1.29.1`
+  + [goawk](https://github.com/benhoyt/goawk) `v1.30.0`
 + `GNU Make`
   + version 3.81 works fine for documentation generation
   + I run the tests with version 4.3

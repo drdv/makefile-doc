@@ -2,6 +2,8 @@ SHELL := bash
 # --output-sync needs GNU make >= 4.0
 MAKEFLAGS := --no-print-directory --warn-undefined-variables --output-sync=target
 TEST_DIR := test
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
 
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
@@ -128,29 +130,30 @@ $(COVER_DIR):
 	@mkdir -p $@
 
 ## Lint the code using `gawk`
-# Warnings to ignore have been stripped below
+# Warnings about these uninitialized variables are expected (options passed with -v)
 .PHONY: lint
-lint: UNINIT := (sub_array|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|STDERR|\
-				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
+lint: UNINIT := sub_array COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX STDERR \
+	TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST
 lint: override AWK := gawk
 lint: check-variables
-	@$(AWK_BIN)/$(AWK) --lint \
-		-v SHOW_HELP=0 \
-		-v UNIT_TEST=0 \
+	@warnings=$$($(AWK_BIN)/$(AWK) --lint -v SHOW_HELP=0 -v UNIT_TEST=0 \
 		-f $(MAKEFILE_DOC) 2>&1 | \
-		grep -vE "reference to uninitialized .* \`$(UNINIT)'" || echo "lint: OK"
+		grep -vE "reference to uninitialized .* \`($(subst $(SPACE),|,$(strip $(UNINIT))))'"); \
+	if [ -n "$$warnings" ]; then echo "$$warnings"; exit 1; fi; \
+	echo "lint: OK"
 
 ## Verify that there are no unintended global variables
 .PHONY: check-variables
 check-variables: AWK_CODE := '\
 	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
-	END { if (length(a) == 0) print "check-variables: OK"; else \
-	{for(k in a) print "["a[k]"] violates naming rules"} }'
+	END { if (length(a) == 0) { print "check-variables: OK"; exit 0 } \
+	for (k in a) print "["a[k]"] violates naming rules"; exit 1 }'
 check-variables: AWKVARS_FILE := awkvars.out
 check-variables: $(AWK_BIN)/gawk
-	@$(AWK_BIN)/gawk -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || exit 0
-	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
-	@rm -f $(AWKVARS_FILE)
+	@# -d dumps the global variables (gawk exits with 1 as no Makefile is given)
+	@$(AWK_BIN)/gawk -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || true; \
+	$(AWK_BIN)/gawk -F: $(AWK_CODE) $(AWKVARS_FILE); status=$$?; \
+	rm -f $(AWKVARS_FILE); exit $$status
 
 ##@
 ##@------ Housekeeping ------
