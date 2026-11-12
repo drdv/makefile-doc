@@ -49,10 +49,6 @@ BUGS_ALL := $(addprefix bugs@,$(SUPPORTED_AWK_VARIANTS))
 OUTPUT_FORMAT :=
 EXPORT_THEME :=
 
-## If set, the expected value of a test recipe is updated
-## e.g., `make test-default UPDATE_RECIPE=1`
-UPDATE_RECIPE :=
-
 MAKEFILE_DOC := makefile-doc.awk
 COVER_DIR := coverage-reports
 
@@ -76,13 +72,13 @@ help: $(AWK_BIN)/$(AWK)
 ## (e.g., `make test RUNNER_FLAGS='-k sub'`)
 .PHONY: test
 test: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
-	@$(call run-suite,integration)
+	@$(call run-suite,integration,)
 
 ## Run unit tests
 ## (e.g., `make utest RUNNER_FLAGS='-v -k parsing'`)
 .PHONY: utest
 utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
-	@$(call run-suite,unit)
+	@$(call run-suite,unit,)
 
 ## Run tests of known bugs
 ## fails if a bug is fixed (see test/README.md)
@@ -91,17 +87,20 @@ bugs:
 	@$(if $(BUG_TARGETS),$(MAKE) -k $(BUG_TARGETS),:)
 
 ## Run integration tests with all supported awk variants
-.PHONY: test-all
-test-all: $(TEST_ALL)
+## (`test@<variant>` is the same as `make test AWK=<variant>`)
+.PHONY: test@all
+test@all: $(TEST_ALL)
 
 ## Run unit tests with all supported awk variants
-.PHONY: utest-all
-utest-all: $(UTEST_ALL)
+## (`utest@<variant>` is the same as `make utest AWK=<variant>`)
+.PHONY: utest@all
+utest@all: $(UTEST_ALL)
 
 ## Run tests of known bugs with all supported awk variants
-## (consider using `make -k` to continue after a failure)
-.PHONY: bugs-all
-bugs-all: $(BUGS_ALL)
+## (`bugs@<variant>` is the same as `make bugs AWK=<variant>`;
+## consider using `make -k` to continue after a failure)
+.PHONY: bugs@all
+bugs@all: $(BUGS_ALL)
 
 .PHONY: $(TEST_ALL) $(UTEST_ALL) $(BUGS_ALL)
 $(TEST_ALL): test@%:
@@ -197,9 +196,9 @@ release:
 ## Recipes:
 ## ---------
 
-# One target per recipe, run by the test runner (UPDATE_RECIPE=1 rewrites the expected
-# output). Known bugs are still run by $(RUN_RECIPE) in mode `bug` (they fail when they
-# start passing).
+# One target per recipe, run by the test runner (RUNNER_FLAGS=--update rewrites the
+# expected output). Known bugs are still run by $(RUN_RECIPE) in mode `bug` (they fail
+# when they start passing).
 .PHONY: $(INTEGRATION_TESTS) $(BUG_TARGETS)
 $(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
 	@$(call run-suite,integration,--name $@)
