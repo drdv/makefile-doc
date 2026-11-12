@@ -39,7 +39,7 @@ DEPS_ALL := $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
 CLEAN_ALL := $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS))
 BENCH_ALL := $(addprefix bench@,$(SUPPORTED_AWK_VARIANTS))
 
-## {ansi, html}
+## {ansi, html, latex}
 OUTPUT_FORMAT :=
 EXPORT_THEME :=
 
