@@ -111,20 +111,24 @@ $(COVER_DIR)/all.html: $(COVER_DIR)/integration.html $(COVER_DIR)/unit.html
 	@{ cat $(COVER_DIR)/integration.out; tail -n +2 $(COVER_DIR)/unit.out; } > $(COVER_DIR)/all.out
 	@go tool cover -html=$(COVER_DIR)/all.out -o $@
 
+# $(call coverage-run,MAKE_TARGET,PROFILE): run the tests of MAKE_TARGET with goawk and
+# write their coverage to PROFILE. The profile is removed first, as each test process
+# appends to it (one at a time: --jobs 1).
+define coverage-run
+	@rm -f $(2)
+	@$(MAKE) $(1) AWK=goawk AWK_FLAGS='-coverprofile $(2) -coverappend' RUNNER_FLAGS='--jobs 1'
+	@go tool cover -html=$(2) -o $@
+endef
+
 # Run the integration tests with goawk and generate a coverage report
-$(COVER_DIR)/integration.html: override AWK := goawk
-$(COVER_DIR)/integration.html: AWK_FLAGS := -coverprofile $(COVER_DIR)/integration.out -coverappend
-$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(foreach recipe,$(INTEGRATION_TESTS),$(INTEGRATION_TEST_DIR)/$(recipe)) | $(COVER_DIR)
-	@$(MAKE) test AWK=$(AWK) AWK_FLAGS='$(AWK_FLAGS)' RUNNER_FLAGS='--jobs 1'
-	@go tool cover -html=$(COVER_DIR)/integration.out -o $@
+$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
+		$(addprefix $(INTEGRATION_TEST_DIR)/,$(INTEGRATION_TESTS)) | $(COVER_DIR)
+	$(call coverage-run,test,$(COVER_DIR)/integration.out)
 
 # Run the unit tests with goawk and generate a coverage report
-# (one test file at a time, as all of them append to the same coverage profile)
-$(COVER_DIR)/unit.html: override AWK := goawk
-$(COVER_DIR)/unit.html: override AWK_FLAGS := -coverprofile $(COVER_DIR)/unit.out -coverappend
-$(COVER_DIR)/unit.html: override RUNNER_FLAGS := --jobs 1
-$(COVER_DIR)/unit.html: utest | $(COVER_DIR)
-	@go tool cover -html=$(COVER_DIR)/unit.out -o $@
+$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
+		$(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk | $(COVER_DIR)
+	$(call coverage-run,utest,$(COVER_DIR)/unit.out)
 
 $(COVER_DIR):
 	@mkdir -p $@
