@@ -246,7 +246,7 @@ Execute `make test utest` (this uses the system's default `awk`). To test with a
 + `make test utest AWK=wak`
 + `make test utest AWK=goawk`
 
-The unit tests need Python 3 (>= 3.8). You need a standard build environment. To compile
+The tests need Python 3 (>= 3.11). You need a standard build environment. To compile
 `nawk` ensure that `bison` is installed (`dnf install bison`). For `goawk` you need
 `golang` (`dnf install golang`).
 
