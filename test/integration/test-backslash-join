@@ -1,0 +1,14 @@
+#: desc: Lines continued with a backslash are joined before targets and variables are parsed
+#: bug: 128
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.backslash-join
+-----------------------
+Available targets:
+-----------------------
+t1 t2   Two targets on a continued line
+t3 t4   Inline doc at the end of a continued rule (tab before t4)
+
+-----------------------
+Command-line arguments:
+-----------------------
+X       Inline doc at the end of a continued assignment
+-----------------------

@@ -1,0 +1,9 @@
+## Two targets on a continued line
+t1 \
+  t2:
+
+t3 \
+	t4: ## Inline doc at the end of a continued rule (tab before t4)
+
+X := a \
+  b ## Inline doc at the end of a continued assignment
