@@ -1,4 +1,4 @@
-#: desc: HTML output with the default theme (backticks with a background color, no color for deprecated)
+#: desc: HTML output, default theme (background color for backticks, no color for deprecated)
 -v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.formats
 <head>
   <style type="text/css">

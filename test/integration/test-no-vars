@@ -1,9 +1,0 @@
--v VARS=0 test/fixtures/Makefile.vars
------------------------
-Available targets:
------------------------
-[32m
- ----- This section in anchored on a target -----
-[0m
-[33msome-target[0m   some target (that will consume the above section)
------------------------

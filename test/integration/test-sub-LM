@@ -1,14 +1,15 @@
--v SUB='<M:1,L:0>$(TARGET):counter-:one two three;<M:0,L:1>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
+#: desc: SUB parameters L and M combined
+-v COLOR_DEFAULT=0 -v SUB='<M:1,L:0>$(TARGET):counter-:one two three;<M:0,L:1>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
 -----------------------
 Available targets:
 -----------------------
-[34mcounter-[0m   Some target: one
+counter-   Some target: one
            two
            three
 
 -----------------------
 Command-line arguments:
 -----------------------
-[34mAWK     [0m   Some variable:
+AWK        Some variable:
            awk mawk nawk bawk wak goawk
 -----------------------

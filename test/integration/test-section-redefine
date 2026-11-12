@@ -1,11 +1,12 @@
-test/fixtures/Makefile.section
-WARNING: [test/fixtures/Makefile.section:11] redefined docs of target: t1
-WARNING: [test/fixtures/Makefile.section:11] redefined associated section data: t1
+#: desc: Redefining the docs and the section of a target gives warnings; the last ones are used
+-v COLOR_DEFAULT=0 -v COLOR_SECTION=0 test/fixtures/Makefile.section-redefine
+WARNING: [test/fixtures/Makefile.section-redefine:11] redefined docs of target: t1
+WARNING: [test/fixtures/Makefile.section-redefine:11] redefined associated section data: t1
 -----------------------
 Available targets:
 -----------------------
-[32m
+
 ------ S2 ------
-[0m
-[34mt1[0m   t2
+
+t1   t2
 -----------------------

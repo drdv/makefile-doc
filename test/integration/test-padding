@@ -1,12 +1,13 @@
--v PADDING=. test/fixtures/Makefile.padding
+#: desc: PADDING fills the space between the anchors and their docs
+-v COLOR_DEFAULT=0 -v PADDING=. test/fixtures/Makefile.padding
 ------------------------
 Available targets:
 ------------------------
-[34mt.......................[0m   A target with a short name
-[34mlonger-target-name......[0m   More characters
+t.......................   A target with a short name
+longer-target-name......   More characters
 
 ------------------------
 Command-line arguments:
 ------------------------
-[34mA_______________________[0m   And the winner is ...
+A_______________________   And the winner is ...
 ------------------------

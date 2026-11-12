@@ -1,4 +1,5 @@
-test/fixtures/Makefile.vars-assignment
+#: desc: All assignment operators: =, :=, ::=, :::=, !=, ?= and +=
+-v COLOR_DEFAULT=0 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.vars-assignment
 WARNING: [test/fixtures/Makefile.vars-assignment:19] redefined docs of variable: a4
 WARNING: [test/fixtures/Makefile.vars-assignment:35] redefined docs of variable: b4
 WARNING: [test/fixtures/Makefile.vars-assignment:51] redefined docs of variable: c4
@@ -9,53 +10,53 @@ WARNING: [test/fixtures/Makefile.vars-assignment:115] redefined docs of variable
 -----------------------
 Command-line arguments:
 -----------------------
-[32m
+
  ----- recursive assignments
-[0m
-[34ma1[0m   case 1
-[34ma2[0m   case 2
-[34ma3[0m   case 3
-[33ma4[0m      case 5
-[32m
+
+a1   case 1
+a2   case 2
+a3   case 3
+a4      case 5
+
  ----- simply expanded variables with :=
-[0m
-[34mb1[0m   case 1
-[34mb2[0m   case 2
-[34mb3[0m   case 3
-[33mb4[0m      case 5
-[32m
+
+b1   case 1
+b2   case 2
+b3   case 3
+b4      case 5
+
  ----- simply expanded variables with ::=
-[0m
-[34mc1[0m   case 1
-[34mc2[0m   case 2
-[34mc3[0m   case 3
-[33mc4[0m      case 5
-[32m
+
+c1   case 1
+c2   case 2
+c3   case 3
+c4      case 5
+
  ----- immediately expanded variable
-[0m
-[34md1[0m   case 1
-[34md2[0m   case 2
-[34md3[0m   case 3
-[33md4[0m      case 5
-[32m
+
+d1   case 1
+d2   case 2
+d3   case 3
+d4      case 5
+
  ----- shell assignment
-[0m
-[34me1[0m   case 1
-[34me2[0m   case 2
-[34me3[0m   case 3
-[33me4[0m      case 5
-[32m
+
+e1   case 1
+e2   case 2
+e3   case 3
+e4      case 5
+
  ----- conditional assignment
-[0m
-[34mf1[0m   case 1
-[34mf2[0m   case 2
-[34mf3[0m   case 3
-[33mf4[0m      case 5
-[32m
+
+f1   case 1
+f2   case 2
+f3   case 3
+f4      case 5
+
  ----- append assignment
-[0m
-[34mg1[0m   case 1
-[34mg2[0m   case 2
-[34mg3[0m   case 3
-[33mg4[0m      case 5
+
+g1   case 1
+g2   case 2
+g3   case 3
+g4      case 5
 -----------------------

@@ -1,13 +1,14 @@
-test/fixtures/Makefile.backslash-comments
+#: desc: A comment ending with an odd number of backslashes continues on the next line
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.backslash-comments
 -----------------------
 Available targets:
 -----------------------
-[34mt-with-docs[0m   Include in the docs because of the inline description
+t-with-docs   Include in the docs because of the inline description
 
 -----------------------
 Command-line arguments:
 -----------------------
-[34mvvv0       [0m   987
-[34mvvv2       [0m   987\\
-[34mvvv4       [0m   987\\\\
+vvv0          987
+vvv2          987\\
+vvv4          987\\\\
 -----------------------

@@ -1,0 +1,23 @@
+#: desc: Grouped targets are displayed with a & (also for double-colon rules)
+-v COLOR_DEFAULT=0 -v COLOR_SECTION=0 -v COLOR_ATTENTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.targets-grouped
+-----------------------
+Available targets:
+-----------------------
+
+ ----- Independent Targets -----
+
+first second           two targets
+a b                    other two targets
+
+ ----- Grouped Targets -----
+
+me myself and I&       four grouped targets
+the show must go on&   five grouped targets
+lonely&                a bit pointless grouping one target
+
+ ----- Double-colon grouped Targets -----
+
+yes no&~1              two grouped targets with double-colon (recipe 1)
+yes no&~2              two {`grouped`, `targets`, `with`, `double-colon`} (recipe 2)
+yes no&~3              two grouped {targets} with double-colon (recipe 3)
+-----------------------

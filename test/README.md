@@ -17,7 +17,7 @@ SHA256.
 The unit and integration tests are run by `test/run.py` (Python >= 3.8, standard library
 only). Options can be passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS='-v -k
 parsing'` (`-v` shows the output of passing tests, `-k` selects tests by name). A single
-integration test can also be run with its own target, e.g., `make test-default`.
+integration test can also be run with its own target, e.g., `make test-docs-tags`.
 
 ## Unit tests
 
@@ -48,23 +48,35 @@ The results are printed in [TAP](https://testanything.org) format. A test file f
 check fails, if it stops before `done()` (e.g., because of an `exit` or a syntax error), or if
 awk exits with a non-zero status.
 
-## Test file format
+## Integration tests
 
-The first line holds the awk arguments (in shell syntax) and the remaining lines hold the
-expected output: stderr first, then stdout, then `exit: N` if the exit status is not 0.
-Optional metadata lines starting with `#:` may come first and are ignored when running:
+Each `test/integration/test-*` file (a recipe) runs `makefile-doc.awk` on a fixture
+(`test/fixtures/Makefile.*`) and holds the expected output. The first line holds the awk
+arguments (in shell syntax) and the remaining lines hold the expected output: stderr first,
+then stdout, then `exit: N` if the exit status is not 0. Metadata lines starting with `#:`
+come first and are ignored when running:
 
 ```
-#: desc: what this test checks
+#: desc: what this test checks (the expected behavior)
 #: issue: 123
--v SUB='...' test/fixtures/Makefile.sub
+-v COLOR_DEFAULT=0 -v SUB='...' test/fixtures/Makefile.sub
 <expected output>
 ```
 
 The output must match the expected output exactly, including blanks at the end of lines and
-the final newline. Fixtures are the `test/fixtures/Makefile.*` files. Use
-`RUNNER_FLAGS=--update` to regenerate the expected output of integration tests, e.g., `make
-test-default RUNNER_FLAGS=--update` (check the diff by hand).
+the final newline. Use `RUNNER_FLAGS=--update` to regenerate the expected output, e.g., `make
+test-docs-tags RUNNER_FLAGS=--update` (check the diff by hand).
+
+Conventions:
+
+- A fixture covers one topic and stays small, so that a change affects few recipes. Add a
+  new fixture rather than growing an unrelated one.
+- A recipe is named after its fixture: `test-<topic>` or `test-<topic>-<case>` for
+  `Makefile.<topic>` (e.g., `test-sub-L` uses `Makefile.sub`). Fixtures about targets start
+  with `targets-`, about variables with `vars-`, and about docs with `docs-`.
+- Every recipe has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
+- Colors are turned off (`-v COLOR_DEFAULT=0` and the other `COLOR_*` options that apply)
+  unless the recipe is about colors or output formats.
 
 ## Reporting and fixing bugs
 
