@@ -162,14 +162,13 @@ clean: ## Remove coverage reports
 
 ##! Create github release at latest tag
 .PHONY: release
-release: LATEST_TAG := $(shell git describe --tags)
 release: RELEASE_NOTES := release_notes.md
 release:
-	@test -f $(RELEASE_NOTES) && \
-	gh release create $(LATEST_TAG) $(MAKEFILE_DOC) \
+	@test -f $(RELEASE_NOTES) || { echo "No file $(RELEASE_NOTES)"; exit 1; }
+	@tag=$$(git describe --tags) && \
+	gh release create "$$tag" $(MAKEFILE_DOC) \
 		--generate-notes \
-		--notes-file $(RELEASE_NOTES) -t '$(LATEST_TAG)' || \
-	echo "No file $(RELEASE_NOTES)"
+		--notes-file $(RELEASE_NOTES) -t "$$tag"
 
 ##@
 ##@------ Individual integration tests ------
