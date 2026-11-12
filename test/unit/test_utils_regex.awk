@@ -1,264 +1,134 @@
-function test_utils_regex_main() {
-  test_utils_regex_get_tag_from_description()
-  test_utils_regex_parse_variable_name()
-  test_utils_regex_substitute_backticks_patterns()
-  test_utils_regex_strip_start_end_spaces_tabs()
-  test_utils_regex_escape_braces_for_latex_output()
-  test_utils_regex_parse_inline_descriptions()
-  test_utils_regex_update_display_parameters()
+function test_get_tag_from_description() {
+  check("get_tag_from_description: ##", get_tag_from_description("   ##   doc"), "##")
+  check("get_tag_from_description: ##!", get_tag_from_description("   ##!   doc"), "##!")
+  check("get_tag_from_description: ##%", get_tag_from_description("   ##%   doc"), "##%")
+  check("get_tag_from_description: ##Z is ##", get_tag_from_description("   ##Z   doc"), "##")
+  check("get_tag_from_description: no tag", get_tag_from_description("   !#   doc"), 0)
 }
 
-function test_utils_regex_update_display_parameters(    description, stderr_content,
-                                                        stderr_content_lines) {
-  description = "Z## Wrong tag"
-  update_display_parameters(description)
-  stderr_content = stderr_text()
-  split(stderr_content, stderr_content_lines, "\n")
-
-  check("update_display_parameters(\"" description "\")",
-        stderr_content_lines[1],
-        sprintf("ERROR (we shouldn't be here): %s", description))
+function test_parse_variable_name() {
+  check("parse_variable_name: := without spaces",
+        parse_variable_name("VAR2_1:=1##comment"), "VAR2_1")
+  check("parse_variable_name: ?= with spaces",
+        parse_variable_name("var2_1   ?=  1##comment"), "var2_1")
+  check("parse_variable_name: :::=",
+        parse_variable_name("x   :::=fsws"), "x")
+  check("parse_variable_name: += without value",
+        parse_variable_name("__a__   +="), "__a__")
+  check("parse_variable_name: = with inline doc",
+        parse_variable_name("X = ## doc"), "X")
+  check("parse_variable_name: ::= with value and inline doc",
+        parse_variable_name("this_is_A_VARIABLE ::= this is a value ## doc"),
+        "this_is_A_VARIABLE")
+  check("parse_variable_name: ?= with inline doc and no value",
+        parse_variable_name("x4?=## doc"), "x4")
+  check("parse_variable_name: repeated qualifiers",
+        parse_variable_name("override unexport private  override     private  export _w::="),
+        "_w")
+  check("parse_variable_name: name starting with a qualifier",
+        parse_variable_name("private  override  export unexport override1     ::=     1"),
+        "override1")
+  check("parse_variable_name: name made of qualifiers",
+        parse_variable_name("private  override  export unexport export_override::=1"),
+        "export_override")
 }
 
-function test_utils_regex_parse_inline_descriptions(    text, expected) {
-  split("", DESCRIPTION_DATA)
-  DESCRIPTION_DATA_INDEX = 1
-
-  expected = "## some ;description"
-  text = "target: " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        DESCRIPTION_DATA[1],
-        expected)
-
-  expected = "##! some description;"
-  text = "target: " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        DESCRIPTION_DATA[2],
-        expected)
-
-  expected = "##% some description"
-  text = "target: " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        DESCRIPTION_DATA[3],
-        expected)
-
-  expected = "## some description"
-  text = "target:; " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        length_array_posix(DESCRIPTION_DATA),
-        3)
-
-  expected = "##! some description"
-  text = "target:; @echo 1 " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        length_array_posix(DESCRIPTION_DATA),
-        3)
-
-  expected = "##% some description"
-  text = "target: ; @echo 1 ; echo 2 " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        length_array_posix(DESCRIPTION_DATA),
-        3)
-
-  text = "target: "
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        length_array_posix(DESCRIPTION_DATA),
-        3)
-
-  text = "target: deps1 deps2 | deps3"
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        length_array_posix(DESCRIPTION_DATA),
-        3)
-
-  expected = "## some description"
-  text = "target: deps1 deps2 | deps3 ; echo 1 " expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        length_array_posix(DESCRIPTION_DATA),
-        3)
-
-  expected = "## some description"
-  text = "target: deps1 deps2 | deps3" expected
-  parse_inline_descriptions(text)
-  check("parse_inline_descriptions(\"" text "\")",
-        DESCRIPTION_DATA[4],
-        expected)
-
-  check("DESCRIPTION_DATA_INDEX == 5",
-        DESCRIPTION_DATA_INDEX,
-        5)
-}
-
-function test_utils_regex_escape_braces_for_latex_output(    text, expected) {
-  OUTPUT_FORMAT = "HTML"
-
-  text = "this is {a test} string"
-  expected = text
-  check("escape_braces_for_latex_output(\"" text "\")",
-        escape_braces_for_latex_output(text),
-        expected)
-
-  OUTPUT_FORMAT = "LATEX"
-
-  text = "this is {a test} string"
-  expected = "this is \\{a test\\} string"
-  check("escape_braces_for_latex_output(\"" text "\")",
-        escape_braces_for_latex_output(text),
-        expected)
-}
-
-function test_utils_regex_strip_start_end_spaces_tabs(    text, expected) {
-  expected = "this is a test string"
-  text = "   " expected "   "
-  check("strip_start_end_spaces_tabs(\"" text "\")",
-        strip_start_end_spaces_tabs(text),
-        expected)
-
-  expected = "this is a test string"
-  text = " \t   " expected " \t   "
-  check("strip_start_end_spaces_tabs(\"" text "\")",
-        strip_start_end_spaces_tabs(text),
-        expected)
-}
-
-function test_utils_regex_substitute_backticks_patterns(    text, s, e) {
-  s = COLOR_BACKTICKS_CODE
-  e = COLOR_RESET_CODE
-
-  text = "this `is` a test `x` and"
-  check("substitute_backticks_patterns(\"" text "\")",
-        substitute_backticks_patterns(text),
-        "this "s"is"e" a test "s"x"e" and")
-
-  text = "`this `is` a test `x` and`"
-  check("substitute_backticks_patterns(\"" text "\")",
-        substitute_backticks_patterns(text),
-        s"this "e"is"s" a test "e"x"s" and"e)
-
-  text = "{`1`, `2`, `3`}"
-  check("substitute_backticks_patterns(\"" text "\")",
-        substitute_backticks_patterns(text),
-        "{"s"1"e", "s"2"e", "s"3"e"}")
-
-  text = "empty ` ` region"
-  check("substitute_backticks_patterns(\"" text "\")",
-        substitute_backticks_patterns(text),
-        "empty "s" "e" region")
-
-  # here we simply leave the empty backtick region
-  text = "empty `` region"
-  check("substitute_backticks_patterns(\"" text "\")",
-        substitute_backticks_patterns(text),
-        text)
-}
-
-function test_utils_regex_parse_variable_name(    whole_line, var, op) {
-  var = "VAR2_1"; op = ":="
-  whole_line = var op "1##comment"
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "var2_1"; op = "   ?=  "
-  whole_line = var op "1##comment"
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "x"; op = "   :::="
-  whole_line = var op "fsws"
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "__a__"; op = "   +="
-  whole_line = var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "X"; op = " = ## doc"
-  whole_line = var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "this_is_A_VARIABLE"; op = " ::= this is a value ## doc"
-  whole_line = var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "x4"; op = "?=## doc"
-  whole_line = var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "_w"; op = "::="
-  whole_line = "override unexport private  override     private  export " var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "override1"; op = "     ::=     1"
-  whole_line = "private  override     private  override    export unexport " var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-
-  var = "export_override"; op = "::=1"
-  whole_line = "private  override     private  override    export unexport " var op
-  check("parse_variable_name(\"" whole_line "\")",
-        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-        var)
-}
-
-function test_utils_regex_get_tag_from_description(    text, tag) {
-  tag = "##"
-  text = "   " tag "   a description"
-  check("get_tag_from_description(\"" text "\")",
-        get_tag_from_description(text),
-        tag)
-
-  tag = "##!"
-  text = "   " tag "   a description"
-  check("get_tag_from_description(\"" text "\")",
-        get_tag_from_description(text),
-        tag)
-
-  tag = "##%"
-  text = "   " tag "   a description"
-  check("get_tag_from_description(\"" text "\")",
-        get_tag_from_description(text),
-        tag)
-
-  tag = "##Z"
-  text = "   " tag "   a description"
-  check("get_tag_from_description(\"" text "\")",
-        get_tag_from_description(text),
-        "##")
-
-  tag = "!#"
-  text = "   " tag "   a description"
-  check("get_tag_from_description(\"" text "\")",
-        get_tag_from_description(text),
-        0)
-}
-
-BEGIN {
-  # assume arbitrary delimiters
+function test_substitute_backticks_patterns() {
   COLOR_BACKTICKS_CODE = ">>>"
   COLOR_RESET_CODE = "<<<"
 
-  test_utils_regex_main()
+  check("substitute_backticks_patterns: two regions",
+        substitute_backticks_patterns("this `is` a test `x` and"),
+        "this >>>is<<< a test >>>x<<< and")
+  check("substitute_backticks_patterns: regions are paired from the left",
+        substitute_backticks_patterns("`this `is` a test `x` and`"),
+        ">>>this <<<is>>> a test <<<x>>> and<<<")
+  check("substitute_backticks_patterns: inside braces",
+        substitute_backticks_patterns("{`1`, `2`, `3`}"),
+        "{>>>1<<<, >>>2<<<, >>>3<<<}")
+  check("substitute_backticks_patterns: region with a space",
+        substitute_backticks_patterns("empty ` ` region"),
+        "empty >>> <<< region")
+  check("substitute_backticks_patterns: empty region is left as is",
+        substitute_backticks_patterns("empty `` region"),
+        "empty `` region")
+}
+
+function test_strip_start_end_spaces_tabs() {
+  check("strip_start_end_spaces_tabs: spaces",
+        strip_start_end_spaces_tabs("   a test string   "), "a test string")
+  check("strip_start_end_spaces_tabs: spaces and tabs",
+        strip_start_end_spaces_tabs(" \t   a test string \t   "), "a test string")
+}
+
+function test_escape_braces_for_latex_output() {
+  OUTPUT_FORMAT = "HTML"
+  check("escape_braces_for_latex_output: HTML is unchanged",
+        escape_braces_for_latex_output("this is {a test} string"),
+        "this is {a test} string")
+
+  OUTPUT_FORMAT = "LATEX"
+  check("escape_braces_for_latex_output: LATEX",
+        escape_braces_for_latex_output("this is {a test} string"),
+        "this is \\{a test\\} string")
+
+  OUTPUT_FORMAT = ""
+}
+
+# the description saved by parse_inline_descriptions(line), or "<none>"
+function inline_description(line) {
+  forget_descriptions_data()
+  parse_inline_descriptions(line)
+  return length_array_posix(DESCRIPTION_DATA) ? DESCRIPTION_DATA[1] : "<none>"
+}
+
+function test_parse_inline_descriptions() {
+  check("parse_inline_descriptions: ## (a ; in the doc is kept)",
+        inline_description("target: ## some ;description"), "## some ;description")
+  check("parse_inline_descriptions: ##! (a ; in the doc is kept)",
+        inline_description("target: ##! some description;"), "##! some description;")
+  check("parse_inline_descriptions: ##%",
+        inline_description("target: ##% some description"), "##% some description")
+  check("parse_inline_descriptions: after deps without a space",
+        inline_description("target: deps1 deps2 | deps3## some description"),
+        "## some description")
+
+  check("parse_inline_descriptions: none after an empty inline recipe",
+        inline_description("target:; ## some description"), "<none>")
+  check("parse_inline_descriptions: none after an inline recipe",
+        inline_description("target:; @echo 1 ##! some description"), "<none>")
+  check("parse_inline_descriptions: none after an inline recipe with two commands",
+        inline_description("target: ; @echo 1 ; echo 2 ##% some description"), "<none>")
+  check("parse_inline_descriptions: none after deps and an inline recipe",
+        inline_description("target: deps1 deps2 | deps3 ; echo 1 ## some description"),
+        "<none>")
+  check("parse_inline_descriptions: none without a doc",
+        inline_description("target: "), "<none>")
+  check("parse_inline_descriptions: none after deps without a doc",
+        inline_description("target: deps1 deps2 | deps3"), "<none>")
+
+  inline_description("target: ## doc")
+  check("parse_inline_descriptions: the index advances", DESCRIPTION_DATA_INDEX, 2)
+}
+
+function test_update_display_parameters(    description) {
+  description = "Z## Wrong tag"
+  update_display_parameters(description)
+  check("update_display_parameters: wrong tag is reported on stderr",
+        stderr_text(),
+        "ERROR (we shouldn't be here): Z## Wrong tag\n")
+  check("update_display_parameters: wrong tag calls fatal()",
+        FATAL_MSG,
+        "ERROR (we shouldn't be here): Z## Wrong tag")
+}
+
+BEGIN {
+  test_get_tag_from_description()
+  test_parse_variable_name()
+  test_substitute_backticks_patterns()
+  test_strip_start_end_spaces_tabs()
+  test_escape_braces_for_latex_output()
+  test_parse_inline_descriptions()
+  test_update_display_parameters()
   done()
 }

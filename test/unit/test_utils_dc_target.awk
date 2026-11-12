@@ -1,18 +1,12 @@
-function test_utils_dc_target_main(    target_name_nominal, expected) {
-  target_name_nominal = "some-target"
+function test_form_dc_target_name() {
+  init_globals()
+  check("form_dc_target_name: first rule", form_dc_target_name("t"), "t~1")
 
-  expected = target_name_nominal DOUBLE_COLON_SEPARATOR "1"
-  check("form_dc_target_name(\"" target_name_nominal "\")",
-        form_dc_target_name(target_name_nominal), expected)
-
-  TARGETS_DC_COUNTER[target_name_nominal]++
-
-  expected = target_name_nominal DOUBLE_COLON_SEPARATOR "2"
-  check("form_dc_target_name(\"" target_name_nominal "\")",
-        form_dc_target_name(target_name_nominal), expected)
+  TARGETS_DC_COUNTER["t"]++
+  check("form_dc_target_name: second rule", form_dc_target_name("t"), "t~2")
 }
 
 BEGIN {
-  test_utils_dc_target_main()
+  test_form_dc_target_name()
   done()
 }

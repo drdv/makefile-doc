@@ -1,66 +1,64 @@
-function test_utils_general_main(    text, expected) {
-  test_utils_general_min_max()
-  test_utils_general_repeated_string()
-  test_utils_general_length_array_posix()
-  test_utils_general_join_splitted()
-
-  text = "this is my text and this also is text not end"
-
-  test_utils_general_string_replace(text, "text", "SOMETHING ELSE", "")
-  test_utils_general_string_replace(text, "this", "SOMETHING ELSE", "")
-  test_utils_general_string_replace(text, "end", "SOMETHING ELSE", "")
-  test_utils_general_string_replace(text, "", "SOMETHING ELSE", text)
-  test_utils_general_string_replace(text, "this", "", "")
-
-  text = "this is my $(VAR) and this also is $(VAR) not end"
-  expected = "this is my VALUE and this also is VALUE not end"
-  test_utils_general_string_replace(text, "$(VAR)", "VALUE", expected)
-
-  text = "nested vars $($(NESTED)) end"
-  expected = "nested vars $(VAR) end"
-  test_utils_general_string_replace(text, "$(NESTED)", "VAR", expected)
-  test_utils_general_string_replace(expected, "$(VAR)", "VAL", "nested vars VAL end")
+function test_max_min() {
+  check("max: second is larger", max(1, 2), 2)
+  check("max: first is larger", max(1, -3), 1)
+  check("min: first is smaller", min(1, 2), 1)
+  check("min: second is smaller", min(1, -3), -3)
 }
 
-function test_utils_general_string_replace(text, string, replacement, expected) {
-  if (!expected) {
-    expected = text
-    gsub(string, replacement, expected)
-  }
-  check("string_replace(\"" string "\", \"" replacement "\", ...)",
-        string_replace(string, replacement, text), expected)
+function test_repeated_string() {
+  check("repeated_string: empty string means a space", repeated_string("", 5), "     ")
+  check("repeated_string: a character", repeated_string("a", 4), "aaaa")
 }
 
-function test_utils_general_join_splitted(    arr) {
-  delete arr
-  split("this is another test", arr, " ")
-  check("join(arr, \":\")", join_splitted(arr, ":"), "this:is:another:test")
-}
-
-function test_utils_general_length_array_posix(    arr) {
-  delete arr
-  check("1: length_array_posix(arr)", length_array_posix(arr), 0)
+function test_length_array_posix(    arr) {
+  check("length_array_posix: empty array", length_array_posix(arr), 0)
 
   arr["k1"] = "this"
-  arr["k2"] = "it"
+  arr["k2"] = "is"
   arr["k3"] = "a"
   arr["k4"] = "test"
-  check("2: length_array_posix(arr)", length_array_posix(arr), 4)
+  check("length_array_posix: 4 elements", length_array_posix(arr), 4)
 }
 
-function test_utils_general_repeated_string() {
-  check("repeated_string(\"\", 5)", repeated_string("", 5), "     ")
-  check("repeated_string(\"a\", 4)", repeated_string("a", 4), "aaaa")
+function test_join_splitted(    arr) {
+  split("this is another test", arr, " ")
+  check("join_splitted: colon delimiter", join_splitted(arr, ":"), "this:is:another:test")
 }
 
-function test_utils_general_min_max() {
-  check("max(1, 2) == 2", max(1, 2), 2)
-  check("max(1, -3) == 1", max(1, -3), 1)
-  check("min(1, 2) == 1", min(1, 2), 1)
-  check("min(1, -3) == -3", min(1, -3), -3)
+function test_string_replace(    text) {
+  text = "this is my text and this also is text not end"
+  check("string_replace: two matches in the middle",
+        string_replace("text", "X", text),
+        "this is my X and this also is X not end")
+  check("string_replace: matches at the start",
+        string_replace("this", "X", text),
+        "X is my text and X also is text not end")
+  check("string_replace: match at the end",
+        string_replace("end", "X", text),
+        "this is my text and this also is text not X")
+  check("string_replace: empty search string changes nothing",
+        string_replace("", "X", text),
+        text)
+  check("string_replace: empty replacement",
+        string_replace("this", "", text),
+        " is my text and  also is text not end")
+
+  check("string_replace: no regex interpretation of $(VAR)",
+        string_replace("$(VAR)", "VALUE", "this is my $(VAR) and this also is $(VAR) not end"),
+        "this is my VALUE and this also is VALUE not end")
+  check("string_replace: inner reference of a nested one",
+        string_replace("$(NESTED)", "VAR", "nested vars $($(NESTED)) end"),
+        "nested vars $(VAR) end")
+  check("string_replace: reference left by the previous replacement",
+        string_replace("$(VAR)", "VAL", "nested vars $(VAR) end"),
+        "nested vars VAL end")
 }
 
 BEGIN {
-  test_utils_general_main()
+  test_max_min()
+  test_repeated_string()
+  test_length_array_posix()
+  test_join_splitted()
+  test_string_replace()
   done()
 }
