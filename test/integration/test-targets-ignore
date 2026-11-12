@@ -1,5 +1,5 @@
 #: desc: Lines of special targets such as .PHONY are ignored; their docs go to the next target
--v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-ignore
+-v COLOR=0 test/fixtures/Makefile.targets-ignore
 -----------------------
 Available targets:
 -----------------------

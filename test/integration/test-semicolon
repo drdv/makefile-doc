@@ -1,5 +1,5 @@
 #: desc: Inline docs after a ; (inline recipe) are ignored; top docs are used
--v COLOR_DEFAULT=0 test/fixtures/Makefile.semicolon
+-v COLOR=0 test/fixtures/Makefile.semicolon
 -----------------------
 Available targets:
 -----------------------

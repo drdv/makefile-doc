@@ -1,5 +1,5 @@
 #: desc: Multi-line top docs: indentation, blank lines, comments and empty doc lines
--v COLOR_DEFAULT=0 test/fixtures/Makefile.docs-multiline
+-v COLOR=0 test/fixtures/Makefile.docs-multiline
 -----------------------
 Available targets:
 -----------------------

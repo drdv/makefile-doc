@@ -1,5 +1,5 @@
 #: desc: A comment ending with an odd number of backslashes continues on the next line
--v COLOR_DEFAULT=0 test/fixtures/Makefile.backslash-comments
+-v COLOR=0 test/fixtures/Makefile.backslash-comments
 -----------------------
 Available targets:
 -----------------------

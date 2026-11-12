@@ -1,6 +1,6 @@
 #: desc: A line that is only a backslash (in a recipe or after #) is a continuation
 #: issue: 105
--v COLOR_DEFAULT=0 test/fixtures/Makefile.backslash-lone
+-v COLOR=0 test/fixtures/Makefile.backslash-lone
 -----------------------
 Available targets:
 -----------------------

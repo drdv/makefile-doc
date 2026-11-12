@@ -1,5 +1,5 @@
 #: desc: Pattern rules, several targets per line and targets given by variables
--v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-forms
+-v COLOR=0 test/fixtures/Makefile.targets-forms
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,6 @@
 #: desc: Known limitations of target recognition (see the README)
 #: issue: 90
--v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-regex-limitations
+-v COLOR=0 test/fixtures/Makefile.targets-regex-limitations
 -----------------------
 Available targets:
 -----------------------

@@ -1,5 +1,5 @@
 #: desc: Each documented double-colon rule is displayed with its index (target~N)
--v COLOR_DEFAULT=0 -v COLOR_ATTENTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.targets-double-colon
+-v COLOR=0 test/fixtures/Makefile.targets-double-colon
 -----------------------
 Available targets:
 -----------------------

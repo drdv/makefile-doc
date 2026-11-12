@@ -31,6 +31,8 @@
 #   * PADDING: {(" "), ".", ...} a single padding character between anchors and docs
 #   * DEPRECATED: {0, (1)} show deprecated anchors
 #   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
+#   * COLOR: {0, (1)} 0 turns off all colors (the default is 0 if the environment variable
+#     NO_COLOR is set to a non-empty value, see https://no-color.org)
 #   + RECIPEPREFIX: should have the same value as the .RECIPEPREFIX from your Makefile
 #   * see as well the color codes below
 #
@@ -919,7 +921,17 @@ function validate_ansi_param(ansi_param) {
   return 0
 }
 
+# the default of the COLOR option: 0 if NO_COLOR is set to a non-empty value (no-color.org)
+function default_color_option() {
+  return ("NO_COLOR" in ENVIRON && ENVIRON["NO_COLOR"] != "") ? 0 : 1
+}
+
 function initialize_colors() {
+  COLOR = COLOR == "" ? default_color_option() : COLOR
+  if (COLOR !~ /^[01]$/) {
+    fatal("ERROR: COLOR should be 0 or 1")
+  }
+
   define_ansi_to_html_colors()
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
@@ -930,6 +942,9 @@ function initialize_colors() {
   COLOR_DEPRECATED = validate_ansi_param(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
   COLOR_SECTION = validate_ansi_param(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
   COLOR_BACKTICKS = validate_ansi_param(COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
+  if (!COLOR) {
+    COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
+  }
 
   COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT, "DEFAULT")
   COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION, "ATTENTION")
@@ -987,6 +1002,7 @@ function print_help() {
     printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
     printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
     printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
+    printf "  COLOR ([bool] use colors): %s\n", COLOR
     printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
     printf "  COLOR_: "
     printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE

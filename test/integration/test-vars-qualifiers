@@ -1,5 +1,5 @@
 #: desc: Variable qualifiers (override, export, unexport, private) are not part of the name
--v COLOR_DEFAULT=0 test/fixtures/Makefile.vars-qualifiers
+-v COLOR=0 test/fixtures/Makefile.vars-qualifiers
 -----------------------
 Command-line arguments:
 -----------------------

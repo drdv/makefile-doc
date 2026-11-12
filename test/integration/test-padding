@@ -1,5 +1,5 @@
 #: desc: PADDING fills the space between the anchors and their docs
--v COLOR_DEFAULT=0 -v PADDING=. test/fixtures/Makefile.padding
+-v COLOR=0 -v PADDING=. test/fixtures/Makefile.padding
 ------------------------
 Available targets:
 ------------------------

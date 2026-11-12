@@ -136,7 +136,7 @@ $(COVER_DIR):
 ## Lint the code using `gawk`
 # Warnings about these uninitialized variables are expected (options passed with -v)
 .PHONY: lint
-lint: UNINIT := sub_array COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX STDERR \
+lint: UNINIT := sub_array COLOR COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX STDERR \
 	TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST
 lint: override AWK := gawk
 lint: check-variables check-test-variables

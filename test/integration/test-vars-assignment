@@ -1,5 +1,5 @@
 #: desc: All assignment operators: =, :=, ::=, :::=, !=, ?= and +=
--v COLOR_DEFAULT=0 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.vars-assignment
+-v COLOR=0 test/fixtures/Makefile.vars-assignment
 WARNING: [test/fixtures/Makefile.vars-assignment:19] redefined docs of variable: a4
 WARNING: [test/fixtures/Makefile.vars-assignment:35] redefined docs of variable: b4
 WARNING: [test/fixtures/Makefile.vars-assignment:51] redefined docs of variable: c4

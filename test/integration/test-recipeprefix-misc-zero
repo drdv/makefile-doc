@@ -1,6 +1,6 @@
 #: desc: RECIPEPREFIX=0 is used as the recipe prefix (although "0" is false in awk)
 #: issue: 92
--v RECIPEPREFIX=0 -v COLOR_DEFAULT=0 test/fixtures/Makefile.recipeprefix-misc
+-v COLOR=0 -v RECIPEPREFIX=0 test/fixtures/Makefile.recipeprefix-misc
 -----------------------
 Available targets:
 -----------------------

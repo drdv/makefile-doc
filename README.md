@@ -110,6 +110,8 @@ are given in `{...}`, `(.)` shows the default)
 * `PADDING`: `{(" "), ".", ...}` a single padding character between anchors and docs
 * `DEPRECATED`: `{0, (1)}` show deprecated anchors
 * `OFFSET`: `{0, 1, (2), ...}` number of spaces to offset docs from anchors
+* `COLOR`: `{0, (1)}` `0` turns off all colors. The default is `0` if the environment
+  variable `NO_COLOR` is set to a non-empty value (see [no-color.org](https://no-color.org)).
 + `RECIPEPREFIX`: should have the same value as the `.RECIPEPREFIX` from your `Makefile`
 + Colors:
   + `COLOR_DEFAULT`: (`34`: blue) for anchors whose docs start with `##`

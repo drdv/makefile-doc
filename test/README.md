@@ -78,8 +78,8 @@ Conventions:
   `Makefile.<topic>` (e.g., `test-sub-L` uses `Makefile.sub`). Fixtures about targets start
   with `targets-`, about variables with `vars-`, and about docs with `docs-`.
 - Every recipe has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
-- Colors are turned off (`-v COLOR_DEFAULT=0` and the other `COLOR_*` options that apply)
-  unless the recipe is about colors or output formats.
+- Colors are turned off (`-v COLOR=0`) unless the recipe is about colors or output formats.
+  The runner removes `NO_COLOR` from the environment of the tests.
 
 ## Reporting and fixing bugs
 

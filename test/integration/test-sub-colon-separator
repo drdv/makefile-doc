@@ -1,6 +1,6 @@
 #: desc: A colon in a SUB parameter value is kept (here the separator is a colon)
 #: issue: 112
--v COLOR_DEFAULT=0 -v SUB='<M:0,L:0,S::>$(TARGET):t:a b c' test/fixtures/Makefile.sub
+-v COLOR=0 -v SUB='<M:0,L:0,S::>$(TARGET):t:a b c' test/fixtures/Makefile.sub
 -----------------------
 Available targets:
 -----------------------

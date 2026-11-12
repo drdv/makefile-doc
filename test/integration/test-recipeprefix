@@ -1,5 +1,5 @@
 #: desc: RECIPEPREFIX matches the .RECIPEPREFIX of the Makefile
--v COLOR_DEFAULT=0 -v COLOR_ATTENTION=0 -v 'RECIPEPREFIX=>' test/fixtures/Makefile.recipeprefix
+-v COLOR=0 -v 'RECIPEPREFIX=>' test/fixtures/Makefile.recipeprefix
 -----------------------
 Available targets:
 -----------------------

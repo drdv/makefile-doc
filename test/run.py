@@ -53,10 +53,15 @@ class Result:
     relevant: str = ""  # the part of the output that explains a failure
 
 
+# NO_COLOR would turn off the colors that the tests expect
+AWK_ENV = {k: v for k, v in os.environ.items() if k != "NO_COLOR"}
+
+
 def run_awk(awk: str, args: List[str], text: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
         [awk, *args],
         cwd=ROOT,
+        env=AWK_ENV,
         stdin=subprocess.DEVNULL,
         capture_output=True,
         **({"text": True, "errors": "replace"} if text else {}),
