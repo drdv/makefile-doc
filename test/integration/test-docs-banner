@@ -1,0 +1,9 @@
+#: desc: A line of three or more # is a comment banner, not a doc; it discards the docs above
+#: bug: 140
+-v COLOR=0 test/fixtures/Makefile.docs-banner
+-----------------------
+Available targets:
+-----------------------
+t2   Docs below a banner
+t4  # Docs starting with three # (kept)
+-----------------------
