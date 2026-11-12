@@ -1,4 +1,4 @@
-#: desc: Normalize RECIPEPREFIX according to GNU Make semantics
+#: desc: Only the first character of RECIPEPREFIX is used, as in GNU Make
 #: issue: 92
 -v 'RECIPEPREFIX=++' -v COLOR_DEFAULT=0 test/fixtures/Makefile.recipeprefix-misc
 -----------------------

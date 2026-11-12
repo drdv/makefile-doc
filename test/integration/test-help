@@ -1,4 +1,4 @@
-#: desc: no arguments are given, so the awk args line below is intentionally empty
+#: desc: Without arguments the help is printed (the awk args line below is intentionally empty)
 
 Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 Description: Generate docs for Makefile variables and targets

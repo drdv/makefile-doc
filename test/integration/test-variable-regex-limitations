@@ -1,4 +1,4 @@
-#: desc: Improve target and variable name recognition
+#: desc: Known limitations of variable recognition (see the README)
 #: issue: 90
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.variable-regex-limitations
 -----------------------
