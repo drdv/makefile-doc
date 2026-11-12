@@ -25,11 +25,13 @@ jobs:
       fail-fast: false # report the results of every awk variant
       matrix:
         include:
-          - awk: awk
-          - awk: awk
+          - awk: awk # the runner's default awk
+          - awk: gawk
+          - awk: gawk
             awk_flags: --posix
           - awk: mawk
           - awk: nawk
+          - awk: bawk
           - awk: wak
           - awk: goawk
 
@@ -39,7 +41,7 @@ jobs:
 
       - name: show tool versions
         run: |
-          awk --version | head -n 1
+          ls -l "$(command -v awk)"
           make --version | head -n 1
           python3 --version
 
