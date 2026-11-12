@@ -70,7 +70,7 @@ help: $(AWK_BIN)/$(AWK)
 test: $(INTEGRATION_TESTS)
 
 ## Run unit tests
-## (e.g., `make utest RUNNER_FLAGS='-v -k regex'`)
+## (e.g., `make utest RUNNER_FLAGS='-v -k parsing'`)
 .PHONY: utest
 utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
 	@$(RUNNER) unit --awk $(AWK_BIN)/$(AWK) --script $(MAKEFILE_DOC) \

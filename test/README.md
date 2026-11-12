@@ -8,7 +8,7 @@ Add `AWK=<variant>` to run with a specific awk, or use `test-all` / `utest-all` 
 `bugs-all` for all of them.
 
 The unit tests are run by `test/run.py` (Python >= 3.8, standard library only). Options can be
-passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS='-v -k regex'` (`-v` shows the
+passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS='-v -k parsing'` (`-v` shows the
 output of passing tests, `-k` selects test files by name).
 
 ## Unit tests

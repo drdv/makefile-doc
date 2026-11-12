@@ -54,11 +54,19 @@ function test_string_replace(    text) {
         "nested vars VAL end")
 }
 
+function test_strip_start_end_spaces_tabs() {
+  check("strip_start_end_spaces_tabs: spaces",
+        strip_start_end_spaces_tabs("   a test string   "), "a test string")
+  check("strip_start_end_spaces_tabs: spaces and tabs",
+        strip_start_end_spaces_tabs(" \t   a test string \t   "), "a test string")
+}
+
 BEGIN {
   test_max_min()
   test_repeated_string()
   test_length_array_posix()
   test_join_splitted()
   test_string_replace()
+  test_strip_start_end_spaces_tabs()
   done()
 }
