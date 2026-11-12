@@ -44,7 +44,7 @@ jobs:
           python3 --version
 
       - name: download and build ${{ matrix.awk }}
-        run: yes | make test/bin/${{ matrix.awk }}
+        run: make deps@${{ matrix.awk }}
 
       - name: integration tests
         run: make test AWK=${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'

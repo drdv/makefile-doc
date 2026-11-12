@@ -1,84 +1,106 @@
 # Targets for downloading and building the supported awk variants.
 # Included from the root Makefile (uses AWK_BIN and SUPPORTED_AWK_VARIANTS).
+#
+# Each variant is built into $(AWK_BIN)/<variant> by a file target (used as a prerequisite
+# by the test targets). Users call deps@<variant> and clean@<variant> instead.
+#
+# Every download is checked against its SHA256. An empty SHA256 (e.g., right after changing
+# a version) skips the check and prints the value to fill in.
 
 ##@
 ##@------ Awk variants ------
 ##@
 
-## Download/build all supported awk variants
-## (needed before running tests in parallel with `make -j`)
-.PHONY: deps
-deps: $(addprefix $(AWK_BIN)/,$(SUPPORTED_AWK_VARIANTS))
+## Download and build awk variants
+## (`deps@<variant>`, or all of them with `deps@all`; e.g., before `make -j test@all`)
+.PHONY: deps@all $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
+deps@all: $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
+$(addprefix deps@,$(SUPPORTED_AWK_VARIANTS)): deps@%: $(AWK_BIN)/%
 
-# using $1 instead of $(AWK) is necessary for a target like
-# deps: $(AWK_BIN)/mawk $(AWK_BIN)/nawk $(AWK_BIN)/bawk $(AWK_BIN)/wak
-define verify-download
-	read -p "Download and build $1 [Y/n]: " ans \
-		&& ([ -z $$ans ] || [ $$ans = y ] || [ $$ans = Y ]) \
-		&& exit 0 \
-		|| echo "Download of $1 cancelled"; exit 1
-endef
+## Remove awk variants (with their downloads and sources)
+## (`clean@<variant>`, or all of them with `clean@all`)
+.PHONY: clean@all $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS))
+clean@all:
+	@rm -rf $(AWK_BIN)
+$(addprefix clean@,$(SUPPORTED_AWK_VARIANTS)): clean@%:
+	@rm -rf $(AWK_BIN)/$* $(AWK_BIN)/$*-*
 
-define download
-	$(DOWNLOAD_$(DOWNLOAD_TOOL)) https://$(URL)
-endef
-
-$(AWK_BIN)/awk:
-	@mkdir -p $(AWK_BIN)
-	@ln -s $(shell which awk) $@
-
+# ------------------------------------------------------------------------------------------
+# versions, downloads and build commands
+# ------------------------------------------------------------------------------------------
 # the author's git export of mawk (invisible-island.net blocks scripted downloads at times)
-$(AWK_BIN)/mawk: RELEASE := t20260302
-$(AWK_BIN)/mawk: URL := github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/mawk:
-	@$(call verify-download,mawk)
-	@$(call download)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && ./configure && make
-	@cp $@-src/mawk $@
+mawk_VERSION := t20260302
+mawk_URL := https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/$(mawk_VERSION).tar.gz
+mawk_SHA256 :=
+mawk_BUILD := ./configure && make
+mawk_BINARY := mawk
 
-$(AWK_BIN)/nawk: RELEASE := 20240728
-$(AWK_BIN)/nawk: URL := github.com/onetrueawk/awk/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/nawk:
-	@$(call verify-download,nawk)
-	@$(call download)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && make
-	@cp $@-src/a.out $@
+nawk_VERSION := 20240728
+nawk_URL := https://github.com/onetrueawk/awk/archive/refs/tags/$(nawk_VERSION).tar.gz
+nawk_SHA256 :=
+nawk_BUILD := make
+nawk_BINARY := a.out
 
-$(AWK_BIN)/bawk: URL := busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox_AWK
+wak_VERSION := v24.10
+wak_URL := https://github.com/raygard/wak/archive/refs/tags/$(wak_VERSION).tar.gz
+wak_SHA256 :=
+wak_BUILD := make
+wak_BINARY := wak
+
+# requires go (e.g., `sudo dnf install golang`)
+goawk_VERSION := v1.30.0
+goawk_URL := https://github.com/benhoyt/goawk/archive/refs/tags/$(goawk_VERSION).tar.gz
+goawk_SHA256 :=
+goawk_BUILD := go build -o goawk goawk.go
+goawk_BINARY := goawk
+
+# a prebuilt binary (x86_64 linux only)
+bawk_VERSION := 1.35.0
+bawk_URL := https://busybox.net/downloads/binaries/$(bawk_VERSION)-x86_64-linux-musl/busybox_AWK
+bawk_SHA256 :=
+
+SOURCE_VARIANTS := mawk nawk wak goawk
+
+# ------------------------------------------------------------------------------------------
+# rules
+# ------------------------------------------------------------------------------------------
+SHA256SUM := $(if $(shell command -v sha256sum),sha256sum,shasum -a 256)
+
+# $(call download,URL,FILE,SHA256): download URL to FILE and check its SHA256
+define download
+	@mkdir -p $(AWK_BIN)
+	@curl -fsSL -o $(2) $(1)
+	@sum=$$($(SHA256SUM) $(2) | cut -d ' ' -f 1); \
+	if [ -z "$(3)" ]; then \
+		echo "WARNING: no SHA256 to check $(notdir $(2)) (it is $$sum)"; \
+	elif [ "$$sum" != "$(3)" ]; then \
+		echo "ERROR: wrong SHA256 for $(notdir $(2)): $$sum (expected $(3))"; \
+		rm -f $(2); \
+		exit 1; \
+	fi
+endef
+
+# awk and gawk are the ones installed on the system
+$(AWK_BIN)/awk $(AWK_BIN)/gawk:
+	@path=$$(command -v $(notdir $@)) || { echo "$(notdir $@) is not installed"; exit 1; }; \
+	mkdir -p $(AWK_BIN) && ln -sf "$$path" $@
+
+# variants built from a source archive (see the <variant>_* variables above)
+$(addprefix $(AWK_BIN)/,$(SOURCE_VARIANTS)): $(AWK_BIN)/%:
+	$(call download,$($*_URL),$(AWK_BIN)/$*-$($*_VERSION).tar.gz,$($*_SHA256))
+	@rm -rf $@-src && mkdir -p $@-src
+	@tar xzf $(AWK_BIN)/$*-$($*_VERSION).tar.gz -C $@-src --strip-components=1
+	@cd $@-src && $($*_BUILD)
+	@cp $@-src/$($*_BINARY) $@
+
 $(AWK_BIN)/bawk:
 ifeq ($(shell uname),Darwin)
-	@echo "Busybox awk binaries not available for macos"
+	@echo "Busybox awk binaries are not available for macos"
 	@exit 1
 else
-	@$(call verify-download,bawk)
-	@$(call download)
-	@mv $(AWK_BIN)/busybox_AWK $@ && chmod +x $@
+	$(call download,$(bawk_URL),$(AWK_BIN)/bawk-$(bawk_VERSION),$(bawk_SHA256))
+	@cp $(AWK_BIN)/bawk-$(bawk_VERSION) $@ && chmod +x $@
 endif
-
-$(AWK_BIN)/wak: RELEASE := v24.10
-$(AWK_BIN)/wak: URL := github.com/raygard/wak/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/wak:
-	@$(call verify-download,wak)
-	@$(call download)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && make
-	@cp $@-src/wak $@
-
-# requires: sudo dnf install golang
-$(AWK_BIN)/goawk: RELEASE := v1.30.0
-$(AWK_BIN)/goawk: URL := github.com/benhoyt/goawk/archive/refs/tags/$(RELEASE).tar.gz
-$(AWK_BIN)/goawk:
-	@$(call verify-download,goawk)
-	@$(call download)
-	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
-	@cd $@-src && go build -o goawk goawk.go
-	@cp $@-src/goawk $@
 
 $(AWK_BIN)/%: # a catch-all target for AWK values
 	@echo "==================================================="
