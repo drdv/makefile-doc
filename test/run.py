@@ -37,8 +37,9 @@ class Result:
     name: str
     passed: bool
     summary: str  # one line, e.g. "17 checks"
-    details: str = ""  # shown on failure (and with --verbose)
+    details: str = ""  # the full output (shown with --verbose)
     checks: int = 0  # number of checks (unit tests)
+    relevant: str = ""  # the part of the output that explains a failure
 
 
 def run_awk(awk: str, args: List[str]) -> subprocess.CompletedProcess:
@@ -96,6 +97,25 @@ def check_tap(stdout: str, returncode: int) -> Tuple[bool, str, int]:
     return True, f"{n} checks" + (f", known bugs: {known_bugs}" if known_bugs else ""), n
 
 
+def relevant_tap_lines(stdout: str) -> str:
+    """The lines of TAP output that explain a failure: failed checks (with their diagnostics),
+    passing checks of known bugs, and the last check if the plan is missing (a crash)."""
+    lines, keep, last_check = [], False, None
+    for line in stdout.splitlines():
+        m = TAP_RESULT.match(line)
+        if m:
+            todo = TAP_TODO.search(line)
+            keep = (m.group(1) == "not ok") != bool(todo)  # failed, or a fixed known bug
+            last_check = line
+        elif not line.startswith("#"):
+            keep = False
+        if keep or line.startswith("Bail out!"):
+            lines.append(line)
+    if not any(TAP_PLAN.match(line) for line in stdout.splitlines()) and last_check:
+        lines.append(f"(last check before the end of the output) {last_check}")
+    return "\n".join(lines) + "\n" if lines else ""
+
+
 def run_unit_file(awk: str, awk_flags: List[str], script: str, test_file: Path) -> Result:
     with tempfile.TemporaryDirectory() as tmp:
         stderr_file = Path(tmp) / "stderr"
@@ -113,8 +133,9 @@ def run_unit_file(awk: str, awk_flags: List[str], script: str, test_file: Path) 
             ],
         )
     passed, summary, checks = check_tap(proc.stdout, proc.returncode)
-    details = proc.stdout + (f"[awk stderr]\n{proc.stderr}" if proc.stderr else "")
-    return Result(test_file.stem, passed, summary, details, checks)
+    stderr = f"[awk stderr]\n{proc.stderr}" if proc.stderr else ""
+    return Result(test_file.stem, passed, summary, proc.stdout + stderr, checks,
+                  relevant_tap_lines(proc.stdout) + stderr)
 
 
 def suite_unit(args: argparse.Namespace) -> List[Callable[[], Result]]:
@@ -168,16 +189,25 @@ def main() -> int:
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         results = list(pool.map(lambda test: test(), tests))
 
-    for r in results:
-        status = "passed" if r.passed else "FAILED"
-        print(f"[{awk_name}] {status} {r.name} ({r.summary})")
-        if r.details and (args.verbose or not r.passed):
-            print("    " + r.details.rstrip("\n").replace("\n", "\n    "))
+    def indent(text: str) -> str:
+        return "    " + text.rstrip("\n").replace("\n", "\n    ")
 
-    n_failed = sum(not r.passed for r in results)
+    for r in results:
+        if r.passed:
+            print(f"[{awk_name}] passed {r.name} ({r.summary})")
+        else:
+            print(f"[{awk_name}] FAILED {r.name}")
+        output = r.details if args.verbose else ("" if r.passed else r.relevant)
+        if output:
+            print(indent(output))
+
+    failed = [r for r in results if not r.passed]
     n_checks = sum(r.checks for r in results)
-    if n_failed:
-        print(f"[{awk_name}] {n_failed} of {len(results)} {args.suite} test files failed")
+    if failed:
+        print()
+        for r in failed:  # repeated at the end, so that it is not lost in the output above
+            print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
+        print(f"[{awk_name}] {len(failed)} of {len(results)} {args.suite} test files failed")
         return 1
     print(f"[{awk_name}] all {len(results)} {args.suite} test files passed ({n_checks} checks)")
     return 0
