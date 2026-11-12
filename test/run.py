@@ -8,6 +8,7 @@ Suites:
                TAP output (see test/unit/harness.awk)
   integration  run each test/integration/test-* recipe and compare the output with the
                expected output (see test/README.md); --update rewrites the expected output
+  bugs         run the recipes of known bugs (marked with `#: bug: N`)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, or if awk exits with a non-zero
@@ -15,7 +16,9 @@ status (e.g., a crash or a syntax error). Checks of known bugs (TAP `# TODO issu
 expected to fail: the test file fails if one of them passes (the bug has been fixed).
 
 A recipe passes if the output of makefile-doc.awk (stderr, then stdout, then `exit: N` for
-a non-zero exit status) is exactly the expected output.
+a non-zero exit status) is exactly the expected output. A recipe with a `#: bug: N` line
+(issue N) holds the correct output of a known bug: it is skipped by the integration suite,
+and the bugs suite fails once its output is correct (the bug has been fixed).
 
 Only the Python standard library is used (Python >= 3.8).
 """
@@ -31,7 +34,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
@@ -46,6 +49,7 @@ class Result:
     summary: str  # one line, e.g. "17 checks"
     details: str = ""  # the full output (shown with --verbose)
     checks: int = 0  # number of checks (unit tests)
+    label: str = ""  # replaces "passed" in the report (e.g., "known bug")
     relevant: str = ""  # the part of the output that explains a failure
 
 
@@ -156,11 +160,15 @@ def suite_unit(args: argparse.Namespace) -> List[Callable[[], Result]]:
 # ------------------------------------------------------------------------------------------
 # integration tests
 # ------------------------------------------------------------------------------------------
+RECIPE_BUG = re.compile(rb"^#: bug:(.*)$")
+
+
 @dataclass
 class Recipe:
     metadata: List[bytes]  # the leading `#:` lines (with their newline)
     args: str  # the awk arguments (shell syntax)
     expected: bytes
+    bug: Optional[str]  # the value of the `#: bug:` line (the issue number), if any
 
 
 def read_recipe(path: Path) -> Recipe:
@@ -169,7 +177,12 @@ def read_recipe(path: Path) -> Recipe:
     while k < len(lines) and lines[k].startswith(b"#:"):
         k += 1
     args = lines[k].decode().rstrip("\n") if k < len(lines) else ""
-    return Recipe(lines[:k], args, b"".join(lines[k + 1 :]))
+    bug = None
+    for line in lines[:k]:
+        m = RECIPE_BUG.match(line.rstrip(b"\n"))
+        if m:
+            bug = m.group(1).decode().strip()
+    return Recipe(lines[:k], args, b"".join(lines[k + 1 :]), bug)
 
 
 def visible(data: bytes) -> List[str]:
@@ -189,6 +202,11 @@ def visible(data: bytes) -> List[str]:
 
 def run_recipe(args: argparse.Namespace, path: Path) -> Result:
     recipe = read_recipe(path)
+    if recipe.bug is not None and not recipe.bug.isdigit():
+        return Result(path.name, False, "the `#: bug:` line needs an issue number")
+    if recipe.bug is not None and args.update:
+        return Result(path.name, False, "the expected output of a known bug is not updated")
+
     proc = run_awk(
         args.awk,
         ["-f", args.script, *args.awk_flags, *shlex.split(recipe.args)],
@@ -213,15 +231,35 @@ def run_recipe(args: argparse.Namespace, path: Path) -> Result:
             return Result(path.name, True, "updated", diff, relevant=diff)
         return Result(path.name, True, "unchanged")
 
+    if recipe.bug is not None:
+        if actual == recipe.expected:
+            fixed = f"FIXED: replace `#: bug: {recipe.bug}` with `#: issue: {recipe.bug}`"
+            return Result(path.name, False, fixed)
+        return Result(path.name, True, f"issue {recipe.bug}", diff, label="known bug")
     if actual == recipe.expected:
         return Result(path.name, True, "")
     return Result(path.name, False, "output differs", diff, relevant=diff)
 
 
-def suite_integration(args: argparse.Namespace) -> List[Callable[[], Result]]:
+def recipes(args: argparse.Namespace, bugs: bool) -> List[Callable[[], Result]]:
+    """The recipes to run: with or without a `#: bug:` line (all recipes selected by
+    --name are run, each in its own mode)."""
     paths = sorted(p for p in (ROOT / INTEGRATION_DIR).iterdir() if p.is_file())
-    paths = [INTEGRATION_DIR / p.name for p in paths if selected(args, p.name)]
+    paths = [
+        INTEGRATION_DIR / p.name
+        for p in paths
+        if selected(args, p.name)
+        and (args.name or (read_recipe(INTEGRATION_DIR / p.name).bug is not None) == bugs)
+    ]
     return [(lambda p=p: run_recipe(args, p)) for p in paths]
+
+
+def suite_integration(args: argparse.Namespace) -> List[Callable[[], Result]]:
+    return recipes(args, bugs=False)
+
+
+def suite_bugs(args: argparse.Namespace) -> List[Callable[[], Result]]:
+    return recipes(args, bugs=True)
 
 
 # ------------------------------------------------------------------------------------------
@@ -236,6 +274,7 @@ def selected(args: argparse.Namespace, name: str) -> bool:
 SUITES: Dict[str, Callable[[argparse.Namespace], List[Callable[[], Result]]]] = {
     "unit": suite_unit,
     "integration": suite_integration,
+    "bugs": suite_bugs,
 }
 
 
@@ -272,6 +311,9 @@ def main() -> int:
     args = parse_args()
     tests = SUITES[args.suite](args)
     if not tests:
+        if args.suite == "bugs" and not args.name and not args.k:
+            print(f"[{Path(args.awk).name}] no known bugs")
+            return 0
         print(f"no {args.suite} tests found", file=sys.stderr)
         return 1
 
@@ -283,26 +325,31 @@ def main() -> int:
         return "    " + text.rstrip("\n").replace("\n", "\n    ")
 
     for r in results:
-        if args.update:
+        if args.update and r.passed:
             print(f"[{awk_name}] {r.summary} {r.name}")
             output = r.relevant  # the diff of an updated recipe
         else:
             summary = f" ({r.summary})" if r.summary and r.passed else ""
-            print(f"[{awk_name}] {'passed' if r.passed else 'FAILED'} {r.name}{summary}")
+            status = (r.label or "passed") if r.passed else "FAILED"
+            print(f"[{awk_name}] {status} {r.name}{summary}")
             output = r.details if args.verbose else ("" if r.passed else r.relevant)
         if output:
             print(indent(output))
 
     failed = [r for r in results if not r.passed]
     n_checks = sum(r.checks for r in results)
-    noun = f"{args.suite} test files" if args.suite == "unit" else f"{args.suite} tests"
+    noun = {"unit": "unit test files", "integration": "integration tests", "bugs": "bug tests"}[
+        args.suite
+    ]
     if failed:
         print()
         for r in failed:  # repeated at the end, so that it is not lost in the output above
             print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
         print(f"[{awk_name}] {len(failed)} of {len(results)} {noun} failed")
         return 1
-    if not args.update:
+    if args.suite == "bugs":
+        print(f"[{awk_name}] {len(results)} known bugs, none fixed")
+    elif not args.update:
         checks = f" ({n_checks} checks)" if n_checks else ""
         print(f"[{awk_name}] all {len(results)} {noun} passed{checks}")
     return 0
