@@ -6,7 +6,6 @@ Available targets:
 -----------------------
 $(info a        Colon in function call
 $ifeq ($(X),a   Colon in expression
-foo\            Escaped #
-                Escaped :
+foo\            Escaped :
 foo\ bar        Escaped space
 -----------------------
