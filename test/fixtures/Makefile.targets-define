@@ -1,0 +1,8 @@
+define canned-recipes
+## Documentation of a family of targets (with two parameters)
+##  + $1: month {jan, ..., dec}
+##  + $2: country code {fr, bg, jp, ...}
+result-$(1)-$2.html: data-$1.toml data_handler.py
+	@python data_handler.py --important-flag $2 data-$1.toml
+	@echo 1
+endef

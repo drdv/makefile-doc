@@ -1,0 +1,11 @@
+#: desc: Top docs take precedence over inline docs; the last rule with docs defines them
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.docs-precedence
+WARNING: [test/fixtures/Makefile.docs-precedence:8] redefined docs of target: t3
+-----------------------
+Available targets:
+-----------------------
+t1   Top doc (takes precedence over inline docs)
+t2   Inline doc without top docs
+t3   A new rule with a doc replaces the docs of t3
+t4
+-----------------------

@@ -1,0 +1,9 @@
+#: desc: Targets documented inside a define block are displayed (they may be canned recipes)
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-define
+-----------------------
+Available targets:
+-----------------------
+result-$(1)-$2.html   Documentation of a family of targets (with two parameters)
+                       + $1: month {jan, ..., dec}
+                       + $2: country code {fr, bg, jp, ...}
+-----------------------

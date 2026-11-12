@@ -1,0 +1,18 @@
+  ## Spaces before the ## token are allowed and stripped
+## top docs can have multiple lines
+##   indentation can be used for emphasis
+t1:
+
+## Blank lines
+
+## between docs
+
+## are ignored
+
+t2:
+
+## Comment lines between docs are skipped
+# INVISIBLE COMMENT
+## and empty doc lines are kept
+##
+t3:

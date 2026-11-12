@@ -1,0 +1,12 @@
+#: desc: A section is anchored to the next documented anchor
+test/fixtures/Makefile.section-anchors
+-----------------------
+Available targets:
+-----------------------
+[32m
+------ Section 1 -----
+[0m
+[34mt1[0m   The section is anchored to the next documented target
+[32m------ Section 2 (spaces before the ##@ token) -----[0m
+[33mt2[0m   A section anchored to a deprecated target
+-----------------------
