@@ -237,14 +237,16 @@ without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspeci
 
 ## Running the tests
 
-Execute `make test utest` (this uses the system's default `awk`). To test with a custom
-`awk`, use:
+Execute `make test@awk utest@awk` (this uses the system's default `awk`). To test with
+another `awk`, use:
 
-+ `make test utest AWK=mawk`
-+ `make test utest AWK=nawk`
-+ `make test utest AWK=bawk` (binaries are not available for macos)
-+ `make test utest AWK=wak`
-+ `make test utest AWK=goawk`
++ `make test@mawk utest@mawk`
++ `make test@nawk utest@nawk`
++ `make test@bawk utest@bawk` (binaries are not available for macos)
++ `make test@wak utest@wak`
++ `make test@goawk utest@goawk`
+
+or `make test@all utest@all` for all of them.
 
 The tests need Python 3 (>= 3.11). You need a standard build environment. To compile
 `nawk` ensure that `bison` is installed (`dnf install bison`). For `goawk` you need

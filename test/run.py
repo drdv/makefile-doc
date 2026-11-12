@@ -247,14 +247,13 @@ def run_recipe(args: argparse.Namespace, path: Path) -> Result:
 
 
 def recipes(args: argparse.Namespace, bugs: bool) -> List[Callable[[], Result]]:
-    """The recipes to run: with or without a `#: bug:` line (all recipes selected by
-    --name are run, each in its own mode)."""
+    """The recipes to run: with or without a `#: bug:` line."""
     paths = sorted(p for p in (ROOT / INTEGRATION_DIR).iterdir() if p.is_file())
     paths = [
         INTEGRATION_DIR / p.name
         for p in paths
         if selected(args, p.name)
-        and (args.name or (read_recipe(INTEGRATION_DIR / p.name).bug is not None) == bugs)
+        and (read_recipe(INTEGRATION_DIR / p.name).bug is not None) == bugs
     ]
     return [(lambda p=p: run_recipe(args, p)) for p in paths]
 
@@ -271,8 +270,6 @@ def suite_bugs(args: argparse.Namespace) -> List[Callable[[], Result]]:
 # main
 # ------------------------------------------------------------------------------------------
 def selected(args: argparse.Namespace, name: str) -> bool:
-    if args.name:
-        return name in args.name
     return not args.k or args.k in name
 
 
@@ -298,9 +295,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
     parser.add_argument("-k", metavar="PATTERN", help="run only tests whose name contains PATTERN")
     parser.add_argument(
-        "--name", action="append", help="run only the test with this exact name (repeatable)"
-    )
-    parser.add_argument(
         "--update", action="store_true", help="integration: rewrite the expected outputs"
     )
     parser.add_argument(
@@ -316,7 +310,7 @@ def main() -> int:
     args = parse_args()
     tests = SUITES[args.suite](args)
     if not tests:
-        if args.suite == "bugs" and not args.name and not args.k:
+        if args.suite == "bugs" and not args.k:
             print(f"[{Path(args.awk).name}] no known bugs")
             return 0
         print(f"no {args.suite} tests found", file=sys.stderr)
