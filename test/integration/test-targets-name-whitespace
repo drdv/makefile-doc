@@ -1,5 +1,5 @@
 #: desc: Spaces and tabs between target names are displayed as one space
-#: bug: 126
+#: issue: 126
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-name-whitespace
 -----------------------
 Available targets:

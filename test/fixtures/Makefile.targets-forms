@@ -4,7 +4,7 @@
 
 bin/%.o: %.c ## A pattern rule with a prerequisite
 
-## Three targets on one line (spaces between them are kept)
+## Three targets on one line (separated by several spaces)
 first    second third:
 
 ## Target with spaces before and after
