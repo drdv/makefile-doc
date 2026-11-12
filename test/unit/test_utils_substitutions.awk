@@ -10,7 +10,7 @@ function test_utils_substitutions_form_substitutions_1() {
   delete SUB_LABELS
   delete SUB_VALUES
   SUB = "<L:1,M:0>NAME:LABEL:v1 v2;target:target_renamed:three items here"
-  form_substitutions()
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
   assert(length(SUB_PARAMS) == 2 &&
          length(SUB_LABELS) == 2 &&
          length(SUB_VALUES) == 2 &&
@@ -28,7 +28,7 @@ function test_utils_substitutions_form_substitutions_2() {
   delete SUB_LABELS
   delete SUB_VALUES
   SUB = "T1:;T2::;T3:V31 V32"
-  form_substitutions()
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
   assert(length(SUB_PARAMS) == 3 &&
          length(SUB_LABELS) == 1 &&  # T1 has only values
          length(SUB_VALUES) == 3 &&
@@ -49,7 +49,7 @@ function test_utils_substitutions_form_substitutions_3(    stderr_content, stder
   SUB = "T1"
 
   STDERR = "/tmp/.makefile-doc-stderr"
-  form_substitutions() # this would send a warning to stderr
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES) # sends a warning to stderr
 
   stderr_content = unittest_consume_file(STDERR)
   split(stderr_content, stderr_content_lines, "\n")
