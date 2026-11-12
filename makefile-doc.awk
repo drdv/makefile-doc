@@ -251,11 +251,16 @@ function starts_with(string, prefix) {
   return substr(string, 1, length(prefix)) == prefix
 }
 
-# we have to escape {...} in \begin{alltt} ... \end{alltt}
-function escape_braces_for_latex_output(text) {
+# In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
+# a placeholder: escaping them first would escape the braces of \textbackslash{}, and
+# escaping them last would escape the backslashes of \{ and \}.
+function escape_for_latex_output(text,    placeholder) {
   if (OUTPUT_FORMAT == "LATEX") {
+    placeholder = "\034"
+    text = string_replace("\\", placeholder, text)
     gsub(/\{/, "\\{", text)
     gsub(/\}/, "\\}", text)
+    text = string_replace(placeholder, "\\textbackslash{}", text)
   }
   return text
 }
@@ -714,7 +719,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
 
 # formatting functions to be applied just before colors have been added
 function apply_output_specific_formatting(text) {
-  return escape_braces_for_latex_output(escape_for_html_output(text))
+  return escape_for_latex_output(escape_for_html_output(text))
 }
 
 # the user can change separately colors in the ranges 30-37 and 40-47
