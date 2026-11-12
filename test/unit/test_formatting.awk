@@ -33,16 +33,20 @@ function test_escape_for_html_output() {
   OUTPUT_FORMAT = ""
 }
 
-function test_escape_braces_for_latex_output() {
+function test_escape_for_latex_output() {
   OUTPUT_FORMAT = "HTML"
-  check("escape_braces_for_latex_output: HTML is unchanged",
-        escape_braces_for_latex_output("this is {a test} string"),
+  check("escape_for_latex_output: HTML is unchanged",
+        escape_for_latex_output("this is {a test} string"),
         "this is {a test} string")
 
   OUTPUT_FORMAT = "LATEX"
-  check("escape_braces_for_latex_output: LATEX",
-        escape_braces_for_latex_output("this is {a test} string"),
+  check("escape_for_latex_output: LATEX",
+        escape_for_latex_output("this is {a test} string"),
         "this is \\{a test\\} string")
+  check("escape_for_latex_output: backslash",
+        escape_for_latex_output("a \\n b"), "a \\textbackslash{}n b")
+  check("escape_for_latex_output: backslash next to braces",
+        escape_for_latex_output("\\{x}"), "\\textbackslash{}\\{x\\}")
 
   OUTPUT_FORMAT = ""
 }
@@ -133,7 +137,7 @@ function test_ansi_color_param_to_html_style() {
 
 BEGIN {
   test_substitute_backticks_patterns()
-  test_escape_braces_for_latex_output()
+  test_escape_for_latex_output()
   test_escape_for_html_output()
   test_validate_ansi_param()
   test_define_color()

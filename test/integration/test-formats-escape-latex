@@ -1,5 +1,5 @@
 #: desc: LaTeX output escapes backslashes (and braces) in docs
-#: bug: 122
+#: issue: 122
 -v OUTPUT_FORMAT=latex -v COLOR_DEFAULT=0 -v COLOR_SECTION=0 test/fixtures/Makefile.formats-escape
 \documentclass{article}
 \usepackage[utf8]{inputenc}
