@@ -27,6 +27,8 @@ AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 SUPPORTED_AWK_VARIANTS := awk gawk mawk nawk bawk wak goawk
+# awk is a link to one of the others
+BENCH_VARIANTS := $(filter-out awk,$(SUPPORTED_AWK_VARIANTS))
 
 # one target per awk variant: test@awk, test@mawk, ...
 TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
@@ -130,15 +132,17 @@ $(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
 $(COVER_DIR):
 	@mkdir -p $@
 
-## Compare the speed of the script with its version at BENCH_REV (default: HEAD)
-## on large real Makefiles (e.g., `make bench AWK=mawk BENCH_REV=v1.7`; options of
-## test/bench.py can be passed with BENCH_FLAGS, e.g., `BENCH_FLAGS=--keep`)
+## Time the script with each awk variant on large real Makefiles (a Markdown table)
+## (`BENCH_REV=<rev>` also shows the change from that revision, e.g., `make bench
+## BENCH_REV=HEAD`; options of test/bench.py can be passed with BENCH_FLAGS, e.g.,
+## `BENCH_FLAGS=--keep`)
 .PHONY: bench
-bench: BENCH_REV := HEAD
+bench: BENCH_REV :=
 bench: BENCH_FLAGS :=
-bench: $(AWK_BIN)/$(AWK)
-	@python3 $(TEST_DIR)/bench.py --awk $(AWK_BIN)/$(AWK) --script $(MAKEFILE_DOC) \
-		--rev $(BENCH_REV) $(BENCH_FLAGS)
+bench: $(addprefix $(AWK_BIN)/,$(BENCH_VARIANTS))
+	@python3 $(TEST_DIR)/bench.py --script $(MAKEFILE_DOC) \
+		$(foreach v,$(BENCH_VARIANTS),--awk '$(AWK_BIN)/$(v)=$(v) $($(v)_VERSION)') \
+		$(if $(BENCH_REV),--rev $(BENCH_REV)) $(BENCH_FLAGS)
 
 ## Lint the code using `gawk`
 # Warnings about these uninitialized variables are expected (options passed with -v)

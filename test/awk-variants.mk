@@ -28,6 +28,9 @@ $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS)): clean@%:
 # ------------------------------------------------------------------------------------------
 # versions, downloads and build commands
 # ------------------------------------------------------------------------------------------
+# gawk is the one installed on the system (test/bench.py reads its version)
+gawk_VERSION :=
+
 # the author's git export of mawk (invisible-island.net blocks scripted downloads at times)
 mawk_VERSION := t20260302
 mawk_URL := https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/$(mawk_VERSION).tar.gz

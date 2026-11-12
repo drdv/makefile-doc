@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Benchmark makefile-doc.awk on large real Makefiles.
 
-usage: test/bench.py --awk AWK [--awk AWK ...] [--rev REV] [-n N]
+usage: test/bench.py --awk PATH[=LABEL] [--awk ...] [--rev REV] [-n N]
 
-Compares the speed of makefile-doc.awk in the working tree with its version at the git
-revision REV (default: HEAD), with each given awk.
+Times makefile-doc.awk with each given awk and prints a Markdown table: one row per awk,
+fastest first, with its time on each Makefile and the ratio to the fastest awk. With
+--rev, each time also shows the change from the script at that git revision.
 
 The Makefiles are downloaded once into test/bin/ (pinned versions, checked against their
 SHA256). They contain hardly any makefile-doc docs, so docs are inserted first: before
@@ -26,7 +27,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOAD_DIR = ROOT / "test" / "bin"
@@ -34,6 +35,7 @@ DOWNLOAD_DIR = ROOT / "test" / "bin"
 MAKEFILES = [
     {
         "name": "gcc-14.2.0-Makefile.in",
+        "title": "GCC Makefile.in",
         "urls": [
             "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-14.2.0/Makefile.in",
         ],
@@ -41,6 +43,7 @@ MAKEFILES = [
     },
     {
         "name": "linux-6.12-Makefile",
+        "title": "Linux Makefile",
         "urls": [
             "https://raw.githubusercontent.com/torvalds/linux/v6.12/Makefile",
             "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/"
@@ -145,6 +148,7 @@ def annotate(lines: List[str], every: int, section_every: int) -> List[str]:
 
 
 def best_time(awk: str, script: Path, makefile: Path, n: int) -> float:
+    """Return the best of n run times of `awk -f script makefile`, in milliseconds."""
     times = []
     for _ in range(n):
         start = time.perf_counter()
@@ -155,7 +159,47 @@ def best_time(awk: str, script: Path, makefile: Path, n: int) -> float:
             check=False,
         )
         times.append(time.perf_counter() - start)
-    return min(times)
+    return 1000 * min(times)
+
+
+def awk_label(spec: str) -> Tuple[str, str]:
+    """Split PATH[=LABEL] into the path and a label with a version, e.g., "mawk 20260302".
+
+    Without a version in the label (e.g., the system gawk), it is read from `--version`.
+    """
+    path, _, label = spec.partition("=")
+    label = label.split() or [Path(path).name]
+    if len(label) == 1:
+        try:
+            out = subprocess.run(
+                [path, "--version"], capture_output=True, text=True, check=False
+            ).stdout
+        except OSError:
+            out = ""
+        version = re.search(r"\d+\.\d+(\.\d+)?", out.split("\n")[0])
+        label += [version.group()] if version else []
+    label[1:] = [re.sub(r"^[vt](?=\d)", "", v) for v in label[1:]]  # v1.30.0, t20260302
+    return path, " ".join(label)
+
+
+def cell(ms: float, fastest: float, old: Optional[float]) -> str:
+    """Format a time, its ratio to the fastest and its change from old (if any)."""
+    text = f"{ms:.0f} ms" if ms >= 100 else f"{ms:.1f} ms"
+    text += f" ({ms / fastest:.1f}×)"
+    if old is not None:
+        change = round(100 * (ms - old) / old)
+        text += f" {change:+d}%" if change else " ±0%"
+    return text
+
+
+def script_version(script: Path) -> str:
+    match = re.search(r"^# Version: (\S+)", script.read_text(), re.MULTILINE)
+    return match.group(1) if match else "?"
+
+
+def progress(text: str) -> None:
+    if sys.stderr.isatty():
+        print(f"\r\033[K{text}", end="", file=sys.stderr, flush=True)
 
 
 def main() -> int:
@@ -163,9 +207,14 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
-        "--awk", action="append", required=True, help="awk binary (repeatable)"
+        "--awk",
+        action="append",
+        required=True,
+        metavar="PATH[=LABEL]",
+        help='awk binary, with an optional label, e.g., "test/bin/mawk=mawk 20260302" '
+        "(repeatable)",
     )
-    parser.add_argument("--rev", default="HEAD", help="git revision to compare with")
+    parser.add_argument("--rev", help="also show the change from this git revision")
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
     parser.add_argument(
         "-n", type=int, default=5, help="runs per measurement (the best is kept)"
@@ -177,43 +226,72 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    awks = [awk_label(spec) for spec in args.awk]
+    new = ROOT / args.script
     with tempfile.TemporaryDirectory() as tmp:
-        old = Path(tmp) / "old.awk"
-        try:
-            old.write_bytes(
-                subprocess.run(
-                    ["git", "show", f"{args.rev}:{args.script}"],
-                    cwd=ROOT,
-                    capture_output=True,
-                    check=True,
-                ).stdout
-            )
-        except subprocess.CalledProcessError as e:
-            sys.exit(e.stderr.decode().strip())
-        new = ROOT / args.script
+        old = None
+        if args.rev:
+            old = Path(tmp) / "old.awk"
+            try:
+                old.write_bytes(
+                    subprocess.run(
+                        ["git", "show", f"{args.rev}:{args.script}"],
+                        cwd=ROOT,
+                        capture_output=True,
+                        check=True,
+                    ).stdout
+                )
+            except subprocess.CalledProcessError as e:
+                sys.exit(e.stderr.decode().strip())
 
         paths = [download(makefile) for makefile in MAKEFILES]  # before any timing
         kept = []  # annotated Makefiles saved with --keep
-
-        print(f"best of {args.n} runs, in milliseconds; {args.rev} vs working tree")
-        rev = args.rev[:10]
-        print(f"{'makefile':26} {'lines':>6} {'awk':8} {rev:>10} {'now':>8} {'change':>7}")
+        headers = []
+        times: Dict[str, List[float]] = {label: [] for _, label in awks}
+        old_times: Dict[str, List[float]] = {label: [] for _, label in awks}
         for makefile, path in zip(MAKEFILES, paths):
             lines = path.read_text(errors="replace").splitlines(keepends=True)
+            headers.append(f"{makefile['title']} ({round(len(lines) / 1000)}k lines)")
             annotated = Path(tmp) / makefile["name"]
             annotated.write_text("".join(annotate(lines, args.every, args.section_every)))
             if args.keep:
                 kept.append(DOWNLOAD_DIR / f"{makefile['name']}.annotated")
                 kept[-1].write_bytes(annotated.read_bytes())
-            for awk in args.awk:
-                t_old = best_time(awk, old, annotated, args.n) * 1000
-                t_new = best_time(awk, new, annotated, args.n) * 1000
-                print(
-                    f"{makefile['name']:26} {len(lines):6} {Path(awk).name:8} "
-                    f"{t_old:10.1f} {t_new:8.1f} {100 * (t_new - t_old) / t_old:+6.0f}%"
-                )
-        for path in kept:
-            print(f"saved {path.relative_to(ROOT)}")
+            for awk, label in awks:
+                progress(f"timing {label} on {makefile['title']}")
+                times[label].append(best_time(awk, new, annotated, args.n))
+                if old:
+                    old_times[label].append(best_time(awk, old, annotated, args.n))
+        progress("")
+
+    fastest = [min(t[k] for t in times.values()) for k in range(len(headers))]
+    rows = []
+    for label in sorted(times, key=lambda label: times[label]):  # the first Makefile first
+        rows.append(
+            [label]
+            + [
+                cell(ms, fastest[k], old_times[label][k] if old else None)
+                for k, ms in enumerate(times[label])
+            ]
+        )
+    header = ["awk"] + headers
+    widths = [max(len(row[k]) for row in rows + [header]) for k in range(len(header))]
+
+    def line(row: List[str]) -> str:  # the first column left-aligned, the others right
+        cells = [row[0].ljust(widths[0])] + [t.rjust(w) for t, w in zip(row[1:], widths[1:])]
+        return "| " + " | ".join(cells) + " |"
+
+    change = f", change from {args.rev}" if args.rev else ""
+    print(
+        f"makefile-doc {script_version(new)}, best of {args.n} runs{change}, "
+        f"sorted by the {MAKEFILES[0]['title']} column\n"
+    )
+    print(line(header))
+    print("|-" + "-" * widths[0] + "-|" + "|".join("-" * (w + 1) + ":" for w in widths[1:]) + "|")
+    for row in rows:
+        print(line(row))
+    if kept:
+        print("\nsaved " + ", ".join(str(path.relative_to(ROOT)) for path in kept))
     return 0
 
 
