@@ -1,0 +1,55 @@
+## Docs above an include
+include other.mk
+
+t1:
+
+## Docs above a function call
+$(info hello)
+t2:
+
+## Docs above a define block
+define FOO
+BAR := value
+endef
+
+## Docs above an export without an assignment
+export PATH
+V := 1
+
+## Docs above a .PHONY line and a conditional
+.PHONY: t3
+ifeq ($(OS),Linux)
+t3:
+endif
+
+## Docs above ifdef and else
+ifdef X
+else
+t4:
+endif
+
+## Docs above ifneq, then a variable
+ifneq ($(X),)
+V2 := 1
+endif
+
+## Docs above ifndef
+ifndef X
+t5:
+endif
+
+## Docs above an optional include
+-include other.mk
+t6:
+
+## Docs above an eval
+$(eval $(call FOO))
+t7:
+
+## Docs above a vpath directive
+vpath %.c src
+t8:
+
+## Docs above an unexport without an assignment
+unexport PATH
+V3 := 1
