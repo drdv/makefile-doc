@@ -1,5 +1,5 @@
 # What the tests download, used by test/deps.py: the awk variants (built into test/bin/)
-# and the Makefiles timed by `make bench` (saved into test/bin/). Every download is
+# and the Makefiles timed by `make bench@all` (saved into test/bin/). Every download is
 # checked against its sha256; an empty sha256 (e.g., right after changing a version)
 # skips the check and prints the value to fill in.
 
@@ -12,7 +12,7 @@
 #   build    the build command, run in the extracted sources
 #   binary   the file the build produces (path relative to the sources)
 #   os       the only OS where it can be installed (as Python's platform.system())
-#   bench    false to leave it out of `make bench`
+#   bench    false to leave it out of `make bench@all`
 # ------------------------------------------------------------------------------------------
 
 [awk.awk]
@@ -59,7 +59,7 @@ build = "go build -o goawk goawk.go"
 binary = "goawk"
 
 # ------------------------------------------------------------------------------------------
-# Makefiles timed by `make bench` (one column each; the table is sorted by the first)
+# Makefiles timed by `make bench@all` (one column each; the table is sorted by the first)
 #
 #   name    the file name in test/bin/
 #   title   the column header

@@ -1,12 +1,13 @@
 # Tests
 
-- `make test`: integration tests (`test/integration/`)
-- `make utest`: unit tests (`test/unit/`)
-- `make bugs`: reproducers for known, unfixed bugs (recipes with `#: bug: N` in
+- `make test@<variant>`: integration tests (`test/integration/`)
+- `make utest@<variant>`: unit tests (`test/unit/`)
+- `make bugs@<variant>`: reproducers for known, unfixed bugs (recipes with `#: bug: N` in
   `test/integration/`)
 
-Add `AWK=<variant>` to run with a specific awk (or use `test@<variant>`, e.g., `make
-test@mawk`), or use `test@all` / `utest@all` / `bugs@all` for all of them.
+For example, `make test@mawk` runs the integration tests with mawk, and `make test@all`
+with every variant. `make test`, `utest` and `bugs` use `AWK` (default `awk`) and
+`AWK_FLAGS`, e.g., `make test AWK=gawk AWK_FLAGS=--posix`.
 
 The awk variants are downloaded and built into `test/bin/` when a test needs them. `make
 deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>` (or
@@ -15,14 +16,15 @@ versions are pinned in `test/deps.toml`, where each download is checked against 
 
 The test tools in `test/` are written in Python (>= 3.11, standard library only). The unit
 and integration tests are run by `test/run.py`. Options can be passed with `RUNNER_FLAGS`,
-e.g., `make utest RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing tests,
-`-k` selects tests by name). A single integration test can also be run with its own
-target, e.g., `make test-docs-tags`.
+e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing
+tests, `-k` selects tests whose name contains a string).
 
-`make bench` times `makefile-doc.awk` with each awk variant on large real Makefiles
+`make bench@all` times `makefile-doc.awk` with each awk variant on large real Makefiles
 (downloaded once into `test/bin/`, with docs inserted automatically) and prints a Markdown
-table. After changes to the parsing, run `make bench BENCH_REV=HEAD` to also see the change
-from the last commit.
+table; `make bench@<variant>` times one variant. Options of `test/bench.py` can be passed
+with `BENCH_FLAGS`, e.g., `make bench@mawk BENCH_FLAGS='--rev HEAD --keep -n 10'`: also
+show the change from the last commit (useful after changes to the parsing), keep the
+annotated Makefiles in `test/bin/`, and take the best of 10 runs.
 
 ## Unit tests
 
@@ -72,8 +74,8 @@ come first and are ignored when running:
 ```
 
 The output must match the expected output exactly, including blanks at the end of lines and
-the final newline. Use `RUNNER_FLAGS=--update` to regenerate the expected output, e.g., `make
-test-docs-tags RUNNER_FLAGS=--update` (check the diff by hand).
+the final newline. Use `--update` to regenerate the expected output, e.g., `make test@awk
+RUNNER_FLAGS='--update -k test-docs-precedence'` (check the diff by hand).
 
 Conventions:
 

@@ -35,6 +35,9 @@ SUPPORTED_AWK_VARIANTS := $(shell $(DEPS) list)
 TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
 UTEST_ALL := $(addprefix utest@,$(SUPPORTED_AWK_VARIANTS))
 BUGS_ALL := $(addprefix bugs@,$(SUPPORTED_AWK_VARIANTS))
+DEPS_ALL := $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
+CLEAN_ALL := $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS))
+BENCH_ALL := $(addprefix bench@,$(SUPPORTED_AWK_VARIANTS))
 
 ## {ansi, html}
 OUTPUT_FORMAT :=
@@ -46,9 +49,12 @@ COVER_DIR := coverage-reports
 .PHONY: help
 ## Show this help
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
-help: TESTS_SUB := <L:1,M:1>$$(INTEGRATION_TESTS):test-:$(wordlist 1,5,$(subst test-,,$(INTEGRATION_TESTS))) ...
+# the targets per awk variant are shown as, e.g., test@<variant>
+help: VARIANT_SUB := $$(TEST_ALL):test@<variant>:;$$(UTEST_ALL):utest@<variant>:;\
+	$$(BUGS_ALL):bugs@<variant>:;$$(DEPS_ALL):deps@<variant>:;$$(CLEAN_ALL):clean@<variant>:;\
+	$$(BENCH_ALL):bench@<variant>:
 help: VFLAGS := \
-	-v SUB='$(TESTS_SUB);$(AWK_SUB)' \
+	-v SUB='$(VARIANT_SUB);$(AWK_SUB)' \
 	-v EXPORT_THEME=$(EXPORT_THEME) \
 	-v COLOR_BACKTICKS=33 \
 	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
@@ -59,51 +65,42 @@ help: $(AWK_BIN)/$(AWK)
 ##@------ Tests ------
 ##@
 
-## Run integration tests
-## (e.g., `make test RUNNER_FLAGS='-k sub'`)
-.PHONY: test
-test: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
-	@$(call run-suite,integration,)
-
-## Run unit tests
-## (e.g., `make utest RUNNER_FLAGS='-v -k parsing'`)
-.PHONY: utest
-utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
-	@$(call run-suite,unit,)
-
-## Run tests of known bugs (recipes with a `#: bug: N` line)
-## fails if a bug is fixed (see test/README.md)
-.PHONY: bugs
-bugs: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
-	@$(call run-suite,bugs,)
-
-## Run integration tests with all supported awk variants
-.PHONY: test@all
-test@all: $(TEST_ALL)
-
-## Run unit tests with all supported awk variants
-.PHONY: utest@all
-utest@all: $(UTEST_ALL)
-
-## Run tests of known bugs with all supported awk variants
-## (consider using `make -k` to continue after a failure)
-.PHONY: bugs@all
-bugs@all: $(BUGS_ALL)
-
-.PHONY: $(TEST_ALL) $(UTEST_ALL) $(BUGS_ALL)
+## Run integration tests with an awk variant (or `test@all`)
+## (e.g., `make test@mawk RUNNER_FLAGS='-v -k backslash'`)
 $(TEST_ALL): test@%:
 	@$(MAKE) test AWK=$*
+
+## Run unit tests with an awk variant (or `utest@all`)
+## (e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'`)
 $(UTEST_ALL): utest@%:
 	@$(MAKE) utest AWK=$*
+
+## Run tests of known bugs with an awk variant (or `bugs@all`)
+## (e.g., `make bugs@mawk RUNNER_FLAGS='-k semicolon'`)
 $(BUGS_ALL): bugs@%:
 	@$(MAKE) bugs AWK=$*
 
+.PHONY: test@all utest@all bugs@all $(TEST_ALL) $(UTEST_ALL) $(BUGS_ALL)
+test@all: $(TEST_ALL)
+utest@all: $(UTEST_ALL)
+bugs@all: $(BUGS_ALL)
+
+# the tests with AWK and AWK_FLAGS (the targets above set AWK)
+.PHONY: test utest bugs
+test: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
+	@$(call run-suite,integration,)
+
+utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
+	@$(call run-suite,unit,)
+
+bugs: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
+	@$(call run-suite,bugs,)
+
 ##@
-##@------ Coverage, lint & benchmark ------
+##@------ Development ------
 ##@
 
-## Run integration/unit tests with `goawk`
-## (generate a coverage report in coverage-reports/all.html)
+## Run the tests with `goawk` (see coverage-reports/all.html)
 .PHONY: coverage
 coverage: $(COVER_DIR)/all.html
 
@@ -133,16 +130,17 @@ $(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
 $(COVER_DIR):
 	@mkdir -p $@
 
-## Time the script with each awk variant on large real Makefiles (a Markdown table)
-## (`BENCH_REV=<rev>` also shows the change from that revision, e.g., `make bench
-## BENCH_REV=HEAD`; options of test/bench.py can be passed with BENCH_FLAGS, e.g.,
-## `BENCH_FLAGS=--keep`)
-.PHONY: bench
-bench: BENCH_REV :=
-bench: BENCH_FLAGS :=
-bench:
-	@python3 $(TEST_DIR)/bench.py --script $(MAKEFILE_DOC) \
-		$(if $(BENCH_REV),--rev $(BENCH_REV)) $(BENCH_FLAGS)
+BENCH_FLAGS :=
+BENCH := python3 $(TEST_DIR)/bench.py --script $(MAKEFILE_DOC) $(BENCH_FLAGS)
+
+## Time the script with an awk variant (or `bench@all`; see test/README.md)
+## (e.g., `make bench@mawk BENCH_FLAGS='--rev HEAD --keep -n 10'`)
+$(BENCH_ALL): bench@%:
+	@$(BENCH) --awk $*
+
+.PHONY: bench@all $(BENCH_ALL)
+bench@all:
+	@$(BENCH)
 
 ## Lint the code using `gawk`
 # Warnings about these uninitialized variables are expected (options passed with -v)
@@ -157,8 +155,8 @@ lint: check-variables check-test-variables
 	if [ -n "$$warnings" ]; then echo "$$warnings"; exit 1; fi; \
 	echo "lint: OK"
 
-## Verify that the unit tests define no unintended global variables
-## (e.g., a local variable missing from a function signature)
+# Verify that the unit tests define no unintended global variables
+# (e.g., a local variable missing from a function signature)
 .PHONY: check-test-variables
 check-test-variables: $(AWK_BIN)/gawk
 	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
@@ -174,7 +172,7 @@ check-test-variables: $(AWK_BIN)/gawk
 	if [ $$status = 0 ]; then echo "check-test-variables: OK"; fi; \
 	exit $$status
 
-## Verify that there are no unintended global variables
+# Verify that there are no unintended global variables
 .PHONY: check-variables
 check-variables: AWK_CODE := '\
 	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
@@ -187,14 +185,6 @@ check-variables: $(AWK_BIN)/gawk
 	$(AWK_BIN)/gawk -F: $(AWK_CODE) $(AWKVARS_FILE); status=$$?; \
 	rm -f $(AWKVARS_FILE); exit $$status
 
-##@
-##@------ Housekeeping ------
-##@
-
-.PHONY: clean
-clean: ## Remove coverage reports
-	@rm -rf $(COVER_DIR)
-
 ##! Create github release at latest tag
 .PHONY: release
 release: RELEASE_NOTES := release_notes.md
@@ -206,17 +196,27 @@ release:
 		--notes-file $(RELEASE_NOTES) -t "$$tag"
 
 ##@
-##@------ Individual integration tests ------
+##@------ Install and clean ------
 ##@
 
-## Recipes:
-## ---------
+## Download and build an awk variant (or `deps@all`; see test/deps.toml)
+$(DEPS_ALL): deps@%: $(AWK_BIN)/%
 
-# One target per recipe, run by the test runner (RUNNER_FLAGS=--update rewrites the
-# expected output). The recipe of a known bug (`#: bug: N`) is run as a bug test.
-.PHONY: $(INTEGRATION_TESTS)
-$(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
-	@$(call run-suite,integration,--name $@)
+## Remove an awk variant with its downloads (or `clean@all`)
+$(CLEAN_ALL): clean@%:
+	@rm -rf $(AWK_BIN)/$* $(AWK_BIN)/$*-*
+
+## Remove coverage reports
+clean:
+	@rm -rf $(COVER_DIR)
+
+.PHONY: deps@all clean@all clean $(DEPS_ALL) $(CLEAN_ALL)
+deps@all: $(DEPS_ALL)
+clean@all:
+	@rm -rf $(AWK_BIN)
+
+$(AWK_BIN)/%:
+	@$(DEPS) install $*
 
 # --------------------------------------------------------------------------
 # Internal stuff
@@ -233,24 +233,3 @@ demo.png: DPI := 300
 demo.png: %.png : demo.pdf Makefile
 	@magick -density $(DPI) $*.pdf -quality 90 $@
 	@rm -f $*.pdf
-
-##@
-##@------ Awk variants ------
-##@
-
-## Download and build awk variants (see test/deps.toml)
-## (`deps@<variant>`, or all of them with `deps@all`; e.g., before `make -j test@all`)
-.PHONY: deps@all $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
-deps@all: $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
-$(addprefix deps@,$(SUPPORTED_AWK_VARIANTS)): deps@%: $(AWK_BIN)/%
-
-## Remove awk variants (with their downloads and sources)
-## (`clean@<variant>`, or all of them with `clean@all`)
-.PHONY: clean@all $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS))
-clean@all:
-	@rm -rf $(AWK_BIN)
-$(addprefix clean@,$(SUPPORTED_AWK_VARIANTS)): clean@%:
-	@rm -rf $(AWK_BIN)/$* $(AWK_BIN)/$*-*
-
-$(AWK_BIN)/%:
-	@$(DEPS) install $*
