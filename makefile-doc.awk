@@ -678,7 +678,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   extract_substitution_params(SUB_PARAMS[anchor])
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
-  # that is not to be displayed.
+  # that is not to be displayed (unless no anchor of its kind is displayed: then this
+  # function is not called for it).
   if (section) {
     if (COLOR_SECTION_CODE) {
       # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so

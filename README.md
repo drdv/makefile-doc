@@ -79,7 +79,8 @@ We refer to targets / variables as anchors (for docs/sections).
 
 + Sections can be defined using `##@`. All lines in a multi-line section should start
   with `##@` (empty lines are ignored). There should be at least one anchor (possibly a
-  hidden deprecated one) after a section for it to be displayed.
+  hidden deprecated one) after a section for it to be displayed. A section is not
+  displayed if all the anchors of its kind (all targets, or all variables) are hidden.
 
 * [Double-colon](https://www.gnu.org/software/make/manual/html_node/Double_002dColon.html)
   targets are displayed using the format `target-name~index` and for each index
