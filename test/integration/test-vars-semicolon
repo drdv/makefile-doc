@@ -1,5 +1,5 @@
 #: desc: An inline doc is kept when the value of a variable contains a semicolon
-#: bug: 132
+#: issue: 132
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.vars-semicolon
 -----------------------
 Command-line arguments:
