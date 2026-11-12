@@ -53,7 +53,7 @@ help: $(AWK_BIN)/$(AWK)
 	@$< $(VFLAGS) $(AWK_FLAGS) -f $(MAKEFILE_DOC) $(MAKEFILE_LIST)
 
 ##@
-##@------ Tests (AWK=<variant> selects the awk) ------
+##@------ Tests ------
 ##@
 
 ## Run integration tests
@@ -75,18 +75,15 @@ bugs: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
 	@$(call run-suite,bugs,)
 
 ## Run integration tests with all supported awk variants
-## (`test@<variant>` is the same as `make test AWK=<variant>`)
 .PHONY: test@all
 test@all: $(TEST_ALL)
 
 ## Run unit tests with all supported awk variants
-## (`utest@<variant>` is the same as `make utest AWK=<variant>`)
 .PHONY: utest@all
 utest@all: $(UTEST_ALL)
 
 ## Run tests of known bugs with all supported awk variants
-## (`bugs@<variant>` is the same as `make bugs AWK=<variant>`;
-## consider using `make -k` to continue after a failure)
+## (consider using `make -k` to continue after a failure)
 .PHONY: bugs@all
 bugs@all: $(BUGS_ALL)
 
