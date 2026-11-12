@@ -6,15 +6,6 @@ TEST_DIR := test
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 
-# Known bugs: same format as integration tests, but the expected output is the
-# correct one, so they fail until the bug is fixed.
-BUG_TEST_DIR := $(TEST_DIR)/bugs
-BUGS := $(notdir $(wildcard $(BUG_TEST_DIR)/*))
-BUG_TARGETS := $(addprefix bug-,$(BUGS))
-
-# script that runs a single bug test recipe file (see its header for the format)
-RUN_RECIPE := $(TEST_DIR)/run-recipe.sh
-
 UNIT_TEST_DIR := $(TEST_DIR)/unit
 UNIT_TESTS := $(wildcard $(UNIT_TEST_DIR)/test_*.awk)
 
@@ -75,11 +66,11 @@ test: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
 utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
 	@$(call run-suite,unit,)
 
-## Run tests of known bugs
+## Run tests of known bugs (recipes with a `#: bug: N` line)
 ## fails if a bug is fixed (see test/README.md)
 .PHONY: bugs
-bugs:
-	@$(if $(BUG_TARGETS),$(MAKE) -k $(BUG_TARGETS),:)
+bugs: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
+	@$(call run-suite,bugs,)
 
 ## Run integration tests with all supported awk variants
 ## (`test@<variant>` is the same as `make test AWK=<variant>`)
@@ -188,15 +179,10 @@ release:
 ## ---------
 
 # One target per recipe, run by the test runner (RUNNER_FLAGS=--update rewrites the
-# expected output). Known bugs are still run by $(RUN_RECIPE) in mode `bug` (they fail
-# when they start passing).
-.PHONY: $(INTEGRATION_TESTS) $(BUG_TARGETS)
+# expected output). The recipe of a known bug (`#: bug: N`) is run as a bug test.
+.PHONY: $(INTEGRATION_TESTS)
 $(INTEGRATION_TESTS): $(AWK_BIN)/$(AWK)
 	@$(call run-suite,integration,--name $@)
-
-$(BUG_TARGETS): $(AWK_BIN)/$(AWK)
-	@MAKEFILE_DOC=$(MAKEFILE_DOC) $(RUN_RECIPE) bug \
-		$< $(BUG_TEST_DIR)/$(patsubst bug-%,%,$@) $(AWK_FLAGS)
 
 # --------------------------------------------------------------------------
 # Internal stuff

@@ -2,7 +2,8 @@
 
 - `make test`: integration tests (`test/integration/`)
 - `make utest`: unit tests (`test/unit/`)
-- `make bugs`: reproducers for known, unfixed bugs (`test/bugs/`)
+- `make bugs`: reproducers for known, unfixed bugs (recipes with `#: bug: N` in
+  `test/integration/`)
 
 Add `AWK=<variant>` to run with a specific awk (or use `test@<variant>`, e.g., `make
 test@mawk`), or use `test@all` / `utest@all` / `bugs@all` for all of them.
@@ -68,17 +69,15 @@ test-default RUNNER_FLAGS=--update` (check the diff by hand).
 ## Reporting and fixing bugs
 
 1. **Open an issue.** Every bug should have one.
-2. **Reproducer (optional, can be a separate PR):** add `test/bugs/test-<name>` with `#:
-   issue: N` and the *correct* expected output, written by hand. It is merged even if no
-   fix exists yet.
-3. **Fix:** the fix PR changes the code and moves the test from `test/bugs/` to
-   `test/integration/`. `make bugs` fails when a bug test starts passing, so a forgotten
-   move is caught.
+2. **Reproducer (optional, can be a separate PR):** written by hand with the *correct*
+   expected result. It is merged even if no fix exists yet.
+   - Integration test: a recipe `test/integration/test-<name>` with a `#: bug: N` line.
+     `make test` skips it and `make bugs` runs it.
+   - Unit test: a `check_bug(name, got, want, issue)` call next to the other checks of the
+     same function. `make utest` reports it as a known bug.
+3. **Fix:** the fix PR changes the code and turns the reproducer into a regular test:
+   `#: bug: N` becomes `#: issue: N`, and `check_bug` becomes `check`. `make bugs` and
+   `make utest` fail once a reproducer passes, so a forgotten change is caught.
 
-For a unit test, the reproducer is a `check_bug(name, got, want, issue)` call next to the
-other checks of the same function, with the *correct* `want`. It is reported as a known bug
-while it fails, and `make utest` fails once it passes: the fix PR replaces `check_bug` with
-`check`.
-
-Every file in `test/bugs/` must have an `issue:` header, so the directory never becomes
-an undocumented backlog. .
+Every reproducer needs an issue number, so known bugs never become an undocumented backlog.
+`make bugs` lists the known bugs of the integration tests (`-v` shows their diffs).
