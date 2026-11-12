@@ -19,6 +19,10 @@ only). Options can be passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS
 parsing'` (`-v` shows the output of passing tests, `-k` selects tests by name). A single
 integration test can also be run with its own target, e.g., `make test-docs-tags`.
 
+`make bench` compares the speed of `makefile-doc.awk` with its version at a git revision
+(`BENCH_REV`, default `HEAD`) on large real Makefiles (downloaded once into `test/bin/`, with
+docs inserted automatically). Run it with each awk variant after changes to the parsing.
+
 ## Unit tests
 
 Each `test/unit/test_*.awk` file is run in its own awk process, together with
