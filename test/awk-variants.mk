@@ -31,33 +31,33 @@ $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS)): clean@%:
 # the author's git export of mawk (invisible-island.net blocks scripted downloads at times)
 mawk_VERSION := t20260302
 mawk_URL := https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/$(mawk_VERSION).tar.gz
-mawk_SHA256 :=
+mawk_SHA256 := 68740bcb801350b0d8be79fe794baa1186e3d1c718511a17d6690b8d0995bbc6
 mawk_BUILD := ./configure && make
 mawk_BINARY := mawk
 
 nawk_VERSION := 20240728
 nawk_URL := https://github.com/onetrueawk/awk/archive/refs/tags/$(nawk_VERSION).tar.gz
-nawk_SHA256 :=
+nawk_SHA256 := 2d479817f95d5997fc4348ecebb1d8a1b25c81cebedb46ca4f59434247e08543
 nawk_BUILD := make
 nawk_BINARY := a.out
 
 wak_VERSION := v24.10
 wak_URL := https://github.com/raygard/wak/archive/refs/tags/$(wak_VERSION).tar.gz
-wak_SHA256 :=
+wak_SHA256 := b0902e299d9956e5920c3a0fff686de3b9dc60b7e3cc5c658fb379a5835d4c0c
 wak_BUILD := make
 wak_BINARY := wak
 
 # requires go (e.g., `sudo dnf install golang`)
 goawk_VERSION := v1.30.0
 goawk_URL := https://github.com/benhoyt/goawk/archive/refs/tags/$(goawk_VERSION).tar.gz
-goawk_SHA256 :=
+goawk_SHA256 := 7a42ca223f1319483c3f46014c80f5e78e8410be29175ac852d88b79e3e64a36
 goawk_BUILD := go build -o goawk goawk.go
 goawk_BINARY := goawk
 
 # a prebuilt binary (x86_64 linux only)
 bawk_VERSION := 1.35.0
 bawk_URL := https://busybox.net/downloads/binaries/$(bawk_VERSION)-x86_64-linux-musl/busybox_AWK
-bawk_SHA256 :=
+bawk_SHA256 := a0be3443bc46b48c761249003bf5d0750afac092bc87d2a541d09bce05172a7b
 
 SOURCE_VARIANTS := mawk nawk wak goawk
 
