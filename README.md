@@ -73,7 +73,8 @@ We refer to targets / variables as anchors (for docs/sections).
 
 + Blank lines, comments, `.PHONY`-like lines and conditionals (`ifeq` ... `endif`) can
   appear between docs and their anchor. Any other line (e.g., `include`, `define`, a
-  function call) discards the docs above it.
+  function call) discards the docs above it, and so does a comment banner (a line of
+  three or more `#` only, e.g., `###`).
 
 + Anchors documented inside a `define` block are displayed (e.g., for canned recipes).
 
