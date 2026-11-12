@@ -71,6 +71,12 @@ We refer to targets / variables as anchors (for docs/sections).
   are present. Only the first line of a multi-line doc needs to include a token with an
   emphasis (i.e., `##!` or `##%`).
 
++ Blank lines, comments, `.PHONY`-like lines and conditionals (`ifeq` ... `endif`) can
+  appear between docs and their anchor. Any other line (e.g., `include`, `define`, a
+  function call) discards the docs above it.
+
++ Anchors documented inside a `define` block are displayed (e.g., for canned recipes).
+
 + Sections can be defined using `##@`. All lines in a multi-line section should start
   with `##@` (empty lines are ignored). There should be at least one anchor (possibly a
   hidden deprecated one) after a section for it to be displayed.
@@ -281,16 +287,6 @@ The target-matching regex has the following known limitations:
 ### Variable recognition
 
 The variable-matching regex has the following known limitations:
-
-- **Multi-line definitions using `define` are not properly handled.**
-  Assignment-looking lines inside their bodies may be mistaken for standalone variable assignments.
-  ```makefile
-  ## Documentation for FOO
-  define FOO
-  BAR := value
-  endef
-  ```
-  The documentation may incorrectly become associated with `BAR`.
 
 - **Computed variable names are not expanded.**
   ```makefile

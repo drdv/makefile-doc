@@ -324,12 +324,6 @@ function initialize_variables_regex() {
   # Variable matching is heuristic; this is not a complete GNU Make parser.
   #
   # Known limitations:
-  #  - Multi-line definitions using `define` are not recognized as variable
-  #    definitions; assignment-looking lines inside their bodies may be
-  #    mistaken for standalone assignments, e.g.:
-  #      define FOO
-  #      BAR := value
-  #      endef
   #  - Variable/function references in variable names are captured literally
   #    rather than expanded, e.g., `$(PREFIX)_FLAGS := ...`.
   VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*([ \t]*(%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
@@ -1224,7 +1218,7 @@ IN_CONTINUED_LINE {
   PATTERN_RULE_MATCHED = 1
 }
 
-# Flush accumulated descriptions if followed by an empty line
+# Blank lines between docs are allowed (they do not discard the docs)
 /^$/ {
   PATTERN_RULE_MATCHED = 1
 }
@@ -1292,10 +1286,15 @@ $0 ~ VARIABLES_REGEX {
   PATTERN_RULE_MATCHED = 1
 }
 
-# keep here for debugging purposes (it is commented-out because of a goawk bug)
-# PATTERN_RULE_MATCHED == 0 {
-#
-# }
+# Docs are discarded when they are followed by an unrelated line (e.g., include, a function
+# call, define, export without an assignment), so that they do not end up on the next
+# anchor. Comments and conditional directives (ifeq, ..., endif) are not unrelated:
+# the docs above them are kept. (Blank lines, sections, anchors and ignored special
+# targets have been handled above.)
+!PATTERN_RULE_MATCHED && $0 !~ /^[ \t]*#/ &&
+    $0 !~ /^[ \t]*(ifeq|ifneq|ifdef|ifndef|else|endif)([ \t(]|$)/ {
+  forget_descriptions_data()
+}
 
 # Display results (all stdout is here).
 function print_documentation() {

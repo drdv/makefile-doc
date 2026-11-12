@@ -4,6 +4,5 @@
 -----------------------
 Command-line arguments:
 -----------------------
-BAR               Documentation for FOO
 $(PREFIX)_FLAGS   Compiler flags
 -----------------------
