@@ -1,0 +1,15 @@
+#: desc: Docs followed by an unrelated line (include, function call, define, ...) are discarded
+#: bug: 130
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.docs-carry-over
+-----------------------
+Available targets:
+-----------------------
+t3   Docs above a .PHONY line and a conditional
+t4   Docs above ifdef and else
+t5   Docs above ifndef
+
+-----------------------
+Command-line arguments:
+-----------------------
+V2   Docs above ifneq, then a variable
+-----------------------
