@@ -27,12 +27,14 @@ $(AWK_BIN)/awk:
 	@mkdir -p $(AWK_BIN)
 	@ln -s $(shell which awk) $@
 
-$(AWK_BIN)/mawk: URL := invisible-island.net/datafiles/release/mawk.tar.gz
+# the author's git export of mawk (invisible-island.net blocks scripted downloads at times)
+$(AWK_BIN)/mawk: RELEASE := t20260302
+$(AWK_BIN)/mawk: URL := github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/$(RELEASE).tar.gz
 $(AWK_BIN)/mawk:
 	@$(call verify-download,mawk)
 	@$(call download)
 	@mkdir -p $@-src
-	@tar xvf $(AWK_BIN)/mawk.tar.gz -C $@-src --strip-components=1
+	@tar xvf $(AWK_BIN)/$(RELEASE).tar.gz -C $@-src --strip-components=1
 	@cd $@-src && ./configure && make
 	@cp $@-src/mawk $@
 
