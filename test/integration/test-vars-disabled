@@ -1,5 +1,5 @@
 #: desc: VARS=0 hides the variables (a section anchored to a target is kept)
--v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 -v VARS=0 test/fixtures/Makefile.vars
+-v COLOR=0 -v VARS=0 test/fixtures/Makefile.vars
 -----------------------
 Available targets:
 -----------------------

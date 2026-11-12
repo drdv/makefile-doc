@@ -1,0 +1,12 @@
+#: desc: COLOR=0 turns off all colors (also of ##!, ##% and sections)
+-v COLOR=0 test/fixtures/Makefile.section-anchors
+-----------------------
+Available targets:
+-----------------------
+
+------ Section 1 -----
+
+t1   The section is anchored to the next documented target
+------ Section 2 (spaces before the ##@ token) -----
+t2   A section anchored to a deprecated target
+-----------------------

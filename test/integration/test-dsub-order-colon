@@ -1,6 +1,6 @@
 #: desc: A colon in a DSUB value is kept (the value is what follows the first colon)
 #: issue: 112
--v COLOR_DEFAULT=0 -v DSUB='$(X)Y:/a:b' test/fixtures/Makefile.dsub-order
+-v COLOR=0 -v DSUB='$(X)Y:/a:b' test/fixtures/Makefile.dsub-order
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,6 @@
 #: desc: Docs followed by an unrelated line (include, function call, define, ...) are discarded
 #: issue: 130
--v COLOR_DEFAULT=0 test/fixtures/Makefile.docs-carry-over
+-v COLOR=0 test/fixtures/Makefile.docs-carry-over
 -----------------------
 Available targets:
 -----------------------

@@ -80,7 +80,18 @@ function setup_colors(output_format, export_theme) {
   EXPORT_THEME = export_theme
   COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = ""
   COLOR_SECTION = COLOR_BACKTICKS = ""
+  COLOR = 1
   initialize_colors()
+}
+
+function test_default_color_option() {
+  delete ENVIRON["NO_COLOR"]
+  check("default_color_option: colors without NO_COLOR", default_color_option(), 1)
+  ENVIRON["NO_COLOR"] = ""
+  check("default_color_option: colors with an empty NO_COLOR", default_color_option(), 1)
+  ENVIRON["NO_COLOR"] = "1"
+  check("default_color_option: no colors with NO_COLOR=1", default_color_option(), 0)
+  delete ENVIRON["NO_COLOR"]
 }
 
 function test_validate_ansi_param() {
@@ -163,6 +174,7 @@ BEGIN {
   test_escape_for_latex_output()
   test_escape_for_html_output()
   test_get_max_anchor_length()
+  test_default_color_option()
   test_validate_ansi_param()
   test_define_color()
   test_export_theme()

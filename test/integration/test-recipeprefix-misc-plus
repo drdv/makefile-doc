@@ -1,6 +1,6 @@
 #: desc: A RECIPEPREFIX that is a regex metacharacter (+) is matched literally
 #: issue: 84
--v 'RECIPEPREFIX=+' -v COLOR_DEFAULT=0 test/fixtures/Makefile.recipeprefix-misc
+-v COLOR=0 -v 'RECIPEPREFIX=+' test/fixtures/Makefile.recipeprefix-misc
 -----------------------
 Available targets:
 -----------------------

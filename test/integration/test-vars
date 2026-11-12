@@ -1,5 +1,5 @@
 #: desc: Documented variables: assignments with spacing variants, sections and redefinitions
--v COLOR_DEFAULT=0 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.vars
+-v COLOR=0 test/fixtures/Makefile.vars
 WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 -----------------------
 Available targets:

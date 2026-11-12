@@ -1,5 +1,5 @@
 #: desc: Grouped targets are displayed with a & (also for double-colon rules)
--v COLOR_DEFAULT=0 -v COLOR_SECTION=0 -v COLOR_ATTENTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.targets-grouped
+-v COLOR=0 test/fixtures/Makefile.targets-grouped
 -----------------------
 Available targets:
 -----------------------
