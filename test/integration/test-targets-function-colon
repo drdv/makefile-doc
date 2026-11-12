@@ -1,5 +1,5 @@
 #: desc: A colon inside a reference or function call is not a rule separator
-#: bug: 142
+#: issue: 142
 -v COLOR=0 test/fixtures/Makefile.targets-function-colon
 -----------------------
 Available targets:

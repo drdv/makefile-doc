@@ -333,6 +333,20 @@ function detect_ignored_targets(target_line, #locals
   return 0
 }
 
+# Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`
+# (the part before the first colon of `$(info a: b)`)
+function has_unclosed_reference(text, #locals
+                                opened, closed) {
+  opened = gsub(/[(]/, "(", text)
+  closed = gsub(/[)]/, ")", text)
+  if (opened > closed) {
+    return 1
+  }
+  opened = gsub(/[{]/, "{", text)
+  closed = gsub(/[}]/, "}", text)
+  return opened > closed
+}
+
 function initialize_variables_regex() {
   ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
   split("override unexport export private", VARIABLE_QUALIFIERS, " ")
@@ -1258,7 +1272,8 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   PATTERN_RULE_MATCHED = 1
 }
 
-$0 ~ TARGETS_REGEX {
+# (a colon inside a reference, as in `$(info a: b)`, is not a rule separator)
+$0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
   if (detect_ignored_targets($0)) {
     next
   }
