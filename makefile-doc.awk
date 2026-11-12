@@ -409,11 +409,20 @@ function get_associated_section_data(anchor_name,
   return 0 # means that there is no section data associated with this anchor
 }
 
-function get_max_anchor_length(anchors, #locals
+# true for an anchor documented with ##% when deprecated anchors are not displayed
+function is_hidden_anchor(anchor, anchors_description_data) {
+  return !DEPRECATED && get_tag_from_description(anchors_description_data[anchor]) == "##%"
+}
+
+# the length of the longest displayed anchor (0 if no anchor is displayed)
+function get_max_anchor_length(anchors, anchors_description_data, #locals
                                max_len, key, anchor, n) {
   max_len = 0
   for (key in anchors) { # order is not important
     anchor = anchors[key]
+    if (is_hidden_anchor(anchor, anchors_description_data)) {
+      continue
+    }
     n = (anchor in SUB_LABELS) ? length(SUB_LABELS[anchor]) : length(anchor)
     if (n > max_len) {
       max_len = n
@@ -1284,8 +1293,8 @@ function print_documentation() {
   form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
-  g_max_target_length = get_max_anchor_length(TARGETS)
-  g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES) : 0
+  g_max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
+  g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
   g_max_anchor_length = max(g_max_target_length, g_max_variable_length)
   g_separator = get_separator("-", g_max_anchor_length)
 
@@ -1311,7 +1320,6 @@ function print_documentation() {
   }
 
   # process variables
-  # when all variables are deprecated and DEPRECATED = 0, just a header is displayed
   if (g_max_variable_length > 0 && VARS) {
     g_variables_display_pattern = g_max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
 
