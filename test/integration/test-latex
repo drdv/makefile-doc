@@ -55,7 +55,7 @@ Available targets:
 \textcolor{color-default}{t11                  }   We can use top docs when there is an inline command
 t12                     This target is kept just in case
                         even though it is obsolete
-                       
+
 t13                     Deprecated target with inline doc
 
 ------ Section 2 -----
@@ -72,7 +72,7 @@ t13                     Deprecated target with inline doc
                          + $1: month \{jan, ..., dec\}
                          + $2: country code \{fr, bg, jp, ...\}
 \textcolor{color-default}{t14                  }   Target with spaces before and after
-\textcolor{color-default}{t15                  }  
+\textcolor{color-default}{t15                  }
 \textcolor{color-default}{t16                  }   No space needed
 \textcolor{color-default}{t17                  }   Inline doc
 \textcolor{color-default}{t18                  }   Another inline doc

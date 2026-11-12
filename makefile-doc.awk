@@ -239,6 +239,14 @@ function strip_start_end_spaces_tabs(string) {
   return string
 }
 
+# remove spaces and tabs at the end of each line (e.g., the padding and the offset of an
+# empty description)
+function strip_trailing_blanks(text) {
+  gsub(/[ \t]+\n/, "\n", text)
+  sub(/[ \t]+$/, "", text)
+  return text
+}
+
 function starts_with(string, prefix) {
   return substr(string, 1, length(prefix)) == prefix
 }
@@ -597,9 +605,11 @@ function initialize_substitution_parameter_defaults() {
   SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
 }
 
+# return the text that displays the values of a substitution
 function display_substitutions(anchor, len_anchors, #locals
                                k, n, L, M, I, value_parts,
-                               cond_indent, indentation, text) {
+                               cond_indent, indentation, text, output) {
+  output = ""
   split(SUB_VALUES[anchor], value_parts, " ")
 
   if (SUB_PARAMS_CURRENT["N"] < 0) {
@@ -632,16 +642,17 @@ function display_substitutions(anchor, len_anchors, #locals
                    k == n ? "" : SUB_PARAMS_CURRENT["S"],
                    k == n ? SUB_PARAMS_CURRENT["T"] : "",
                    M || (!M && k == n) ? "\n" : "")
-    printf("%s", colorize_description_backticks(apply_output_specific_formatting(text)))
+    output = output colorize_description_backticks(apply_output_specific_formatting(text))
   }
 
   if (!SUB_PARAMS_CURRENT["L"] && n == 0) {
-    printf("\n")
+    output = output "\n"
   }
+  return output
 }
 
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
-                                  renamed_anchor, formatted_anchor, padding) {
+                                  renamed_anchor, formatted_anchor, padding, output) {
   extract_substitution_params(SUB_PARAMS[anchor])
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
@@ -681,11 +692,12 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
       formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
     }
 
-    printf("%s%s%s",
-           formatted_anchor,
-           description,
-           SUB_PARAMS_CURRENT["L"] ? "\n" : "")
-    display_substitutions(anchor, len_anchors)
+    output = sprintf("%s%s%s%s",
+                     formatted_anchor,
+                     description,
+                     SUB_PARAMS_CURRENT["L"] ? "\n" : "",
+                     display_substitutions(anchor, len_anchors))
+    printf("%s", strip_trailing_blanks(output))
   }
 }
 
@@ -948,8 +960,9 @@ function print_help() {
     print "Description: Generate docs for Makefile variables and targets"
     print "Options:"
     printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
-    printf "  EXPORT_THEME (theme for HTML/LATEX output): %s\n", EXPORT_THEME
-    printf "  SUB (substitutions): %s\n", SUB
+    printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
+           (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
+    printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
     printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
     printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
     printf "  VARS ([bool] show documented variables): %s\n", VARS

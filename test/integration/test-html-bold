@@ -38,7 +38,7 @@ t6                      Attention (inline docs)
 <span class="color-default">t11                  </span>   We can use top docs when there is an inline command
 <span class="color-deprecated">t12                  </span>   This target is kept just in case
                         even though it is obsolete
-                       
+
 <span class="color-deprecated">t13                  </span>   Deprecated target with inline doc
 <span class="color-section">
 ------ Section 2 -----
@@ -55,7 +55,7 @@ t6                      Attention (inline docs)
                          + $1: month {jan, ..., dec}
                          + $2: country code {fr, bg, jp, ...}
 <span class="color-default">t14                  </span>   Target with spaces before and after
-<span class="color-default">t15                  </span>  
+<span class="color-default">t15                  </span>
 <span class="color-default">t16                  </span>   No space needed
 <span class="color-default">t17                  </span>   Inline doc
 <span class="color-default">t18                  </span>   Another inline doc

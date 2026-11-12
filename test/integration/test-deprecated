@@ -37,7 +37,7 @@ Available targets:
                          + $1: month {jan, ..., dec}
                          + $2: country code {fr, bg, jp, ...}
 [34mt14                  [0m   Target with spaces before and after
-[34mt15                  [0m  
+[34mt15                  [0m
 [34mt16                  [0m   No space needed
 [34mt17                  [0m   Inline doc
 [34mt18                  [0m   Another inline doc
