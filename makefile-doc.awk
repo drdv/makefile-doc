@@ -260,6 +260,17 @@ function escape_braces_for_latex_output(text) {
   return text
 }
 
+# <, > and & would be interpreted as HTML markup (& first, so that the & of the other
+# replacements is not escaped again; string_replace because & is special in gsub)
+function escape_for_html_output(text) {
+  if (OUTPUT_FORMAT == "HTML") {
+    text = string_replace("&", "&amp;", text)
+    text = string_replace("<", "&lt;", text)
+    text = string_replace(">", "&gt;", text)
+  }
+  return text
+}
+
 function get_tag_from_description(string, #locals
                                   tag) {
   if (match(string, /^ *(##!|##%|##)/)) {
@@ -703,7 +714,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
 
 # formatting functions to be applied just before colors have been added
 function apply_output_specific_formatting(text) {
-  return escape_braces_for_latex_output(text)
+  return escape_braces_for_latex_output(escape_for_html_output(text))
 }
 
 # the user can change separately colors in the ranges 30-37 and 40-47

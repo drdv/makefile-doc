@@ -19,6 +19,20 @@ function test_substitute_backticks_patterns() {
         "empty `` region")
 }
 
+function test_escape_for_html_output() {
+  OUTPUT_FORMAT = "HTML"
+  check("escape_for_html_output: <, > and &",
+        escape_for_html_output("AWK=<variant> & co"), "AWK=&lt;variant&gt; &amp; co")
+  check("escape_for_html_output: & is escaped only once",
+        escape_for_html_output("&lt;"), "&amp;lt;")
+
+  OUTPUT_FORMAT = "LATEX"
+  check("escape_for_html_output: LATEX is unchanged",
+        escape_for_html_output("<a> & b"), "<a> & b")
+
+  OUTPUT_FORMAT = ""
+}
+
 function test_escape_braces_for_latex_output() {
   OUTPUT_FORMAT = "HTML"
   check("escape_braces_for_latex_output: HTML is unchanged",
@@ -120,6 +134,7 @@ function test_ansi_color_param_to_html_style() {
 BEGIN {
   test_substitute_backticks_patterns()
   test_escape_braces_for_latex_output()
+  test_escape_for_html_output()
   test_validate_ansi_param()
   test_define_color()
   test_export_theme()
