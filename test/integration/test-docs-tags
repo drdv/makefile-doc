@@ -1,0 +1,13 @@
+#: desc: The tags ## (default), ##! (attention) and ##% (deprecated) select the color
+test/fixtures/Makefile.docs-tags
+-----------------------
+Available targets:
+-----------------------
+[31mt1[0m   Use ##! for targets that are significant in some way
+     (only the first line needs the exclamation mark)
+[31mt2[0m   Inline docs with ##!
+[33mt3[0m   Use ##% for deprecated targets
+     (only the first line needs the percent sign)
+[33mt4[0m   Inline docs with ##%
+[34mt5[0m   A normal target
+-----------------------

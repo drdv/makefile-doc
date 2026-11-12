@@ -1,0 +1,20 @@
+%.tab.c %.tab.h: %.y: ## A pattern rule
+
+%.c: ## Another pattern rule
+
+bin/%.o: %.c ## A pattern rule with a prerequisite
+
+## Three targets on one line (spaces between them are kept)
+first    second third:
+
+## Target with spaces before and after
+  t1  :
+
+$(TARGET-NAME): ## Target from a variable in `$()`
+
+${TARGET-NAME}: ## Target from a variable in `${}`
+
+$T: ## Target from a one-letter variable
+
+# t3 here is not treated separately and does not get its own docs
+$(t1) ${t2} t3: ## Variables and a name (issue #12)

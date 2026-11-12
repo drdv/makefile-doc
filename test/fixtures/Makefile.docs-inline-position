@@ -1,0 +1,16 @@
+t1: t0 ## Inline docs after prerequisites
+
+t2: t0 | t1 ## Inline docs after order-only prerequisites
+
+t3: A:=1 ## Inline docs after a target-specific variable
+
+t4:## No space needed
+t5: A:=1## No space needed after a target-specific variable
+t6: this that## No space needed after prerequisites
+
+# a comment after an inline recipe is not Makefile syntax
+t-no-docs:; echo 1 ## Cannot have docs here
+t-no-docs:; ## Neither here
+
+## Top docs can be used when there is an inline recipe
+t7:; echo 1

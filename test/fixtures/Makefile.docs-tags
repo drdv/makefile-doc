@@ -1,0 +1,14 @@
+##! Use ##! for targets that are significant in some way
+## (only the first line needs the exclamation mark)
+t1:
+
+t2: ##! Inline docs with ##!
+
+##% Use ##% for deprecated targets
+## (only the first line needs the percent sign)
+t3:
+
+t4: ##% Inline docs with ##%
+
+## A normal target
+t5:

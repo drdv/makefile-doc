@@ -1,0 +1,13 @@
+#: desc: Inline docs after prerequisites and target variables, but not after an inline recipe
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.docs-inline-position
+-----------------------
+Available targets:
+-----------------------
+t1   Inline docs after prerequisites
+t2   Inline docs after order-only prerequisites
+t3   Inline docs after a target-specific variable
+t4   No space needed
+t5   No space needed after a target-specific variable
+t6   No space needed after prerequisites
+t7   Top docs can be used when there is an inline recipe
+-----------------------

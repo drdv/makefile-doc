@@ -1,0 +1,13 @@
+## Top doc (takes precedence over inline docs)
+t1: ## Inline doc (not displayed)
+
+t2: ## Inline doc without top docs
+
+## Not displayed because t3 is redefined below
+t3:
+t3: ## A new rule with a doc replaces the docs of t3
+
+##
+t4: ## An empty top doc shadows this inline doc
+
+target-without-docs:

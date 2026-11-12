@@ -1,0 +1,10 @@
+#: desc: DEPRECATED=0 hides the anchors documented with ##%
+-v DEPRECATED=0 test/fixtures/Makefile.docs-tags
+-----------------------
+Available targets:
+-----------------------
+[31mt1[0m   Use ##! for targets that are significant in some way
+     (only the first line needs the exclamation mark)
+[31mt2[0m   Inline docs with ##!
+[34mt5[0m   A normal target
+-----------------------
