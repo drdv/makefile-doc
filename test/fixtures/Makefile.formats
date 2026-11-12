@@ -1,0 +1,16 @@
+##@
+##@ Section with `backticks` and {braces}
+##@
+
+## A default target with `backticks` and {braces}
+## on two lines
+t-default:
+
+##! An attention target
+t-attention:
+
+##% A deprecated target
+t-deprecated:
+
+## A variable
+VAR := 1

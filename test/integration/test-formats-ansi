@@ -1,0 +1,18 @@
+#: desc: ANSI output with the default colors (backticks with a background color)
+-v COLOR_BACKTICKS=44 test/fixtures/Makefile.formats
+-----------------------
+Available targets:
+-----------------------
+[32m
+ Section with [44mbackticks[0m[32m and {braces}
+[0m
+[34mt-default   [0m   A default target with [44mbackticks[0m and {braces}
+               on two lines
+[31mt-attention [0m   An attention target
+[33mt-deprecated[0m   A deprecated target
+
+-----------------------
+Command-line arguments:
+-----------------------
+[34mVAR         [0m   A variable
+-----------------------

@@ -1,0 +1,34 @@
+#: desc: HTML output with attributes (bold, italic, underline, strike), an invalid color and a custom theme
+-v OUTPUT_FORMAT=html -v COLOR_ATTENTION=1 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_BACKTICKS=9 -v COLOR_WARNING=14 -v EXPORT_THEME=FG:000000,BG:AAAAAA,34:7c3f00 test/fixtures/Makefile.formats
+<head>
+  <style type="text/css">
+    .color-attention { font-weight: bold; }
+    .color-section { font-style: italic; }
+    .color-deprecated { text-decoration: underline; }
+    .color-default { color: #7c3f00; }
+    .color-warning {}
+    .color-backticks { text-decoration: line-through; }
+    .makefile-doc-fg { color: #000000; }
+    .makefile-doc-bg { background-color: #AAAAAA; }
+  </style>
+</head>
+<div class="makefile-doc-fg makefile-doc-bg">
+<pre>
+-----------------------
+Available targets:
+-----------------------
+<span class="color-section">
+ Section with <span class="color-backticks">backticks</span> and {braces}
+</span>
+<span class="color-default">t-default   </span>   A default target with <span class="color-backticks">backticks</span> and {braces}
+               on two lines
+<span class="color-attention">t-attention </span>   An attention target
+<span class="color-deprecated">t-deprecated</span>   A deprecated target
+
+-----------------------
+Command-line arguments:
+-----------------------
+<span class="color-default">VAR         </span>   A variable
+-----------------------
+</pre>
+</div>

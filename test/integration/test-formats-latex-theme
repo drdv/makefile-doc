@@ -1,0 +1,53 @@
+#: desc: LaTeX output with attributes (bold, italic, underline, strike), an invalid color and a custom theme
+-v OUTPUT_FORMAT=latex -v COLOR_ATTENTION=1 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_BACKTICKS=9 -v COLOR_WARNING=14 -v EXPORT_THEME=FG:000000,BG:AAAAAA,34:7c3f00 test/fixtures/Makefile.formats
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{alltt}
+\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
+\usepackage{varwidth}
+\usepackage[active,tightpage]{preview}
+\usepackage[normalem]{ulem}
+
+\setlength{\fboxsep}{0pt}
+
+\newcommand{\bgcolor}[2]{\colorbox{#1}{\vphantom{Ay}#2}}
+
+\PreviewEnvironment{varwidth}
+
+\definecolor{makefile-doc-fg}{HTML}{000000}
+\definecolor{makefile-doc-bg}{HTML}{AAAAAA}
+\definecolor{color-attention}{HTML}{000000}
+\definecolor{color-section}{HTML}{000000}
+\definecolor{color-deprecated}{HTML}{000000}
+\definecolor{color-default}{HTML}{7c3f00}
+\definecolor{color-warning}{HTML}{000000}
+\definecolor{color-backticks}{HTML}{000000}
+
+\pagestyle{empty}
+\begin{document}
+
+\begin{varwidth}{\linewidth}
+\color{makefile-doc-fg}
+\pagecolor{makefile-doc-bg}
+
+\begin{alltt}
+-----------------------
+Available targets:
+-----------------------
+\emph{
+ Section with \sout{backticks} and \{braces\}
+}
+\textcolor{color-default}{t-default   }   A default target with \sout{backticks} and \{braces\}
+               on two lines
+\textbf{t-attention }   An attention target
+\uline{t-deprecated}   A deprecated target
+
+-----------------------
+Command-line arguments:
+-----------------------
+\textcolor{color-default}{VAR         }   A variable
+-----------------------
+\end{alltt}
+\end{varwidth}
+\end{document}
