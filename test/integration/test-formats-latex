@@ -1,0 +1,49 @@
+#: desc: LaTeX output with the default theme (backticks with a background color, no color for deprecated)
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.formats
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{alltt}
+\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
+\usepackage{varwidth}
+\usepackage[active,tightpage]{preview}
+\usepackage[normalem]{ulem}
+
+\setlength{\fboxsep}{0pt}
+
+\newcommand{\bgcolor}[2]{\colorbox{#1}{\vphantom{Ay}#2}}
+
+\PreviewEnvironment{varwidth}
+
+\definecolor{color-attention}{HTML}{dc322f}
+\definecolor{color-section}{HTML}{859900}
+\definecolor{color-deprecated}{HTML}{000000}
+\definecolor{color-default}{HTML}{268bd2}
+\definecolor{color-warning}{HTML}{d33682}
+\definecolor{color-backticks}{HTML}{268bd2}
+
+\pagestyle{empty}
+\begin{document}
+
+\begin{varwidth}{\linewidth}
+
+\begin{alltt}
+-----------------------
+Available targets:
+-----------------------
+\textcolor{color-section}{
+ Section with \bgcolor{color-backticks}{backticks} and \{braces\}
+}
+\textcolor{color-default}{t-default   }   A default target with \bgcolor{color-backticks}{backticks} and \{braces\}
+               on two lines
+\textcolor{color-attention}{t-attention }   An attention target
+t-deprecated   A deprecated target
+
+-----------------------
+Command-line arguments:
+-----------------------
+\textcolor{color-default}{VAR         }   A variable
+-----------------------
+\end{alltt}
+\end{varwidth}
+\end{document}
