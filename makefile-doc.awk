@@ -1226,6 +1226,13 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   PATTERN_RULE_MATCHED = 0
 }
 
+# A line of three or more # is a comment banner: it is not a doc, and it discards the docs
+# above it (they belong to another part of the Makefile)
+/^[ \t]*###+[ \t]*$/ {
+  forget_descriptions_data()
+  next
+}
+
 # Capture the line if it is a description (but not a section).
 /^ *##([^@]|$)/ {
   g_description_string = $0
