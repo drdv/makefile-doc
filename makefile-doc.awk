@@ -240,11 +240,24 @@ function strip_start_end_spaces_tabs(string) {
   return string
 }
 
-# remove spaces and tabs at the end of each line (e.g., the padding and the offset of an
-# empty description)
-function strip_trailing_blanks(text) {
-  gsub(/[ \t]+\n/, "\n", text)
-  sub(/[ \t]+$/, "", text)
+# Remove spaces and tabs at the end of each line (e.g., the padding and the offset of an
+# empty description). No regex: on the long runs of spaces of the padding, a regex such
+# as /[ \t]+\n/ takes time quadratic in their length.
+function strip_trailing_blanks(text, #locals
+                               n, lines, k, line, last) {
+  last = substr(text, length(text), 1)
+  if (!index(text, " \n") && !index(text, "\t\n") && last != " " && last != "\t") {
+    return text # nothing to strip (the usual case)
+  }
+  n = split(text, lines, "\n")
+  text = ""
+  for (k = 1; k <= n; k++) {
+    line = lines[k]
+    while (line != "" && index(" \t", substr(line, length(line), 1))) {
+      line = substr(line, 1, length(line) - 1)
+    }
+    text = text (k > 1 ? "\n" : "") line
+  }
   return text
 }
 
@@ -1187,8 +1200,9 @@ IN_CONTINUED_LINE {
   next
 }
 
-!(IN_RULE && starts_with($0, RECIPEPREFIX)) && !IN_MULTILINE_BACKSLASH_RECIPE &&
-    has_odd_terminal_backslashes($0) {
+# (the check of the last character first avoids calling a function for most lines)
+substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
+    !IN_MULTILINE_BACKSLASH_RECIPE && has_odd_terminal_backslashes($0) {
   CONTINUED_LINE = substr($0, 1, length($0) - 1)
   sub(/[ \t]+$/, "", CONTINUED_LINE)
   IN_CONTINUED_LINE = 1

@@ -96,7 +96,7 @@ $(BUGS_ALL): bugs@%:
 	@$(MAKE) bugs AWK=$*
 
 ##@
-##@------ Coverage & lint ------
+##@------ Coverage, lint & benchmark ------
 ##@
 
 ## Run integration/unit tests with `goawk`
@@ -129,6 +129,16 @@ $(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
 
 $(COVER_DIR):
 	@mkdir -p $@
+
+## Compare the speed of the script with its version at BENCH_REV (default: HEAD)
+## on large real Makefiles (e.g., `make bench AWK=mawk BENCH_REV=v1.7`; options of
+## test/bench.py can be passed with BENCH_FLAGS, e.g., `BENCH_FLAGS=--keep`)
+.PHONY: bench
+bench: BENCH_REV := HEAD
+bench: BENCH_FLAGS :=
+bench: $(AWK_BIN)/$(AWK)
+	@python3 $(TEST_DIR)/bench.py --awk $(AWK_BIN)/$(AWK) --script $(MAKEFILE_DOC) \
+		--rev $(BENCH_REV) $(BENCH_FLAGS)
 
 ## Lint the code using `gawk`
 # Warnings about these uninitialized variables are expected (options passed with -v)
