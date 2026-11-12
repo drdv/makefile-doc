@@ -74,7 +74,7 @@ test: $(INTEGRATION_TESTS)
 .PHONY: utest
 utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
 	@$(RUNNER) unit --awk $(AWK_BIN)/$(AWK) --script $(MAKEFILE_DOC) \
-		--awk-flags '$(AWK_FLAGS)' $(RUNNER_FLAGS)
+		--awk-flags='$(AWK_FLAGS)' $(RUNNER_FLAGS)
 
 ## Run tests of known bugs
 ## fails if a bug is fixed (see test/README.md)
