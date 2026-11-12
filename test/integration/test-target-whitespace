@@ -1,4 +1,4 @@
-#: desc: Target parsing does not handle tabs consistently
+#: desc: Whitespace before : and & is removed (also for double-colon and grouped targets)
 #: issue: 98
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.target-whitespace
 --------------------------------

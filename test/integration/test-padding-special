@@ -1,4 +1,4 @@
-#: desc: PADDING=& does not work as expected
+#: desc: PADDING=& is used literally (& is special in the replacement of sub/gsub)
 #: issue: 88
 -v PADDING='&' -v COLOR_DEFAULT=0 test/fixtures/Makefile.padding
 ------------------------

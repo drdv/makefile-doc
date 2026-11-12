@@ -1,4 +1,4 @@
-#: desc: OFFSET should be a non-negative integer
+#: desc: A non-numeric OFFSET is rejected with an error
 #: issue: 103
 -v OFFSET=abc test/fixtures/Makefile.padding
 ERROR: OFFSET should be a non-negative integer

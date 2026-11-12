@@ -1,4 +1,4 @@
-#: desc: Improve target and variable name recognition
+#: desc: Target and variable names can contain ., +, /, @ and quotes
 #: issue: 90
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.names
 -----------------------

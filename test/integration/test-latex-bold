@@ -1,4 +1,4 @@
--v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=1 -v COLOR_ATTENTION=14 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_DEPRECATED=9 -v EXPORT_THEME=FG:000000 -v EXPORT_THEME=BG:AAAAAA test/fixtures/Makefile.targets test/fixtures/Makefile.targets-double-colon test/fixtures/Makefile.targets-grouped test/fixtures/Makefile.vars
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=1 -v COLOR_ATTENTION=14 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=9 -v EXPORT_THEME=FG:000000,BG:AAAAAA test/fixtures/Makefile.targets test/fixtures/Makefile.targets-double-colon test/fixtures/Makefile.targets-grouped test/fixtures/Makefile.vars
 WARNING: [test/fixtures/Makefile.targets:8] redefined docs of target: t3
 WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 \documentclass{article}
@@ -16,6 +16,7 @@ WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 
 \PreviewEnvironment{varwidth}
 
+\definecolor{makefile-doc-fg}{HTML}{000000}
 \definecolor{makefile-doc-bg}{HTML}{AAAAAA}
 \definecolor{color-attention}{HTML}{000000}
 \definecolor{color-section}{HTML}{000000}
@@ -28,6 +29,7 @@ WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 \begin{document}
 
 \begin{varwidth}{\linewidth}
+\color{makefile-doc-fg}
 \pagecolor{makefile-doc-bg}
 
 \begin{alltt}
