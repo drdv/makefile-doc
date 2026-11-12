@@ -63,9 +63,9 @@
 #   [<p1:v1,...>]NAME[:LABEL]:[VALUES]
 #   + NAME is the name of the variable/target to substitute in the documentation
 #   + LABEL is an optional label for renaming the variable/target
-#   + VALUES are optional space-separated values to include (a comma can appear as a
-#     part of a value if it is escaped, i.e., \\,)
-#   + <p1:v1,...> are optional, comma-separated, key-value pairs with parameters
+#   + VALUES are optional space-separated values to include
+#   + <p1:v1,...> are optional, comma-separated, key-value pairs with parameters (a comma
+#     can appear as a part of a parameter value if it is escaped, i.e., \\,)
 #   + multiple ;-separated substitutions can be passed
 #
 # SUB parameters:
@@ -605,7 +605,8 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     sub_names_array[k] = name
     sub_params_array[name] = substitution_params
     if (!has_values) {
-      printf("WARNING: a minimal substitution is -v SUB='NAME:'\n") > STDERR
+      printf("WARNING: a minimal substitution is -v %s='NAME:'\n",
+             no_labels ? "DSUB" : "SUB") > STDERR
     } else {
       sub_values_array[name] = values
       if (has_label) {
@@ -984,6 +985,7 @@ function print_help() {
     printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
            (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
     printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
+    printf "  DSUB (substitutions in docs):%s\n", (DSUB == "" ? "" : " " DSUB)
     printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
     printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
     printf "  VARS ([bool] show documented variables): %s\n", VARS
@@ -1065,7 +1067,6 @@ function init_globals() {
   IN_MULTILINE_BACKSLASH_RECIPE = 0
   IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
   CONTINUED_LINE = ""
-  IN_DEFINE_ENDEF_BLOCK = 0
   IN_RULE = ""
 }
 
@@ -1174,15 +1175,6 @@ IN_CONTINUED_LINE {
   }
 
   next
-}
-
-# This has no effect for now
-/^ *define */ || IN_DEFINE_ENDEF_BLOCK {
-  if (!IN_DEFINE_ENDEF_BLOCK) {
-    IN_DEFINE_ENDEF_BLOCK = 1
-  } else if ($0 ~ /^ *endef$/) {
-    IN_DEFINE_ENDEF_BLOCK = 0
-  }
 }
 
 !(IN_RULE && starts_with($0, RECIPEPREFIX)) && !IN_MULTILINE_BACKSLASH_RECIPE &&

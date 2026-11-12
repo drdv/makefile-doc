@@ -33,6 +33,11 @@ function test_form_substitutions_name_only(    params, labels, values, names) {
   check("form_substitutions: name only has params", length_array_posix(params), 1)
   check("form_substitutions: name only has no labels", length_array_posix(labels), 0)
   check("form_substitutions: name only has no values", length_array_posix(values), 0)
+
+  form_substitutions("T1", params, labels, values, names, 1)
+  check("form_substitutions (DSUB): name only gives a warning that names DSUB",
+        stderr_text(),
+        "WARNING: a minimal substitution is -v DSUB='NAME:'\n")
 }
 
 function test_extract_substitution_params() {
