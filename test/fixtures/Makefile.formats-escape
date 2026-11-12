@@ -1,0 +1,10 @@
+##@ Section with <tags> & ampersands
+
+## Run the tests (use AWK=<variant> & co)
+test:
+
+## Grouped targets (displayed with a &)
+a b&:
+
+## A variable with a \ backslash and {braces}
+VAR := 1

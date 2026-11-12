@@ -1,0 +1,29 @@
+#: desc: HTML output escapes <, > and & in sections, docs and anchor names
+#: bug: 120
+-v OUTPUT_FORMAT=html -v COLOR_DEFAULT=0 -v COLOR_SECTION=0 test/fixtures/Makefile.formats-escape
+<head>
+  <style type="text/css">
+    .color-attention { color: #dc322f; }
+    .color-section {}
+    .color-deprecated { color: #b58900; }
+    .color-default {}
+    .color-warning { color: #d33682; }
+    .color-backticks {}
+  </style>
+</head>
+<div class="makefile-doc-fg makefile-doc-bg">
+<pre>
+-----------------------
+Available targets:
+-----------------------
+ Section with &lt;tags&gt; &amp; ampersands
+test   Run the tests (use AWK=&lt;variant&gt; &amp; co)
+a b&amp;   Grouped targets (displayed with a &amp;)
+
+-----------------------
+Command-line arguments:
+-----------------------
+VAR    A variable with a \ backslash and {braces}
+-----------------------
+</pre>
+</div>
