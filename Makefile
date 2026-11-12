@@ -139,12 +139,29 @@ $(COVER_DIR):
 lint: UNINIT := sub_array COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX STDERR \
 	TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST
 lint: override AWK := gawk
-lint: check-variables
+lint: check-variables check-test-variables
 	@warnings=$$($(AWK_BIN)/$(AWK) --lint -v SHOW_HELP=0 -v UNIT_TEST=0 \
 		-f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized .* \`($(subst $(SPACE),|,$(strip $(UNINIT))))'"); \
 	if [ -n "$$warnings" ]; then echo "$$warnings"; exit 1; fi; \
 	echo "lint: OK"
+
+## Verify that the unit tests define no unintended global variables
+## (e.g., a local variable missing from a function signature)
+.PHONY: check-test-variables
+check-test-variables: $(AWK_BIN)/gawk
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	$(AWK_BIN)/gawk -v SHOW_HELP=0 -d$$tmp/script -f $(MAKEFILE_DOC) >/dev/null 2>&1; \
+	status=0; \
+	for f in $(UNIT_TESTS); do \
+		$(AWK_BIN)/gawk -v UNIT_TEST=1 -v STDERR=$$tmp/stderr -d$$tmp/test \
+			-f $(UNIT_TEST_DIR)/harness.awk -f $(MAKEFILE_DOC) -f $$f /dev/null >/dev/null 2>&1; \
+		extra=$$(cut -d: -f1 $$tmp/test | grep -vxF -f <(cut -d: -f1 $$tmp/script) | \
+			grep -v '^HARNESS_' | tr '\n' ' '); \
+		if [ -n "$$extra" ]; then echo "[$$f] unintended global variables: $$extra"; status=1; fi; \
+	done; \
+	if [ $$status = 0 ]; then echo "check-test-variables: OK"; fi; \
+	exit $$status
 
 ## Verify that there are no unintended global variables
 .PHONY: check-variables

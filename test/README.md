@@ -43,6 +43,9 @@ BEGIN {
 - `init_globals()` (from `makefile-doc.awk`) resets the global state; it has already been
   called when the tests start.
 - `fatal()` does not exit in unit tests: it records its message in `FATAL_MSG`.
+- Declare the local variables of test functions in their signature (as in makefile-doc.awk):
+  `make lint` fails if a test file defines other global variables than those of
+  makefile-doc.awk and the harness (`check-test-variables`).
 
 The results are printed in [TAP](https://testanything.org) format. A test file fails if a
 check fails, if it stops before `done()` (e.g., because of an `exit` or a syntax error), or if
