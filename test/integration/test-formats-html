@@ -1,12 +1,11 @@
-#: desc: HTML output, default theme (background color for backticks, no color for deprecated)
--v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.formats
+#: desc: HTML output, default theme (background color for backticks, invalid color 14 for deprecated)
+-v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=14 test/fixtures/Makefile.formats
 <head>
   <style type="text/css">
     .color-attention { color: #dc322f; }
     .color-section { color: #859900; }
     .color-deprecated {}
     .color-default { color: #268bd2; }
-    .color-warning { color: #d33682; }
     .color-backticks { background-color: #268bd2; }
   </style>
 </head>

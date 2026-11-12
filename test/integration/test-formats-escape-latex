@@ -20,7 +20,6 @@
 \definecolor{color-section}{HTML}{000000}
 \definecolor{color-deprecated}{HTML}{b58900}
 \definecolor{color-default}{HTML}{000000}
-\definecolor{color-warning}{HTML}{d33682}
 \definecolor{color-backticks}{HTML}{000000}
 
 \pagestyle{empty}

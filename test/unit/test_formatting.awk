@@ -79,7 +79,7 @@ function setup_colors(output_format, export_theme) {
   OUTPUT_FORMAT = output_format
   EXPORT_THEME = export_theme
   COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = ""
-  COLOR_WARNING = COLOR_SECTION = COLOR_BACKTICKS = ""
+  COLOR_SECTION = COLOR_BACKTICKS = ""
   initialize_colors()
 }
 

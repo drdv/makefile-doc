@@ -7,7 +7,6 @@
     .color-section {}
     .color-deprecated { color: #b58900; }
     .color-default {}
-    .color-warning { color: #d33682; }
     .color-backticks {}
   </style>
 </head>
