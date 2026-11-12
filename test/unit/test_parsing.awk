@@ -106,6 +106,45 @@ function test_update_display_parameters(    description) {
         "ERROR (we shouldn't be here): Z## Wrong tag")
 }
 
+function test_has_odd_terminal_backslashes() {
+  check("has_odd_terminal_backslashes: none", has_odd_terminal_backslashes("abc"), 0)
+  check("has_odd_terminal_backslashes: empty string", has_odd_terminal_backslashes(""), 0)
+  check("has_odd_terminal_backslashes: only a backslash", has_odd_terminal_backslashes("\\"), 1)
+  check("has_odd_terminal_backslashes: one", has_odd_terminal_backslashes("abc\\"), 1)
+  check("has_odd_terminal_backslashes: two", has_odd_terminal_backslashes("abc\\\\"), 0)
+  check("has_odd_terminal_backslashes: three", has_odd_terminal_backslashes("abc\\\\\\"), 1)
+  check("has_odd_terminal_backslashes: only the trailing run counts",
+        has_odd_terminal_backslashes("a\\ \\"), 1)
+  check("has_odd_terminal_backslashes: not at the end",
+        has_odd_terminal_backslashes("a\\ b"), 0)
+}
+
+function test_is_double_colon_rule() {
+  check("is_double_colon_rule: ::", is_double_colon_rule("t::"), 1)
+  check("is_double_colon_rule: :", is_double_colon_rule("t:"), 0)
+  check("is_double_colon_rule: :: with a target variable", is_double_colon_rule("t:: A:=1"), 1)
+  check("is_double_colon_rule: grouped", is_double_colon_rule("a b &::"), 1)
+  check("is_double_colon_rule: :: in the recipe of a : rule",
+        is_double_colon_rule("t: ; @echo \"a::b\""), 0)
+  check("is_double_colon_rule: no colon", is_double_colon_rule("t"), 0)
+}
+
+function test_detect_ignored_targets() {
+  init_globals()
+  check("detect_ignored_targets: .PHONY", detect_ignored_targets(".PHONY: t"), 1)
+  check("detect_ignored_targets: .SILENT", detect_ignored_targets(".SILENT: t"), 1)
+  check("detect_ignored_targets: .IGNORE", detect_ignored_targets(".IGNORE: t"), 1)
+  check("detect_ignored_targets: .SECONDARY", detect_ignored_targets(".SECONDARY: t"), 1)
+  check("detect_ignored_targets: .INTERMEDIATE", detect_ignored_targets(".INTERMEDIATE: t"), 1)
+  check("detect_ignored_targets: .PRECIOUS", detect_ignored_targets(".PRECIOUS: t"), 1)
+  check("detect_ignored_targets: leading whitespace and spaces before :",
+        detect_ignored_targets(" \t.PHONY  : t"), 1)
+  check("detect_ignored_targets: .SECONDEXPANSION is not ignored",
+        detect_ignored_targets(".SECONDEXPANSION:"), 0)
+  check("detect_ignored_targets: a longer name", detect_ignored_targets(".PHONYX: t"), 0)
+  check("detect_ignored_targets: .PHONY as a prerequisite", detect_ignored_targets("t: .PHONY"), 0)
+}
+
 BEGIN {
   test_get_tag_from_description()
   test_parse_variable_name()
@@ -113,5 +152,8 @@ BEGIN {
   test_form_dc_target_name()
   test_assemble_description_section_data()
   test_update_display_parameters()
+  test_has_odd_terminal_backslashes()
+  test_is_double_colon_rule()
+  test_detect_ignored_targets()
   done()
 }

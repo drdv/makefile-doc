@@ -55,10 +55,40 @@ function test_extract_substitution_params() {
   check("extract_substitution_params: default T", SUB_PARAMS_CURRENT["T"], "")
 }
 
+function test_form_substitutions_colons(    params, labels, values, names) {
+  form_substitutions("t:t:/a:b;u:/a:b", params, labels, values, names)
+  check("form_substitutions: value with colons after a label", values["t"], "/a:b")
+  check("form_substitutions: without a label, the 2nd colon ends the label", labels["u"], "/a")
+  check("form_substitutions: without a label, the rest is the value", values["u"], "b")
+}
+
+function test_form_substitutions_spaces_in_name(    params, labels, values, names) {
+  form_substitutions(" \tt :v", params, labels, values, names)
+  check("form_substitutions: spaces around the name are removed", names[1], "t")
+  check("form_substitutions: value of a name with spaces", values["t"], "v")
+}
+
+function test_form_substitutions_dsub(    params, labels, values, names) {
+  form_substitutions("$(X):a:b;$(Y):;$(X):c", params, labels, values, names, 1)
+  check("form_substitutions (DSUB): no labels", length_array_posix(labels), 0)
+  check("form_substitutions (DSUB): the value is everything after the 1st colon",
+        values["$(Y)"], "")
+  check("form_substitutions (DSUB): the last value of a repeated name is used",
+        values["$(X)"], "c")
+  check("form_substitutions (DSUB): names in the order given (repeats kept)",
+        names[1] " " names[2] " " names[3], "$(X) $(Y) $(X)")
+
+  form_substitutions("$(X):a:b", params, labels, values, names, 1)
+  check("form_substitutions (DSUB): value with colons", values["$(X)"], "a:b")
+}
+
 BEGIN {
   test_form_substitutions_with_labels()
   test_form_substitutions_empty_parts()
   test_form_substitutions_name_only()
   test_extract_substitution_params()
+  test_form_substitutions_colons()
+  test_form_substitutions_spaces_in_name()
+  test_form_substitutions_dsub()
   done()
 }

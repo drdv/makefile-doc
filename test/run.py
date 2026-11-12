@@ -9,7 +9,8 @@ Suites:
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, or if awk exits with a non-zero
-status (e.g., a crash or a syntax error).
+status (e.g., a crash or a syntax error). Checks of known bugs (TAP `# TODO issue N`) are
+expected to fail: the test file fails if one of them passes (the bug has been fixed).
 
 Only the Python standard library is used (Python >= 3.8).
 """
@@ -55,17 +56,24 @@ def run_awk(awk: str, args: List[str]) -> subprocess.CompletedProcess:
 # unit tests
 # ------------------------------------------------------------------------------------------
 TAP_RESULT = re.compile(r"^(ok|not ok) (\d+)\b")
+TAP_TODO = re.compile(r"#\s*TODO\b\s*(.*)$", re.IGNORECASE)
 TAP_PLAN = re.compile(r"^1\.\.(\d+)$")
 
 
 def check_tap(stdout: str, returncode: int) -> Tuple[bool, str, int]:
     """Return (passed, summary, number of checks) for the TAP output of one test file."""
-    numbers, failed, plan = [], 0, None
+    numbers, failed, known_bugs, fixed, plan = [], 0, 0, [], None
     for line in stdout.splitlines():
         m = TAP_RESULT.match(line)
         if m:
             numbers.append(int(m.group(2)))
-            failed += m.group(1) == "not ok"
+            todo = TAP_TODO.search(line)
+            if not todo:
+                failed += m.group(1) == "not ok"
+            elif m.group(1) == "not ok":
+                known_bugs += 1
+            else:
+                fixed.append(f"check {m.group(2)} ({todo.group(1) or 'no issue'})")
         elif TAP_PLAN.match(line):
             plan = int(TAP_PLAN.match(line).group(1))
         elif line.startswith("Bail out!"):
@@ -76,11 +84,16 @@ def check_tap(stdout: str, returncode: int) -> Tuple[bool, str, int]:
         return False, f"no TAP plan after {n} checks (did the test file crash?)", n
     if plan != n or numbers != list(range(1, n + 1)):
         return False, f"TAP plan 1..{plan} does not match the {n} checks", n
+    problems = []
     if failed:
-        return False, f"{failed} of {n} checks failed", n
-    if returncode != 0:
-        return False, f"awk exited with status {returncode}", n
-    return True, f"{n} checks", n
+        problems.append(f"{failed} of {n} checks failed")
+    if fixed:
+        problems.append(f"FIXED: {', '.join(fixed)}: replace check_bug with check")
+    if returncode != 0 and not failed:
+        problems.append(f"awk exited with status {returncode}")
+    if problems:
+        return False, "; ".join(problems), n
+    return True, f"{n} checks" + (f", known bugs: {known_bugs}" if known_bugs else ""), n
 
 
 def run_unit_file(awk: str, awk_flags: List[str], script: str, test_file: Path) -> Result:
