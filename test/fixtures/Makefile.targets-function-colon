@@ -1,0 +1,23 @@
+OBJS := a.o
+T := t
+
+## Docs above a function call with a colon (discarded)
+$(info a: b)
+t1:
+
+## Docs above a reference with braces (discarded)
+${info a: b}
+t2:
+
+## Docs above a nested call (discarded)
+$(foreach x,a b,$(info $(x): y))
+t3:
+
+## Docs of a target with a reference
+$(T)-a:
+
+## Docs of a target with braces and a prerequisite
+${T}-b: $(OBJS)
+
+## Docs of a static pattern rule
+$(OBJS): %.o: %.c
