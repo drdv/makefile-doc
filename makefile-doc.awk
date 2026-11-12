@@ -286,7 +286,7 @@ function detect_ignored_targets(target_line, #locals
                                 key) {
   sub(/^[ \t]*/, "", target_line)
   for (key in IGNORED_TARGETS) {
-    if (target_line ~ "^" IGNORED_TARGETS[key] " *:") {
+    if (target_line ~ "^" IGNORED_TARGETS[key] "[ \t]*:") {
       return 1
     }
   }
