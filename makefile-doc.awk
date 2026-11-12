@@ -1067,7 +1067,8 @@ function init_globals() {
 
   IN_MULTILINE_BACKSLASH_COMMENT = 0
   IN_MULTILINE_BACKSLASH_RECIPE = 0
-  IN_MULTILINE_BACKSLASH_ANCHOR = 0
+  IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
+  CONTINUED_LINE = ""
   IN_DEFINE_ENDEF_BLOCK = 0
   IN_RULE = ""
 }
@@ -1112,7 +1113,6 @@ function process_options() {
   #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
   #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
   #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is captured as `foo\ bar`.
-  #   - Target rules continued across physical lines are not reliably recognized.
   TARGETS_REGEX = TARGETS_REGEX == "" ? "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)" : TARGETS_REGEX
 
   VARS = VARS == "" ? 1 : VARS
@@ -1150,12 +1150,23 @@ BEGIN {
 { sub(/\r$/, "") }
 
 FNR == 1 {
+  IN_CONTINUED_LINE = 0 # a line is not continued in the next file
   NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED) {
     FILES_PROCESSED = FILES_PROCESSED " " FILENAME
   } else {
     FILES_PROCESSED = FILENAME
   }
+}
+
+# A line continued with a backslash (outside recipes and comments) is joined with the next
+# one, as in GNU Make: the backslash, the newline and the whitespace around them become one
+# space. The rules below then see the whole logical line.
+IN_CONTINUED_LINE {
+  g_continuation = $0
+  sub(/^[ \t]+/, "", g_continuation)
+  $0 = CONTINUED_LINE " " g_continuation
+  IN_CONTINUED_LINE = 0
 }
 
 # Skip backslash multiline comments
@@ -1178,10 +1189,11 @@ FNR == 1 {
   }
 }
 
-# The next line(s) of a target/variable line that ends with an odd number of backslashes
-# are part of it and are skipped.
-IN_MULTILINE_BACKSLASH_ANCHOR {
-  IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
+!(IN_RULE && starts_with($0, RECIPEPREFIX)) && !IN_MULTILINE_BACKSLASH_RECIPE &&
+    has_odd_terminal_backslashes($0) {
+  CONTINUED_LINE = substr($0, 1, length($0) - 1)
+  sub(/[ \t]+$/, "", CONTINUED_LINE)
+  IN_CONTINUED_LINE = 1
   next
 }
 
@@ -1229,7 +1241,6 @@ IN_MULTILINE_BACKSLASH_ANCHOR {
 
 $0 ~ TARGETS_REGEX {
   if (detect_ignored_targets($0)) {
-    IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
     next
   }
 
@@ -1259,7 +1270,6 @@ $0 ~ TARGETS_REGEX {
   }
 
   IN_RULE = g_target_name_nominal
-  IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
   PATTERN_RULE_MATCHED = 1
 }
 
@@ -1279,7 +1289,6 @@ $0 ~ VARIABLES_REGEX {
   }
 
   IN_RULE = ""
-  IN_MULTILINE_BACKSLASH_ANCHOR = has_odd_terminal_backslashes($0)
   PATTERN_RULE_MATCHED = 1
 }
 
