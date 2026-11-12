@@ -1,0 +1,3 @@
+X := a;b ## Variable with a semicolon in its value
+
+t: ; @echo 1 ## Not a doc (after an inline recipe)
