@@ -10,17 +10,14 @@ function test_utils_regex_main() {
 
 function test_utils_regex_update_display_parameters(    description, stderr_content,
                                                         stderr_content_lines) {
-  STDERR = "/tmp/.makefile-doc-stderr"
-
   description = "Z## Wrong tag"
   update_display_parameters(description)
-  stderr_content = unittest_consume_file(STDERR)
+  stderr_content = stderr_text()
   split(stderr_content, stderr_content_lines, "\n")
 
-  assert_equal(stderr_content_lines[1],
-               sprintf("ERROR (we shouldn't be here): %s", description))
-
-  STDERR = "/dev/stderr"
+  check("update_display_parameters(\"" description "\")",
+        stderr_content_lines[1],
+        sprintf("ERROR (we shouldn't be here): %s", description))
 }
 
 function test_utils_regex_parse_inline_descriptions(    text, expected) {
@@ -30,74 +27,74 @@ function test_utils_regex_parse_inline_descriptions(    text, expected) {
   expected = "## some ;description"
   text = "target: " expected
   parse_inline_descriptions(text)
-  assert_equal(DESCRIPTION_DATA[1],
-               expected,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        DESCRIPTION_DATA[1],
+        expected)
 
   expected = "##! some description;"
   text = "target: " expected
   parse_inline_descriptions(text)
-  assert_equal(DESCRIPTION_DATA[2],
-               expected,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        DESCRIPTION_DATA[2],
+        expected)
 
   expected = "##% some description"
   text = "target: " expected
   parse_inline_descriptions(text)
-  assert_equal(DESCRIPTION_DATA[3],
-               expected,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        DESCRIPTION_DATA[3],
+        expected)
 
   expected = "## some description"
   text = "target:; " expected
   parse_inline_descriptions(text)
-  assert_equal(length_array_posix(DESCRIPTION_DATA),
-               3,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        length_array_posix(DESCRIPTION_DATA),
+        3)
 
   expected = "##! some description"
   text = "target:; @echo 1 " expected
   parse_inline_descriptions(text)
-  assert_equal(length_array_posix(DESCRIPTION_DATA),
-               3,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        length_array_posix(DESCRIPTION_DATA),
+        3)
 
   expected = "##% some description"
   text = "target: ; @echo 1 ; echo 2 " expected
   parse_inline_descriptions(text)
-  assert_equal(length_array_posix(DESCRIPTION_DATA),
-               3,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        length_array_posix(DESCRIPTION_DATA),
+        3)
 
   text = "target: "
   parse_inline_descriptions(text)
-  assert_equal(length_array_posix(DESCRIPTION_DATA),
-               3,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        length_array_posix(DESCRIPTION_DATA),
+        3)
 
   text = "target: deps1 deps2 | deps3"
   parse_inline_descriptions(text)
-  assert_equal(length_array_posix(DESCRIPTION_DATA),
-               3,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        length_array_posix(DESCRIPTION_DATA),
+        3)
 
   expected = "## some description"
   text = "target: deps1 deps2 | deps3 ; echo 1 " expected
   parse_inline_descriptions(text)
-  assert_equal(length_array_posix(DESCRIPTION_DATA),
-               3,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        length_array_posix(DESCRIPTION_DATA),
+        3)
 
   expected = "## some description"
   text = "target: deps1 deps2 | deps3" expected
   parse_inline_descriptions(text)
-  assert_equal(DESCRIPTION_DATA[4],
-               expected,
-               "parse_inline_descriptions(\"" text "\")")
+  check("parse_inline_descriptions(\"" text "\")",
+        DESCRIPTION_DATA[4],
+        expected)
 
-  assert_equal(DESCRIPTION_DATA_INDEX,
-               5,
-               "DESCRIPTION_DATA_INDEX == 5")
+  check("DESCRIPTION_DATA_INDEX == 5",
+        DESCRIPTION_DATA_INDEX,
+        5)
 }
 
 function test_utils_regex_escape_braces_for_latex_output(    text, expected) {
@@ -105,31 +102,31 @@ function test_utils_regex_escape_braces_for_latex_output(    text, expected) {
 
   text = "this is {a test} string"
   expected = text
-  assert_equal(escape_braces_for_latex_output(text),
-               expected,
-               "escape_braces_for_latex_output(\"" text "\")")
+  check("escape_braces_for_latex_output(\"" text "\")",
+        escape_braces_for_latex_output(text),
+        expected)
 
   OUTPUT_FORMAT = "LATEX"
 
   text = "this is {a test} string"
   expected = "this is \\{a test\\} string"
-  assert_equal(escape_braces_for_latex_output(text),
-               expected,
-               "escape_braces_for_latex_output(\"" text "\")")
+  check("escape_braces_for_latex_output(\"" text "\")",
+        escape_braces_for_latex_output(text),
+        expected)
 }
 
 function test_utils_regex_strip_start_end_spaces_tabs(    text, expected) {
   expected = "this is a test string"
   text = "   " expected "   "
-  assert_equal(strip_start_end_spaces_tabs(text),
-               expected,
-               "strip_start_end_spaces_tabs(\"" text "\")")
+  check("strip_start_end_spaces_tabs(\"" text "\")",
+        strip_start_end_spaces_tabs(text),
+        expected)
 
   expected = "this is a test string"
   text = " \t   " expected " \t   "
-  assert_equal(strip_start_end_spaces_tabs(text),
-               expected,
-               "strip_start_end_spaces_tabs(\"" text "\")")
+  check("strip_start_end_spaces_tabs(\"" text "\")",
+        strip_start_end_spaces_tabs(text),
+        expected)
 }
 
 function test_utils_regex_substitute_backticks_patterns(    text, s, e) {
@@ -137,137 +134,131 @@ function test_utils_regex_substitute_backticks_patterns(    text, s, e) {
   e = COLOR_RESET_CODE
 
   text = "this `is` a test `x` and"
-  assert_equal(substitute_backticks_patterns(text),
-               "this "s"is"e" a test "s"x"e" and",
-               "substitute_backticks_patterns(\"" text "\")")
+  check("substitute_backticks_patterns(\"" text "\")",
+        substitute_backticks_patterns(text),
+        "this "s"is"e" a test "s"x"e" and")
 
   text = "`this `is` a test `x` and`"
-  assert_equal(substitute_backticks_patterns(text),
-               s"this "e"is"s" a test "e"x"s" and"e,
-               "substitute_backticks_patterns(\"" text "\")")
+  check("substitute_backticks_patterns(\"" text "\")",
+        substitute_backticks_patterns(text),
+        s"this "e"is"s" a test "e"x"s" and"e)
 
   text = "{`1`, `2`, `3`}"
-  assert_equal(substitute_backticks_patterns(text),
-               "{"s"1"e", "s"2"e", "s"3"e"}",
-               "substitute_backticks_patterns(\"" text "\")")
+  check("substitute_backticks_patterns(\"" text "\")",
+        substitute_backticks_patterns(text),
+        "{"s"1"e", "s"2"e", "s"3"e"}")
 
   text = "empty ` ` region"
-  assert_equal(substitute_backticks_patterns(text),
-               "empty "s" "e" region",
-               "substitute_backticks_patterns(\"" text "\")")
+  check("substitute_backticks_patterns(\"" text "\")",
+        substitute_backticks_patterns(text),
+        "empty "s" "e" region")
 
   # here we simply leave the empty backtick region
   text = "empty `` region"
-  assert_equal(substitute_backticks_patterns(text),
-               text,
-               "substitute_backticks_patterns(\"" text "\")")
+  check("substitute_backticks_patterns(\"" text "\")",
+        substitute_backticks_patterns(text),
+        text)
 }
 
 function test_utils_regex_parse_variable_name(    whole_line, var, op) {
   var = "VAR2_1"; op = ":="
   whole_line = var op "1##comment"
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "var2_1"; op = "   ?=  "
   whole_line = var op "1##comment"
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "x"; op = "   :::="
   whole_line = var op "fsws"
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "__a__"; op = "   +="
   whole_line = var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "X"; op = " = ## doc"
   whole_line = var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "this_is_A_VARIABLE"; op = " ::= this is a value ## doc"
   whole_line = var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "x4"; op = "?=## doc"
   whole_line = var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "_w"; op = "::="
   whole_line = "override unexport private  override     private  export " var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "override1"; op = "     ::=     1"
   whole_line = "private  override     private  override    export unexport " var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 
   var = "export_override"; op = "::=1"
   whole_line = "private  override     private  override    export unexport " var op
-  assert_equal(strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
-               var,
-               "parse_variable_name(\"" whole_line "\")")
+  check("parse_variable_name(\"" whole_line "\")",
+        strip_start_end_spaces_tabs(parse_variable_name(whole_line)),
+        var)
 }
 
 function test_utils_regex_get_tag_from_description(    text, tag) {
   tag = "##"
   text = "   " tag "   a description"
-  assert_equal(get_tag_from_description(text),
-               tag,
-               "get_tag_from_description(\"" text "\")")
+  check("get_tag_from_description(\"" text "\")",
+        get_tag_from_description(text),
+        tag)
 
   tag = "##!"
   text = "   " tag "   a description"
-  assert_equal(get_tag_from_description(text),
-               tag,
-               "get_tag_from_description(\"" text "\")")
+  check("get_tag_from_description(\"" text "\")",
+        get_tag_from_description(text),
+        tag)
 
   tag = "##%"
   text = "   " tag "   a description"
-  assert_equal(get_tag_from_description(text),
-               tag,
-               "get_tag_from_description(\"" text "\")")
+  check("get_tag_from_description(\"" text "\")",
+        get_tag_from_description(text),
+        tag)
 
   tag = "##Z"
   text = "   " tag "   a description"
-  assert_equal(get_tag_from_description(text),
-               "##",
-               "get_tag_from_description(\"" text "\")")
+  check("get_tag_from_description(\"" text "\")",
+        get_tag_from_description(text),
+        "##")
 
   tag = "!#"
   text = "   " tag "   a description"
-  assert_equal(get_tag_from_description(text),
-               0,
-               "get_tag_from_description(\"" text "\")")
+  check("get_tag_from_description(\"" text "\")",
+        get_tag_from_description(text),
+        0)
 }
 
 BEGIN {
-  UNITTEST_CURRENT_FILE = "test_utils_regex"
-
-  initialize_variables_regex()
-
   # assume arbitrary delimiters
   COLOR_BACKTICKS_CODE = ">>>"
   COLOR_RESET_CODE = "<<<"
 
-  UNIT_TEST = UNIT_TEST == "" ? 1 : UNIT_TEST
-  if (UNIT_TEST) {
-    test_utils_regex_main()
-  }
+  test_utils_regex_main()
+  done()
 }

@@ -27,44 +27,40 @@ function test_utils_general_string_replace(text, string, replacement, expected) 
     expected = text
     gsub(string, replacement, expected)
   }
-  assert_equal(expected,
-               string_replace(string, replacement, text))
+  check("string_replace(\"" string "\", \"" replacement "\", ...)",
+        string_replace(string, replacement, text), expected)
 }
 
 function test_utils_general_join_splitted(    arr) {
   delete arr
   split("this is another test", arr, " ")
-  assert_equal(join_splitted(arr, ":"), "this:is:another:test", "join(arr, \":\")")
+  check("join(arr, \":\")", join_splitted(arr, ":"), "this:is:another:test")
 }
 
 function test_utils_general_length_array_posix(    arr) {
   delete arr
-  assert_equal(length_array_posix(arr), 0, "1: length_array_posix(arr)")
+  check("1: length_array_posix(arr)", length_array_posix(arr), 0)
 
   arr["k1"] = "this"
   arr["k2"] = "it"
   arr["k3"] = "a"
   arr["k4"] = "test"
-  assert_equal(length_array_posix(arr), 4, "2: length_array_posix(arr)")
+  check("2: length_array_posix(arr)", length_array_posix(arr), 4)
 }
 
 function test_utils_general_repeated_string() {
-  assert_equal(repeated_string("", 5), "     ", "repeated_string("", 5)")
-  assert_equal(repeated_string("a", 4), "aaaa", "repeated_string(\"a\", 4)")
+  check("repeated_string(\"\", 5)", repeated_string("", 5), "     ")
+  check("repeated_string(\"a\", 4)", repeated_string("a", 4), "aaaa")
 }
 
 function test_utils_general_min_max() {
-  assert_equal(max(1, 2), 2, "max(1, 2) == 2")
-  assert_equal(max(1, -3), 1, "max(1, -3) == 1")
-  assert_equal(min(1, 2), 1, "min(1, 2) == 1")
-  assert_equal(min(1, -3), -3, "min(1, -3) == -3")
+  check("max(1, 2) == 2", max(1, 2), 2)
+  check("max(1, -3) == 1", max(1, -3), 1)
+  check("min(1, 2) == 1", min(1, 2), 1)
+  check("min(1, -3) == -3", min(1, -3), -3)
 }
 
 BEGIN {
-  UNITTEST_CURRENT_FILE = "test_utils_general"
-
-  UNIT_TEST = UNIT_TEST == "" ? 1 : UNIT_TEST
-  if (UNIT_TEST) {
-    test_utils_general_main()
-  }
+  test_utils_general_main()
+  done()
 }
