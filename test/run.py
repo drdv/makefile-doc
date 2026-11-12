@@ -4,18 +4,24 @@
 usage: test/run.py SUITE --awk AWK [options]
 
 Suites:
-  unit   run each test/unit/test_*.awk file in its own awk process and check its TAP
-         output (see test/unit/harness.awk)
+  unit         run each test/unit/test_*.awk file in its own awk process and check its
+               TAP output (see test/unit/harness.awk)
+  integration  run each test/integration/test-* recipe and compare the output with the
+               expected output (see test/README.md); --update rewrites the expected output
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, or if awk exits with a non-zero
 status (e.g., a crash or a syntax error). Checks of known bugs (TAP `# TODO issue N`) are
 expected to fail: the test file fails if one of them passes (the bug has been fixed).
 
+A recipe passes if the output of makefile-doc.awk (stderr, then stdout, then `exit: N` for
+a non-zero exit status) is exactly the expected output.
+
 Only the Python standard library is used (Python >= 3.8).
 """
 
 import argparse
+import difflib
 import os
 import re
 import shlex
@@ -30,6 +36,7 @@ from typing import Callable, Dict, List, Tuple
 ROOT = Path(__file__).resolve().parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
 HARNESS = UNIT_DIR / "harness.awk"
+INTEGRATION_DIR = Path("test/integration")
 
 
 @dataclass
@@ -42,14 +49,13 @@ class Result:
     relevant: str = ""  # the part of the output that explains a failure
 
 
-def run_awk(awk: str, args: List[str]) -> subprocess.CompletedProcess:
+def run_awk(awk: str, args: List[str], text: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
         [awk, *args],
         cwd=ROOT,
         stdin=subprocess.DEVNULL,
         capture_output=True,
-        text=True,
-        errors="replace",
+        **({"text": True, "errors": "replace"} if text else {}),
     )
 
 
@@ -140,7 +146,7 @@ def run_unit_file(awk: str, awk_flags: List[str], script: str, test_file: Path) 
 
 def suite_unit(args: argparse.Namespace) -> List[Callable[[], Result]]:
     files = sorted((ROOT / UNIT_DIR).glob("test_*.awk"))
-    files = [UNIT_DIR / f.name for f in files if not args.k or args.k in f.stem]
+    files = [UNIT_DIR / f.name for f in files if selected(args, f.stem)]
     return [
         (lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f))
         for f in files
@@ -148,10 +154,88 @@ def suite_unit(args: argparse.Namespace) -> List[Callable[[], Result]]:
 
 
 # ------------------------------------------------------------------------------------------
+# integration tests
+# ------------------------------------------------------------------------------------------
+@dataclass
+class Recipe:
+    metadata: List[bytes]  # the leading `#:` lines (with their newline)
+    args: str  # the awk arguments (shell syntax)
+    expected: bytes
+
+
+def read_recipe(path: Path) -> Recipe:
+    lines = (ROOT / path).read_bytes().splitlines(keepends=True)
+    k = 0
+    while k < len(lines) and lines[k].startswith(b"#:"):
+        k += 1
+    args = lines[k].decode().rstrip("\n") if k < len(lines) else ""
+    return Recipe(lines[:k], args, b"".join(lines[k + 1 :]))
+
+
+def visible(data: bytes) -> List[str]:
+    """Lines for a diff: escape characters are shown as ^[ (as in `cat -v`), and blanks at
+    the end of a line and a missing final newline are marked."""
+    lines = data.decode(errors="replace").replace("\x1b", "^[").splitlines(keepends=True)
+    marked = []
+    for line in lines:
+        body = line.rstrip("\n")
+        if body != body.rstrip(" \t"):
+            body += "<-- blanks at the end of the line"
+        marked.append(body + "\n")
+    if lines and not lines[-1].endswith("\n"):
+        marked.append("\\ No newline at end of file\n")
+    return marked
+
+
+def run_recipe(args: argparse.Namespace, path: Path) -> Result:
+    recipe = read_recipe(path)
+    proc = run_awk(
+        args.awk,
+        ["-f", args.script, *args.awk_flags, *shlex.split(recipe.args)],
+        text=False,
+    )
+    actual = proc.stderr + proc.stdout
+    if proc.returncode != 0:
+        actual += f"exit: {proc.returncode}\n".encode()
+
+    diff = "".join(
+        difflib.unified_diff(
+            visible(recipe.expected), visible(actual), "expected", "actual", lineterm="\n"
+        )
+    )
+    if diff and not diff.endswith("\n"):
+        diff += "\n"
+
+    if args.update:
+        if actual != recipe.expected:
+            new = b"".join(recipe.metadata) + recipe.args.encode() + b"\n" + actual
+            (ROOT / path).write_bytes(new)
+            return Result(path.name, True, "updated", diff, relevant=diff)
+        return Result(path.name, True, "unchanged")
+
+    if actual == recipe.expected:
+        return Result(path.name, True, "")
+    return Result(path.name, False, "output differs", diff, relevant=diff)
+
+
+def suite_integration(args: argparse.Namespace) -> List[Callable[[], Result]]:
+    paths = sorted(p for p in (ROOT / INTEGRATION_DIR).iterdir() if p.is_file())
+    paths = [INTEGRATION_DIR / p.name for p in paths if selected(args, p.name)]
+    return [(lambda p=p: run_recipe(args, p)) for p in paths]
+
+
+# ------------------------------------------------------------------------------------------
 # main
 # ------------------------------------------------------------------------------------------
+def selected(args: argparse.Namespace, name: str) -> bool:
+    if args.name:
+        return name in args.name
+    return not args.k or args.k in name
+
+
 SUITES: Dict[str, Callable[[argparse.Namespace], List[Callable[[], Result]]]] = {
     "unit": suite_unit,
+    "integration": suite_integration,
 }
 
 
@@ -169,6 +253,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
     parser.add_argument("-k", metavar="PATTERN", help="run only tests whose name contains PATTERN")
+    parser.add_argument(
+        "--name", action="append", help="run only the test with this exact name (repeatable)"
+    )
+    parser.add_argument(
+        "--update", action="store_true", help="integration: rewrite the expected outputs"
+    )
     parser.add_argument(
         "-j", "--jobs", type=int, default=os.cpu_count() or 1, help="parallel jobs"
     )
@@ -193,23 +283,28 @@ def main() -> int:
         return "    " + text.rstrip("\n").replace("\n", "\n    ")
 
     for r in results:
-        if r.passed:
-            print(f"[{awk_name}] passed {r.name} ({r.summary})")
+        if args.update:
+            print(f"[{awk_name}] {r.summary} {r.name}")
+            output = r.relevant  # the diff of an updated recipe
         else:
-            print(f"[{awk_name}] FAILED {r.name}")
-        output = r.details if args.verbose else ("" if r.passed else r.relevant)
+            summary = f" ({r.summary})" if r.summary and r.passed else ""
+            print(f"[{awk_name}] {'passed' if r.passed else 'FAILED'} {r.name}{summary}")
+            output = r.details if args.verbose else ("" if r.passed else r.relevant)
         if output:
             print(indent(output))
 
     failed = [r for r in results if not r.passed]
     n_checks = sum(r.checks for r in results)
+    noun = f"{args.suite} test files" if args.suite == "unit" else f"{args.suite} tests"
     if failed:
         print()
         for r in failed:  # repeated at the end, so that it is not lost in the output above
             print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
-        print(f"[{awk_name}] {len(failed)} of {len(results)} {args.suite} test files failed")
+        print(f"[{awk_name}] {len(failed)} of {len(results)} {noun} failed")
         return 1
-    print(f"[{awk_name}] all {len(results)} {args.suite} test files passed ({n_checks} checks)")
+    if not args.update:
+        checks = f" ({n_checks} checks)" if n_checks else ""
+        print(f"[{awk_name}] all {len(results)} {noun} passed{checks}")
     return 0
 
 
