@@ -1,8 +1,9 @@
-test/fixtures/Makefile.semicolon
+#: desc: Inline docs after a ; (inline recipe) are ignored; top docs are used
+-v COLOR_DEFAULT=0 test/fixtures/Makefile.semicolon
 -----------------------
 Available targets:
 -----------------------
-[34mt1[0m   1
-[34mt2[0m   2
-[34mt4[0m   4
+t1   1
+t2   2
+t4   4
 -----------------------

@@ -1,4 +1,4 @@
-#: desc: LaTeX output with the default theme (backticks with a background color, no color for deprecated)
+#: desc: LaTeX output, default theme (background color for backticks, no color for deprecated)
 -v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.formats
 \documentclass{article}
 \usepackage[utf8]{inputenc}

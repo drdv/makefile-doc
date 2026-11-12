@@ -1,8 +1,9 @@
--v SUB='<L:1>$(TARGET):counter-:one two three;<L:0>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
+#: desc: SUB parameter L: the values start on the current line (L:0) or the next one (L:1)
+-v COLOR_DEFAULT=0 -v SUB='<L:1>$(TARGET):counter-:one two three;<L:0>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
 -----------------------
 Available targets:
 -----------------------
-[34mcounter-[0m   Some target:
+counter-   Some target:
            one
            two
            three
@@ -10,7 +11,7 @@ Available targets:
 -----------------------
 Command-line arguments:
 -----------------------
-[34mAWK     [0m   Some variable: awk
+AWK        Some variable: awk
            mawk
            nawk
            bawk

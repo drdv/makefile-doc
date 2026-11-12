@@ -1,29 +1,30 @@
-test/fixtures/Makefile.vars
+#: desc: Documented variables: assignments with spacing variants, sections and redefinitions
+-v COLOR_DEFAULT=0 -v COLOR_SECTION=0 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.vars
 WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 -----------------------
 Available targets:
 -----------------------
-[32m
+
  ----- This section in anchored on a target -----
-[0m
-[33msome-target  [0m   some target (that will consume the above section)
+
+some-target     some target (that will consume the above section)
 
 -----------------------
 Command-line arguments:
 -----------------------
-[34mVAR1_1       [0m   First variable (with value)
-[34mVAR1_0       [0m   First variable (without value)
-[34mVAR2_1       [0m   Second variable (with value)
-[34mVAR2_0       [0m   Second variable (without value)
-[34mVAR3_1       [0m       Third variable (with value)
-[34mVAR3_0       [0m       Third variable (without value)
-[34mVAR4         [0m   Top comment with value (to expand)
-[34mVAR5         [0m   Inline comment with value (to expand)
-[32m
+VAR1_1          First variable (with value)
+VAR1_0          First variable (without value)
+VAR2_1          Second variable (with value)
+VAR2_0          Second variable (without value)
+VAR3_1              Third variable (with value)
+VAR3_0              Third variable (without value)
+VAR4            Top comment with value (to expand)
+VAR5            Inline comment with value (to expand)
+
  ----- Will be associated with the next anchor (which happens to be a variable) -----
-[0m
-[33mVAR6         [0m   Overwrites previous docs for this variable (change to deprecated)
-[34mx            [0m   A one letter variable
-[34my            [0m   A one letter variable inline docs
-[34m.DEFAULT_GOAL[0m   Default goal
+
+VAR6            Overwrites previous docs for this variable (change to deprecated)
+x               A one letter variable
+y               A one letter variable inline docs
+.DEFAULT_GOAL   Default goal
 -----------------------

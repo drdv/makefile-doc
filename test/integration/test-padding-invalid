@@ -1,3 +1,4 @@
+#: desc: A PADDING longer than one character is rejected with an error
 -v PADDING=.- test/fixtures/Makefile.padding
 ERROR: PADDING should have length 1
 exit: 1
