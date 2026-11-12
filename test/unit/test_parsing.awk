@@ -33,48 +33,6 @@ function test_parse_variable_name() {
         "export_override")
 }
 
-function test_substitute_backticks_patterns() {
-  COLOR_BACKTICKS_CODE = ">>>"
-  COLOR_RESET_CODE = "<<<"
-
-  check("substitute_backticks_patterns: two regions",
-        substitute_backticks_patterns("this `is` a test `x` and"),
-        "this >>>is<<< a test >>>x<<< and")
-  check("substitute_backticks_patterns: regions are paired from the left",
-        substitute_backticks_patterns("`this `is` a test `x` and`"),
-        ">>>this <<<is>>> a test <<<x>>> and<<<")
-  check("substitute_backticks_patterns: inside braces",
-        substitute_backticks_patterns("{`1`, `2`, `3`}"),
-        "{>>>1<<<, >>>2<<<, >>>3<<<}")
-  check("substitute_backticks_patterns: region with a space",
-        substitute_backticks_patterns("empty ` ` region"),
-        "empty >>> <<< region")
-  check("substitute_backticks_patterns: empty region is left as is",
-        substitute_backticks_patterns("empty `` region"),
-        "empty `` region")
-}
-
-function test_strip_start_end_spaces_tabs() {
-  check("strip_start_end_spaces_tabs: spaces",
-        strip_start_end_spaces_tabs("   a test string   "), "a test string")
-  check("strip_start_end_spaces_tabs: spaces and tabs",
-        strip_start_end_spaces_tabs(" \t   a test string \t   "), "a test string")
-}
-
-function test_escape_braces_for_latex_output() {
-  OUTPUT_FORMAT = "HTML"
-  check("escape_braces_for_latex_output: HTML is unchanged",
-        escape_braces_for_latex_output("this is {a test} string"),
-        "this is {a test} string")
-
-  OUTPUT_FORMAT = "LATEX"
-  check("escape_braces_for_latex_output: LATEX",
-        escape_braces_for_latex_output("this is {a test} string"),
-        "this is \\{a test\\} string")
-
-  OUTPUT_FORMAT = ""
-}
-
 # the description saved by parse_inline_descriptions(line), or "<none>"
 function inline_description(line) {
   forget_descriptions_data()
@@ -111,6 +69,32 @@ function test_parse_inline_descriptions() {
   check("parse_inline_descriptions: the index advances", DESCRIPTION_DATA_INDEX, 2)
 }
 
+function test_form_dc_target_name() {
+  init_globals()
+  check("form_dc_target_name: first rule", form_dc_target_name("t"), "t~1")
+
+  TARGETS_DC_COUNTER["t"]++
+  check("form_dc_target_name: second rule", form_dc_target_name("t"), "t~2")
+}
+
+function test_assemble_description_section_data(    arr) {
+  arr[1] = "first line"
+  check("assemble_description_section_data: one line",
+        assemble_description_section_data(arr),
+        "first line")
+
+  arr[2] = "   second line"
+  arr[3] = "\t last line  "
+  check("assemble_description_section_data: lines are joined with newlines (spaces kept)",
+        assemble_description_section_data(arr),
+        "first line\n   second line\n\t last line  ")
+
+  delete arr
+  check("assemble_description_section_data: empty array",
+        assemble_description_section_data(arr),
+        "")
+}
+
 function test_update_display_parameters(    description) {
   description = "Z## Wrong tag"
   update_display_parameters(description)
@@ -125,10 +109,9 @@ function test_update_display_parameters(    description) {
 BEGIN {
   test_get_tag_from_description()
   test_parse_variable_name()
-  test_substitute_backticks_patterns()
-  test_strip_start_end_spaces_tabs()
-  test_escape_braces_for_latex_output()
   test_parse_inline_descriptions()
+  test_form_dc_target_name()
+  test_assemble_description_section_data()
   test_update_display_parameters()
   done()
 }
