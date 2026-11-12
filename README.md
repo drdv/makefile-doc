@@ -265,12 +265,6 @@ constructs may not be recognized correctly.
 
 The target-matching regex has the following known limitations:
 
-- **Colons inside variable references or function calls can cause false positives.**
-  ```makefile
-  $(info a: b)
-  ```
-  The colon may be mistaken for a rule separator.
-
 - **Escaped `#` in target names is not handled.**
   ```makefile
   foo\#bar:
@@ -283,21 +277,16 @@ The target-matching regex has the following known limitations:
   ```
   The escaped colon is mistaken for the rule separator.
 
-- **Escaped spaces are not unescaped in captured target names.**
+- **A colon inside a reference in a target name is not handled.**
   ```makefile
-  foo\ bar:
+  $(SRCS:.c=.o):
   ```
-  The target is captured as `foo\ bar`, rather than `foo bar`.
+  The target (here with a substitution reference) is not recognized.
+
+Escaped spaces are displayed as written: `foo\ bar:` is shown as `foo\ bar`, which is how
+the target is invoked (`make foo\ bar`).
 
 ### Variable recognition
 
-The variable-matching regex has the following known limitations:
-
-- **Computed variable names are not expanded.**
-  ```makefile
-  PREFIX := FOO
-
-  ## Compiler flags
-  $(PREFIX)_FLAGS := -O2
-  ```
-  The script documents `$(PREFIX)_FLAGS` rather than the expanded name `FOO_FLAGS`.
+Computed variable names are not expanded (by design): `$(PREFIX)_FLAGS := -O2` is
+displayed as `$(PREFIX)_FLAGS`.

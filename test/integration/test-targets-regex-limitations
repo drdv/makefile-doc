@@ -4,8 +4,6 @@
 -----------------------
 Available targets:
 -----------------------
-$(info a        Colon in function call
-$ifeq ($(X),a   Colon in expression
-foo\            Escaped :
-foo\ bar        Escaped space
+foo\       Escaped :
+foo\ bar   Escaped space
 -----------------------

@@ -1,9 +1,3 @@
-## Colon in function call
-$(info a: b)
-
-## Colon in expression
-$ifeq ($(X),a:b)
-
 ## Escaped #
 foo\#bar:
 
@@ -12,3 +6,6 @@ foo\:bar:
 
 ## Escaped space
 foo\ bar:
+
+## Colon in a reference
+$(SRCS:.c=.o):
