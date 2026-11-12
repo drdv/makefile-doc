@@ -296,9 +296,11 @@ function forget_descriptions_data() {
   DESCRIPTION_DATA_INDEX = 1
 }
 
-function parse_inline_descriptions(whole_line, #locals
+# Save the inline doc of a target or variable line. On a target line, a ## after a ; is part
+# of an inline recipe (not a doc); in a variable assignment, a ; is part of the value.
+function parse_inline_descriptions(whole_line, is_variable, #locals
                                    inline_description) {
-  if (!(match(whole_line, /^[^#]*;/)) &&
+  if ((is_variable || !match(whole_line, /^[^#]*;/)) &&
       match(whole_line, / *(##!|##%|##)/)) {
     inline_description = substr(whole_line, RSTART)
     sub(/^ */, "", inline_description)
@@ -1269,7 +1271,7 @@ $0 ~ TARGETS_REGEX {
 
 $0 ~ VARIABLES_REGEX {
   if (length_array_posix(DESCRIPTION_DATA) == 0) {
-    parse_inline_descriptions($0)
+    parse_inline_descriptions($0, 1)
   }
 
   if (length_array_posix(DESCRIPTION_DATA) > 0) {

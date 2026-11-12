@@ -34,9 +34,9 @@ function test_parse_variable_name() {
 }
 
 # the description saved by parse_inline_descriptions(line), or "<none>"
-function saved_inline_description(line) {
+function saved_inline_description(line, is_variable) {
   forget_descriptions_data()
-  parse_inline_descriptions(line)
+  parse_inline_descriptions(line, is_variable)
   return length_array_posix(DESCRIPTION_DATA) ? DESCRIPTION_DATA[1] : "<none>"
 }
 
@@ -64,6 +64,8 @@ function test_parse_inline_descriptions() {
         saved_inline_description("target: "), "<none>")
   check("parse_inline_descriptions: none after deps without a doc",
         saved_inline_description("target: deps1 deps2 | deps3"), "<none>")
+  check("parse_inline_descriptions: variable with a ; in its value",
+        saved_inline_description("X := a;b ## doc", 1), "## doc")
 
   saved_inline_description("target: ## doc")
   check("parse_inline_descriptions: the index advances", DESCRIPTION_DATA_INDEX, 2)
