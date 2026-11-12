@@ -7,6 +7,12 @@
 Add `AWK=<variant>` to run with a specific awk (or use `test@<variant>`, e.g., `make
 test@mawk`), or use `test@all` / `utest@all` / `bugs@all` for all of them.
 
+The awk variants are downloaded and built into `test/bin/` when a test needs them. `make
+deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>` (or
+`clean@all`) removes them. `awk` and `gawk` are the ones installed on the system; the other
+versions are pinned in `test/awk-variants.mk`, where each download is checked against its
+SHA256.
+
 The unit and integration tests are run by `test/run.py` (Python >= 3.8, standard library
 only). Options can be passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS='-v -k
 parsing'` (`-v` shows the output of passing tests, `-k` selects tests by name). A single

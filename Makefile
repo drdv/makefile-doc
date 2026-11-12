@@ -3,11 +3,6 @@ SHELL := bash
 MAKEFLAGS := --no-print-directory --warn-undefined-variables --output-sync=target
 TEST_DIR := test
 
-## Tool used to download the awk variants {`curl`, `wget`}
-DOWNLOAD_TOOL ?= curl
-DOWNLOAD_curl = curl -fsSL --create-dirs --output-dir $(AWK_BIN) -O
-DOWNLOAD_wget = wget -P $(AWK_BIN)
-
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 
@@ -38,7 +33,7 @@ run-suite = $(RUNNER) $(1) \
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
-SUPPORTED_AWK_VARIANTS := awk mawk nawk bawk wak goawk
+SUPPORTED_AWK_VARIANTS := awk gawk mawk nawk bawk wak goawk
 
 # one target per awk variant: test@awk, test@mawk, ...
 TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
@@ -146,7 +141,7 @@ $(COVER_DIR):
 .PHONY: lint
 lint: UNINIT := (sub_array|COLOR_.*|VARS|OFFSET|PADDING|DEPRECATED|RECIPEPREFIX|STDERR|\
 				|TARGETS_REGEX|VARIABLES_REGEX|OUTPUT_FORMAT|EXPORT_THEME|UNIT_TEST)
-lint: override AWK := awk
+lint: override AWK := gawk
 lint: check-variables
 	@$(AWK_BIN)/$(AWK) --lint \
 		-v SHOW_HELP=0 \
@@ -161,8 +156,8 @@ check-variables: AWK_CODE := '\
 	END { if (length(a) == 0) print "check-variables: OK"; else \
 	{for(k in a) print "["a[k]"] violates naming rules"} }'
 check-variables: AWKVARS_FILE := awkvars.out
-check-variables:
-	@$(AWK_BIN)/awk -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || exit 0
+check-variables: $(AWK_BIN)/gawk
+	@$(AWK_BIN)/gawk -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || exit 0
 	@cat $(AWKVARS_FILE) | $(AWK) -F: $(AWK_CODE)
 	@rm -f $(AWKVARS_FILE)
 
@@ -173,10 +168,6 @@ check-variables:
 .PHONY: clean
 clean: ## Remove coverage reports
 	@rm -rf $(COVER_DIR)
-
-.PHONY: clean-bin
-clean-bin: ##! Remove all downloaded awk variants
-	@rm -rf $(AWK_BIN)
 
 ##! Create github release at latest tag
 .PHONY: release
