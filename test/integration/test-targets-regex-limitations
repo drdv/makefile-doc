@@ -1,13 +1,12 @@
 #: desc: Known limitations of target recognition (see the README)
 #: issue: 90
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.targets-regex-limitations
--------------------------
+-----------------------
 Available targets:
--------------------------
-$(info a                    Colon in function call
-$ifeq ($(X),a               Colon in expression
-followed-by-bar-next-line   Continued rule
-foo\                        Escaped #
-                            Escaped :
-foo\ bar                    Escaped space
--------------------------
+-----------------------
+$(info a        Colon in function call
+$ifeq ($(X),a   Colon in expression
+foo\            Escaped #
+                Escaped :
+foo\ bar        Escaped space
+-----------------------

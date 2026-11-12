@@ -1,5 +1,5 @@
 #: desc: Lines continued with a backslash are joined before targets and variables are parsed
-#: bug: 128
+#: issue: 128
 -v COLOR_DEFAULT=0 test/fixtures/Makefile.backslash-join
 -----------------------
 Available targets:

@@ -278,12 +278,6 @@ The target-matching regex has the following known limitations:
   ```
   The target is captured as `foo\ bar`, rather than `foo bar`.
 
-- **Target rules continued across physical lines are not reliably recognized.**
-  ```makefile
-  foo \
-    bar:
-  ```
-
 ### Variable recognition
 
 The variable-matching regex has the following known limitations:
