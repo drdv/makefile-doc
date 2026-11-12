@@ -1,5 +1,5 @@
-#: desc: LaTeX output, default theme (background color for backticks, no color for deprecated)
--v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.formats
+#: desc: LaTeX output, default theme (background color for backticks, invalid color 14 for deprecated)
+-v OUTPUT_FORMAT=latex -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=14 test/fixtures/Makefile.formats
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{xcolor}
@@ -19,7 +19,6 @@
 \definecolor{color-section}{HTML}{859900}
 \definecolor{color-deprecated}{HTML}{000000}
 \definecolor{color-default}{HTML}{268bd2}
-\definecolor{color-warning}{HTML}{d33682}
 \definecolor{color-backticks}{HTML}{268bd2}
 
 \pagestyle{empty}

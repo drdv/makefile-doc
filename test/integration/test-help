@@ -14,5 +14,5 @@ Options:
   DEPRECATED ([bool] show deprecated anchors): 1
   OFFSET (offset of docs from anchors): 2
   RECIPEPREFIX: |	|
-  COLOR_: [34mDEFAULT[0m, [31mATTENTION[0m, [33mDEPRECATED[0m, [32mSECTION[0m, [35mWARNING[0m, BACKTICKS[0m
+  COLOR_: [34mDEFAULT[0m, [31mATTENTION[0m, [33mDEPRECATED[0m, [32mSECTION[0m, BACKTICKS[0m
 exit: 1

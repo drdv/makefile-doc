@@ -39,7 +39,6 @@
 #   * COLOR_ATTENTION: (31) red
 #   * COLOR_DEPRECATED: (33) yellow
 #   * COLOR_SECTION: (32) green
-#   * COLOR_WARNING: (35) magenta -- currently not used
 #   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
 #
 #   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
@@ -818,7 +817,6 @@ function define_color_labels() {
   COLOR_LABELS["ATTENTION"] = "color-attention"
   COLOR_LABELS["DEPRECATED"] = "color-deprecated"
   COLOR_LABELS["SECTION"] = "color-section"
-  COLOR_LABELS["WARNING"] = "color-warning"
   COLOR_LABELS["BACKTICKS"] = "color-backticks"
   COLOR_LABELS["FG"] = "makefile-doc-fg"
   COLOR_LABELS["BG"] = "makefile-doc-bg"
@@ -930,40 +928,36 @@ function initialize_colors() {
   COLOR_DEFAULT = validate_ansi_param(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
   COLOR_ATTENTION = validate_ansi_param(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
   COLOR_DEPRECATED = validate_ansi_param(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
-  COLOR_WARNING = validate_ansi_param(COLOR_WARNING == "" ? 35 : COLOR_WARNING)
   COLOR_SECTION = validate_ansi_param(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
   COLOR_BACKTICKS = validate_ansi_param(COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
 
   COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT, "DEFAULT")
   COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION, "ATTENTION")
   COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED, "DEPRECATED")
-  COLOR_WARNING_CODE = define_color(COLOR_WARNING, "WARNING")
   COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
   COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
   COLOR_RESET_CODE = define_color(-1)
 
   if (OUTPUT_FORMAT == "HTML") {
     HTML_FOOTER = "</pre>\n</div>"
-    HTML_HEADER = sprintf("<head>\n  <style type=\"text/css\">\n%s%s%s%s%s%s%s%s  </style>\n</head>\n<div class=\"makefile-doc-fg makefile-doc-bg\">\n<pre>",
+    HTML_HEADER = sprintf("<head>\n  <style type=\"text/css\">\n%s%s%s%s%s%s%s  </style>\n</head>\n<div class=\"makefile-doc-fg makefile-doc-bg\">\n<pre>",
                           ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION"),
                           ansi_color_param_to_html_style(COLOR_SECTION, "SECTION"),
                           ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED"),
                           ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT"),
-                          ansi_color_param_to_html_style(COLOR_WARNING, "WARNING"),
                           ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS"),
                           ansi_color_param_to_html_style("FG", "FG"),
                           ansi_color_param_to_html_style("BG", "BG"))
   } else if (OUTPUT_FORMAT == "LATEX") {
     LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
     # Is there a better way to store this?
-    LATEX_HEADER = sprintf("\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{xcolor}\n\\usepackage{alltt}\n\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n\\usepackage{varwidth}\n\\usepackage[active,tightpage]{preview}\n\\usepackage[normalem]{ulem}\n\n\\setlength{\\fboxsep}{0pt}\n\n\\newcommand{\\bgcolor}[2]{\\colorbox{#1}{\\vphantom{Ay}#2}}\n\n\\PreviewEnvironment{varwidth}\n\n%s%s\\definecolor{color-attention}{HTML}{%s}\n\\definecolor{color-section}{HTML}{%s}\n\\definecolor{color-deprecated}{HTML}{%s}\n\\definecolor{color-default}{HTML}{%s}\n\\definecolor{color-warning}{HTML}{%s}\n\\definecolor{color-backticks}{HTML}{%s}\n\n\\pagestyle{empty}\n\\begin{document}\n\n\\begin{varwidth}{\\linewidth}\n%s%s\n\\begin{alltt}",
+    LATEX_HEADER = sprintf("\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{xcolor}\n\\usepackage{alltt}\n\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n\\usepackage{varwidth}\n\\usepackage[active,tightpage]{preview}\n\\usepackage[normalem]{ulem}\n\n\\setlength{\\fboxsep}{0pt}\n\n\\newcommand{\\bgcolor}[2]{\\colorbox{#1}{\\vphantom{Ay}#2}}\n\n\\PreviewEnvironment{varwidth}\n\n%s%s\\definecolor{color-attention}{HTML}{%s}\n\\definecolor{color-section}{HTML}{%s}\n\\definecolor{color-deprecated}{HTML}{%s}\n\\definecolor{color-default}{HTML}{%s}\n\\definecolor{color-backticks}{HTML}{%s}\n\n\\pagestyle{empty}\n\\begin{document}\n\n\\begin{varwidth}{\\linewidth}\n%s%s\n\\begin{alltt}",
                            ansi_color_param_to_latex_color("FG", 1),
                            ansi_color_param_to_latex_color("BG", 1),
                            ansi_color_param_to_latex_color(COLOR_ATTENTION),
                            ansi_color_param_to_latex_color(COLOR_SECTION),
                            ansi_color_param_to_latex_color(COLOR_DEPRECATED),
                            ansi_color_param_to_latex_color(COLOR_DEFAULT),
-                           ansi_color_param_to_latex_color(COLOR_WARNING),
                            ansi_color_param_to_latex_color(COLOR_BACKTICKS),
                            ansi_color_param_to_latex_color("FG"),
                            ansi_color_param_to_latex_color("BG"))
@@ -999,7 +993,6 @@ function print_help() {
     printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
     printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
     printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
-    printf "%sWARNING%s, ", COLOR_WARNING_CODE, COLOR_RESET_CODE
     printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
 }
 
