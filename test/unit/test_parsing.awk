@@ -139,6 +139,8 @@ function test_detect_ignored_targets() {
   check("detect_ignored_targets: .PRECIOUS", detect_ignored_targets(".PRECIOUS: t"), 1)
   check("detect_ignored_targets: leading whitespace and spaces before :",
         detect_ignored_targets(" \t.PHONY  : t"), 1)
+  check_bug("detect_ignored_targets: tab before :",
+            detect_ignored_targets(".PHONY\t: t"), 1, 114)
   check("detect_ignored_targets: .SECONDEXPANSION is not ignored",
         detect_ignored_targets(".SECONDEXPANSION:"), 0)
   check("detect_ignored_targets: a longer name", detect_ignored_targets(".PHONYX: t"), 0)
