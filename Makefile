@@ -11,6 +11,9 @@ INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 UNIT_TEST_DIR := $(TEST_DIR)/unit
 UNIT_TESTS := $(wildcard $(UNIT_TEST_DIR)/test_*.awk)
 
+# downloads what the tests need (see test/deps.toml)
+DEPS := python3 $(TEST_DIR)/deps.py
+
 # test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
 RUNNER := python3 $(TEST_DIR)/run.py
 RUNNER_FLAGS :=
@@ -26,9 +29,7 @@ run-suite = $(RUNNER) $(1) \
 AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
-SUPPORTED_AWK_VARIANTS := awk gawk mawk nawk bawk wak goawk
-# awk is a link to one of the others
-BENCH_VARIANTS := $(filter-out awk,$(SUPPORTED_AWK_VARIANTS))
+SUPPORTED_AWK_VARIANTS := $(shell $(DEPS) list)
 
 # one target per awk variant: test@awk, test@mawk, ...
 TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
@@ -139,9 +140,8 @@ $(COVER_DIR):
 .PHONY: bench
 bench: BENCH_REV :=
 bench: BENCH_FLAGS :=
-bench: $(addprefix $(AWK_BIN)/,$(BENCH_VARIANTS))
+bench:
 	@python3 $(TEST_DIR)/bench.py --script $(MAKEFILE_DOC) \
-		$(foreach v,$(BENCH_VARIANTS),--awk '$(AWK_BIN)/$(v)=$(v) $($(v)_VERSION)') \
 		$(if $(BENCH_REV),--rev $(BENCH_REV)) $(BENCH_FLAGS)
 
 ## Lint the code using `gawk`
@@ -234,11 +234,23 @@ demo.png: %.png : demo.pdf Makefile
 	@magick -density $(DPI) $*.pdf -quality 90 $@
 	@rm -f $*.pdf
 
-.PHONY: misc-bugs-bawk
-misc-bugs-bawk: PARAMS := -v a=0 -f misc/busybox_awk_bug_20251107.awk
-misc-bugs-bawk:
-	@$(AWK_BIN)/bawk $(PARAMS)
-	@podman run -it --rm -v $(PWD):/work:Z -w /work docker.io/library/busybox:latest awk $(PARAMS)
+##@
+##@------ Awk variants ------
+##@
 
-# awk variants (downloads); kept last so that `help` lists them last
-include $(TEST_DIR)/awk-variants.mk
+## Download and build awk variants (see test/deps.toml)
+## (`deps@<variant>`, or all of them with `deps@all`; e.g., before `make -j test@all`)
+.PHONY: deps@all $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
+deps@all: $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
+$(addprefix deps@,$(SUPPORTED_AWK_VARIANTS)): deps@%: $(AWK_BIN)/%
+
+## Remove awk variants (with their downloads and sources)
+## (`clean@<variant>`, or all of them with `clean@all`)
+.PHONY: clean@all $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS))
+clean@all:
+	@rm -rf $(AWK_BIN)
+$(addprefix clean@,$(SUPPORTED_AWK_VARIANTS)): clean@%:
+	@rm -rf $(AWK_BIN)/$* $(AWK_BIN)/$*-*
+
+$(AWK_BIN)/%:
+	@$(DEPS) install $*

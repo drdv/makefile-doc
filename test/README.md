@@ -11,13 +11,13 @@ test@mawk`), or use `test@all` / `utest@all` / `bugs@all` for all of them.
 The awk variants are downloaded and built into `test/bin/` when a test needs them. `make
 deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>` (or
 `clean@all`) removes them. `awk` and `gawk` are the ones installed on the system; the other
-versions are pinned in `test/awk-variants.mk`, where each download is checked against its
-SHA256.
+versions are pinned in `test/deps.toml`, where each download is checked against its SHA256.
 
-The unit and integration tests are run by `test/run.py` (Python >= 3.8, standard library
-only). Options can be passed with `RUNNER_FLAGS`, e.g., `make utest RUNNER_FLAGS='-v -k
-parsing'` (`-v` shows the output of passing tests, `-k` selects tests by name). A single
-integration test can also be run with its own target, e.g., `make test-docs-tags`.
+The test tools in `test/` are written in Python (>= 3.11, standard library only). The unit
+and integration tests are run by `test/run.py`. Options can be passed with `RUNNER_FLAGS`,
+e.g., `make utest RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing tests,
+`-k` selects tests by name). A single integration test can also be run with its own
+target, e.g., `make test-docs-tags`.
 
 `make bench` times `makefile-doc.awk` with each awk variant on large real Makefiles
 (downloaded once into `test/bin/`, with docs inserted automatically) and prints a Markdown

@@ -1,0 +1,82 @@
+# What the tests download, used by test/deps.py: the awk variants (built into test/bin/)
+# and the Makefiles timed by `make bench` (saved into test/bin/). Every download is
+# checked against its sha256; an empty sha256 (e.g., right after changing a version)
+# skips the check and prints the value to fill in.
+
+# ------------------------------------------------------------------------------------------
+# Awk variants: `make deps@<variant>` builds test/bin/<variant>
+#
+#   system   a link to the awk installed on the system
+#   version  replaces {version} in url
+#   url      a source archive (.tar.gz), or a prebuilt binary if there is no build
+#   build    the build command, run in the extracted sources
+#   binary   the file the build produces (path relative to the sources)
+#   os       the only OS where it can be installed (as Python's platform.system())
+#   bench    false to leave it out of `make bench`
+# ------------------------------------------------------------------------------------------
+
+[awk.awk]
+system = true
+bench = false # a link to one of the others
+
+[awk.gawk]
+system = true
+
+# the author's git export of mawk (invisible-island.net blocks scripted downloads at times)
+[awk.mawk]
+version = "t20260302"
+url = "https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/{version}.tar.gz"
+sha256 = "68740bcb801350b0d8be79fe794baa1186e3d1c718511a17d6690b8d0995bbc6"
+build = "./configure && make"
+binary = "mawk"
+
+[awk.nawk]
+version = "20240728"
+url = "https://github.com/onetrueawk/awk/archive/refs/tags/{version}.tar.gz"
+sha256 = "2d479817f95d5997fc4348ecebb1d8a1b25c81cebedb46ca4f59434247e08543"
+build = "make"
+binary = "a.out"
+
+[awk.bawk]
+version = "1.35.0"
+url = "https://busybox.net/downloads/binaries/{version}-x86_64-linux-musl/busybox_AWK"
+sha256 = "a0be3443bc46b48c761249003bf5d0750afac092bc87d2a541d09bce05172a7b"
+os = "Linux" # a prebuilt x86_64 binary
+
+[awk.wak]
+version = "v24.10"
+url = "https://github.com/raygard/wak/archive/refs/tags/{version}.tar.gz"
+sha256 = "b0902e299d9956e5920c3a0fff686de3b9dc60b7e3cc5c658fb379a5835d4c0c"
+build = "make"
+binary = "wak"
+
+# requires go (e.g., `sudo dnf install golang`)
+[awk.goawk]
+version = "v1.30.0"
+url = "https://github.com/benhoyt/goawk/archive/refs/tags/{version}.tar.gz"
+sha256 = "7a42ca223f1319483c3f46014c80f5e78e8410be29175ac852d88b79e3e64a36"
+build = "go build -o goawk goawk.go"
+binary = "goawk"
+
+# ------------------------------------------------------------------------------------------
+# Makefiles timed by `make bench` (one column each; the table is sorted by the first)
+#
+#   name    the file name in test/bin/
+#   title   the column header
+#   urls    tried in turn
+# ------------------------------------------------------------------------------------------
+
+[[bench]]
+name = "gcc-14.2.0-Makefile.in"
+title = "GCC Makefile.in"
+urls = ["https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-14.2.0/Makefile.in"]
+sha256 = "7dd6a4a1248be8e8f41ce87fd07b2cf5616ee9fb35f447408655fe396d379366"
+
+[[bench]]
+name = "linux-6.12-Makefile"
+title = "Linux Makefile"
+urls = [
+  "https://raw.githubusercontent.com/torvalds/linux/v6.12/Makefile",
+  "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/Makefile?h=v6.12",
+]
+sha256 = "96ec6a92139d7af01fa3c4be4f8f521f86f48d249861c578dc00f4ff38df1b61"
