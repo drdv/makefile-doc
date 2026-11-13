@@ -9,7 +9,7 @@
 #   #   want: "..."
 #   1..2
 #
-# Test files are run by test/run.py, one awk process per file:
+# Test files are run by test/tools/run.py, one awk process per file:
 #
 #   awk -v UNIT_TEST=1 -v STDERR=<tmpfile> \
 #       -f test/unit/harness.awk -f makefile-doc.awk -f test/unit/test_x.awk /dev/null
@@ -57,7 +57,7 @@ function check_true(name, condition) {
 }
 
 # A check of a known, unfixed bug: `want` is the correct value and `issue` the number of the
-# issue that reports the bug. It is printed as a TAP TODO check: test/run.py accepts it while
+# issue that reports the bug. It is printed as a TAP TODO check: test/tools/run.py accepts it while
 # it fails and reports it as an error once it passes (then replace check_bug with check).
 function check_bug(name, got, want, issue) {
   if (issue !~ /^[0-9]+$/) {
@@ -73,10 +73,10 @@ function check_bug(name, got, want, issue) {
 }
 
 # Return what the code under test has written to STDERR since the last call, and empty the
-# file. STDERR must be a regular file (test/run.py passes one with -v STDERR=...).
+# file. STDERR must be a regular file (test/tools/run.py passes one with -v STDERR=...).
 function stderr_text(    line, text) {
   if (STDERR == "/dev/stderr") {
-    printf("Bail out! STDERR is not a file (run the tests with test/run.py)\n")
+    printf("Bail out! STDERR is not a file (run the tests with test/tools/run.py)\n")
     exit 2
   }
   close(STDERR) # flush the stream used for writing

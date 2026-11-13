@@ -1,4 +1,4 @@
-# What the tests download, used by test/deps.py: the awk variants (built into test/bin/)
+# What the tests download, used by test/tools/deps.py: the awk variants (built into test/bin/)
 # and the Makefiles timed by `make bench@all` (saved into test/bin/). Every download is
 # checked against its sha256; with an empty sha256 (e.g., right after changing a version)
 # nothing is installed and the value to fill in is printed.

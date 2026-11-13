@@ -12,19 +12,19 @@ with every variant. `make test`, `utest` and `bugs` use `AWK` (default `awk`) an
 The awk variants are downloaded and built into `test/bin/` when a test needs them. `make
 deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>` (or
 `clean@all`) removes them. `awk` and `gawk` are the ones installed on the system; the other
-versions are pinned in `test/deps.toml`, where each download is checked against its SHA256.
+versions are pinned in `test/tools/deps.toml`, where each download is checked against its SHA256.
 
 The test tools in `test/` are written in Python (>= 3.11, standard library only). `make
 lint-py` lints them and checks their formatting with [ruff](https://docs.astral.sh/ruff)
 (settings in `ruff.toml`; `uvx ruff format test` reformats them). The unit
-and integration tests are run by `test/run.py`. Options can be passed with `RUNNER_FLAGS`,
+and integration tests are run by `test/tools/run.py`. Options can be passed with `RUNNER_FLAGS`,
 e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing
 tests, `-k` selects tests whose name contains a string). A test fails if its awk process
 runs for more than 30 seconds (`--timeout`).
 
 `make bench@all` times `makefile-doc.awk` with each awk variant on large real Makefiles
 (downloaded once into `test/bin/`, with docs inserted automatically) and prints a Markdown
-table; `make bench@<variant>` times one variant. Options of `test/bench.py` can be passed
+table; `make bench@<variant>` times one variant. Options of `test/tools/bench.py` can be passed
 with `BENCH_FLAGS`, e.g., `make bench@mawk BENCH_FLAGS='--rev HEAD --keep -n 10'`: also
 show the change from the last commit (useful after changes to the parsing), keep the
 annotated Makefiles in `test/bin/`, and take the best of 10 runs.

@@ -15,11 +15,14 @@ INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
 UNIT_TEST_DIR := $(TEST_DIR)/unit
 UNIT_TESTS := $(wildcard $(UNIT_TEST_DIR)/test_*.awk)
 
-# downloads what the tests need (see test/deps.toml)
-DEPS := python3 $(TEST_DIR)/deps.py
+# the test tools (see test/README.md)
+TOOLS_DIR := $(TEST_DIR)/tools
+
+# downloads what the tests need (see test/tools/deps.toml)
+DEPS := python3 $(TOOLS_DIR)/deps.py
 
 # test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
-RUNNER := python3 $(TEST_DIR)/run.py
+RUNNER := python3 $(TOOLS_DIR)/run.py
 # $(call run-suite,SUITE[,OPTIONS])
 run-suite = $(RUNNER) $(1) \
 	--awk $(AWK_BIN)/$(AWK) \
@@ -160,19 +163,19 @@ define coverage-run
 endef
 
 # Run the integration tests with goawk and generate a coverage report
-$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
+$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(TOOLS_DIR)/run.py \
 		$(addprefix $(INTEGRATION_TEST_DIR)/,$(INTEGRATION_TESTS)) | $(COVER_DIR)
 	$(call coverage-run,test,$(COVER_DIR)/integration.out)
 
 # Run the unit tests with goawk and generate a coverage report
-$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
+$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TOOLS_DIR)/run.py \
 		$(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk | $(COVER_DIR)
 	$(call coverage-run,utest,$(COVER_DIR)/unit.out)
 
 $(COVER_DIR):
 	@mkdir -p $@
 
-BENCH := python3 $(TEST_DIR)/bench.py --script $(MAKEFILE_DOC) $(BENCH_FLAGS)
+BENCH := python3 $(TOOLS_DIR)/bench.py --script $(MAKEFILE_DOC) $(BENCH_FLAGS)
 
 ## Time the script with an awk variant (or `bench@all`; see test/README.md)
 $(BENCH_ALL): bench@%:
@@ -268,7 +271,7 @@ draft-release: check-version $(MAKEFILE_DOC).sha256
 ##@------ Install and clean ------
 ##@
 
-## Download and build an awk variant (or `deps@all`; see test/deps.toml)
+## Download and build an awk variant (or `deps@all`; see test/tools/deps.toml)
 $(DEPS_ALL): deps@%: $(AWK_BIN)/%
 
 ## Remove an awk variant with its downloads (or `clean@all`)
