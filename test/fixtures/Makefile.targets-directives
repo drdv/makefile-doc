@@ -1,0 +1,30 @@
+## Docs are kept above a conditional with a colon (quoted form)
+ifeq "$(OS)" "a:b"
+t1:
+endif
+
+## Docs are kept above a conditional with a colon (parenthesized form)
+ifeq (a:b,c)
+t2:
+else ifneq (c:d,e)
+endif
+
+## These docs are discarded by vpath
+vpath %.c src:lib
+t3: ## vpath with a colon is not a target
+
+## These docs are discarded by include
+include a:b
+-include c:d
+sinclude e:f
+t4: ## include with a colon is not a target
+
+## These docs are discarded by export
+export A:B
+t5: ## export without an assignment is not a target
+
+## A variable named as a directive is a variable
+include := a:b
+
+## A target that starts with the name of a directive is a target
+include-all: a:b
