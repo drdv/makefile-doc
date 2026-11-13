@@ -64,6 +64,10 @@ function test_parse_inline_descriptions() {
         saved_inline_description("target: "), "<none>")
   check("parse_inline_descriptions: none after deps without a doc",
         saved_inline_description("target: deps1 deps2 | deps3"), "<none>")
+  check("parse_inline_descriptions: none for an inline ##@ (a section is not inline)",
+        saved_inline_description("target: ##@ some text"), "<none>")
+  check("parse_inline_descriptions: none for an inline ##@ on a variable",
+        saved_inline_description("X := 1 ##@ some text", 1), "<none>")
   check("parse_inline_descriptions: variable with a ; in its value",
         saved_inline_description("X := a;b ## doc", 1), "## doc")
 
