@@ -3,6 +3,7 @@
 #: stdout
 Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 Description: Generate docs for Makefile variables and targets
+Version: v1.8
 Options:
   OUTPUT_FORMAT: ANSI
   EXPORT_THEME (theme for HTML/LATEX output):

@@ -5,7 +5,6 @@
 #  Author: Dimitar Dimitrov
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
-# Version: v1.8
 #
 # Usage (see project README.md for more details):
 #   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
@@ -1079,6 +1078,7 @@ function initialize_colors() {
 function print_help() {
     print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
     print "Description: Generate docs for Makefile variables and targets"
+    print "Version: " VERSION
     print "Options:"
     printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
     printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
@@ -1104,6 +1104,8 @@ function print_help() {
 # Set the global state that does not depend on user options. It is called from BEGIN and
 # can be called from unit tests (also to reset the state between tests).
 function init_globals() {
+  VERSION = "v1.8" # the only place where the version is defined
+
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)

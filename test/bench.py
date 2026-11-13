@@ -131,7 +131,7 @@ def cell(ms: float, fastest: float, old: float | None) -> str:
 
 
 def script_version(script: Path) -> str:
-    match = re.search(r"^# Version: (\S+)", script.read_text(), re.MULTILINE)
+    match = re.search(r'^\s*VERSION = "([^"]+)"', script.read_text(), re.MULTILINE)
     return match.group(1) if match else "?"
 
 
