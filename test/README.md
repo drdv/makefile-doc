@@ -2,7 +2,7 @@
 
 - `make test@<variant>`: integration tests (`test/integration/`)
 - `make utest@<variant>`: unit tests (`test/unit/`)
-- `make bugs@<variant>`: reproducers for known, unfixed bugs (recipes with `#: bug: N` in
+- `make bugs@<variant>`: reproducers for known, unfixed bugs (cases with `#: bug: N` in
   `test/integration/`)
 
 For example, `make test@mawk` runs the integration tests with mawk, and `make test@all`
@@ -65,7 +65,7 @@ awk exits with a non-zero status.
 
 ## Integration tests
 
-Each `test/integration/test-*` file (a recipe) runs `makefile-doc.awk` on a fixture
+Each `test/integration/test-*` file (a case) runs `makefile-doc.awk` on a fixture
 (`test/fixtures/Makefile.*`) and holds the expected output. Metadata lines starting with
 `#:` come first and are ignored when running. The next line holds the awk arguments (in
 shell syntax). The remaining lines hold the expected output: stderr after a `#: stderr`
@@ -89,15 +89,15 @@ RUNNER_FLAGS='--update -k test-docs-precedence'` (check the diff by hand).
 
 Conventions:
 
-- A fixture covers one topic and stays small, so that a change affects few recipes. Add a
+- A fixture covers one topic and stays small, so that a change affects few cases. Add a
   new fixture rather than growing an unrelated one.
-- A recipe is named after its fixture: `test-<topic>` or `test-<topic>-<case>` for
+- A case is named after its fixture: `test-<topic>` or `test-<topic>-<variation>` for
   `Makefile.<topic>` (e.g., `test-sub-L` uses `Makefile.sub`). Fixtures about targets start
   with `targets-`, about variables with `vars-`, and about docs with `docs-`.
-- Every recipe has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
-- Colors are turned off (`-v COLOR=0`) unless the recipe is about colors or output formats.
+- Every case has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
+- Colors are turned off (`-v COLOR=0`) unless the case is about colors or output formats.
   The runner removes `NO_COLOR` from the environment of the tests.
-- A `#: env: NAME=value` line sets an environment variable for the recipe (e.g.,
+- A `#: env: NAME=value` line sets an environment variable for the case (e.g.,
   `#: env: NO_COLOR=1`).
 
 ## Reporting and fixing bugs
@@ -105,7 +105,7 @@ Conventions:
 1. **Open an issue.** Every bug should have one.
 2. **Reproducer (optional, can be a separate PR):** written by hand with the *correct*
    expected result. It is merged even if no fix exists yet.
-   - Integration test: a recipe `test/integration/test-<name>` with a `#: bug: N` line.
+   - Integration test: a case `test/integration/test-<name>` with a `#: bug: N` line.
      `make test` skips it and `make bugs` runs it.
    - Unit test: a `check_bug(name, got, want, issue)` call next to the other checks of the
      same function. `make utest` reports it as a known bug.

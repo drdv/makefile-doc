@@ -6,9 +6,9 @@ usage: test/run.py SUITE --awk AWK [options]
 Suites:
   unit         run each test/unit/test_*.awk file in its own awk process and check its
                TAP output (see test/unit/harness.awk)
-  integration  run each test/integration/test-* recipe and compare the output with the
+  integration  run each test/integration/test-* case and compare the output with the
                expected output (see test/README.md); --update rewrites the expected output
-  bugs         run the recipes of known bugs (marked with `#: bug: N`)
+  bugs         run the cases of known bugs (marked with `#: bug: N`)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
@@ -16,9 +16,9 @@ status (e.g., a crash or a syntax error), or if awk runs for longer than --timeo
 Checks of known bugs (TAP `# TODO issue N`) are expected to fail: the test file fails if one
 of them passes (the bug has been fixed).
 
-A recipe passes if the output of makefile-doc.awk is exactly the expected output: stderr
+A case passes if the output of makefile-doc.awk is exactly the expected output: stderr
 after a `#: stderr` line, stdout after a `#: stdout` line (a stream without output has no
-such line), then `#: exit: N` for a non-zero exit status. A recipe with a `#: bug: N` line
+such line), then `#: exit: N` for a non-zero exit status. A case with a `#: bug: N` line
 (issue N) holds the correct output of a known bug: it is skipped by the integration suite,
 and the bugs suite fails once its output is correct (the bug has been fixed).
 
@@ -198,35 +198,8 @@ def suite_unit(args: argparse.Namespace) -> list[Callable[[], Result]]:
 # ------------------------------------------------------------------------------------------
 # integration tests
 # ------------------------------------------------------------------------------------------
-RECIPE_BUG = re.compile(rb"^#: bug:(.*)$")
-RECIPE_ENV = re.compile(rb"^#: env:\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
-
-
-@dataclass
-class Recipe:
-    metadata: list[bytes]  # the leading `#:` lines (with their newline)
-    args: str  # the awk arguments (shell syntax)
-    expected: bytes
-    bug: str | None  # the value of the `#: bug:` line (the issue number), if any
-    env: dict[str, str]  # the environment variables of the `#: env: NAME=value` lines
-
-
-def read_recipe(path: Path) -> Recipe:
-    lines = (ROOT / path).read_bytes().splitlines(keepends=True)
-    k = 0
-    while k < len(lines) and lines[k].startswith(b"#:"):
-        k += 1
-    args = lines[k].decode().rstrip("\n") if k < len(lines) else ""
-    bug = None
-    env = {}
-    for line in lines[:k]:
-        m = RECIPE_BUG.match(line.rstrip(b"\n"))
-        if m:
-            bug = m.group(1).decode().strip()
-        m = RECIPE_ENV.match(line.rstrip(b"\n"))
-        if m:
-            env[m.group(1).decode()] = m.group(2).decode()
-    return Recipe(lines[:k], args, b"".join(lines[k + 1 :]), bug, env)
+CASE_BUG = re.compile(rb"^#: bug:(.*)$")
+CASE_ENV = re.compile(rb"^#: env:\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 
 
 def visible(data: bytes) -> list[str]:
@@ -245,7 +218,7 @@ def visible(data: bytes) -> list[str]:
 
 
 def render_output(stderr: bytes, stdout: bytes, returncode: int) -> bytes:
-    """The output of one run as it is stored in a recipe: each stream after a marker line (a
+    """The output of one run as it is stored in a case: each stream after a marker line (a
     stream without output has no marker), then the exit status if it is not 0."""
     out = b""
     if stderr:
@@ -257,68 +230,96 @@ def render_output(stderr: bytes, stdout: bytes, returncode: int) -> bytes:
     return out
 
 
-def run_recipe(args: argparse.Namespace, path: Path) -> Result:
-    recipe = read_recipe(path)
-    if recipe.bug is not None and not recipe.bug.isdigit():
-        return Result(path.name, False, "the `#: bug:` line needs an issue number")
-    if recipe.bug is not None and args.update:
-        return Result(path.name, False, "the expected output of a known bug is not updated")
+@dataclass
+class Case:
+    """An integration test: a test/integration/test-* file."""
 
-    try:
-        proc = run_awk(
-            args.awk,
-            [*args.awk_flags, "-f", args.script, *shlex.split(recipe.args)],
-            args.timeout,
-            text=False,
-            env=recipe.env,
+    path: Path  # relative to ROOT
+    metadata: list[bytes]  # the leading `#:` lines (with their newline)
+    args: str  # the awk arguments (shell syntax)
+    expected: bytes
+    bug: str | None  # the value of the `#: bug:` line (the issue number), if any
+    env: dict[str, str]  # the environment variables of the `#: env: NAME=value` lines
+
+    @classmethod
+    def read(cls, path: Path) -> "Case":
+        lines = (ROOT / path).read_bytes().splitlines(keepends=True)
+        k = 0
+        while k < len(lines) and lines[k].startswith(b"#:"):
+            k += 1
+        args = lines[k].decode().rstrip("\n") if k < len(lines) else ""
+        bug = None
+        env = {}
+        for line in lines[:k]:
+            m = CASE_BUG.match(line.rstrip(b"\n"))
+            if m:
+                bug = m.group(1).decode().strip()
+            m = CASE_ENV.match(line.rstrip(b"\n"))
+            if m:
+                env[m.group(1).decode()] = m.group(2).decode()
+        return cls(path, lines[:k], args, b"".join(lines[k + 1 :]), bug, env)
+
+    @property
+    def name(self) -> str:
+        return self.path.name
+
+    def run(self, args: argparse.Namespace) -> Result:
+        """Run makefile-doc.awk and compare its output with the expected output (or, with
+        --update, rewrite the expected output)."""
+        if self.bug is not None and not self.bug.isdigit():
+            return Result(self.name, False, "the `#: bug:` line needs an issue number")
+        if self.bug is not None and args.update:
+            return Result(self.name, False, "the expected output of a known bug is not updated")
+
+        try:
+            proc = run_awk(
+                args.awk,
+                [*args.awk_flags, "-f", args.script, *shlex.split(self.args)],
+                args.timeout,
+                text=False,
+                env=self.env,
+            )
+        except subprocess.TimeoutExpired:
+            return timed_out(self.name, args.timeout)
+        actual = render_output(proc.stderr, proc.stdout, proc.returncode)
+
+        diff = "".join(
+            difflib.unified_diff(
+                visible(self.expected), visible(actual), "expected", "actual", lineterm="\n"
+            )
         )
-    except subprocess.TimeoutExpired:
-        return timed_out(path.name, args.timeout)
-    actual = render_output(proc.stderr, proc.stdout, proc.returncode)
+        if diff and not diff.endswith("\n"):
+            diff += "\n"
 
-    diff = "".join(
-        difflib.unified_diff(
-            visible(recipe.expected), visible(actual), "expected", "actual", lineterm="\n"
-        )
-    )
-    if diff and not diff.endswith("\n"):
-        diff += "\n"
+        if args.update:
+            if actual != self.expected:
+                new = b"".join(self.metadata) + self.args.encode() + b"\n" + actual
+                (ROOT / self.path).write_bytes(new)
+                return Result(self.name, True, "updated", diff, relevant=diff)
+            return Result(self.name, True, "unchanged")
 
-    if args.update:
-        if actual != recipe.expected:
-            new = b"".join(recipe.metadata) + recipe.args.encode() + b"\n" + actual
-            (ROOT / path).write_bytes(new)
-            return Result(path.name, True, "updated", diff, relevant=diff)
-        return Result(path.name, True, "unchanged")
-
-    if recipe.bug is not None:
-        if actual == recipe.expected:
-            fixed = f"FIXED: replace `#: bug: {recipe.bug}` with `#: issue: {recipe.bug}`"
-            return Result(path.name, False, fixed)
-        return Result(path.name, True, f"issue {recipe.bug}", diff, label="known bug")
-    if actual == recipe.expected:
-        return Result(path.name, True, "")
-    return Result(path.name, False, "output differs", diff, relevant=diff)
+        if self.bug is not None:
+            if actual == self.expected:
+                fixed = f"FIXED: replace `#: bug: {self.bug}` with `#: issue: {self.bug}`"
+                return Result(self.name, False, fixed)
+            return Result(self.name, True, f"issue {self.bug}", diff, label="known bug")
+        if actual == self.expected:
+            return Result(self.name, True, "")
+        return Result(self.name, False, "output differs", diff, relevant=diff)
 
 
-def recipes(args: argparse.Namespace, bugs: bool) -> list[Callable[[], Result]]:
-    """The recipes to run: with or without a `#: bug:` line."""
+def read_cases(args: argparse.Namespace) -> list[Case]:
+    """The selected integration cases (each file is read once)."""
     paths = sorted(p for p in (ROOT / INTEGRATION_DIR).iterdir() if p.is_file())
-    paths = [
-        INTEGRATION_DIR / p.name
-        for p in paths
-        if selected(args, p.name)
-        and (read_recipe(INTEGRATION_DIR / p.name).bug is not None) == bugs
-    ]
-    return [(lambda p=p: run_recipe(args, p)) for p in paths]
+    return [Case.read(INTEGRATION_DIR / p.name) for p in paths if selected(args, p.name)]
 
 
 def suite_integration(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    return recipes(args, bugs=False)
+    return [(lambda c=c: c.run(args)) for c in read_cases(args) if c.bug is None]
 
 
 def suite_bugs(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    return recipes(args, bugs=True)
+    return [(lambda c=c: c.run(args)) for c in read_cases(args) if c.bug is not None]
 
 
 # ------------------------------------------------------------------------------------------
@@ -386,7 +387,7 @@ def main() -> int:
     for r in results:
         if args.update and r.passed:
             print(f"[{awk_name}] {r.summary} {r.name}")
-            output = r.relevant  # the diff of an updated recipe
+            output = r.relevant  # the diff of an updated case
         else:
             summary = f" ({r.summary})" if r.summary and r.passed else ""
             status = (r.label or "passed") if r.passed else "FAILED"
