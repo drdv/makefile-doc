@@ -261,10 +261,6 @@ function strip_trailing_blanks(text, #locals
   return text
 }
 
-function starts_with(string, prefix) {
-  return substr(string, 1, length(prefix)) == prefix
-}
-
 # In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
 # a placeholder: escaping them first would escape the braces of \textbackslash{}, and
 # escaping them last would escape the backslashes of \{ and \}.
@@ -322,15 +318,9 @@ function parse_inline_descriptions(whole_line, is_variable, #locals
   }
 }
 
-function detect_ignored_targets(target_line, #locals
-                                key) {
-  sub(/^[ \t]*/, "", target_line)
-  for (key in IGNORED_TARGETS) {
-    if (target_line ~ "^" IGNORED_TARGETS[key] "[ \t]*:") {
-      return 1
-    }
-  }
-  return 0
+# true for the special targets whose lines are skipped (the docs above them are kept)
+function detect_ignored_targets(target_line) {
+  return target_line ~ /^[ \t]*\.(PHONY|SILENT|IGNORE|SECONDARY|INTERMEDIATE|PRECIOUS)[ \t]*:/
 }
 
 # Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`
@@ -1087,10 +1077,6 @@ function init_globals() {
 
   split("", DISPLAY_PARAMS)
 
-  split("\\.PHONY \\.SILENT \\.IGNORE \\.SECONDARY \\.INTERMEDIATE \\.PRECIOUS",
-        IGNORED_TARGETS,
-        " ")
-
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
   NUMBER_OF_FILES_PROCESSED = 0
@@ -1189,8 +1175,12 @@ BEGIN {
   }
 }
 
+# The rules below run for every line of the input: the cheap tests come first (a comparison
+# of one character before a regex or a function call), and a rule that fully handles a line
+# ends with `next`.
+
 # Makefiles with CRLF line endings: drop the \r
-{ sub(/\r$/, "") }
+substr($0, length($0)) == "\r" { sub(/\r$/, "") }
 
 FNR == 1 {
   reset_file_state()
@@ -1213,7 +1203,8 @@ IN_CONTINUED_LINE {
 }
 
 # Skip backslash multiline comments
-(/^ *#/ && has_odd_terminal_backslashes($0)) || IN_MULTILINE_BACKSLASH_COMMENT {
+IN_MULTILINE_BACKSLASH_COMMENT ||
+    (substr($0, length($0)) == "\\" && /^ *#/ && has_odd_terminal_backslashes($0)) {
   if (!IN_MULTILINE_BACKSLASH_COMMENT) {
     IN_MULTILINE_BACKSLASH_COMMENT = 1
   } else if (!has_odd_terminal_backslashes($0)) {
@@ -1223,8 +1214,8 @@ IN_CONTINUED_LINE {
   next
 }
 
-# (the check of the last character first avoids calling a function for most lines)
-substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
+# (RECIPEPREFIX is a single character)
+substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX) &&
     !IN_MULTILINE_BACKSLASH_RECIPE && has_odd_terminal_backslashes($0) {
   CONTINUED_LINE = substr($0, 1, length($0) - 1)
   sub(/[ \t]+$/, "", CONTINUED_LINE)
@@ -1232,16 +1223,16 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   next
 }
 
-(IN_RULE && starts_with($0, RECIPEPREFIX)) || IN_MULTILINE_BACKSLASH_RECIPE {
-  if ($0 !~ /^[ \t]*$/) { # an empty recipe line is a blank line: it keeps the docs
+(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX) || IN_MULTILINE_BACKSLASH_RECIPE {
+  # an empty recipe line is a blank line: it keeps the docs
+  if (DESCRIPTION_DATA_INDEX > 1 && $0 !~ /^[ \t]*$/) {
     forget_descriptions_data()
   }
-  g_recipe_text = starts_with($0, RECIPEPREFIX) ? substr($0, length(RECIPEPREFIX) + 1) : $0
 
-  if (has_odd_terminal_backslashes(g_recipe_text)) {
-    IN_MULTILINE_BACKSLASH_RECIPE = 1
-  } else {
-    IN_MULTILINE_BACKSLASH_RECIPE = 0
+  IN_MULTILINE_BACKSLASH_RECIPE = 0
+  if (substr($0, length($0)) == "\\") {
+    g_recipe_text = substr($0, 1, 1) == RECIPEPREFIX ? substr($0, 2) : $0
+    IN_MULTILINE_BACKSLASH_RECIPE = has_odd_terminal_backslashes(g_recipe_text)
   }
 
   next
@@ -1264,14 +1255,13 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   sub(/^ */, "", g_description_string)
 
   save_description_data(g_description_string)
-
-  PATTERN_RULE_MATCHED = 1
+  next
 }
 
 # Blank lines (empty or with only spaces and tabs) between docs are allowed (they do not
 # discard the docs)
 /^[ \t]*$/ {
-  PATTERN_RULE_MATCHED = 1
+  next
 }
 
 # New section (all lines in a multi-line sections should start with ##@)
@@ -1280,8 +1270,7 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   sub(/ *##@/, "", g_section_string) # strip the tags (they are not needed anymore)
 
   save_section_data(g_section_string)
-
-  PATTERN_RULE_MATCHED = 1
+  next
 }
 
 # A directive is not a rule, even with a colon (e.g., `ifeq "$(OS)" "a:b"`, `vpath %.c a:b`),
@@ -1303,7 +1292,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
     next
   }
 
-  if (length_array_posix(DESCRIPTION_DATA) == 0) {
+  if (DESCRIPTION_DATA_INDEX == 1) {
     parse_inline_descriptions($0)
   }
 
@@ -1316,7 +1305,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
   sub(/[ \t]*&/, "\\&", g_target_name_nominal)
   g_target_name_nominal = strip_start_end_spaces_tabs(g_target_name_nominal)
 
-  if (length_array_posix(DESCRIPTION_DATA) > 0) {
+  if (DESCRIPTION_DATA_INDEX > 1) {
     g_target_name = is_double_colon_rule($0) ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal
 
     TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
@@ -1333,11 +1322,11 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
 }
 
 $0 ~ VARIABLES_REGEX {
-  if (length_array_posix(DESCRIPTION_DATA) == 0) {
+  if (DESCRIPTION_DATA_INDEX == 1) {
     parse_inline_descriptions($0, 1)
   }
 
-  if (length_array_posix(DESCRIPTION_DATA) > 0) {
+  if (DESCRIPTION_DATA_INDEX > 1) {
     g_variable_name = strip_start_end_spaces_tabs(parse_variable_name($0))
     VARIABLES_INDEX = associate_data_with_anchor(g_variable_name,
                                                  VARIABLES,
