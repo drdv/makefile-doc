@@ -25,7 +25,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 sys.dont_write_bytecode = True  # no test/__pycache__/ from importing deps
 from deps import AWKS, BENCH_MAKEFILES, BIN, ROOT, DepsError, download, install  # noqa: E402
@@ -108,7 +108,8 @@ def awk_label(name: str) -> str:
         ).stdout
         match = re.search(r"\d+\.\d+(\.\d+)?", out.split("\n")[0])
         version = match.group() if match else ""
-    return f"{name} {re.sub(r'^[vt](?=\d)', '', version)}".strip()  # v1.30.0, t20260302
+    version = re.sub(r"^[vt](?=\d)", "", version)  # v1.30.0, t20260302
+    return f"{name} {version}".strip()
 
 
 def cell(ms: float, fastest: float, old: Optional[float]) -> str:
