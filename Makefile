@@ -161,10 +161,13 @@ bench@all:
 .PHONY: lint
 lint: lint-awk lint-py check-version
 
+# prints the version of the script (the VERSION variable set in init_globals)
+SCRIPT_VERSION := sed -n 's/^ *VERSION = "\([^"]*\)".*/\1/p' $(MAKEFILE_DOC)
+
 # Verify that the README installs the version of the script (the `help: VER := ...` line)
 .PHONY: check-version
 check-version:
-	@version=$$(sed -n 's/^# Version: //p' $(MAKEFILE_DOC)); \
+	@version=$$($(SCRIPT_VERSION)); \
 	readme=$$(sed -n 's/^help: VER := //p' README.md); \
 	test -n "$$version" && test "$$readme" = "$$version" || \
 		{ echo "README.md installs '$$readme', $(MAKEFILE_DOC) is '$$version'"; exit 1; }; \
@@ -226,7 +229,7 @@ check-variables: $(AWK_BIN)/gawk
 .PHONY: draft-release
 draft-release: check-version
 	@tag=$$(git describe --tags --exact-match 2>/dev/null) || { echo "HEAD has no tag"; exit 1; }; \
-	version=$$(sed -n 's/^# Version: //p' $(MAKEFILE_DOC)); \
+	version=$$($(SCRIPT_VERSION)); \
 	test "$$version" = "$$tag" || \
 		{ echo "Version $$version in $(MAKEFILE_DOC) differs from tag $$tag"; exit 1; }; \
 	gh release create "$$tag" $(MAKEFILE_DOC) --draft --generate-notes -t "$$tag"
