@@ -142,9 +142,19 @@ $(BENCH_ALL): bench@%:
 bench@all:
 	@$(BENCH)
 
-## Lint the awk code (`lint-awk`) and the Python test tools (`lint-py`)
+## Lint the awk code (`lint-awk`), the Python test tools (`lint-py`)
+## and check the version in the README (`check-version`)
 .PHONY: lint
-lint: lint-awk lint-py
+lint: lint-awk lint-py check-version
+
+# Verify that the README installs the version of the script (the `help: VER := ...` line)
+.PHONY: check-version
+check-version:
+	@version=$$(sed -n 's/^# Version: //p' $(MAKEFILE_DOC)); \
+	readme=$$(sed -n 's/^help: VER := //p' README.md); \
+	test -n "$$version" && test "$$readme" = "$$version" || \
+		{ echo "README.md installs '$$readme', $(MAKEFILE_DOC) is '$$version'"; exit 1; }; \
+	echo "check-version: OK"
 
 # the version is pinned; without uv, use an installed ruff: `make lint-py RUFF=ruff`
 RUFF := uvx ruff@0.16.9
@@ -200,7 +210,7 @@ check-variables: $(AWK_BIN)/gawk
 
 ##! Create a draft github release at the tag of HEAD
 .PHONY: draft-release
-draft-release:
+draft-release: check-version
 	@tag=$$(git describe --tags --exact-match 2>/dev/null) || { echo "HEAD has no tag"; exit 1; }; \
 	version=$$(sed -n 's/^# Version: //p' $(MAKEFILE_DOC)); \
 	test "$$version" = "$$tag" || \
