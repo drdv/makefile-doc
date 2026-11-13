@@ -1,2 +1,6 @@
 test/bin
 coverage-reports/
+awkvars.out
+demo.html
+demo.pdf
+demo.png

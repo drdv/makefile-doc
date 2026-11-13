@@ -404,6 +404,7 @@ library only). `make help` lists its targets.
 | `make test@mawk utest@mawk`     | the same with another awk (see `make help`)          |
 | `make test@all utest@all`       | the same with every supported awk                    |
 | `make lint`                     | lints the awk code and the Python test tools         |
+| `make check`                    | `lint` and all the tests with the system's `awk`     |
 
 `make lint` needs `gawk` and [uv](https://docs.astral.sh/uv). The awk implementations
 other than `awk` and `gawk` are downloaded and built into
