@@ -178,15 +178,18 @@ function join(array, delimiter, #locals
 # (& and \) would have to be escaped; here string comes from the user (DSUB) and
 # replacement contains & and \ (HTML and LaTeX escapes).
 function string_replace(string, replacement, text, #locals
-                        k, pre) {
-  k = index(text, string)
-  if (string != "" && k > 0) { # not `if (string)`: a string that looks like 0 is false
-    pre = substr(text, 1, k-1)
-    return pre replacement string_replace(string,
-                                          replacement,
-                                          substr(text, k+length(string)))
+                        k, len, result) {
+  if (string == "") { # not `if (!string)`: a string that looks like 0 is false
+    return text
   }
-  return text
+  # a loop and not a recursion: mawk has a small stack (about 200 nested calls)
+  len = length(string)
+  result = ""
+  while ((k = index(text, string)) > 0) {
+    result = result substr(text, 1, k - 1) replacement
+    text = substr(text, k + len)
+  }
+  return result text
 }
 
 function strip_start_end_spaces_tabs(string) {

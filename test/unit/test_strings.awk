@@ -41,6 +41,14 @@ function test_string_replace(    text, parts) {
   check("string_replace: a search string of 0 (from split) is replaced",
         string_replace(parts[1], "X", "a0b0"),
         "aXbX")
+  # many occurrences (a recursive implementation exhausts the stack of mawk at about 200)
+  check("string_replace: 1000 occurrences",
+        string_replace(" ", ".", repeated_string("", 1000)),
+        repeated_string(".", 1000))
+  check("string_replace: the replacement is not searched again",
+        string_replace("a", "aa", "a-a"), "aa-aa")
+  check("string_replace: overlapping occurrences are replaced from the left",
+        string_replace("aa", "b", "aaa"), "ba")
   check("string_replace: empty search string changes nothing",
         string_replace("", "X", text),
         text)
