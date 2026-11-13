@@ -2,16 +2,11 @@
 #: issue: 120
 -v OUTPUT_FORMAT=html -v COLOR_DEFAULT=0 -v COLOR_SECTION=0 test/fixtures/Makefile.formats-escape
 #: stdout
-<head>
-  <style type="text/css">
-    .color-attention { color: #dc322f; }
-    .color-section {}
-    .color-deprecated { color: #b58900; }
-    .color-default {}
-    .color-backticks {}
-  </style>
-</head>
-<div class="makefile-doc-fg makefile-doc-bg">
+<style>
+  .makefile-doc-attention { color: #dc322f; }
+  .makefile-doc-deprecated { color: #b58900; }
+</style>
+<div class="makefile-doc">
 <pre>
 -----------------------
 Available targets:

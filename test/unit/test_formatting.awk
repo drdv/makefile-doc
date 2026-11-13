@@ -154,7 +154,7 @@ function test_define_color() {
 
   setup_colors("HTML", "")
   check("define_color (HTML): color", define_color(34, "DEFAULT"),
-        "<span class=\"color-default\">")
+        "<span class=\"makefile-doc-default\">")
   check("define_color (HTML): reset", define_color(-1), "</span>")
 
   setup_colors("LATEX", "")
@@ -191,20 +191,19 @@ function test_ansi_color_param_to_html_style() {
   setup_colors("HTML", "")
   check("ansi_color_param_to_html_style: color",
         ansi_color_param_to_html_style(34, "DEFAULT"),
-        "    .color-default { color: #268bd2; }\n")
+        "  .makefile-doc-default { color: #268bd2; }\n")
   check("ansi_color_param_to_html_style: attribute",
         ansi_color_param_to_html_style(1, "BACKTICKS"),
-        "    .color-backticks { font-weight: bold; }\n")
-  check("ansi_color_param_to_html_style: no color",
-        ansi_color_param_to_html_style(0, "SECTION"),
-        "    .color-section {}\n")
+        "  .makefile-doc-backticks { font-weight: bold; }\n")
+  check("ansi_color_param_to_html_style: no rule without a color",
+        ansi_color_param_to_html_style(0, "SECTION"), "")
   check("ansi_color_param_to_html_style: FG not set",
         ansi_color_param_to_html_style("FG", "FG"), "")
 
   setup_colors("HTML", "BG:000000")
   check("ansi_color_param_to_html_style: BG",
         ansi_color_param_to_html_style("BG", "BG"),
-        "    .makefile-doc-bg { background-color: #000000; }\n")
+        "  .makefile-doc { background-color: #000000; }\n")
 
   setup_colors("", "")
 }

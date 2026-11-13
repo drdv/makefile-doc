@@ -906,32 +906,35 @@ function define_color_labels() {
   COLOR_LABELS["BG"] = "makefile-doc-bg"
 }
 
-# here ansi_color_param is the normal ANSI color params, e.g., 30-37, but it could as
-# well be "FG" or "BG"
+# the class of the HTML elements with the color of label (e.g., makefile-doc-default)
+function html_class(label) {
+  return "makefile-doc-" tolower(label)
+}
+
+# Return the CSS rule (one line) for a color option, or "" if there is nothing to style.
+# Here ansi_color_param is a normal ANSI color param, e.g., 30-37, but it could as well be
+# "FG" or "BG": these style the whole output (the element with the class makefile-doc).
 function ansi_color_param_to_html_style(ansi_color_param, label, #locals
-                                        template, attr) {
+                                        attr) {
   if (ansi_color_param == "FG" || ansi_color_param == "BG") {
     if (ANSI_TO_HTML_COLOR[ansi_color_param] == -1) {
-      return "" # indicates to not set any style
+      return ""
     }
-    return sprintf("    .%s { %s: #%s; }\n",
-                   COLOR_LABELS[label],
+    return sprintf("  .makefile-doc { %s: #%s; }\n",
                    ansi_color_param == "FG" ? "color" : "background-color",
                    ANSI_TO_HTML_COLOR[ansi_color_param])
   }
 
-  template = "    .%s %s\n"
   if (ansi_color_param && ansi_color_param in ANSI_TO_HTML_COLOR) {
     attr = ANSI_TO_HTML_ATTR[ansi_color_param]
-    return sprintf(template,
-                   COLOR_LABELS[label],
-                   sprintf("{ %s: %s%s; }",
-                           attr,
-                           (attr == "color" || attr == "background-color")? "#" : "",
-                           ANSI_TO_HTML_COLOR[ansi_color_param]))
+    return sprintf("  .%s { %s: %s%s; }\n",
+                   html_class(label),
+                   attr,
+                   (attr == "color" || attr == "background-color")? "#" : "",
+                   ANSI_TO_HTML_COLOR[ansi_color_param])
   }
 
-  return sprintf(template, COLOR_LABELS[label], "{}")
+  return ""
 }
 
 function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
@@ -979,7 +982,7 @@ function define_color(ansi_color_param, color_label_key) {
     if (ansi_color_param == -1) {
       return "</span>"
     } else {
-      return "<span class=\"" COLOR_LABELS[color_label_key] "\">"
+      return "<span class=\"" html_class(color_label_key) "\">"
     }
   } else if (OUTPUT_FORMAT == "LATEX") {
     if (ansi_color_param == -1) {
@@ -1047,14 +1050,16 @@ function initialize_colors() {
 
   if (OUTPUT_FORMAT == "HTML") {
     HTML_FOOTER = "</pre>\n</div>"
-    HTML_HEADER = sprintf("<head>\n  <style type=\"text/css\">\n%s%s%s%s%s%s%s  </style>\n</head>\n<div class=\"makefile-doc-fg makefile-doc-bg\">\n<pre>",
-                          ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION"),
-                          ansi_color_param_to_html_style(COLOR_SECTION, "SECTION"),
-                          ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED"),
-                          ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT"),
-                          ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS"),
-                          ansi_color_param_to_html_style("FG", "FG"),
-                          ansi_color_param_to_html_style("BG", "BG"))
+    # an HTML fragment (to paste into a page): the styles, then the documentation
+    HTML_HEADER = "<style>\n" \
+        ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
+        ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
+        ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
+        ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
+        ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
+        ansi_color_param_to_html_style("FG", "FG") \
+        ansi_color_param_to_html_style("BG", "BG") \
+        "</style>\n<div class=\"makefile-doc\">\n<pre>"
   } else if (OUTPUT_FORMAT == "LATEX") {
     LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
     # Is there a better way to store this?
