@@ -294,7 +294,7 @@ For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, 
   be doubled (`\\,`).
 - A parameter value cannot contain `>`, which ends the parameters.
 
-See the `Makefile` of this project and `test/integration/test-sub-*` for more examples.
+See the `Makefile` of this project and `test/integration/sub-*.test` for more examples.
 
 ### `DSUB`: replace text in docs
 

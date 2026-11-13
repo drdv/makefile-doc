@@ -16,6 +16,7 @@ if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a trac
     sys.exit(f"Python >= 3.11 is needed (this is Python {sys.version.split()[0]})")
 
 import hashlib
+import os
 import platform
 import shutil
 import subprocess
@@ -78,9 +79,20 @@ def download(urls: list[str], path: Path, sha256: str) -> Path:
         if digest != sha256:
             errors.append(f"{url}: wrong sha256 {digest} (expected {sha256})")
             continue
-        path.write_bytes(data)
+        tmp = path.with_name(path.name + ".tmp")  # an interrupted write leaves no path
+        tmp.write_bytes(data)
+        os.replace(tmp, path)
         return path
     raise DepsError(f"cannot download {path.name}:\n  " + "\n  ".join(errors))
+
+
+def place(source: Path, target: Path) -> None:
+    """Copy source to target as an executable. The copy goes through a temporary name, so
+    that an interrupted copy does not leave a partial target (it would look installed)."""
+    tmp = target.with_name(target.name + ".tmp")
+    shutil.copy(source, tmp)
+    tmp.chmod(0o755)
+    os.replace(tmp, target)
 
 
 def install(name: str) -> Path:
@@ -110,8 +122,7 @@ def install(name: str) -> Path:
 
     url = awk["url"].format(version=awk["version"])
     if "build" not in awk:  # a prebuilt binary
-        shutil.copy(download([url], BIN / f"{name}-{awk['version']}", awk["sha256"]), target)
-        target.chmod(0o755)
+        place(download([url], BIN / f"{name}-{awk['version']}", awk["sha256"]), target)
         return target
 
     archive = download([url], BIN / f"{name}-{awk['version']}.tar.gz", awk["sha256"])
@@ -123,7 +134,7 @@ def install(name: str) -> Path:
         subprocess.run(awk["build"], shell=True, cwd=src, check=True)
     except subprocess.CalledProcessError as e:
         raise DepsError(f"cannot build {name}: {e}") from e
-    shutil.copy(src / awk["binary"], target)
+    place(src / awk["binary"], target)
     return target
 
 
