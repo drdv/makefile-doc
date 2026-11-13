@@ -1,0 +1,12 @@
+#: desc: Parser state (docs, rule, continued recipe/comment/line) is reset at each new file
+-v COLOR=0 test/fixtures/Makefile.multi-file test/fixtures/Makefile.multi-file.2 test/fixtures/Makefile.multi-file.3 test/fixtures/Makefile.multi-file.4 test/fixtures/Makefile.multi-file.5 test/fixtures/Makefile.multi-file.6
+-----------------------
+Available targets:
+-----------------------
+first                  the first target
+after-doc              not documented with the dangling doc of the previous file
+after-recipe           not swallowed as a recipe continuation
+after-rule             not a recipe line of the last rule of the previous file
+after-comment          not swallowed as a comment continuation
+after-continued-line   not joined with the last line of the previous file
+-----------------------

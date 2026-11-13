@@ -1,0 +1,3 @@
+first: ## the first target
+
+## a doc at the end of a file is not carried over to the next file
