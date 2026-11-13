@@ -54,16 +54,17 @@
 #
 # Code conventions:
 #   * All local variables of a function are declared in its signature (awk has no other way
-#     to make a variable local), after a `#locals` comment:
-#         function f(x, y, #locals
-#                    k, n) {
-#     A function without parameters cannot have a comment after the parenthesis, so its
-#     locals are declared after a backslash:
-#         function f(         \
-#             k, n) {
+#     to make a variable local). There are two cases (also in the unit tests):
+#       * a function with parameters: the locals are on the next line, after a `#locals`
+#         comment
+#             function f(x, y, #locals
+#                        k, n) {
+#       * a function without parameters: the locals are on the same line, after four spaces
+#         (awk does not accept a comment right after the parenthesis)
+#             function f(    k, n) {
 #   * The naming convention for global variables is:
-#     + long-standing/important global variables are written in all upper case
-#     + temporary variables that end-up being global (simply because of where they are
+#     * long-standing/important global variables are written in all upper case
+#     * temporary variables that end-up being global (simply because of where they are
 #       defined, e.g., in the END stanza) have a prefix g_.
 #   * The code is meant to run with most major awk implementations, and as a result we
 #     need to stick to basic syntax. For example, we cannot use a match function with
@@ -84,7 +85,7 @@
 #   8. Display of the documentation (and END)
 #
 # Terminology and definitions:
-#   + A Makefile rule (without patterns) can take one of the following forms:
+#   * A Makefile rule (without patterns) can take one of the following forms:
 #     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
 #         [recipe]
 #
@@ -100,20 +101,21 @@
 #
 #     with normal-prerequisites and order-only-prerequisites being space separated lists
 #     of target names.
-#   + Recipe: a sequence of commands executed in the shell. A recipe (and thus a rule)
-#     ends at the next target line, variable assignment, define ... endef
-#   + Target: an abstraction representing a task/goal to achieve which is defined in
+#   * Recipe: a sequence of commands executed in the shell. Here, a line that starts with
+#     the recipe prefix is a recipe line if it comes after a target line and before the
+#     next variable assignment (see IN_RULE).
+#   * Target: an abstraction representing a task/goal to achieve which is defined in
 #     terms of, potentially, many rules.
-#     + Normal (single-colon) targets can have only one recipe and to mirror this we
+#     * Normal (single-colon) targets can have only one recipe and to mirror this we
 #       allow for them to have only one description.
-#     + double-colon targets (i.e., targets defined by double-colon rules) can have
+#     * double-colon targets (i.e., targets defined by double-colon rules) can have
 #       multiple descriptions (as they can have multiple recipes).
-#   + Target line: the top-line (the header) of a Makefile rule
-#   + Target name: a (string) label for a target
-#   + Description of a rule: comments starting with ##, ##! or ##% placed above the
+#   * Target line: the top-line (the header) of a Makefile rule
+#   * Target name: a (string) label for a target
+#   * Description of a rule: comments starting with ##, ##! or ##% placed above the
 #     target line of a rule or inline. Inline descriptions placed after an inline recipe
 #     are ignored.
-#   + The last rule with a description defines the description of a normal target, while
+#   * The last rule with a description defines the description of a normal target, while
 #     every double-colon rule with a description defines a new description.
 
 # ------------------------------------------------------------------------------------------
@@ -132,8 +134,8 @@ function min(x, y) {
 # 2. I used to have a gsub-based version, but it needs tricks to handle
 #    special characters like &, \ (and 0, because of `if (string)`).
 # 3. For the strings we manipulate here, the drop in speed is negligible.
-# 4. n must be a non-negative integer (a non-numeric n loops forever);
-#    OFFSET is validated in BEGIN.
+# 4. n must be a non-negative integer (a non-numeric n loops forever). The only n that comes
+#    from the user is OFFSET, which process_options() validates before any output.
 function repeated_string(string, n, #locals
                          s, k) {
   if (string == "") {
@@ -171,7 +173,10 @@ function join(array, delimiter, #locals
   return string
 }
 
-# string replacement without regex
+# Replace every occurrence of string in text with replacement, without using a regex.
+# With gsub, the characters that are special in a regex (in string) or in a replacement
+# (& and \) would have to be escaped; here string comes from the user (DSUB) and
+# replacement contains & and \ (HTML and LaTeX escapes).
 function string_replace(string, replacement, text, #locals
                         k, pre) {
   k = index(text, string)
@@ -349,16 +354,14 @@ function initialize_variables_regex() {
 
   # Variable matching is heuristic; this is not a complete GNU Make parser.
   #
-  # Known limitations:
-  #  - Variable/function references in variable names are captured literally
-  #    rather than expanded, e.g., `$(PREFIX)_FLAGS := ...`.
+  # By design, variable/function references in variable names are captured literally
+  # rather than expanded, e.g., `$(PREFIX)_FLAGS := ...` is displayed as `$(PREFIX)_FLAGS`.
   VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*([ \t]*(%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
                                     join(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
 
 function initialize_substitution_parameter_defaults() {
-  # don't change the defaults
   SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
   SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
   SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
@@ -392,12 +395,13 @@ function process_options() {
   # operators such as `:=` and `::=` from being mistaken for target separators.
   #
   # Known limitations:
-  #   - Colons inside variable references or function calls can cause false positives,
-  #     e.g., `$(info a: b)`.
+  #   - A colon inside a reference in a target name is not handled, e.g., `$(SRCS:.c=.o):`
+  #     is not recognized as a target.
   #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
   #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
-  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is
-  #     captured as `foo\ bar`.
+  #
+  # Escaped spaces are kept as written: `foo\ bar:` is captured as `foo\ bar`, which is how
+  # the target is invoked (not a limitation).
   if (TARGETS_REGEX == "") {
     TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
   }
@@ -692,8 +696,7 @@ function validate_ansi_param(option, ansi_param) {
 
 # The solarized theme is used by default
 # https://github.com/altercation/solarized?tab=readme-ov-file#the-values
-function define_ansi_to_html_colors(            \
-    k) {
+function define_ansi_to_html_colors(    k) {
   # no foreground/background by default
   ANSI_TO_HTML_COLOR["BG"] = -1
   ANSI_TO_HTML_COLOR["FG"] = -1
@@ -731,8 +734,8 @@ function define_ansi_to_html_colors(            \
 # The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
 # FG and BG. Format: ANSI_PARAM:HEX_COLOR[,...] (invalid entries are reported, see
 # option_error).
-function set_user_defined_color_theme(                                  \
-    html_colors_split, k, n, ansi_html_map, ansi_param, html_color_code) {
+function set_user_defined_color_theme(    html_colors_split, k, n, ansi_html_map,
+                                          ansi_param, html_color_code) {
   n = split(EXPORT_THEME, html_colors_split, ",")
   for (k = 1; k <= n; k++) {
     if (html_colors_split[k] ~ /^[ \t]*$/) {
@@ -755,8 +758,7 @@ function set_user_defined_color_theme(                                  \
   }
 }
 
-function define_ansi_to_html_attributes(        \
-    k) {
+function define_ansi_to_html_attributes(    k) {
   ANSI_TO_HTML_ATTR[0] = ""
   ANSI_TO_HTML_ATTR[1] = "font-weight"
   ANSI_TO_HTML_ATTR[3] = "font-style"
@@ -769,8 +771,7 @@ function define_ansi_to_html_attributes(        \
   for (k=100; k<=107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
-function define_ansi_to_latex_function(         \
-    k) {
+function define_ansi_to_latex_function(    k) {
   ANSI_TO_LATEX_FUN[0] = ""
   ANSI_TO_LATEX_FUN[1] = "\\textbf"
   ANSI_TO_LATEX_FUN[3] = "\\emph"
@@ -891,8 +892,7 @@ function latex_definecolor(label, ansi_color_param) {
 }
 
 # the preamble of the LaTeX output, up to the start of the documentation
-function latex_header(                          \
-    header) {
+function latex_header(    header) {
   header = "\\documentclass{article}\n"
   header = header "\\usepackage[utf8]{inputenc}\n"
   header = header "\\usepackage{xcolor}\n"
@@ -1111,7 +1111,8 @@ function associate_data_with_anchor(anchor_name,
 # The parser: BEGIN, then one pattern rule per kind of line
 # ------------------------------------------------------------------------------------------
 
-# Initialize global variables.
+# Initialize the global variables and process the options (the script exits here if an
+# option is invalid).
 BEGIN {
   init_globals()
   if (!UNIT_TEST) {
@@ -1235,7 +1236,7 @@ substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX)
   next
 }
 
-# New section (all lines in a multi-line sections should start with ##@)
+# New section (all the lines of a multi-line section should start with ##@)
 /^ *##@/ {
   g_section_string = $0
   sub(/ *##@/, "", g_section_string) # strip the tags (they are not needed anymore)
@@ -1408,7 +1409,7 @@ function format_description_data(anchor_name,
   n_elements = length_array_posix(array_of_lines)
   for (k=2; k<=n_elements; k++) {
     line = array_of_lines[k]
-    sub(/^(##|##!|##%)/, "", line) # strip the tag
+    sub(/^(##!|##%|##)/, "", line) # strip the tag (for the order, see the note below)
     description = sprintf("%s\n%s%s",
                           description,
                           repeated_string("", OFFSET + len_anchor_names),
@@ -1534,7 +1535,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   }
 }
 
-# Display results (all stdout is here).
+# Display the documentation (all its output is printed from here).
 function print_documentation() {
   g_max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
   g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
