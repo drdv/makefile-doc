@@ -1,6 +1,8 @@
 #: desc: Documented variables: assignments with spacing variants, sections and redefinitions
 -v COLOR=0 test/fixtures/Makefile.vars
+#: stderr
 WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,7 @@
 #: desc: A % in a SUB value is printed as is (not used as a printf format)
 #: issue: 68
 -v COLOR=0 -v SUB='$(TARGET):t:%.o' test/fixtures/Makefile.sub
+#: stdout
 -----------------------
 Available targets:
 -----------------------

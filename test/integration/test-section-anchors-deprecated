@@ -1,5 +1,6 @@
 #: desc: A section anchored to a hidden deprecated anchor is still displayed
 -v DEPRECATED=0 test/fixtures/Makefile.section-anchors
+#: stdout
 -----------------------
 Available targets:
 -----------------------

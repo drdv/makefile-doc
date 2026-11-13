@@ -1,5 +1,6 @@
 #: desc: Directives with a colon (conditionals, vpath, include, export) are not targets
 -v COLOR=0 test/fixtures/Makefile.targets-directives
+#: stdout
 -----------------------
 Available targets:
 -----------------------

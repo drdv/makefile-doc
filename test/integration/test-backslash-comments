@@ -1,5 +1,6 @@
 #: desc: A comment ending with an odd number of backslashes continues on the next line
 -v COLOR=0 test/fixtures/Makefile.backslash-comments
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,7 @@
 #: desc: Lines continued with a backslash are joined before targets and variables are parsed
 #: issue: 128
 -v COLOR=0 test/fixtures/Makefile.backslash-join
+#: stdout
 -----------------------
 Available targets:
 -----------------------

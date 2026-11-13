@@ -1,5 +1,6 @@
 #: desc: Each documented double-colon rule is displayed with its index (target~N)
 -v COLOR=0 test/fixtures/Makefile.targets-double-colon
+#: stdout
 -----------------------
 Available targets:
 -----------------------

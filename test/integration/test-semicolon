@@ -1,5 +1,6 @@
 #: desc: Inline docs after a ; (inline recipe) are ignored; top docs are used
 -v COLOR=0 test/fixtures/Makefile.semicolon
+#: stdout
 -----------------------
 Available targets:
 -----------------------

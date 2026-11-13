@@ -1,5 +1,6 @@
 #: desc: HTML output with attributes (bold, italic, underline, strike), custom theme
 -v OUTPUT_FORMAT=html -v COLOR_ATTENTION=1 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_BACKTICKS=9 -v EXPORT_THEME=FG:000000,BG:AAAAAA,34:7c3f00 test/fixtures/Makefile.formats
+#: stdout
 <head>
   <style type="text/css">
     .color-attention { font-weight: bold; }

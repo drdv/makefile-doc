@@ -1,6 +1,7 @@
 #: desc: A :: in the inline recipe of a single-colon rule does not make it double-colon
 #: issue: 86
 -v COLOR=0 test/fixtures/Makefile.targets-not-double-colon
+#: stdout
 -----------------------
 Available targets:
 -----------------------

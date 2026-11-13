@@ -1,5 +1,6 @@
 #: desc: VARS=0 hides the variables (a section anchored to a target is kept)
 -v COLOR=0 -v VARS=0 test/fixtures/Makefile.vars
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,5 +1,6 @@
 #: desc: ANSI output with the default colors (backticks with a background color)
 -v COLOR_BACKTICKS=44 test/fixtures/Makefile.formats
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,7 @@
 #: desc: The SUB values of a hidden deprecated anchor are not printed
 #: issue: 69
 -v COLOR=0 -v DEPRECATED=0 -v SUB='t2:v1 v2' test/fixtures/Makefile.sub-deprecated
+#: stdout
 -----------------------
 Available targets:
 -----------------------

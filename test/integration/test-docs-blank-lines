@@ -1,5 +1,6 @@
 #: desc: Lines with only spaces and tabs are blank lines: they do not discard the docs
 -v COLOR=0 test/fixtures/Makefile.docs-blank-lines
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,3 +1,4 @@
 #: desc: With VARS=0 and only variables documented, a warning says there are no docs
 -v VARS=0 test/fixtures/Makefile.vars-assignment
+#: stderr
 WARNING: no documented targets/variables in test/fixtures/Makefile.vars-assignment

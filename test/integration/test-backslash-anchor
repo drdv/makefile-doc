@@ -1,6 +1,7 @@
 #: desc: The continuation lines of a target or variable line are not parsed
 #: issue: 105
 -v COLOR=0 test/fixtures/Makefile.backslash-anchor
+#: stdout
 -----------------------
 Available targets:
 -----------------------

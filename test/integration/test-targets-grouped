@@ -1,5 +1,6 @@
 #: desc: Grouped targets are displayed with a & (also for double-colon rules)
 -v COLOR=0 test/fixtures/Makefile.targets-grouped
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,6 +1,7 @@
 #: desc: A line of three or more # is a comment banner, not a doc; it discards the docs above
 #: issue: 140
 -v COLOR=0 test/fixtures/Makefile.docs-banner
+#: stdout
 -----------------------
 Available targets:
 -----------------------

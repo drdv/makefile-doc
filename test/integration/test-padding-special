@@ -1,6 +1,7 @@
 #: desc: PADDING=& is used literally (& is special in the replacement of sub/gsub)
 #: issue: 88
 -v COLOR=0 -v PADDING='&' test/fixtures/Makefile.padding
+#: stdout
 ------------------------
 Available targets:
 ------------------------

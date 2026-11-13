@@ -1,4 +1,5 @@
 #: desc: A COLOR other than 0 or 1 is rejected with an error
 -v COLOR=2 test/fixtures/Makefile.section-anchors
+#: stderr
 ERROR: COLOR should be 0 or 1
-exit: 1
+#: exit: 1
