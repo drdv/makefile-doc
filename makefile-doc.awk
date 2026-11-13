@@ -1100,6 +1100,15 @@ function init_globals() {
   # used to decorate double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
 
+  reset_file_state()
+}
+
+# The parser state that must not be carried over from one Makefile to the next: a doc, a
+# rule, a continued line, recipe or comment at the end of a file ends with that file.
+# Pending section data is kept on purpose (a section is anchored to the next documented
+# anchor, which can be in the next file).
+function reset_file_state() {
+  forget_descriptions_data()
   IN_MULTILINE_BACKSLASH_COMMENT = 0
   IN_MULTILINE_BACKSLASH_RECIPE = 0
   IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
@@ -1184,7 +1193,7 @@ BEGIN {
 { sub(/\r$/, "") }
 
 FNR == 1 {
-  IN_CONTINUED_LINE = 0 # a line is not continued in the next file
+  reset_file_state()
   NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED) {
     FILES_PROCESSED = FILES_PROCESSED " " FILENAME
