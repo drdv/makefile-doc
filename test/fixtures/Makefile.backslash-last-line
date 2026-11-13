@@ -1,0 +1,4 @@
+t1: ## A target
+
+## The last line of the file ends with a backslash: it is not parsed
+t2: \
