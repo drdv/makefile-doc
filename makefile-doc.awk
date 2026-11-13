@@ -323,9 +323,10 @@ function parse_inline_descriptions(whole_line, is_variable, #locals
   }
 }
 
-# true for the special targets whose lines are skipped (the docs above them are kept)
+# True for a line of a special target, e.g., `.PHONY: t` or `.ONESHELL:` (a dot followed by
+# upper-case letters). These lines are skipped and the docs above them are kept.
 function detect_ignored_targets(target_line) {
-  return target_line ~ /^[ \t]*\.(PHONY|SILENT|IGNORE|SECONDARY|INTERMEDIATE|PRECIOUS)[ \t]*:/
+  return target_line ~ /^[ \t]*\.[A-Z_]+[ \t]*:/
 }
 
 # Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`

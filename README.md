@@ -144,7 +144,7 @@ target2: ## inline doc
   lines can start with `##`.
 - Deprecated anchors (`##%`) can be hidden with `-v DEPRECATED=0`.
 - Between a doc and its anchor there can be blank lines, comments, conditionals (`ifeq`
-  ... `endif`) and lines such as `.PHONY: target`.
+  ... `endif`) and lines of special targets such as `.PHONY: target` or `.ONESHELL:`.
 - Any other line discards the doc above it: `include`, `vpath`, `define`, `export` without
   an assignment, a function call such as `$(info ...)`, and a comment banner (a line of
   three or more `#` only, e.g., `###`).
