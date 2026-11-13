@@ -963,6 +963,49 @@ function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
   return "000000"
 }
 
+function latex_definecolor(label, ansi_color_param) {
+  return sprintf("\\definecolor{%s}{HTML}{%s}\n",
+                 COLOR_LABELS[label],
+                 ansi_color_param_to_latex_color(ansi_color_param))
+}
+
+# the preamble of the LaTeX output, up to the start of the documentation
+function latex_header(                          \
+    header) {
+  header = "\\documentclass{article}\n"
+  header = header "\\usepackage[utf8]{inputenc}\n"
+  header = header "\\usepackage{xcolor}\n"
+  header = header "\\usepackage{alltt}\n"
+  header = header "\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n"
+  header = header "\\usepackage{varwidth}\n"
+  header = header "\\usepackage[active,tightpage]{preview}\n"
+  header = header "\\usepackage[normalem]{ulem}\n"
+  header = header "\n"
+  header = header "\\setlength{\\fboxsep}{0pt}\n"
+  header = header "\n"
+  header = header "\\newcommand{\\bgcolor}[2]{\\colorbox{#1}{\\vphantom{Ay}#2}}\n"
+  header = header "\n"
+  header = header "\\PreviewEnvironment{varwidth}\n"
+  header = header "\n"
+  header = header ansi_color_param_to_latex_color("FG", 1)
+  header = header ansi_color_param_to_latex_color("BG", 1)
+  header = header latex_definecolor("ATTENTION", COLOR_ATTENTION)
+  header = header latex_definecolor("SECTION", COLOR_SECTION)
+  header = header latex_definecolor("DEPRECATED", COLOR_DEPRECATED)
+  header = header latex_definecolor("DEFAULT", COLOR_DEFAULT)
+  header = header latex_definecolor("BACKTICKS", COLOR_BACKTICKS)
+  header = header "\n"
+  header = header "\\pagestyle{empty}\n"
+  header = header "\\begin{document}\n"
+  header = header "\n"
+  header = header "\\begin{varwidth}{\\linewidth}\n"
+  header = header ansi_color_param_to_latex_color("FG")
+  header = header ansi_color_param_to_latex_color("BG")
+  header = header "\n"
+  header = header "\\begin{alltt}"
+  return header
+}
+
 # ansi_color_param:
 # == 0: no color
 #  > 0: some color
@@ -1062,17 +1105,7 @@ function initialize_colors() {
         "</style>\n<div class=\"makefile-doc\">\n<pre>"
   } else if (OUTPUT_FORMAT == "LATEX") {
     LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
-    # Is there a better way to store this?
-    LATEX_HEADER = sprintf("\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{xcolor}\n\\usepackage{alltt}\n\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n\\usepackage{varwidth}\n\\usepackage[active,tightpage]{preview}\n\\usepackage[normalem]{ulem}\n\n\\setlength{\\fboxsep}{0pt}\n\n\\newcommand{\\bgcolor}[2]{\\colorbox{#1}{\\vphantom{Ay}#2}}\n\n\\PreviewEnvironment{varwidth}\n\n%s%s\\definecolor{color-attention}{HTML}{%s}\n\\definecolor{color-section}{HTML}{%s}\n\\definecolor{color-deprecated}{HTML}{%s}\n\\definecolor{color-default}{HTML}{%s}\n\\definecolor{color-backticks}{HTML}{%s}\n\n\\pagestyle{empty}\n\\begin{document}\n\n\\begin{varwidth}{\\linewidth}\n%s%s\n\\begin{alltt}",
-                           ansi_color_param_to_latex_color("FG", 1),
-                           ansi_color_param_to_latex_color("BG", 1),
-                           ansi_color_param_to_latex_color(COLOR_ATTENTION),
-                           ansi_color_param_to_latex_color(COLOR_SECTION),
-                           ansi_color_param_to_latex_color(COLOR_DEPRECATED),
-                           ansi_color_param_to_latex_color(COLOR_DEFAULT),
-                           ansi_color_param_to_latex_color(COLOR_BACKTICKS),
-                           ansi_color_param_to_latex_color("FG"),
-                           ansi_color_param_to_latex_color("BG"))
+    LATEX_HEADER = latex_header()
   }
 }
 
@@ -1248,11 +1281,15 @@ function process_options() {
   # operators such as `:=` and `::=` from being mistaken for target separators.
   #
   # Known limitations:
-  #   - Colons inside variable references or function calls can cause false positives, e.g., `$(info a: b)`.
+  #   - Colons inside variable references or function calls can cause false positives,
+  #     e.g., `$(info a: b)`.
   #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
   #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
-  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is captured as `foo\ bar`.
-  TARGETS_REGEX = TARGETS_REGEX == "" ? "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)" : TARGETS_REGEX
+  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is
+  #     captured as `foo\ bar`.
+  if (TARGETS_REGEX == "") {
+    TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
+  }
 
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
@@ -1272,7 +1309,8 @@ function process_options() {
   }
 
   form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, g_sub_names, 0)
-  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
+  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES,
+                     DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
   if (OPTION_ERRORS > 0) {
@@ -1432,7 +1470,10 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
   g_target_name_nominal = strip_start_end_spaces_tabs(g_target_name_nominal)
 
   if (DESCRIPTION_DATA_INDEX > 1) {
-    g_target_name = is_double_colon_rule($0) ? form_dc_target_name(g_target_name_nominal) : g_target_name_nominal
+    g_target_name = g_target_name_nominal
+    if (is_double_colon_rule($0)) {
+      g_target_name = form_dc_target_name(g_target_name_nominal)
+    }
 
     TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
                                                TARGETS,
