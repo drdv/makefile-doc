@@ -1221,10 +1221,12 @@ substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX)
   next
 }
 
-# Capture the line if it is a description (but not a section).
-/^ *##([^@]|$)/ {
+# Capture the line if it is a description (but not a section). It can be indented with
+# spaces and tabs (in a rule, a line that starts with the recipe prefix is a recipe line,
+# handled above).
+/^[ \t]*##([^@]|$)/ {
   g_description_string = $0
-  sub(/^ */, "", g_description_string)
+  sub(/^[ \t]*/, "", g_description_string)
 
   save_description_data(g_description_string)
   next
@@ -1237,9 +1239,9 @@ substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX)
 }
 
 # New section (all the lines of a multi-line section should start with ##@)
-/^ *##@/ {
+/^[ \t]*##@/ {
   g_section_string = $0
-  sub(/ *##@/, "", g_section_string) # strip the tags (they are not needed anymore)
+  sub(/^[ \t]*##@/, "", g_section_string) # strip the tags (they are not needed anymore)
 
   save_section_data(g_section_string)
   next

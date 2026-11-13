@@ -1,0 +1,23 @@
+# Docs and sections can be indented with tabs (here, in conditionals before the first rule)
+
+ifdef X
+	##@
+	##@ A section indented with a tab
+	##@
+
+	## A doc indented with a tab
+	V1 := 1
+else
+  ## A doc indented with spaces
+  V2 := 2
+endif
+
+ifdef Y
+ 	 ##! A doc indented with spaces and tabs
+	V3 := 1
+endif
+
+## A target
+t1:
+	## In a rule, a line that starts with the recipe prefix (here a tab) is a recipe line
+t2:
