@@ -11,9 +11,10 @@ Suites:
   bugs         run the recipes of known bugs (marked with `#: bug: N`)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
-TAP plan is missing or does not match the number of checks, or if awk exits with a non-zero
-status (e.g., a crash or a syntax error). Checks of known bugs (TAP `# TODO issue N`) are
-expected to fail: the test file fails if one of them passes (the bug has been fixed).
+TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
+status (e.g., a crash or a syntax error), or if awk runs for longer than --timeout seconds.
+Checks of known bugs (TAP `# TODO issue N`) are expected to fail: the test file fails if one
+of them passes (the bug has been fixed).
 
 A recipe passes if the output of makefile-doc.awk is exactly the expected output: stderr
 after a `#: stderr` line, stdout after a `#: stdout` line (a stream without output has no
@@ -21,8 +22,13 @@ such line), then `#: exit: N` for a non-zero exit status. A recipe with a `#: bu
 (issue N) holds the correct output of a known bug: it is skipped by the integration suite,
 and the bugs suite fails once its output is correct (the bug has been fixed).
 
-Only the Python standard library is used (Python >= 3.8).
+Only the Python standard library is used (Python >= 3.11).
 """
+
+import sys
+
+if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a traceback)
+    sys.exit(f"Python >= 3.11 is needed (this is Python {sys.version.split()[0]})")
 
 import argparse
 import difflib
@@ -30,7 +36,6 @@ import os
 import re
 import shlex
 import subprocess
-import sys
 import tempfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -58,15 +63,23 @@ class Result:
 AWK_ENV = {k: v for k, v in os.environ.items() if k != "NO_COLOR"}
 
 
-def run_awk(awk: str, args: list[str], text: bool = True) -> subprocess.CompletedProcess:
+def run_awk(
+    awk: str, args: list[str], timeout: float, text: bool = True
+) -> subprocess.CompletedProcess:
+    """Run awk (it is killed, and subprocess.TimeoutExpired raised, after timeout seconds)."""
     return subprocess.run(
         [awk, *args],
         cwd=ROOT,
         env=AWK_ENV,
         stdin=subprocess.DEVNULL,
         capture_output=True,
+        timeout=timeout,
         **({"text": True, "errors": "replace"} if text else {}),
     )
+
+
+def timed_out(name: str, timeout: float) -> Result:
+    return Result(name, False, f"timed out after {timeout:g} s")
 
 
 # ------------------------------------------------------------------------------------------
@@ -132,27 +145,30 @@ def relevant_tap_lines(stdout: str) -> str:
     return "\n".join(lines) + "\n" if lines else ""
 
 
-def run_unit_file(awk: str, awk_flags: list[str], script: str, test_file: Path) -> Result:
+def run_unit_file(
+    awk: str, awk_flags: list[str], script: str, test_file: Path, timeout: float
+) -> Result:
     with tempfile.TemporaryDirectory() as tmp:
         stderr_file = Path(tmp) / "stderr"
         stderr_file.touch()
-        proc = run_awk(
-            awk,
-            [
-                *awk_flags,
-                "-v",
-                "UNIT_TEST=1",
-                "-v",
-                f"STDERR={stderr_file}",
-                "-f",
-                str(HARNESS),
-                "-f",
-                script,
-                "-f",
-                str(test_file),
-                "/dev/null",
-            ],
-        )
+        args = [
+            *awk_flags,
+            "-v",
+            "UNIT_TEST=1",
+            "-v",
+            f"STDERR={stderr_file}",
+            "-f",
+            str(HARNESS),
+            "-f",
+            script,
+            "-f",
+            str(test_file),
+            "/dev/null",
+        ]
+        try:
+            proc = run_awk(awk, args, timeout)
+        except subprocess.TimeoutExpired:
+            return timed_out(test_file.stem, timeout)
     passed, summary, checks = check_tap(proc.stdout, proc.returncode)
     stderr = f"[awk stderr]\n{proc.stderr}" if proc.stderr else ""
     return Result(
@@ -168,7 +184,10 @@ def run_unit_file(awk: str, awk_flags: list[str], script: str, test_file: Path) 
 def suite_unit(args: argparse.Namespace) -> list[Callable[[], Result]]:
     files = sorted((ROOT / UNIT_DIR).glob("test_*.awk"))
     files = [UNIT_DIR / f.name for f in files if selected(args, f.stem)]
-    return [(lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f)) for f in files]
+    return [
+        (lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f, args.timeout))
+        for f in files
+    ]
 
 
 # ------------------------------------------------------------------------------------------
@@ -234,11 +253,15 @@ def run_recipe(args: argparse.Namespace, path: Path) -> Result:
     if recipe.bug is not None and args.update:
         return Result(path.name, False, "the expected output of a known bug is not updated")
 
-    proc = run_awk(
-        args.awk,
-        ["-f", args.script, *args.awk_flags, *shlex.split(recipe.args)],
-        text=False,
-    )
+    try:
+        proc = run_awk(
+            args.awk,
+            [*args.awk_flags, "-f", args.script, *shlex.split(recipe.args)],
+            args.timeout,
+            text=False,
+        )
+    except subprocess.TimeoutExpired:
+        return timed_out(path.name, args.timeout)
     actual = render_output(proc.stderr, proc.stdout, proc.returncode)
 
     diff = "".join(
@@ -314,6 +337,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
     parser.add_argument("-k", metavar="PATTERN", help="run only tests whose name contains PATTERN")
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=30,
+        metavar="SECONDS",
+        help="fail a test whose awk process runs for longer (default: 30)",
+    )
     parser.add_argument(
         "--update", action="store_true", help="integration: rewrite the expected outputs"
     )

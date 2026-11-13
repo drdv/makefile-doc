@@ -10,11 +10,15 @@ yet). Downloads are kept in test/bin/ and checked against their sha256.
 Only the Python standard library is used (Python >= 3.11).
 """
 
+import sys
+
+if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a traceback)
+    sys.exit(f"Python >= 3.11 is needed (this is Python {sys.version.split()[0]})")
+
 import hashlib
 import platform
 import shutil
 import subprocess
-import sys
 import time
 import tomllib
 import urllib.error
