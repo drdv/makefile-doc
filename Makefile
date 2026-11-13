@@ -1,5 +1,9 @@
-SHELL := bash
 # --output-sync needs GNU make >= 4.0
+ifeq ($(filter output-sync,$(.FEATURES)),)
+$(error GNU Make 4.0 or later is needed, this is version $(MAKE_VERSION))
+endif
+
+SHELL := bash
 MAKEFLAGS := --no-print-directory --warn-undefined-variables --output-sync=target
 TEST_DIR := test
 EMPTY :=
@@ -30,6 +34,9 @@ AWK := awk
 AWK_FLAGS :=
 AWK_BIN := $(TEST_DIR)/bin
 SUPPORTED_AWK_VARIANTS := $(shell $(DEPS) list)
+ifeq ($(SUPPORTED_AWK_VARIANTS),)
+$(error cannot list the awk variants, `$(DEPS) list` failed)
+endif
 
 # one target per awk variant: test@awk, test@mawk, ...
 TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
@@ -67,23 +74,30 @@ help: $(AWK_BIN)/$(AWK)
 
 ## Run integration tests with an awk variant (or `test@all`)
 ## (e.g., `make test@mawk RUNNER_FLAGS='-v -k backslash'`)
-$(TEST_ALL): test@%:
+$(TEST_ALL): test@%: $(AWK_BIN)/%
 	@$(MAKE) test AWK=$*
 
 ## Run unit tests with an awk variant (or `utest@all`)
 ## (e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'`)
-$(UTEST_ALL): utest@%:
+$(UTEST_ALL): utest@%: $(AWK_BIN)/%
 	@$(MAKE) utest AWK=$*
 
 ## Run tests of known bugs with an awk variant (or `bugs@all`)
 ## (e.g., `make bugs@mawk RUNNER_FLAGS='-k semicolon'`)
-$(BUGS_ALL): bugs@%:
+$(BUGS_ALL): bugs@%: $(AWK_BIN)/%
 	@$(MAKE) bugs AWK=$*
 
 .PHONY: test@all utest@all bugs@all $(TEST_ALL) $(UTEST_ALL) $(BUGS_ALL)
 test@all: $(TEST_ALL)
 utest@all: $(UTEST_ALL)
 bugs@all: $(BUGS_ALL)
+
+# The awk of a variant is a prerequisite of its targets above: it is then built once, by
+# this make, before the sub-makes of test@X, utest@X and bugs@X run (also with -j).
+
+## Run `lint`, `test`, `utest` and `bugs` (the tests with the variant `AWK`)
+.PHONY: check
+check: lint test utest bugs
 
 # the tests with AWK and AWK_FLAGS (the targets above set AWK)
 .PHONY: test utest bugs
@@ -237,7 +251,8 @@ deps@all: $(DEPS_ALL)
 clean@all:
 	@rm -rf $(AWK_BIN)
 
-$(AWK_BIN)/%:
+# (only for the supported variants)
+$(addprefix $(AWK_BIN)/,$(SUPPORTED_AWK_VARIANTS)): $(AWK_BIN)/%:
 	@$(DEPS) install $*
 
 # --------------------------------------------------------------------------
