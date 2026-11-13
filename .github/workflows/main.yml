@@ -16,6 +16,32 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: check out the repository
+        uses: actions/checkout@v4
+
+      # uvx runs the ruff version pinned in the Makefile
+      - name: install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: show tool versions
+        run: |
+          gawk --version | head -n 1
+          make --version | head -n 1
+          python3 --version
+          uv --version
+
+      - name: lint the awk code
+        run: make lint-awk
+
+      - name: lint the Python test tools
+        run: make lint-py
+
   test:
     name: ${{ matrix.awk }} ${{ matrix.awk_flags }}
     runs-on: ubuntu-latest
