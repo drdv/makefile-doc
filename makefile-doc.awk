@@ -1155,6 +1155,7 @@ function init_globals() {
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
   NUMBER_OF_FILES_PROCESSED = 0
+  CURRENT_FILE = "" # the FILENAME of the file being read (see warn_about_continued_last_line)
   FILES_PROCESSED = ""
   SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
 
@@ -1191,6 +1192,15 @@ function is_hex_color(value) {
 function option_error(message) {
   printf("ERROR: %s\n", message) > STDERR
   OPTION_ERRORS++
+}
+
+# A file whose last line ends with a backslash: the line cannot be joined with a next one,
+# so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
+# the next file and in END).
+function warn_about_continued_last_line() {
+  if (IN_CONTINUED_LINE) {
+    printf("WARNING: [%s] the last line ends with a backslash\n", CURRENT_FILE) > STDERR
+  }
 }
 
 # Report an error and stop. In unit-test mode, record the message and return instead, so
@@ -1288,7 +1298,9 @@ BEGIN {
 substr($0, length($0)) == "\r" { sub(/\r$/, "") }
 
 FNR == 1 {
+  warn_about_continued_last_line()
   reset_file_state()
+  CURRENT_FILE = FILENAME
   NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED) {
     FILES_PROCESSED = FILES_PROCESSED " " FILENAME
@@ -1518,6 +1530,7 @@ END {
     exit ABORT
   }
   if (!UNIT_TEST) {
+    warn_about_continued_last_line()
     print_documentation()
   }
 }

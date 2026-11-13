@@ -1,0 +1,10 @@
+#: desc: A last line that ends with a backslash gives a warning (it cannot be joined)
+-v COLOR=0 test/fixtures/Makefile.backslash-last-line
+#: stderr
+WARNING: [test/fixtures/Makefile.backslash-last-line] the last line ends with a backslash
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+t1   A target
+-----------------------
