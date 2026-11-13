@@ -65,7 +65,7 @@ awk exits with a non-zero status.
 
 ## Integration tests
 
-Each `test/integration/test-*` file (a case) runs `makefile-doc.awk` on a fixture
+Each `test/integration/*.test` file (a case) runs `makefile-doc.awk` on a fixture
 (`test/fixtures/Makefile.*`) and holds the expected output. Metadata lines starting with
 `#:` come first and are ignored when running. The next line holds the awk arguments (in
 shell syntax). The remaining lines hold the expected output: stderr after a `#: stderr`
@@ -85,14 +85,14 @@ line, then stdout after a `#: stdout` line (a stream without output has no such 
 
 The output must match the expected output exactly, including blanks at the end of lines and
 the final newline. Use `--update` to regenerate the expected output, e.g., `make test@awk
-RUNNER_FLAGS='--update -k test-docs-precedence'` (check the diff by hand).
+RUNNER_FLAGS='--update -k docs-precedence'` (check the diff by hand).
 
 Conventions:
 
 - A fixture covers one topic and stays small, so that a change affects few cases. Add a
   new fixture rather than growing an unrelated one.
-- A case is named after its fixture: `test-<topic>` or `test-<topic>-<variation>` for
-  `Makefile.<topic>` (e.g., `test-sub-L` uses `Makefile.sub`). Fixtures about targets start
+- A case is named after its fixture: `<topic>.test` or `<topic>-<variation>.test` for
+  `Makefile.<topic>` (e.g., `sub-L.test` uses `Makefile.sub`). Fixtures about targets start
   with `targets-`, about variables with `vars-`, and about docs with `docs-`.
 - Every case has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
 - Colors are turned off (`-v COLOR=0`) unless the case is about colors or output formats.
@@ -105,7 +105,7 @@ Conventions:
 1. **Open an issue.** Every bug should have one.
 2. **Reproducer (optional, can be a separate PR):** written by hand with the *correct*
    expected result. It is merged even if no fix exists yet.
-   - Integration test: a case `test/integration/test-<name>` with a `#: bug: N` line.
+   - Integration test: a case `test/integration/<name>.test` with a `#: bug: N` line.
      `make test` skips it and `make bugs` runs it.
    - Unit test: a `check_bug(name, got, want, issue)` call next to the other checks of the
      same function. `make utest` reports it as a known bug.

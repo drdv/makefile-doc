@@ -6,7 +6,7 @@ usage: test/run.py SUITE --awk AWK [options]
 Suites:
   unit         run each test/unit/test_*.awk file in its own awk process and check its
                TAP output (see test/unit/harness.awk)
-  integration  run each test/integration/test-* case and compare the output with the
+  integration  run each test/integration/*.test case and compare the output with the
                expected output (see test/README.md); --update rewrites the expected output
   bugs         run the cases of known bugs (marked with `#: bug: N`)
 
@@ -232,7 +232,7 @@ def render_output(stderr: bytes, stdout: bytes, returncode: int) -> bytes:
 
 @dataclass
 class Case:
-    """An integration test: a test/integration/test-* file."""
+    """An integration test: a test/integration/*.test file."""
 
     path: Path  # relative to ROOT
     metadata: list[bytes]  # the leading `#:` lines (with their newline)
@@ -261,7 +261,7 @@ class Case:
 
     @property
     def name(self) -> str:
-        return self.path.name
+        return self.path.stem  # without the .test extension
 
     def run(self, args: argparse.Namespace) -> Result:
         """Run makefile-doc.awk and compare its output with the expected output (or, with
@@ -310,8 +310,8 @@ class Case:
 
 def read_cases(args: argparse.Namespace) -> list[Case]:
     """The selected integration cases (each file is read once)."""
-    paths = sorted(p for p in (ROOT / INTEGRATION_DIR).iterdir() if p.is_file())
-    return [Case.read(INTEGRATION_DIR / p.name) for p in paths if selected(args, p.name)]
+    paths = sorted((ROOT / INTEGRATION_DIR).glob("*.test"))
+    return [Case.read(INTEGRATION_DIR / p.name) for p in paths if selected(args, p.stem)]
 
 
 def suite_integration(args: argparse.Namespace) -> list[Callable[[], Result]]:
