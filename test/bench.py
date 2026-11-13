@@ -18,10 +18,14 @@ continued lines.
 Only the Python standard library is used (Python >= 3.11).
 """
 
+import sys
+
+if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a traceback)
+    sys.exit(f"Python >= 3.11 is needed (this is Python {sys.version.split()[0]})")
+
 import argparse
 import re
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
@@ -88,13 +92,15 @@ def best_time(awk: str, script: Path, makefile: Path, n: int) -> float:
     times = []
     for _ in range(n):
         start = time.perf_counter()
-        subprocess.run(
+        proc = subprocess.run(
             [awk, "-f", str(script), str(makefile)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
         )
         times.append(time.perf_counter() - start)
+        if proc.returncode != 0:  # the time of a failed run means nothing
+            sys.exit(f"ERROR: {awk} exited with status {proc.returncode} on {makefile.name}")
     return 1000 * min(times)
 
 

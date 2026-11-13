@@ -19,7 +19,8 @@ lint-py` lints them and checks their formatting with [ruff](https://docs.astral.
 (settings in `ruff.toml`; `uvx ruff format test` reformats them). The unit
 and integration tests are run by `test/run.py`. Options can be passed with `RUNNER_FLAGS`,
 e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing
-tests, `-k` selects tests whose name contains a string).
+tests, `-k` selects tests whose name contains a string). A test fails if its awk process
+runs for more than 30 seconds (`--timeout`).
 
 `make bench@all` times `makefile-doc.awk` with each awk variant on large real Makefiles
 (downloaded once into `test/bin/`, with docs inserted automatically) and prints a Markdown
