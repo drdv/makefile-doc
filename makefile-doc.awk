@@ -1281,6 +1281,19 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   PATTERN_RULE_MATCHED = 1
 }
 
+# A directive is not a rule, even with a colon (e.g., `ifeq "$(OS)" "a:b"`, `vpath %.c a:b`),
+# unless it is an assignment to a variable named as a directive (e.g., `include := x`).
+# Docs are kept above conditionals and discarded by the other directives.
+/^[ \t]*(ifeq|ifneq|ifdef|ifndef|else|endif)([ \t(]|$)/ && $0 !~ VARIABLES_REGEX {
+  next
+}
+
+/^[ \t]*(vpath|include|-include|sinclude|export|unexport|undefine)([ \t]|$)/ &&
+    $0 !~ VARIABLES_REGEX {
+  forget_descriptions_data()
+  next
+}
+
 # (a colon inside a reference, as in `$(info a: b)`, is not a rule separator)
 $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
   if (detect_ignored_targets($0)) {
@@ -1335,13 +1348,11 @@ $0 ~ VARIABLES_REGEX {
   PATTERN_RULE_MATCHED = 1
 }
 
-# Docs are discarded when they are followed by an unrelated line (e.g., include, a function
-# call, define, export without an assignment), so that they do not end up on the next
-# anchor. Comments and conditional directives (ifeq, ..., endif) are not unrelated:
-# the docs above them are kept. (Blank lines, sections, anchors and ignored special
-# targets have been handled above.)
-!PATTERN_RULE_MATCHED && $0 !~ /^[ \t]*#/ &&
-    $0 !~ /^[ \t]*(ifeq|ifneq|ifdef|ifndef|else|endif)([ \t(]|$)/ {
+# Docs are discarded when they are followed by an unrelated line (e.g., a function call,
+# define), so that they do not end up on the next anchor. Comments are not unrelated: the
+# docs above them are kept. (Blank lines, sections, directives, anchors and ignored
+# special targets have been handled above.)
+!PATTERN_RULE_MATCHED && $0 !~ /^[ \t]*#/ {
   forget_descriptions_data()
 }
 

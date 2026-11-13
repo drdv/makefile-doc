@@ -1,0 +1,17 @@
+#: desc: Directives with a colon (conditionals, vpath, include, export) are not targets
+-v COLOR=0 test/fixtures/Makefile.targets-directives
+-----------------------
+Available targets:
+-----------------------
+t1            Docs are kept above a conditional with a colon (quoted form)
+t2            Docs are kept above a conditional with a colon (parenthesized form)
+t3            vpath with a colon is not a target
+t4            include with a colon is not a target
+t5            export without an assignment is not a target
+include-all   A target that starts with the name of a directive is a target
+
+-----------------------
+Command-line arguments:
+-----------------------
+include       A variable named as a directive is a variable
+-----------------------
