@@ -185,15 +185,14 @@ check-variables: $(AWK_BIN)/gawk
 	$(AWK_BIN)/gawk -F: $(AWK_CODE) $(AWKVARS_FILE); status=$$?; \
 	rm -f $(AWKVARS_FILE); exit $$status
 
-##! Create github release at latest tag
-.PHONY: release
-release: RELEASE_NOTES := release_notes.md
-release:
-	@test -f $(RELEASE_NOTES) || { echo "No file $(RELEASE_NOTES)"; exit 1; }
-	@tag=$$(git describe --tags) && \
-	gh release create "$$tag" $(MAKEFILE_DOC) \
-		--generate-notes \
-		--notes-file $(RELEASE_NOTES) -t "$$tag"
+##! Create a draft github release at the tag of HEAD
+.PHONY: draft-release
+draft-release:
+	@tag=$$(git describe --tags --exact-match 2>/dev/null) || { echo "HEAD has no tag"; exit 1; }; \
+	version=$$(sed -n 's/^# Version: //p' $(MAKEFILE_DOC)); \
+	test "$$version" = "$$tag" || \
+		{ echo "Version $$version in $(MAKEFILE_DOC) differs from tag $$tag"; exit 1; }; \
+	gh release create "$$tag" $(MAKEFILE_DOC) --draft --generate-notes -t "$$tag"
 
 ##@
 ##@------ Install and clean ------
