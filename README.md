@@ -381,6 +381,12 @@ the target is invoked (`make foo\ bar`).
 - Multi-line variables (`define NAME` ... `endef`) cannot be documented: `define` discards
   the doc above it.
 
+### Non-ASCII names
+
+Alignment assumes ASCII names. With awks that count bytes (mawk, busybox awk), a non-ASCII
+target, variable or `SUB` label is misaligned by a few spaces, and `PADDING` must be an
+ASCII character.
+
 ## Development
 
 ### Supported awk implementations
