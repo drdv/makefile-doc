@@ -1,0 +1,6 @@
+# Settings for linting and formatting the Python test tools (see `make lint-py`)
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B"]

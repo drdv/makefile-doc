@@ -142,18 +142,31 @@ $(BENCH_ALL): bench@%:
 bench@all:
 	@$(BENCH)
 
-## Lint the code using `gawk`
-# Warnings about these uninitialized variables are expected (options passed with -v)
+## Lint the awk code (`lint-awk`) and the Python test tools (`lint-py`)
 .PHONY: lint
-lint: UNINIT := sub_array COLOR COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX STDERR \
-	TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST
-lint: override AWK := gawk
-lint: check-variables check-test-variables
+lint: lint-awk lint-py
+
+# the version is pinned; without uv, use an installed ruff: `make lint-py RUFF=ruff`
+RUFF := uvx ruff@0.16.9
+
+# Lint and check the formatting of the Python test tools (settings in ruff.toml)
+.PHONY: lint-py
+lint-py:
+	@$(RUFF) check $(TEST_DIR)
+	@$(RUFF) format --check $(TEST_DIR)
+
+# Lint the awk code using `gawk`
+# Warnings about these uninitialized variables are expected (options passed with -v)
+.PHONY: lint-awk
+lint-awk: UNINIT := sub_array COLOR COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX \
+	STDERR TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST
+lint-awk: override AWK := gawk
+lint-awk: check-variables check-test-variables
 	@warnings=$$($(AWK_BIN)/$(AWK) --lint -v SHOW_HELP=0 -v UNIT_TEST=0 \
 		-f $(MAKEFILE_DOC) 2>&1 | \
 		grep -vE "reference to uninitialized .* \`($(subst $(SPACE),|,$(strip $(UNINIT))))'"); \
 	if [ -n "$$warnings" ]; then echo "$$warnings"; exit 1; fi; \
-	echo "lint: OK"
+	echo "lint-awk: OK"
 
 # Verify that the unit tests define no unintended global variables
 # (e.g., a local variable missing from a function signature)

@@ -25,7 +25,6 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 sys.dont_write_bytecode = True  # no test/__pycache__/ from importing deps
 from deps import AWKS, BENCH_MAKEFILES, BIN, ROOT, DepsError, download, install  # noqa: E402
@@ -36,7 +35,7 @@ VARIABLE = re.compile(
 )
 
 
-def annotate(lines: List[str], every: int, section_every: int) -> List[str]:
+def annotate(lines: list[str], every: int, section_every: int) -> list[str]:
     """Insert makefile-doc docs before every `every`-th target or variable line."""
     out, candidates, documented, seen = [], 0, 0, set()
     in_define = continued = False
@@ -52,8 +51,11 @@ def annotate(lines: List[str], every: int, section_every: int) -> List[str]:
         # each name is documented once at most: twice would be a redefinition
         name = None
         if match:  # variables and targets have separate names
-            name = ("var", match.group(3)) if match.re is VARIABLE else (
-                "target", " ".join(match.group(1).split()))
+            name = (
+                ("var", match.group(3))
+                if match.re is VARIABLE
+                else ("target", " ".join(match.group(1).split()))
+            )
         is_candidate = bool(match) and name not in seen
         seen.add(name)
         if re.match(r"^\s*((override|export)\s+)*define\b", stripped):
@@ -112,7 +114,7 @@ def awk_label(name: str) -> str:
     return f"{name} {version}".strip()
 
 
-def cell(ms: float, fastest: float, old: Optional[float]) -> str:
+def cell(ms: float, fastest: float, old: float | None) -> str:
     """Format a time, its ratio to the fastest and its change from old (if any)."""
     text = f"{ms:.0f} ms" if ms >= 100 else f"{ms:.1f} ms"
     text += f" ({ms / fastest:.1f}×)"
@@ -145,9 +147,7 @@ def main() -> int:
     )
     parser.add_argument("--rev", help="also show the change from this git revision")
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
-    parser.add_argument(
-        "-n", type=int, default=5, help="runs per measurement (the best is kept)"
-    )
+    parser.add_argument("-n", type=int, default=5, help="runs per measurement (the best is kept)")
     parser.add_argument("--every", type=int, default=5, help="document every k-th anchor")
     parser.add_argument("--section-every", type=int, default=25, help="a section every m docs")
     parser.add_argument(
@@ -183,9 +183,9 @@ def main() -> int:
 
         kept = []  # annotated Makefiles saved with --keep
         headers = []
-        times: Dict[str, List[float]] = {label: [] for _, label in awks}
-        old_times: Dict[str, List[float]] = {label: [] for _, label in awks}
-        for makefile, path in zip(BENCH_MAKEFILES, paths):
+        times: dict[str, list[float]] = {label: [] for _, label in awks}
+        old_times: dict[str, list[float]] = {label: [] for _, label in awks}
+        for makefile, path in zip(BENCH_MAKEFILES, paths, strict=True):
             lines = path.read_text(errors="replace").splitlines(keepends=True)
             headers.append(f"{makefile['title']} ({round(len(lines) / 1000)}k lines)")
             annotated = Path(tmp) / makefile["name"]
@@ -213,8 +213,10 @@ def main() -> int:
     header = ["awk"] + headers
     widths = [max(len(row[k]) for row in rows + [header]) for k in range(len(header))]
 
-    def line(row: List[str]) -> str:  # the first column left-aligned, the others right
-        cells = [row[0].ljust(widths[0])] + [t.rjust(w) for t, w in zip(row[1:], widths[1:])]
+    def line(row: list[str]) -> str:  # the first column left-aligned, the others right
+        cells = [row[0].ljust(widths[0])] + [
+            t.rjust(w) for t, w in zip(row[1:], widths[1:], strict=True)
+        ]
         return "| " + " | ".join(cells) + " |"
 
     change = f", change from {args.rev}" if args.rev else ""
