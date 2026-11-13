@@ -1,0 +1,4 @@
+## A variable
+V := 1
+
+t: ## A target

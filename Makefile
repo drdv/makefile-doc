@@ -169,7 +169,7 @@ lint-py:
 # Warnings about these uninitialized variables are expected (options passed with -v)
 .PHONY: lint-awk
 lint-awk: UNINIT := sub_array COLOR COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX \
-	STDERR TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST
+	STDERR TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST SUB DSUB
 lint-awk: override AWK := gawk
 lint-awk: check-variables check-test-variables
 	@warnings=$$($(AWK_BIN)/$(AWK) --lint -v SHOW_HELP=0 -v UNIT_TEST=0 \

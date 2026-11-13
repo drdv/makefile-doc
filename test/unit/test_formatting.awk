@@ -94,17 +94,57 @@ function test_default_color_option() {
   delete ENVIRON["NO_COLOR"]
 }
 
-function test_validate_ansi_param() {
+function test_validate_ansi_param(    message) {
+  init_globals()
   setup_colors("ANSI", "")
-  check("validate_ansi_param: color", validate_ansi_param(34), 34)
-  check("validate_ansi_param: attribute", validate_ansi_param(9), 9)
-  check("validate_ansi_param: bright background", validate_ansi_param(107), 107)
-  check("validate_ansi_param: 0 (no color)", validate_ansi_param(0), 0)
-  check("validate_ansi_param: unsupported attribute", validate_ansi_param(2), 0)
-  check("validate_ansi_param: out of range", validate_ansi_param(108), 0)
-  check("validate_ansi_param: not a number", validate_ansi_param("abc"), 0)
-  check("validate_ansi_param: FG is not a color parameter", validate_ansi_param("FG"), 0)
+  check("validate_ansi_param: color", validate_ansi_param("COLOR_X", 34), 34)
+  check("validate_ansi_param: attribute", validate_ansi_param("COLOR_X", 9), 9)
+  check("validate_ansi_param: bright background", validate_ansi_param("COLOR_X", 107), 107)
+  check("validate_ansi_param: 0 (no color)", validate_ansi_param("COLOR_X", 0), 0)
+  check("validate_ansi_param: valid parameters are not errors", OPTION_ERRORS, 0)
+
+  message = "ERROR: COLOR_X should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107\n"
+  check("validate_ansi_param: unsupported attribute", validate_ansi_param("COLOR_X", 2), 0)
+  check("validate_ansi_param: unsupported attribute is an error", stderr_text(), message)
+  check("validate_ansi_param: out of range", validate_ansi_param("COLOR_X", 108), 0)
+  check("validate_ansi_param: not a number", validate_ansi_param("COLOR_X", "abc"), 0)
+  check("validate_ansi_param: compound parameter", validate_ansi_param("COLOR_X", "1;34"), 0)
+  check("validate_ansi_param: FG is not a color parameter",
+        validate_ansi_param("COLOR_X", "FG"), 0)
+  check("validate_ansi_param: the other errors", stderr_text(), message message message message)
+  check("validate_ansi_param: every error is counted", OPTION_ERRORS, 5)
 }
+
+function test_is_bool_is_hex_color() {
+  check_true("is_bool: 0", is_bool(0))
+  check_true("is_bool: 1", is_bool("1"))
+  check_true("is_bool: 2", !is_bool(2))
+  check_true("is_bool: empty", !is_bool(""))
+  check_true("is_bool: text", !is_bool("yes"))
+  check_true("is_hex_color: lower case", is_hex_color("7c3f00"))
+  check_true("is_hex_color: upper case", is_hex_color("AABBCC"))
+  check_true("is_hex_color: 3 digits", !is_hex_color("fff"))
+  check_true("is_hex_color: leading #", !is_hex_color("#7c3f00"))
+  check_true("is_hex_color: not hex", !is_hex_color("00000g"))
+  check_true("is_hex_color: empty", !is_hex_color(""))
+}
+
+function test_export_theme_validation() {
+  init_globals()
+  setup_colors("HTML", "34:7c3f00,,FG:000000")
+  check("EXPORT_THEME: color of a parameter", ANSI_TO_HTML_COLOR[34], "7c3f00")
+  check("EXPORT_THEME: FG", ANSI_TO_HTML_COLOR["FG"], "000000")
+  check("EXPORT_THEME: valid and empty entries are not errors", OPTION_ERRORS, 0)
+
+  setup_colors("HTML", "1:ffffff,34:fff")
+  check("EXPORT_THEME: invalid entries are errors",
+        stderr_text(),
+        "ERROR: EXPORT_THEME: '1:ffffff' should start with FG, BG or one of " \
+        "30-37, 40-47, 90-97, 100-107\n" \
+        "ERROR: EXPORT_THEME: '34:fff' should end with a color of 6 hex digits\n")
+  check("EXPORT_THEME: an invalid entry keeps the default", ANSI_TO_HTML_COLOR[34], "268bd2")
+}
+
 
 function test_define_color() {
   setup_colors("ANSI", "")
@@ -176,6 +216,8 @@ BEGIN {
   test_get_max_anchor_length()
   test_default_color_option()
   test_validate_ansi_param()
+  test_is_bool_is_hex_color()
+  test_export_theme_validation()
   test_define_color()
   test_export_theme()
   test_ansi_color_param_to_html_style()

@@ -1,0 +1,13 @@
+#: desc: OUTPUT_FORMAT is not case sensitive
+-v COLOR=0 -v OUTPUT_FORMAT=Ansi test/fixtures/Makefile.options
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+t   A target
+
+-----------------------
+Command-line arguments:
+-----------------------
+V   A variable
+-----------------------

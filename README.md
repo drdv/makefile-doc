@@ -198,6 +198,9 @@ help: ## show this help
 `COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty
 value (see [no-color.org](https://no-color.org)).
 
+An invalid value is an error: all the invalid options are reported, nothing else is
+printed and the exit status is 1.
+
 Running `awk -f makefile-doc.awk` without a Makefile prints the options with their current
 values.
 

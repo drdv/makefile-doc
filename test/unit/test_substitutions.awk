@@ -14,30 +14,85 @@ function test_form_substitutions_with_labels(    params, labels, values, names) 
 }
 
 function test_form_substitutions_empty_parts(    params, labels, values, names) {
-  form_substitutions("T1:;T2::;T3:V31 V32", params, labels, values, names)
+  form_substitutions("T1:;T2:L2:;T3:V31 V32", params, labels, values, names)
   check("form_substitutions: number of params", length_array_posix(params), 3)
   check("form_substitutions: number of labels", length_array_posix(labels), 1)
   check("form_substitutions: number of values", length_array_posix(values), 3)
   check_true("form_substitutions: NAME: has no label", !("T1" in labels))
   check("form_substitutions: NAME: has empty values", values["T1"], "")
-  check("form_substitutions: NAME:: has an empty label", labels["T2"], "")
-  check("form_substitutions: NAME:: has empty values", values["T2"], "")
+  check("form_substitutions: NAME:LABEL: has a label", labels["T2"], "L2")
+  check("form_substitutions: NAME:LABEL: has empty values", values["T2"], "")
   check("form_substitutions: NAME:VALUES", values["T3"], "V31 V32")
 }
 
-function test_form_substitutions_name_only(    params, labels, values, names) {
+function test_form_substitutions_empty_items(    params, labels, values, names) {
+  init_globals()
+  form_substitutions(";T1:a; \t;T2:b;", params, labels, values, names)
+  check("form_substitutions: empty items are skipped", length_array_posix(names), 2)
+  check("form_substitutions: names stay in order", names[1] " " names[2], "T1 T2")
+  check("form_substitutions: empty items are not errors", OPTION_ERRORS, 0)
+}
+
+function test_form_substitutions_invalid(    params, labels, values, names) {
+  init_globals()
   form_substitutions("T1", params, labels, values, names)
-  check("form_substitutions: name only gives a warning",
+  check("form_substitutions: name only is an error",
         stderr_text(),
-        "WARNING: a minimal substitution is -v SUB='NAME:'\n")
-  check("form_substitutions: name only has params", length_array_posix(params), 1)
-  check("form_substitutions: name only has no labels", length_array_posix(labels), 0)
-  check("form_substitutions: name only has no values", length_array_posix(values), 0)
+        "ERROR: SUB: 'T1' should be NAME[:LABEL]:[VALUES]\n")
+  check("form_substitutions: name only is not kept", length_array_posix(names), 0)
 
   form_substitutions("T1", params, labels, values, names, 1)
-  check("form_substitutions (DSUB): name only gives a warning that names DSUB",
+  check("form_substitutions (DSUB): name only is an error that names DSUB",
         stderr_text(),
-        "WARNING: a minimal substitution is -v DSUB='NAME:'\n")
+        "ERROR: DSUB: 'T1' should be NAME:VALUES\n")
+
+  form_substitutions(":v", params, labels, values, names)
+  check("form_substitutions: empty name is an error",
+        stderr_text(),
+        "ERROR: SUB: ':v' has an empty NAME\n")
+
+  form_substitutions("T2::v;T3:w", params, labels, values, names)
+  check("form_substitutions: empty label is an error",
+        stderr_text(),
+        "ERROR: SUB: 'T2::v' has an empty LABEL\n")
+  check("form_substitutions: the valid items are kept", names[1], "T3")
+  check("form_substitutions: every invalid item is counted", OPTION_ERRORS, 4)
+}
+
+function test_parse_substitution_params(    params, keys, n) {
+  n = parse_substitution_params(" L :0,S:\\,,P:x:y,,T:}", params, keys)
+  check("parse_substitution_params: number of pairs (empty ones are skipped)", n, 4)
+  check("parse_substitution_params: keys in order (blanks removed)",
+        keys[1] keys[2] keys[3] keys[4], "LSPT")
+  check("parse_substitution_params: value", params["L"], "0")
+  check("parse_substitution_params: escaped comma", params["S"], ",")
+  check("parse_substitution_params: only the first colon is a separator", params["P"], "x:y")
+  check("parse_substitution_params: no parameters",
+        parse_substitution_params("", params, keys), 0)
+}
+
+function test_validate_substitution_params() {
+  init_globals()
+  validate_substitution_params("t", "L:0,M:1,N:-1,S:x,P:y,I:{,T:}")
+  validate_substitution_params("t", "N:12, L : 1 ")
+  check("validate_substitution_params: valid parameters", stderr_text(), "")
+
+  validate_substitution_params("t", "Z:1")
+  check("validate_substitution_params: unknown parameter",
+        stderr_text(),
+        "ERROR: SUB: unknown parameter Z of t (use L, M, N, S, P, I or T)\n")
+  validate_substitution_params("t", "L:2,M:")
+  check("validate_substitution_params: L and M should be 0 or 1",
+        stderr_text(),
+        "ERROR: SUB: parameter L of t should be 0 or 1\n" \
+        "ERROR: SUB: parameter M of t should be 0 or 1\n")
+  validate_substitution_params("t", "N:-2")
+  validate_substitution_params("t", "N:1.5")
+  check("validate_substitution_params: N should be -1 or a non-negative integer",
+        stderr_text(),
+        "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n" \
+        "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n")
+  check("validate_substitution_params: every error is counted", OPTION_ERRORS, 5)
 }
 
 function test_extract_substitution_params() {
@@ -90,7 +145,10 @@ function test_form_substitutions_dsub(    params, labels, values, names) {
 BEGIN {
   test_form_substitutions_with_labels()
   test_form_substitutions_empty_parts()
-  test_form_substitutions_name_only()
+  test_form_substitutions_empty_items()
+  test_form_substitutions_invalid()
+  test_parse_substitution_params()
+  test_validate_substitution_params()
   test_extract_substitution_params()
   test_form_substitutions_colons()
   test_form_substitutions_spaces_in_name()

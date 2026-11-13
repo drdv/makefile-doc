@@ -1,7 +1,5 @@
-#: desc: SUB with the default parameters (an invalid OUTPUT_FORMAT gives a warning)
--v COLOR=0 -v OUTPUT_FORMAT=missing -v SUB='$(TARGET):counter-:one two three;AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
-#: stderr
-WARNING: ignoring invalid OUTPUT_FORMAT MISSING (using ANSI instead).
+#: desc: SUB with the default parameters
+-v COLOR=0 -v SUB='$(TARGET):counter-:one two three;AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
 #: stdout
 -----------------------
 Available targets:
