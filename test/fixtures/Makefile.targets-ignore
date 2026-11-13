@@ -1,5 +1,10 @@
-## Not ignored
+## (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
 .SECONDEXPANSION:
+.DELETE_ON_ERROR:
+t0:
+
+## A suffix rule is a target
+.c.o:
 
 ## (t1) Ignore .PHONY
 .PHONY: t1 ## BAD

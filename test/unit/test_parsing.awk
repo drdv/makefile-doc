@@ -147,9 +147,14 @@ function test_detect_ignored_targets() {
         detect_ignored_targets(" \t.PHONY  : t"), 1)
   check("detect_ignored_targets: tab before :",
         detect_ignored_targets(".PHONY\t: t"), 1)
-  check("detect_ignored_targets: .SECONDEXPANSION is not ignored",
-        detect_ignored_targets(".SECONDEXPANSION:"), 0)
-  check("detect_ignored_targets: a longer name", detect_ignored_targets(".PHONYX: t"), 0)
+  check("detect_ignored_targets: .SECONDEXPANSION without prerequisites",
+        detect_ignored_targets(".SECONDEXPANSION:"), 1)
+  check("detect_ignored_targets: .DELETE_ON_ERROR", detect_ignored_targets(".DELETE_ON_ERROR:"), 1)
+  check("detect_ignored_targets: a suffix rule is a target", detect_ignored_targets(".c.o:"), 0)
+  check("detect_ignored_targets: a hidden file is a target",
+        detect_ignored_targets(".venv/.sentinel:"), 0)
+  check("detect_ignored_targets: a name with lower-case letters is a target",
+        detect_ignored_targets(".PHONYx: t"), 0)
   check("detect_ignored_targets: .PHONY as a prerequisite", detect_ignored_targets("t: .PHONY"), 0)
 }
 

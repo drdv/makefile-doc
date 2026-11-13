@@ -4,12 +4,13 @@
 -----------------------
 Available targets:
 -----------------------
-.SECONDEXPANSION   Not ignored
-t1                 (t1) Ignore .PHONY
-t2                 (t2) Ignore .PHONY and .SILENT
-t3                 (t3) Ignore .SECONDARY
-t4                 (t4) Ignore .INTERMEDIATE
-t5                 (t5) Ignore .INTERMEDIATE and .PRECIOUS
-t6                 (t6)
-.venv/.sentinel    Create a python venv
+t0                (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
+.c.o              A suffix rule is a target
+t1                (t1) Ignore .PHONY
+t2                (t2) Ignore .PHONY and .SILENT
+t3                (t3) Ignore .SECONDARY
+t4                (t4) Ignore .INTERMEDIATE
+t5                (t5) Ignore .INTERMEDIATE and .PRECIOUS
+t6                (t6)
+.venv/.sentinel   Create a python venv
 -----------------------
