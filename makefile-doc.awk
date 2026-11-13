@@ -36,6 +36,9 @@
 #   + RECIPEPREFIX: should have the same value as the .RECIPEPREFIX from your Makefile
 #   * see as well the color codes below
 #
+#   An invalid value is an error: all the invalid options are reported (on stderr), nothing
+#   else is printed and the exit status is 1.
+#
 # Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
 #   * COLOR_DEFAULT: (34) blue
 #   * COLOR_ATTENTION: (31) red
@@ -545,22 +548,38 @@ function update_display_parameters(description, #locals
   }
 }
 
-function extract_substitution_params(string_with_parameters, #locals
-                                     temp_placeholder, k, key_values, pair,
-                                     value, key, n_parameter_pairs) {
-  delete SUB_PARAMS_CURRENT
+# Split the parameters of a substitution, "k1:v1,k2:v2,...", into params[key] = value and
+# keys[1..n] (the keys in the order given); return n. In a pair, only the first colon is a
+# separator, and a comma in a value is written \,
+function parse_substitution_params(string, params, keys, #locals
+                                   temp_placeholder, k, n, n_pairs, key_values, pair, key) {
+  split("", params)
+  split("", keys)
   temp_placeholder = "\034" # the “file separator” ASCII control character
 
   # temporarily replace escaped commas
-  gsub(/\\,/, temp_placeholder, string_with_parameters)
-  n_parameter_pairs = split(string_with_parameters, key_values, ",")
-  for (k=1; k<=n_parameter_pairs; k++) {
+  gsub(/\\,/, temp_placeholder, string)
+  n_pairs = split(string, key_values, ",")
+  n = 0
+  for (k = 1; k <= n_pairs; k++) {
+    if (key_values[k] ~ /^[ \t]*$/) {
+      continue # an empty pair, e.g., after a trailing comma
+    }
     gsub(temp_placeholder, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
-    value = substr(key_values[k], length(pair[1]) + 2) # everything after the first colon
-    gsub(SPACES_TABS_REGEX, "", pair[1])
-    SUB_PARAMS_CURRENT[pair[1]] = value
+    key = pair[1]
+    gsub(SPACES_TABS_REGEX, "", key)
+    params[key] = substr(key_values[k], length(pair[1]) + 2) # after the first colon
+    keys[++n] = key
   }
+  return n
+}
+
+# Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
+# that are not given)
+function extract_substitution_params(string_with_parameters, #locals
+                                     keys, key) {
+  parse_substitution_params(string_with_parameters, SUB_PARAMS_CURRENT, keys)
 
   for (key in SUB_PARAMS_DEFAULTS) {
     if (!(key in SUB_PARAMS_CURRENT)) {
@@ -573,6 +592,25 @@ function extract_substitution_params(string_with_parameters, #locals
   SUB_PARAMS_CURRENT["N"] += 0
 }
 
+# Report the invalid parameters of the substitution of name (see option_error)
+function validate_substitution_params(name, string_with_parameters, #locals
+                                      params, keys, k, n, key, value) {
+  n = parse_substitution_params(string_with_parameters, params, keys)
+  for (k = 1; k <= n; k++) {
+    key = keys[k]
+    value = strip_start_end_spaces_tabs(params[key])
+    if (!(key in SUB_PARAMS_DEFAULTS)) {
+      option_error(sprintf("SUB: unknown parameter %s of %s (use L, M, N, S, P, I or T)",
+                           key, name))
+    } else if ((key == "L" || key == "M") && !is_bool(value)) {
+      option_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
+    } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
+      option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
+                           name))
+    }
+  }
+}
+
 # SUB:  NAME:VALUES or NAME:LABEL:VALUES (the first two colons are separators)
 # DSUB: NAME:VALUES (only the first colon is a separator, no_labels is set)
 # Everything after the last separator is the value, so it can contain colons.
@@ -580,19 +618,27 @@ function extract_substitution_params(string_with_parameters, #locals
 # Caveat: for SUB, NAME:A:B is always read as NAME:LABEL:VALUES, so A is the label.
 # To give a value that contains a colon without renaming, repeat the name as the label:
 # t:t:/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
+#
+# Empty items (e.g., after a trailing ;) are skipped. Invalid items are reported (see
+# option_error) and skipped: no colon, an empty name, an empty label, invalid parameters.
 function form_substitutions(sub_array, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
-                            split_substitutions, k, string, substitution_params,
+                            split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
-                            has_label, has_values, n_substitutions) {
+                            has_label, n_substitutions, option) {
   delete sub_params_array
   delete sub_labels_array
   delete sub_values_array
   delete sub_names_array # names in the order they are given
 
+  option = no_labels ? "DSUB" : "SUB"
+  n = 0
   n_substitutions = split(sub_array, split_substitutions, ";")
   for (k=1; k<=n_substitutions; k++) {
     string = split_substitutions[k]
+    if (string ~ /^[ \t]*$/) {
+      continue
+    }
 
     # Extract optional params in a <...> prefix
     if (match(string, /^<([^>]*)>/)) {
@@ -603,33 +649,40 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
       substitution_rest = string
     }
 
-    name = substitution_rest
-    has_values = 0
-    has_label = 0
     colon = index(substitution_rest, ":")
+    if (colon == 0) {
+      option_error(sprintf("%s: '%s' should be %s", option, string,
+                           no_labels ? "NAME:VALUES" : "NAME[:LABEL]:[VALUES]"))
+      continue
+    }
+    name = substr(substitution_rest, 1, colon - 1)
+    values = substr(substitution_rest, colon + 1)
+    has_label = 0
+    colon = no_labels ? 0 : index(values, ":")
     if (colon > 0) {
-      name = substr(substitution_rest, 1, colon - 1)
-      values = substr(substitution_rest, colon + 1)
-      has_values = 1
-      colon = no_labels ? 0 : index(values, ":")
-      if (colon > 0) {
-        label = substr(values, 1, colon - 1)
-        values = substr(values, colon + 1)
-        has_label = 1
-      }
+      label = substr(values, 1, colon - 1)
+      values = substr(values, colon + 1)
+      has_label = 1
     }
     gsub(SPACES_TABS_REGEX, "", name)
 
-    sub_names_array[k] = name
+    if (name == "") {
+      option_error(sprintf("%s: '%s' has an empty NAME", option, string))
+      continue
+    }
+    if (has_label && label == "") {
+      option_error(sprintf("%s: '%s' has an empty LABEL", option, string))
+      continue
+    }
+    if (!no_labels) {
+      validate_substitution_params(name, substitution_params)
+    }
+
+    sub_names_array[++n] = name
     sub_params_array[name] = substitution_params
-    if (!has_values) {
-      printf("WARNING: a minimal substitution is -v %s='NAME:'\n",
-             no_labels ? "DSUB" : "SUB") > STDERR
-    } else {
-      sub_values_array[name] = values
-      if (has_label) {
-        sub_labels_array[name] = label
-      }
+    sub_values_array[name] = values
+    if (has_label) {
+      sub_labels_array[name] = label
     }
   }
 }
@@ -747,20 +800,29 @@ function apply_output_specific_formatting(text) {
   return escape_for_latex_output(escape_for_html_output(text))
 }
 
-# the user can change separately colors in the ranges 30-37 and 40-47
+# The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
+# FG and BG. Format: ANSI_PARAM:HEX_COLOR[,...] (invalid entries are reported, see
+# option_error).
 function set_user_defined_color_theme(                                  \
-    html_colors_split, key, ansi_html_map, ansi_param, html_color_code) {
-  # format: ANSI_PARAM:HTML_COLOR_CODE[,...]
-  if (EXPORT_THEME) {
-    split(EXPORT_THEME, html_colors_split, ",")
-    for (key in html_colors_split) {
-      split(html_colors_split[key], ansi_html_map, ":")
-      ansi_param = ansi_html_map[1]
-      html_color_code = ansi_html_map[2]
-      # values in the range 0-9 cannot be modified
-      if (ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR) {
-        ANSI_TO_HTML_COLOR[ansi_param] = html_color_code
-      }
+    html_colors_split, k, n, ansi_html_map, ansi_param, html_color_code) {
+  n = split(EXPORT_THEME, html_colors_split, ",")
+  for (k = 1; k <= n; k++) {
+    if (html_colors_split[k] ~ /^[ \t]*$/) {
+      continue # an empty entry, e.g., after a trailing comma
+    }
+    split(html_colors_split[k], ansi_html_map, ":")
+    ansi_param = ansi_html_map[1]
+    html_color_code = ansi_html_map[2]
+    # the parameters in the range 0-9 are attributes (e.g., bold): they have no color
+    if (ansi_param != "FG" && ansi_param != "BG" &&
+        !(ansi_param ~ /^[0-9]+$/ && ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR)) {
+      option_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
+                           html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
+    } else if (!is_hex_color(html_color_code)) {
+      option_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
+                           html_colors_split[k]))
+    } else {
+      ANSI_TO_HTML_COLOR[ansi_param] = html_color_code
     }
   }
 }
@@ -929,12 +991,16 @@ function define_color(ansi_color_param, color_label_key) {
   }
 }
 
-function validate_ansi_param(ansi_param) {
-  if (ansi_param in ANSI_TO_HTML_COLOR) {
+# Return the ANSI color parameter given for a COLOR_* option (0 means no color). An
+# unsupported value is reported (see option_error).
+function validate_ansi_param(option, ansi_param) {
+  if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_TO_HTML_COLOR) {
     # The explicit cast to int here is needed only because of a busybox awk bug
     # see misc/busybox_awk_bug_20251107.awk
     return int(ansi_param)
   }
+  option_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",
+                       option))
   return 0
 }
 
@@ -945,8 +1011,9 @@ function default_color_option() {
 
 function initialize_colors() {
   COLOR = COLOR == "" ? default_color_option() : COLOR
-  if (COLOR !~ /^[01]$/) {
-    fatal("ERROR: COLOR should be 0 or 1")
+  if (!is_bool(COLOR)) {
+    option_error("COLOR should be 0 or 1")
+    COLOR = 1
   }
 
   define_ansi_to_html_colors()
@@ -954,11 +1021,16 @@ function initialize_colors() {
   define_ansi_to_latex_function()
   define_color_labels()
 
-  COLOR_DEFAULT = validate_ansi_param(COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
-  COLOR_ATTENTION = validate_ansi_param(COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
-  COLOR_DEPRECATED = validate_ansi_param(COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
-  COLOR_SECTION = validate_ansi_param(COLOR_SECTION == "" ? 32 : COLOR_SECTION)
-  COLOR_BACKTICKS = validate_ansi_param(COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
+  COLOR_DEFAULT = validate_ansi_param("COLOR_DEFAULT",
+                                      COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
+  COLOR_ATTENTION = validate_ansi_param("COLOR_ATTENTION",
+                                        COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
+  COLOR_DEPRECATED = validate_ansi_param("COLOR_DEPRECATED",
+                                         COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
+  COLOR_SECTION = validate_ansi_param("COLOR_SECTION",
+                                      COLOR_SECTION == "" ? 32 : COLOR_SECTION)
+  COLOR_BACKTICKS = validate_ansi_param("COLOR_BACKTICKS",
+                                        COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
   if (!COLOR) {
     COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
   }
@@ -1036,6 +1108,7 @@ function init_globals() {
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
   FATAL_MSG = "" # in unit-test mode, the message of the last call to fatal()
+  OPTION_ERRORS = 0 # number of invalid options (see option_error)
 
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
@@ -1102,6 +1175,22 @@ function reset_file_state() {
   IN_RULE = ""
 }
 
+function is_bool(value) {
+  return value ~ /^[01]$/
+}
+
+# a color of 6 hex digits (without a leading #)
+function is_hex_color(value) {
+  return length(value) == 6 && value ~ /^[0-9A-Fa-f]+$/
+}
+
+# Report an invalid value of an option. The script goes on, so that all the invalid options
+# are reported, and stops at the end of process_options().
+function option_error(message) {
+  printf("ERROR: %s\n", message) > STDERR
+  OPTION_ERRORS++
+}
+
 # Report an error and stop. In unit-test mode, record the message and return instead, so
 # that a test can check it and the remaining tests still run.
 function fatal(message) {
@@ -1114,12 +1203,12 @@ function fatal(message) {
   exit 1
 }
 
-# Process the user options (called from BEGIN, but not in unit-test mode).
+# Process the user options (called from BEGIN, but not in unit-test mode). Every invalid
+# option is reported, then the script exits with status 1 without any other output.
 function process_options() {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    printf("WARNING: ignoring invalid OUTPUT_FORMAT %s (using ANSI instead).\n",
-           OUTPUT_FORMAT) > STDERR
+    option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
     OUTPUT_FORMAT = "ANSI"
   }
 
@@ -1148,12 +1237,26 @@ function process_options() {
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
   OFFSET = OFFSET == "" ? 2 : OFFSET
+  if (!is_bool(VARS)) {
+    option_error("VARS should be 0 or 1")
+  }
   if (length(PADDING) != 1) {
-    fatal("ERROR: PADDING should have length 1")
+    option_error("PADDING should have length 1")
+  }
+  if (!is_bool(DEPRECATED)) {
+    option_error("DEPRECATED should be 0 or 1")
+  }
+  if (OFFSET !~ /^[0-9]+$/) {
+    option_error("OFFSET should be a non-negative integer")
   }
 
-  if (OFFSET !~ /^[0-9]+$/) {
-    fatal("ERROR: OFFSET should be a non-negative integer")
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, g_sub_names, 0)
+  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
+  DSUB_COUNT = length_array_posix(DSUB_NAMES)
+
+  if (OPTION_ERRORS > 0) {
+    ABORT = 1
+    exit 1
   }
 
   # we could exit faster but this causes the linter to not see defined variables
@@ -1350,11 +1453,6 @@ $0 ~ VARIABLES_REGEX {
 
 # Display results (all stdout is here).
 function print_documentation() {
-  # form SUB_LABELS before calling get_max_anchor_length
-  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES)
-  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
-  DSUB_COUNT = length_array_posix(DSUB_NAMES)
-
   g_max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
   g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
   g_max_anchor_length = max(g_max_target_length, g_max_variable_length)

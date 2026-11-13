@@ -1,0 +1,15 @@
+#: desc: Empty items of SUB and DSUB (e.g., after a trailing ;) are skipped
+-v COLOR=0 -v SUB=';t:a b;;' -v DSUB='A:the;' test/fixtures/Makefile.options
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+t   the target
+    a
+    b
+
+-----------------------
+Command-line arguments:
+-----------------------
+V   the variable
+-----------------------

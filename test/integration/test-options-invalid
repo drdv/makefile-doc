@@ -1,0 +1,12 @@
+#: desc: All the invalid options are reported, then the script exits without other output
+-v OUTPUT_FORMAT=htlm -v COLOR=2 -v COLOR_DEFAULT='1;34' -v COLOR_SECTION=FG -v VARS=no -v PADDING=ab -v DEPRECATED=2 -v OFFSET=-1 test/fixtures/Makefile.options
+#: stderr
+ERROR: OUTPUT_FORMAT should be ANSI, HTML or LATEX
+ERROR: COLOR should be 0 or 1
+ERROR: COLOR_DEFAULT should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107
+ERROR: COLOR_SECTION should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107
+ERROR: VARS should be 0 or 1
+ERROR: PADDING should have length 1
+ERROR: DEPRECATED should be 0 or 1
+ERROR: OFFSET should be a non-negative integer
+#: exit: 1
