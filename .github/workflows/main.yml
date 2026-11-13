@@ -84,8 +84,8 @@ jobs:
           make --version | head -n 1
           python3 --version
 
-      # the built binary is cached; the key changes when test/deps.toml (e.g., a new version)
-      # or test/deps.py changes, so the variant is built again then
+      # the built binary is cached; the key changes when test/tools/deps.toml (e.g., a new
+      # version) or test/tools/deps.py changes, so the variant is built again then
       - name: restore ${{ matrix.awk }} from the cache
         if: matrix.awk != 'gawk' && matrix.awk != 'awk'
         uses: actions/cache@v4
@@ -93,7 +93,7 @@ jobs:
           path: test/bin/${{ matrix.awk }}
           key: >-
             ${{ matrix.awk }}-${{ runner.os }}-${{ runner.arch }}-${{
-            hashFiles('test/deps.toml', 'test/deps.py') }}
+            hashFiles('test/tools/deps.toml', 'test/tools/deps.py') }}
 
       - name: download and build ${{ matrix.awk }}
         run: make deps@${{ matrix.awk }}

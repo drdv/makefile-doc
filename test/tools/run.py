@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test runner for makefile-doc.
 
-usage: test/run.py SUITE --awk AWK [options]
+usage: test/tools/run.py SUITE --awk AWK [options]
 
 Suites:
   unit         run each test/unit/test_*.awk file in its own awk process and check its
@@ -42,7 +42,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent  # paths are relative to the project root
+ROOT = Path(__file__).resolve().parent.parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
 HARNESS = UNIT_DIR / "harness.awk"
 INTEGRATION_DIR = Path("test/integration")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Download what the tests need, as described in test/deps.toml.
+"""Download what the tests need, as described in test/tools/deps.toml.
 
-usage: test/deps.py list
-       test/deps.py install VARIANT [VARIANT ...]
+usage: test/tools/deps.py list
+       test/tools/deps.py install VARIANT [VARIANT ...]
 
 `list` prints the awk variants; `install` builds test/bin/VARIANT (if it does not exist
 yet). Downloads are kept in test/bin/ and checked against their sha256.
@@ -26,9 +26,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 BIN = ROOT / "test" / "bin"
-DEPS = tomllib.loads((ROOT / "test" / "deps.toml").read_text())
+DEPS = tomllib.loads((ROOT / "test" / "tools" / "deps.toml").read_text())
 AWKS = DEPS["awk"]
 BENCH_MAKEFILES = DEPS["bench"]
 
@@ -74,7 +74,7 @@ def download(urls: list[str], path: Path, sha256: str) -> Path:
         if not sha256:  # nothing unverified is installed
             raise DepsError(
                 f"no sha256 to check {path.name}: if the download is trusted, "
-                f'set sha256 = "{digest}" in test/deps.toml'
+                f'set sha256 = "{digest}" in test/tools/deps.toml'
             )
         if digest != sha256:
             errors.append(f"{url}: wrong sha256 {digest} (expected {sha256})")

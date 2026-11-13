@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Benchmark makefile-doc.awk on large real Makefiles.
 
-usage: test/bench.py [--awk VARIANT ...] [--rev REV] [-n N]
+usage: test/tools/bench.py [--awk VARIANT ...] [--rev REV] [-n N]
 
-Times makefile-doc.awk with each awk variant of test/deps.toml and prints a Markdown
+Times makefile-doc.awk with each awk variant of test/tools/deps.toml and prints a Markdown
 table: one row per awk, fastest first, with its time on each Makefile and the ratio to
 the fastest awk. With --rev, each time also shows the change from the script at that git
 revision.
 
-The awk variants and the Makefiles (see test/deps.toml) are downloaded once into test/bin/.
+The awk variants and the Makefiles (see test/tools/deps.toml) are downloaded once into test/bin/.
 The Makefiles contain hardly any makefile-doc docs, so docs are inserted first: before
 every k-th target or variable line (some ##!, ##%, multi-line, inline or with backticks),
 and a section every m documented anchors. The insertion is deterministic, so every run
@@ -30,7 +30,7 @@ import tempfile
 import time
 from pathlib import Path
 
-sys.dont_write_bytecode = True  # no test/__pycache__/ from importing deps
+sys.dont_write_bytecode = True  # no test/tools/__pycache__/ from importing deps
 from deps import AWKS, BENCH_MAKEFILES, BIN, ROOT, DepsError, download, install  # noqa: E402
 
 TARGET = re.compile(r"^([^\s#=][^#=]*?)(?<!:):(?![=])")
@@ -149,7 +149,7 @@ def main() -> int:
         action="append",
         choices=list(AWKS),
         metavar="VARIANT",
-        help="awk variant (repeatable; default: those of test/deps.toml without bench = false)",
+        help="awk variant (repeatable; default: those of deps.toml without bench = false)",
     )
     parser.add_argument("--rev", help="also show the change from this git revision")
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
