@@ -20,7 +20,6 @@ DEPS := python3 $(TEST_DIR)/deps.py
 
 # test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
 RUNNER := python3 $(TEST_DIR)/run.py
-RUNNER_FLAGS :=
 # $(call run-suite,SUITE[,OPTIONS])
 run-suite = $(RUNNER) $(1) \
 	--awk $(AWK_BIN)/$(AWK) \
@@ -31,7 +30,26 @@ run-suite = $(RUNNER) $(1) \
 
 ## Supported awk variants:
 AWK := awk
+
+## Flags for awk in `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
+## `--posix` (gawk)
+## `-W posix` (mawk)
 AWK_FLAGS :=
+
+## Flags for `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
+## `-v` (show the output of passing tests)
+## `-k PATTERN` (run only the tests whose name contains PATTERN)
+## `--update` (rewrite the expected output of integration tests)
+## `--timeout SECONDS` (default: 30)
+## `--jobs N` (number of tests run in parallel)
+RUNNER_FLAGS :=
+
+## Flags for `bench@<variant>`:
+## `--rev REV` (also show the change from this git revision)
+## `-n N` (runs per measurement, default: 5)
+## `--keep` (save the annotated Makefiles in test/bin/)
+BENCH_FLAGS :=
+
 AWK_BIN := $(TEST_DIR)/bin
 SUPPORTED_AWK_VARIANTS := $(shell $(DEPS) list)
 ifeq ($(SUPPORTED_AWK_VARIANTS),)
@@ -73,17 +91,15 @@ help: $(AWK_BIN)/$(AWK)
 ##@
 
 ## Run integration tests with an awk variant (or `test@all`)
-## (e.g., `make test@mawk RUNNER_FLAGS='-v -k backslash'`)
+## (e.g., `make test@mawk AWK_FLAGS='-W posix' RUNNER_FLAGS='-v'`)
 $(TEST_ALL): test@%: $(AWK_BIN)/%
 	@$(MAKE) test AWK=$*
 
 ## Run unit tests with an awk variant (or `utest@all`)
-## (e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'`)
 $(UTEST_ALL): utest@%: $(AWK_BIN)/%
 	@$(MAKE) utest AWK=$*
 
 ## Run tests of known bugs with an awk variant (or `bugs@all`)
-## (e.g., `make bugs@mawk RUNNER_FLAGS='-k semicolon'`)
 $(BUGS_ALL): bugs@%: $(AWK_BIN)/%
 	@$(MAKE) bugs AWK=$*
 
@@ -144,11 +160,9 @@ $(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TEST_DIR)/run.py \
 $(COVER_DIR):
 	@mkdir -p $@
 
-BENCH_FLAGS :=
 BENCH := python3 $(TEST_DIR)/bench.py --script $(MAKEFILE_DOC) $(BENCH_FLAGS)
 
 ## Time the script with an awk variant (or `bench@all`; see test/README.md)
-## (e.g., `make bench@mawk BENCH_FLAGS='--rev HEAD --keep -n 10'`)
 $(BENCH_ALL): bench@%:
 	@$(BENCH) --awk $*
 

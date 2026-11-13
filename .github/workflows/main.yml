@@ -54,11 +54,12 @@ jobs:
       fail-fast: false # report the results of every awk variant
       matrix:
         include:
-          - awk: awk # the runner's default awk
           - awk: gawk
           - awk: gawk
             awk_flags: --posix
           - awk: mawk
+          - awk: mawk
+            awk_flags: -W posix
           - awk: nawk
           - awk: bawk
           - awk: wak
@@ -70,14 +71,13 @@ jobs:
 
       - name: show tool versions
         run: |
-          ls -l "$(command -v awk)"
           make --version | head -n 1
           python3 --version
 
       # the built binary is cached; the key changes when test/deps.toml changes (e.g., a new
       # version), so the variant is built again then
       - name: restore ${{ matrix.awk }} from the cache
-        if: matrix.awk != 'awk' && matrix.awk != 'gawk'
+        if: matrix.awk != 'gawk'
         uses: actions/cache@v4
         with:
           path: test/bin/${{ matrix.awk }}
