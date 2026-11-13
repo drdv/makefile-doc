@@ -1,0 +1,23 @@
+# The blank lines below hold spaces and/or tabs: do not strip them
+
+## Docs above a line of spaces
+   
+t1:
+
+## Docs above a line with a tab (an empty recipe line of t1)
+	
+t2:
+
+V := 1
+## Docs above a line with a tab (not in a rule)
+	
+t3:
+
+## Docs above a line of spaces and tabs
+  	 
+t4:
+
+## Docs with a line of spaces
+  
+## between their lines
+t5:

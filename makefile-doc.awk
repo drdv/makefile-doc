@@ -1233,7 +1233,9 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
 }
 
 (IN_RULE && starts_with($0, RECIPEPREFIX)) || IN_MULTILINE_BACKSLASH_RECIPE {
-  forget_descriptions_data()
+  if ($0 !~ /^[ \t]*$/) { # an empty recipe line is a blank line: it keeps the docs
+    forget_descriptions_data()
+  }
   g_recipe_text = starts_with($0, RECIPEPREFIX) ? substr($0, length(RECIPEPREFIX) + 1) : $0
 
   if (has_odd_terminal_backslashes(g_recipe_text)) {
@@ -1266,8 +1268,9 @@ substr($0, length($0)) == "\\" && !(IN_RULE && starts_with($0, RECIPEPREFIX)) &&
   PATTERN_RULE_MATCHED = 1
 }
 
-# Blank lines between docs are allowed (they do not discard the docs)
-/^$/ {
+# Blank lines (empty or with only spaces and tabs) between docs are allowed (they do not
+# discard the docs)
+/^[ \t]*$/ {
   PATTERN_RULE_MATCHED = 1
 }
 
