@@ -64,13 +64,18 @@ AWK_ENV = {k: v for k, v in os.environ.items() if k != "NO_COLOR"}
 
 
 def run_awk(
-    awk: str, args: list[str], timeout: float, text: bool = True
+    awk: str,
+    args: list[str],
+    timeout: float,
+    text: bool = True,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
-    """Run awk (it is killed, and subprocess.TimeoutExpired raised, after timeout seconds)."""
+    """Run awk (it is killed, and subprocess.TimeoutExpired raised, after timeout seconds).
+    The variables of env are added to the environment."""
     return subprocess.run(
         [awk, *args],
         cwd=ROOT,
-        env=AWK_ENV,
+        env={**AWK_ENV, **(env or {})},
         stdin=subprocess.DEVNULL,
         capture_output=True,
         timeout=timeout,
@@ -194,6 +199,7 @@ def suite_unit(args: argparse.Namespace) -> list[Callable[[], Result]]:
 # integration tests
 # ------------------------------------------------------------------------------------------
 RECIPE_BUG = re.compile(rb"^#: bug:(.*)$")
+RECIPE_ENV = re.compile(rb"^#: env:\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 
 
 @dataclass
@@ -202,6 +208,7 @@ class Recipe:
     args: str  # the awk arguments (shell syntax)
     expected: bytes
     bug: str | None  # the value of the `#: bug:` line (the issue number), if any
+    env: dict[str, str]  # the environment variables of the `#: env: NAME=value` lines
 
 
 def read_recipe(path: Path) -> Recipe:
@@ -211,11 +218,15 @@ def read_recipe(path: Path) -> Recipe:
         k += 1
     args = lines[k].decode().rstrip("\n") if k < len(lines) else ""
     bug = None
+    env = {}
     for line in lines[:k]:
         m = RECIPE_BUG.match(line.rstrip(b"\n"))
         if m:
             bug = m.group(1).decode().strip()
-    return Recipe(lines[:k], args, b"".join(lines[k + 1 :]), bug)
+        m = RECIPE_ENV.match(line.rstrip(b"\n"))
+        if m:
+            env[m.group(1).decode()] = m.group(2).decode()
+    return Recipe(lines[:k], args, b"".join(lines[k + 1 :]), bug, env)
 
 
 def visible(data: bytes) -> list[str]:
@@ -259,6 +270,7 @@ def run_recipe(args: argparse.Namespace, path: Path) -> Result:
             [*args.awk_flags, "-f", args.script, *shlex.split(recipe.args)],
             args.timeout,
             text=False,
+            env=recipe.env,
         )
     except subprocess.TimeoutExpired:
         return timed_out(path.name, args.timeout)
