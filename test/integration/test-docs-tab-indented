@@ -1,0 +1,18 @@
+#: desc: Docs and sections can be indented with tabs (outside rules)
+-v COLOR=0 test/fixtures/Makefile.docs-tab-indented
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+t1   A target
+
+-----------------------
+Command-line arguments:
+-----------------------
+
+ A section indented with a tab
+
+V1   A doc indented with a tab
+V2   A doc indented with spaces
+V3   A doc indented with spaces and tabs
+-----------------------

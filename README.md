@@ -150,6 +150,8 @@ target2: ## inline doc
   three or more `#` only, e.g., `###`).
 - On a target line, a `##` after an inline recipe (`target: ; command ## text`) is part
   of the recipe, not a doc.
+- Docs and sections can be indented with spaces or tabs. In a rule, a line that starts
+  with the recipe prefix (a tab by default) is a recipe line, not a doc.
 
 ### Sections
 
