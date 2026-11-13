@@ -318,7 +318,10 @@ appears more than once, the last value is used. Values cannot contain newlines.
 ## Export to HTML and LaTeX
 
 `-v OUTPUT_FORMAT=html` and `-v OUTPUT_FORMAT=latex` print the documentation as HTML or
-LaTeX. The ANSI colors are mapped to the
+LaTeX. The HTML output is a fragment to paste into a page: a `<style>` element followed by
+a `<div class="makefile-doc">`; the names of all its classes start with `makefile-doc`.
+
+The ANSI colors are mapped to the
 [Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) dark
 palette by default.
 

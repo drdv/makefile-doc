@@ -1,32 +1,29 @@
 #: desc: HTML output, default theme (background color for backticks, no color for deprecated)
 -v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=0 test/fixtures/Makefile.formats
 #: stdout
-<head>
-  <style type="text/css">
-    .color-attention { color: #dc322f; }
-    .color-section { color: #859900; }
-    .color-deprecated {}
-    .color-default { color: #268bd2; }
-    .color-backticks { background-color: #268bd2; }
-  </style>
-</head>
-<div class="makefile-doc-fg makefile-doc-bg">
+<style>
+  .makefile-doc-attention { color: #dc322f; }
+  .makefile-doc-section { color: #859900; }
+  .makefile-doc-default { color: #268bd2; }
+  .makefile-doc-backticks { background-color: #268bd2; }
+</style>
+<div class="makefile-doc">
 <pre>
 -----------------------
 Available targets:
 -----------------------
-<span class="color-section">
- Section with <span class="color-backticks">backticks</span> and {braces}
+<span class="makefile-doc-section">
+ Section with <span class="makefile-doc-backticks">backticks</span> and {braces}
 </span>
-<span class="color-default">t-default   </span>   A default target with <span class="color-backticks">backticks</span> and {braces}
+<span class="makefile-doc-default">t-default   </span>   A default target with <span class="makefile-doc-backticks">backticks</span> and {braces}
                on two lines
-<span class="color-attention">t-attention </span>   An attention target
+<span class="makefile-doc-attention">t-attention </span>   An attention target
 t-deprecated   A deprecated target
 
 -----------------------
 Command-line arguments:
 -----------------------
-<span class="color-default">VAR         </span>   A variable
+<span class="makefile-doc-default">VAR         </span>   A variable
 -----------------------
 </pre>
 </div>
