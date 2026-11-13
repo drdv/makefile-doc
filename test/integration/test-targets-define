@@ -1,5 +1,6 @@
 #: desc: Targets documented inside a define block are displayed (they may be canned recipes)
 -v COLOR=0 test/fixtures/Makefile.targets-define
+#: stdout
 -----------------------
 Available targets:
 -----------------------

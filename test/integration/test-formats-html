@@ -1,5 +1,6 @@
 #: desc: HTML output, default theme (background color for backticks, invalid color 14 for deprecated)
 -v OUTPUT_FORMAT=html -v COLOR_BACKTICKS=44 -v COLOR_DEPRECATED=14 test/fixtures/Makefile.formats
+#: stdout
 <head>
   <style type="text/css">
     .color-attention { color: #dc322f; }

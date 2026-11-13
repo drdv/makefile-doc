@@ -1,5 +1,6 @@
 #: desc: The tags ## (default), ##! (attention) and ##% (deprecated) select the color
 test/fixtures/Makefile.docs-tags
+#: stdout
 -----------------------
 Available targets:
 -----------------------

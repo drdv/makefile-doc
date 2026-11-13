@@ -1,5 +1,6 @@
 #: desc: Inline docs after prerequisites and target variables, but not after an inline recipe
 -v COLOR=0 test/fixtures/Makefile.docs-inline-position
+#: stdout
 -----------------------
 Available targets:
 -----------------------

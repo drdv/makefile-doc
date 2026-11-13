@@ -1,5 +1,6 @@
 #: desc: RECIPEPREFIX matches the .RECIPEPREFIX of the Makefile
 -v COLOR=0 -v 'RECIPEPREFIX=>' test/fixtures/Makefile.recipeprefix
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,5 +1,6 @@
 #: desc: SUB parameter L: the values start on the current line (L:0) or the next one (L:1)
 -v COLOR=0 -v SUB='<L:1>$(TARGET):counter-:one two three;<L:0>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
+#: stdout
 -----------------------
 Available targets:
 -----------------------

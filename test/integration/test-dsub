@@ -1,5 +1,6 @@
 #: desc: DSUB replaces text in the docs; it can be combined with SUB
 -v COLOR=0 -v SUB='t3:target3:v1 v2' -v DSUB='$(Y):S~y;$(VAR):S~var' test/fixtures/Makefile.dsub
+#: stdout
 -----------------------
 Available targets:
 -----------------------

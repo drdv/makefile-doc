@@ -1,5 +1,6 @@
 #: desc: LaTeX output with attributes (bold, italic, underline, strike), custom theme
 -v OUTPUT_FORMAT=latex -v COLOR_ATTENTION=1 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_BACKTICKS=9 -v EXPORT_THEME=FG:000000,BG:AAAAAA,34:7c3f00 test/fixtures/Makefile.formats
+#: stdout
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{xcolor}

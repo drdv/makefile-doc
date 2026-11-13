@@ -1,5 +1,6 @@
 #: desc: All assignment operators: =, :=, ::=, :::=, !=, ?= and +=
 -v COLOR=0 test/fixtures/Makefile.vars-assignment
+#: stderr
 WARNING: [test/fixtures/Makefile.vars-assignment:19] redefined docs of variable: a4
 WARNING: [test/fixtures/Makefile.vars-assignment:35] redefined docs of variable: b4
 WARNING: [test/fixtures/Makefile.vars-assignment:51] redefined docs of variable: c4
@@ -7,6 +8,7 @@ WARNING: [test/fixtures/Makefile.vars-assignment:67] redefined docs of variable:
 WARNING: [test/fixtures/Makefile.vars-assignment:83] redefined docs of variable: e4
 WARNING: [test/fixtures/Makefile.vars-assignment:99] redefined docs of variable: f4
 WARNING: [test/fixtures/Makefile.vars-assignment:115] redefined docs of variable: g4
+#: stdout
 -----------------------
 Command-line arguments:
 -----------------------

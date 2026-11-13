@@ -1,5 +1,6 @@
 #: desc: Text in backticks is colored with COLOR_BACKTICKS (also in sections)
 -v COLOR_BACKTICKS=1 test/fixtures/Makefile.backticks
+#: stdout
 -----------------------
 Available targets:
 -----------------------

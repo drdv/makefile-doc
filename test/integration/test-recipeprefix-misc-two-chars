@@ -1,6 +1,7 @@
 #: desc: Only the first character of RECIPEPREFIX is used, as in GNU Make
 #: issue: 92
 -v COLOR=0 -v 'RECIPEPREFIX=++' test/fixtures/Makefile.recipeprefix-misc
+#: stdout
 -----------------------
 Available targets:
 -----------------------

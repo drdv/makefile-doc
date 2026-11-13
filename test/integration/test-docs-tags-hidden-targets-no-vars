@@ -1,4 +1,5 @@
 #: desc: With DEPRECATED=0 and VARS=0, hiding every anchor gives the "no docs" warning
 #: issue: 124
 -v COLOR=0 -v DEPRECATED=0 -v VARS=0 test/fixtures/Makefile.docs-tags-hidden-targets
+#: stderr
 WARNING: no documented targets/variables in test/fixtures/Makefile.docs-tags-hidden-targets

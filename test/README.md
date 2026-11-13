@@ -63,16 +63,21 @@ awk exits with a non-zero status.
 ## Integration tests
 
 Each `test/integration/test-*` file (a recipe) runs `makefile-doc.awk` on a fixture
-(`test/fixtures/Makefile.*`) and holds the expected output. The first line holds the awk
-arguments (in shell syntax) and the remaining lines hold the expected output: stderr first,
-then stdout, then `exit: N` if the exit status is not 0. Metadata lines starting with `#:`
-come first and are ignored when running:
+(`test/fixtures/Makefile.*`) and holds the expected output. Metadata lines starting with
+`#:` come first and are ignored when running. The next line holds the awk arguments (in
+shell syntax). The remaining lines hold the expected output: stderr after a `#: stderr`
+line, then stdout after a `#: stdout` line (a stream without output has no such line), then
+`#: exit: N` if the exit status is not 0:
 
 ```
 #: desc: what this test checks (the expected behavior)
 #: issue: 123
 -v COLOR_DEFAULT=0 -v SUB='...' test/fixtures/Makefile.sub
-<expected output>
+#: stderr
+<expected stderr>
+#: stdout
+<expected stdout>
+#: exit: 1
 ```
 
 The output must match the expected output exactly, including blanks at the end of lines and

@@ -1,5 +1,6 @@
 #: desc: Lines of special targets such as .PHONY are ignored; their docs go to the next target
 -v COLOR=0 test/fixtures/Makefile.targets-ignore
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,5 +1,6 @@
 #: desc: SUB documents a target defined by an expression (with a label and values)
 -v COLOR=0 -v SUB='$(I)target:target:immediate immediate immediate immediate deferred deferred' test/fixtures/Makefile.misc
+#: stdout
 -----------------------
 Available targets:
 -----------------------

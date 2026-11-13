@@ -1,5 +1,6 @@
 #: desc: Without arguments the help is printed (the awk args line below is intentionally empty)
 
+#: stdout
 Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]
 Description: Generate docs for Makefile variables and targets
 Options:
@@ -16,4 +17,4 @@ Options:
   COLOR ([bool] use colors): 1
   RECIPEPREFIX: |	|
   COLOR_: [34mDEFAULT[0m, [31mATTENTION[0m, [33mDEPRECATED[0m, [32mSECTION[0m, BACKTICKS[0m
-exit: 1
+#: exit: 1

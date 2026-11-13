@@ -1,6 +1,7 @@
 #: desc: A colon inside a reference or function call is not a rule separator
 #: issue: 142
 -v COLOR=0 test/fixtures/Makefile.targets-function-colon
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,5 +1,6 @@
 #: desc: COLOR=0 turns off all colors (also of ##!, ##% and sections)
 -v COLOR=0 test/fixtures/Makefile.section-anchors
+#: stdout
 -----------------------
 Available targets:
 -----------------------

@@ -1,5 +1,6 @@
 #: desc: SUB parameters L and M combined
 -v COLOR=0 -v SUB='<M:1,L:0>$(TARGET):counter-:one two three;<M:0,L:1>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
+#: stdout
 -----------------------
 Available targets:
 -----------------------

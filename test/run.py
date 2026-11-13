@@ -15,8 +15,9 @@ TAP plan is missing or does not match the number of checks, or if awk exits with
 status (e.g., a crash or a syntax error). Checks of known bugs (TAP `# TODO issue N`) are
 expected to fail: the test file fails if one of them passes (the bug has been fixed).
 
-A recipe passes if the output of makefile-doc.awk (stderr, then stdout, then `exit: N` for
-a non-zero exit status) is exactly the expected output. A recipe with a `#: bug: N` line
+A recipe passes if the output of makefile-doc.awk is exactly the expected output: stderr
+after a `#: stderr` line, stdout after a `#: stdout` line (a stream without output has no
+such line), then `#: exit: N` for a non-zero exit status. A recipe with a `#: bug: N` line
 (issue N) holds the correct output of a known bug: it is skipped by the integration suite,
 and the bugs suite fails once its output is correct (the bug has been fixed).
 
@@ -213,6 +214,19 @@ def visible(data: bytes) -> list[str]:
     return marked
 
 
+def render_output(stderr: bytes, stdout: bytes, returncode: int) -> bytes:
+    """The output of one run as it is stored in a recipe: each stream after a marker line (a
+    stream without output has no marker), then the exit status if it is not 0."""
+    out = b""
+    if stderr:
+        out += b"#: stderr\n" + stderr
+    if stdout:
+        out += b"#: stdout\n" + stdout
+    if returncode != 0:
+        out += f"#: exit: {returncode}\n".encode()
+    return out
+
+
 def run_recipe(args: argparse.Namespace, path: Path) -> Result:
     recipe = read_recipe(path)
     if recipe.bug is not None and not recipe.bug.isdigit():
@@ -225,9 +239,7 @@ def run_recipe(args: argparse.Namespace, path: Path) -> Result:
         ["-f", args.script, *args.awk_flags, *shlex.split(recipe.args)],
         text=False,
     )
-    actual = proc.stderr + proc.stdout
-    if proc.returncode != 0:
-        actual += f"exit: {proc.returncode}\n".encode()
+    actual = render_output(proc.stderr, proc.stdout, proc.returncode)
 
     diff = "".join(
         difflib.unified_diff(

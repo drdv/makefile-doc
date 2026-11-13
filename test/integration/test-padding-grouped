@@ -1,6 +1,7 @@
 #: desc: PADDING does not replace the spaces inside grouped target names
 #: issue: 103
 -v COLOR=0 -v PADDING=. test/fixtures/Makefile.padding-grouped
+#: stdout
 -----------------------
 Available targets:
 -----------------------

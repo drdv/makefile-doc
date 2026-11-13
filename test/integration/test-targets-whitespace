@@ -1,6 +1,7 @@
 #: desc: Whitespace before : and & is removed, and between names it becomes one space
 #: issue: 98
 -v COLOR=0 test/fixtures/Makefile.targets-whitespace
+#: stdout
 --------------------------------
 Available targets:
 --------------------------------

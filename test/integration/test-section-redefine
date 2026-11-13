@@ -1,7 +1,9 @@
 #: desc: Redefining the docs and the section of a target gives warnings; the last ones are used
 -v COLOR=0 test/fixtures/Makefile.section-redefine
+#: stderr
 WARNING: [test/fixtures/Makefile.section-redefine:11] redefined docs of target: t1
 WARNING: [test/fixtures/Makefile.section-redefine:11] redefined associated section data: t1
+#: stdout
 -----------------------
 Available targets:
 -----------------------
