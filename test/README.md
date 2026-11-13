@@ -97,6 +97,8 @@ Conventions:
 - Every recipe has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
 - Colors are turned off (`-v COLOR=0`) unless the recipe is about colors or output formats.
   The runner removes `NO_COLOR` from the environment of the tests.
+- A `#: env: NAME=value` line sets an environment variable for the recipe (e.g.,
+  `#: env: NO_COLOR=1`).
 
 ## Reporting and fixing bugs
 

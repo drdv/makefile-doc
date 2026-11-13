@@ -135,6 +135,23 @@ function test_is_double_colon_rule() {
   check("is_double_colon_rule: no colon", is_double_colon_rule("t"), 0)
 }
 
+function test_has_unclosed_reference() {
+  check("has_unclosed_reference: plain text", has_unclosed_reference("target"), 0)
+  check("has_unclosed_reference: closed $(...)", has_unclosed_reference("$(OBJS)"), 0)
+  check("has_unclosed_reference: closed ${...}", has_unclosed_reference("${OBJS}"), 0)
+  check("has_unclosed_reference: unclosed $(...)", has_unclosed_reference("$(info a"), 1)
+  check("has_unclosed_reference: unclosed ${...}", has_unclosed_reference("${info a"), 1)
+  check("has_unclosed_reference: nested and closed",
+        has_unclosed_reference("$(addprefix a-,$(X))"), 0)
+  check("has_unclosed_reference: nested, the outer one unclosed",
+        has_unclosed_reference("$(addprefix a-,$(X)"), 1)
+  check("has_unclosed_reference: several references, the last one unclosed",
+        has_unclosed_reference("$(A) ${B} $(C"), 1)
+  check("has_unclosed_reference: more closing than opening",
+        has_unclosed_reference("a)"), 0)
+  check("has_unclosed_reference: empty text", has_unclosed_reference(""), 0)
+}
+
 function test_detect_ignored_targets() {
   init_globals()
   check("detect_ignored_targets: .PHONY", detect_ignored_targets(".PHONY: t"), 1)
@@ -167,6 +184,7 @@ BEGIN {
   test_update_display_parameters()
   test_has_odd_terminal_backslashes()
   test_is_double_colon_rule()
+  test_has_unclosed_reference()
   test_detect_ignored_targets()
   done()
 }

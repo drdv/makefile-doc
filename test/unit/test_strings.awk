@@ -59,6 +59,25 @@ function test_string_replace(    text, parts) {
         "nested vars VAL end")
 }
 
+function test_strip_trailing_blanks() {
+  check("strip_trailing_blanks: nothing to strip", strip_trailing_blanks("a b\n c\n"), "a b\n c\n")
+  check("strip_trailing_blanks: empty text", strip_trailing_blanks(""), "")
+  check("strip_trailing_blanks: spaces before a newline",
+        strip_trailing_blanks("a  \nb\n"), "a\nb\n")
+  check("strip_trailing_blanks: tabs before a newline",
+        strip_trailing_blanks("a\t\t\nb\n"), "a\nb\n")
+  check("strip_trailing_blanks: spaces and tabs mixed", strip_trailing_blanks("a \t \n"), "a\n")
+  check("strip_trailing_blanks: blanks at the end of the text (no final newline)",
+        strip_trailing_blanks("a\nb  "), "a\nb")
+  check("strip_trailing_blanks: every line", strip_trailing_blanks("a \nb \nc \n"), "a\nb\nc\n")
+  check("strip_trailing_blanks: a line with only blanks becomes empty",
+        strip_trailing_blanks("a\n   \nb\n"), "a\n\nb\n")
+  check("strip_trailing_blanks: leading and inner blanks are kept",
+        strip_trailing_blanks("  a  b  \n"), "  a  b\n")
+  check("strip_trailing_blanks: empty lines are kept",
+        strip_trailing_blanks("a \n\n\nb\n"), "a\n\n\nb\n")
+}
+
 function test_strip_start_end_spaces_tabs() {
   check("strip_start_end_spaces_tabs: spaces",
         strip_start_end_spaces_tabs("   a test string   "), "a test string")
@@ -73,5 +92,6 @@ BEGIN {
   test_join()
   test_string_replace()
   test_strip_start_end_spaces_tabs()
+  test_strip_trailing_blanks()
   done()
 }

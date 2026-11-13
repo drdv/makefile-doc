@@ -1,0 +1,14 @@
+#: desc: Colors are off by default when NO_COLOR is set to a non-empty value
+#: env: NO_COLOR=1
+test/fixtures/Makefile.options
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+t   A target
+
+-----------------------
+Command-line arguments:
+-----------------------
+V   A variable
+-----------------------
