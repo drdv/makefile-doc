@@ -688,8 +688,8 @@ function default_color_option() {
 # unsupported value is reported (see option_error).
 function validate_ansi_param(option, ansi_param) {
   if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_TO_HTML_COLOR) {
-    # The explicit cast to int here is needed only because of a busybox awk bug
-    # see misc/busybox_awk_bug_20251107.awk
+    # The explicit cast to int here is needed only because of a busybox awk bug, see
+    # misc/busybox_awk_bug_20251107.awk (`make bugs@bawk` fails once the bug is fixed)
     return int(ansi_param)
   }
   option_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",

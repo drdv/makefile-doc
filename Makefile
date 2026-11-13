@@ -108,6 +108,18 @@ test@all: $(TEST_ALL)
 utest@all: $(UTEST_ALL)
 bugs@all: $(BUGS_ALL)
 
+# A known bug of busybox awk: a -v value of 0 returned by a function is true (see the file).
+# This fails once the bug is fixed in the pinned busybox: then remove the workaround, the
+# int() in validate_ansi_param(). It is part of `bugs@bawk`.
+.PHONY: check-busybox-bug
+check-busybox-bug: $(AWK_BIN)/bawk
+	@out=$$($< -v a=0 -f misc/busybox_awk_bug_20251107.awk); \
+	test "$$out" = "b: 0" || \
+		{ echo "[bawk] FIXED: the busybox awk bug of validate_ansi_param()"; exit 1; }; \
+	echo "[bawk] known bug of busybox awk: still there"
+
+bugs@bawk: check-busybox-bug
+
 # The awk of a variant is a prerequisite of its targets above: it is then built once, by
 # this make, before the sub-makes of test@X, utest@X and bugs@X run (also with -j).
 

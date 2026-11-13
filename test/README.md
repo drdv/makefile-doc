@@ -114,4 +114,8 @@ Conventions:
    `make utest` fail once a reproducer passes, so a forgotten change is caught.
 
 Every reproducer needs an issue number, so known bugs never become an undocumented backlog.
+
+`make bugs@bawk` also runs `misc/busybox_awk_bug_20251107.awk`, a bug of busybox awk that
+`makefile-doc.awk` works around: it fails once busybox has fixed it, and the workaround can
+then be removed.
 `make bugs` lists the known bugs of the integration tests (`-v` shows their diffs).
