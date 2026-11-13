@@ -42,6 +42,9 @@ jobs:
       - name: lint the Python test tools
         run: make lint-py
 
+      - name: check the version in the README
+        run: make check-version
+
   test:
     name: ${{ matrix.awk }} ${{ matrix.awk_flags }}
     runs-on: ubuntu-latest

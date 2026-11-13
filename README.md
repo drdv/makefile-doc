@@ -15,20 +15,19 @@ Define the first target of your `Makefile` (or if it is not the first target, se
 `.DEFAULT_GOAL := help`) as:
 
 ```Makefile
-help: URL := github.com/drdv/makefile-doc/releases/latest/download/makefile-doc.awk
-help: DIR := $(HOME)/.local/share/makefile-doc
-help: SCR := $(DIR)/makefile-doc.awk
+help: VER := v1.8
+help: URL := https://github.com/drdv/makefile-doc/releases/download/$(VER)/makefile-doc.awk
+help: SCR := $(HOME)/.local/share/makefile-doc/makefile-doc-$(VER).awk
 help: ## show this help
-	@test -f $(SCR) || wget -q -P $(DIR) $(URL)
+	@test -f $(SCR) || { mkdir -p $(dir $(SCR)) && \
+		curl -fsSL -o $(SCR).tmp $(URL) && mv $(SCR).tmp $(SCR); }
 	@awk -f $(SCR) $(MAKEFILE_LIST)
 ```
 
-This will download the awk script on the fly (if it doesn't exist in
-`~/.local/share/makefile-doc`). As an alternative of `wget` you could use `curl`:
-
-```bash
-curl -sLO --create-dirs --output-dir $(DIR) $(URL)
-```
+This downloads version `VER` of the awk script on first use (into
+`~/.local/share/makefile-doc`) and reuses it afterwards. If the download fails, `make`
+stops and nothing is saved. To upgrade, change `VER`: the new version is downloaded next
+to the old one.
 
 ### Manual installation
 
