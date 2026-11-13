@@ -1328,9 +1328,34 @@ BEGIN {
   }
 }
 
-# The rules below run for every line of the input: the cheap tests come first (a comparison
-# of one character before a regex or a function call), and a rule that fully handles a line
-# ends with `next`.
+# Each input line goes through the rules below, in this order, until a rule that fully
+# handles it ends with `next`. The cheap tests come first (a comparison of one character
+# before a regex or a function call). "Pending docs" are the doc lines seen since the last
+# anchor: they are waiting for the target or variable they document.
+#
+#   Kind of line                                Pending docs       The line is
+#   ------------------------------------------  -----------------  -------------------------
+#   continuation of a line ending in \          -                  joined to it, then parsed
+#   comment continued with \ (all its lines)    kept               skipped
+#   line ending in \ (not a recipe, comment)    -                  stored for the next line
+#   recipe line                                 discarded (1)      skipped
+#   comment banner (###...)                     discarded          skipped
+#   doc (##, ##!, ##%)                          extended           added to the pending docs
+#   blank line                                  kept               skipped
+#   section (##@)                               kept               saved (pending section)
+#   conditional (ifeq, ..., endif)              kept               skipped
+#   other directive (include, vpath, ...)       discarded          skipped
+#   special target (.PHONY: ...)                kept               skipped
+#   target line                                 given to it (2)    recorded if documented
+#   variable assignment                         given to it (2)    recorded if documented
+#   other comment                               kept               skipped
+#   anything else                               discarded          skipped
+#
+#   (1) kept if the recipe line is blank
+#   (2) without pending docs, the inline doc of the line is used
+#
+# Before these rules, a final \r is dropped from every line, and the per-file state is reset
+# at the first line of each file.
 
 # Makefiles with CRLF line endings: drop the \r
 substr($0, length($0)) == "\r" { sub(/\r$/, "") }
