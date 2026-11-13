@@ -73,6 +73,16 @@
 #   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
 #     VARIABLES and each of them has an associated *_INDEX integer variable.
 #
+# Structure of this file (each part starts with a banner):
+#   1. General helpers
+#   2. Errors and warnings
+#   3. Initialization and options
+#   4. Substitutions (the options SUB and DSUB)
+#   5. Colors and output formats (ANSI, HTML, LATEX)
+#   6. Parsing helpers
+#   7. The parser: BEGIN, then one pattern rule per kind of line
+#   8. Display of the documentation (and END)
+#
 # Terminology and definitions:
 #   + A Makefile rule (without patterns) can take one of the following forms:
 #     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
@@ -105,6 +115,10 @@
 #     are ignored.
 #   + The last rule with a description defines the description of a normal target, while
 #     every double-colon rule with a description defines a new description.
+
+# ------------------------------------------------------------------------------------------
+# General helpers
+# ------------------------------------------------------------------------------------------
 
 function max(x, y) {
   return (x >= y) ? x : y
@@ -140,33 +154,6 @@ function length_array_posix(array, #locals
     n++
   }
   return n
-}
-
-function is_double_colon_rule(line, #locals
-                              pos) {
-  pos = index(line, ":")
-  return pos && substr(line, pos + 1, 1) == ":"
-}
-
-# true if the string ends with an odd number of backslashes (a line continuation)
-function has_odd_terminal_backslashes(string, #locals
-                                      n, k) {
-  n = 0
-  for (k = length(string); k > 0 && substr(string, k, 1) == "\\"; k--) {
-    n++
-  }
-  return n % 2
-}
-
-function form_dc_target_name(target_name_nominal) {
-  if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
-    TARGETS_DC_COUNTER[target_name_nominal] = 1
-  }
-
-  return sprintf("%s%s%s",
-                 target_name_nominal,
-                 DOUBLE_COLON_SEPARATOR,
-                 TARGETS_DC_COUNTER[target_name_nominal])
 }
 
 # join the elements of an array produced by split()
@@ -224,85 +211,136 @@ function strip_trailing_blanks(text, #locals
   return text
 }
 
-# In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
-# a placeholder: escaping them first would escape the braces of \textbackslash{}, and
-# escaping them last would escape the backslashes of \{ and \}.
-function escape_for_latex_output(text, #locals
-                                 placeholder) {
-  if (OUTPUT_FORMAT == "LATEX") {
-    placeholder = "\034"
-    text = string_replace("\\", placeholder, text)
-    gsub(/\{/, "\\{", text)
-    gsub(/\}/, "\\}", text)
-    text = string_replace(placeholder, "\\textbackslash{}", text)
+# true if the string ends with an odd number of backslashes (a line continuation)
+function has_odd_terminal_backslashes(string, #locals
+                                      n, k) {
+  n = 0
+  for (k = length(string); k > 0 && substr(string, k, 1) == "\\"; k--) {
+    n++
   }
-  return text
+  return n % 2
 }
 
-# <, > and & would be interpreted as HTML markup (& first, so that the & of the other
-# replacements is not escaped again; string_replace because & is special in gsub)
-function escape_for_html_output(text) {
-  if (OUTPUT_FORMAT == "HTML") {
-    text = string_replace("&", "&amp;", text)
-    text = string_replace("<", "&lt;", text)
-    text = string_replace(">", "&gt;", text)
+function is_bool(value) {
+  return value ~ /^[01]$/
+}
+
+# a color of 6 hex digits (without a leading #)
+function is_hex_color(value) {
+  return length(value) == 6 && value ~ /^[0-9A-Fa-f]+$/
+}
+
+# ------------------------------------------------------------------------------------------
+# Errors and warnings
+# ------------------------------------------------------------------------------------------
+
+# Report an invalid value of an option. The script goes on, so that all the invalid options
+# are reported, and stops at the end of process_options().
+function option_error(message) {
+  printf("ERROR: %s\n", message) > STDERR
+  OPTION_ERRORS++
+}
+
+# Report an error and stop. In unit-test mode, record the message and return instead, so
+# that a test can check it and the remaining tests still run.
+function fatal(message) {
+  printf("%s\n", message) > STDERR
+  if (UNIT_TEST) {
+    FATAL_MSG = message
+    return
   }
-  return text
+  ABORT = 1
+  exit 1
 }
 
-function get_tag_from_description(string, #locals
-                                  tag) {
-  if (match(string, /^ *(##!|##%|##)/)) {
-    tag = substr(string, RSTART, RLENGTH)
-    sub(/ */, "", tag)
-    return tag
+# A file whose last line ends with a backslash: the line cannot be joined with a next one,
+# so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
+# the next file and in END).
+function warn_about_continued_last_line() {
+  if (IN_CONTINUED_LINE) {
+    printf("WARNING: [%s] the last line ends with a backslash\n", CURRENT_FILE) > STDERR
   }
-
-  return 0 # if we end-up here it probably means that we are using a wrong regex
 }
 
-function save_description_data(string) {
-  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX++] = string
-}
+# ------------------------------------------------------------------------------------------
+# Initialization and options
+# ------------------------------------------------------------------------------------------
 
-function forget_descriptions_data() {
-  delete DESCRIPTION_DATA
+# Set the global state that does not depend on user options. It is called from BEGIN and
+# can be called from unit tests (also to reset the state between tests).
+function init_globals() {
+  VERSION = "v1.8" # the only place where the version is defined
+
+  # can be overridden with -v STDERR=file (used by the unit tests)
+  STDERR = STDERR == "" ? "/dev/stderr" : STDERR
+  ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
+  FATAL_MSG = "" # in unit-test mode, the message of the last call to fatal()
+  OPTION_ERRORS = 0 # number of invalid options (see option_error)
+
+  initialize_variables_regex()
+  initialize_substitution_parameter_defaults()
+
+  # initialize global arrays (i.e., hash tables) for clarity
+  # index variables start from 1 because this is the standard in awk
+
+  # map target name to description
+  split("", TARGETS_DESCRIPTION_DATA)
+
+  # map target name to section data
+  # a section uses a target / variable as an anchor
+  split("", TARGETS_SECTION_DATA)
+
+  # the index for the next double-colon rule with description (the key doesn't include ~k)
+  split("", TARGETS_DC_COUNTER)
+
+  # map index to target name (order is important)
+  split("", TARGETS)
+  TARGETS_INDEX = 1
+
+  # map index to line in description data (to be associated with the next anchor)
+  split("", DESCRIPTION_DATA)
   DESCRIPTION_DATA_INDEX = 1
+
+  # map index to line in section data (to be associated with the next anchor)
+  split("", SECTION_DATA)
+  SECTION_DATA_INDEX = 1
+
+  # map variable name to description
+  split("", VARIABLES_DESCRIPTION_DATA)
+
+  # map variable name to section
+  split("", VARIABLES_SECTION_DATA)
+
+  # map index to variable name
+  split("", VARIABLES)
+  VARIABLES_INDEX = 1
+
+  split("", DISPLAY_PARAMS)
+
+  HEADER_TARGETS = "Available targets:"
+  HEADER_VARIABLES = "Command-line arguments:"
+  NUMBER_OF_FILES_PROCESSED = 0
+  CURRENT_FILE = "" # the FILENAME of the file being read (see warn_about_continued_last_line)
+  FILES_PROCESSED = ""
+  SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
+
+  # used to decorate double-colon targets in the documentation
+  DOUBLE_COLON_SEPARATOR = "~"
+
+  reset_file_state()
 }
 
-# Save the inline doc of a target or variable line. On a target line, a ## after a ; is part
-# of an inline recipe (not a doc); in a variable assignment, a ; is part of the value. An
-# inline ##@ is not a doc either (a section is written on its own lines).
-function parse_inline_descriptions(whole_line, is_variable, #locals
-                                   inline_description) {
-  if ((is_variable || !match(whole_line, /^[^#]*;/)) &&
-      match(whole_line, / *(##!|##%|##)/)) {
-    inline_description = substr(whole_line, RSTART)
-    sub(/^ */, "", inline_description)
-    if (inline_description !~ /^##@/) {
-      save_description_data(inline_description)
-    }
-  }
-}
-
-# True for a line of a special target, e.g., `.PHONY: t` or `.ONESHELL:` (a dot followed by
-# upper-case letters). These lines are skipped and the docs above them are kept.
-function detect_ignored_targets(target_line) {
-  return target_line ~ /^[ \t]*\.[A-Z_]+[ \t]*:/
-}
-
-# Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`
-# (the part before the first colon of `$(info a: b)`)
-function has_unclosed_reference(text, #locals
-                                opened, closed) {
-  opened = gsub(/[(]/, "(", text)
-  closed = gsub(/[)]/, ")", text)
-  if (opened > closed) {
-    return 1
-  }
-  opened = gsub(/[{]/, "{", text)
-  closed = gsub(/[}]/, "}", text)
-  return opened > closed
+# The parser state that must not be carried over from one Makefile to the next: a doc, a
+# rule, a continued line, recipe or comment at the end of a file ends with that file.
+# Pending section data is kept on purpose (a section is anchored to the next documented
+# anchor, which can be in the next file).
+function reset_file_state() {
+  forget_descriptions_data()
+  IN_MULTILINE_BACKSLASH_COMMENT = 0
+  IN_MULTILINE_BACKSLASH_RECIPE = 0
+  IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
+  CONTINUED_LINE = ""
+  IN_RULE = ""
 }
 
 function initialize_variables_regex() {
@@ -319,252 +357,126 @@ function initialize_variables_regex() {
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
 
-# return `FOO`, given `override private export FOO := 1`
-# return `export`, given `override private export := 1` even though `export` is a qualifier
-function parse_variable_name(whole_line, #locals
-                             whole_line_split, variable_name, qualifiers_pattern) {
-  split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
-  variable_name = strip_start_end_spaces_tabs(whole_line_split[1])
-
-  qualifiers_pattern = "(" join(VARIABLE_QUALIFIERS, "|") ")"
-
-  while (match(variable_name, "^" qualifiers_pattern "[ \t]+[^ \t]")) {
-    sub("^" qualifiers_pattern "[ \t]+", "", variable_name)
-  }
-
-  return strip_start_end_spaces_tabs(variable_name)
+function initialize_substitution_parameter_defaults() {
+  # don't change the defaults
+  SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
+  SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
+  SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
+  SUB_PARAMS_DEFAULTS["S"] = "" # separator
+  SUB_PARAMS_DEFAULTS["P"] = "" # prefix
+  SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
+  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
 }
 
-function associate_data_with_anchor(anchor_name,
-                                    anchors,
-                                    anchors_index,
-                                    anchors_description_data,
-                                    anchors_section_data,
-                                    anchor_type) {
-  if (anchor_name in anchors_description_data) {
-    if (!(anchor_type == "variable" && !VARS)) {
-      printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
-             FILENAME,
-             FNR,
-             anchor_type,
-             anchor_name) > STDERR
+# Process the user options (called from BEGIN, but not in unit-test mode). Every invalid
+# option is reported, then the script exits with status 1 without any other output.
+function process_options() {
+  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
+  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
+    option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
+    OUTPUT_FORMAT = "ANSI"
+  }
+
+  FS = ":" # set the field separator
+
+  initialize_colors()
+
+  RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
+
+  VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
+
+  # Target matching is heuristic; this is not a complete GNU Make parser.
+  #
+  # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
+  # the rule separator is not followed by `:` or `=`, preventing assignment
+  # operators such as `:=` and `::=` from being mistaken for target separators.
+  #
+  # Known limitations:
+  #   - Colons inside variable references or function calls can cause false positives,
+  #     e.g., `$(info a: b)`.
+  #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
+  #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
+  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is
+  #     captured as `foo\ bar`.
+  if (TARGETS_REGEX == "") {
+    TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
+  }
+
+  VARS = VARS == "" ? 1 : VARS
+  PADDING = PADDING == "" ? " " : PADDING
+  DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
+  OFFSET = OFFSET == "" ? 2 : OFFSET
+  if (!is_bool(VARS)) {
+    option_error("VARS should be 0 or 1")
+  }
+  if (length(PADDING) != 1) {
+    option_error("PADDING should have length 1")
+  }
+  if (!is_bool(DEPRECATED)) {
+    option_error("DEPRECATED should be 0 or 1")
+  }
+  if (OFFSET !~ /^[0-9]+$/) {
+    option_error("OFFSET should be a non-negative integer")
+  }
+
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, g_sub_names, 0)
+  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES,
+                     DSUB_NAMES, 1)
+  DSUB_COUNT = length_array_posix(DSUB_NAMES)
+
+  if (OPTION_ERRORS > 0) {
+    ABORT = 1
+    exit 1
+  }
+
+  # we could exit faster but this causes the linter to not see defined variables
+  SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
+  if (ARGC == 1) {
+    if (SHOW_HELP) {
+      print_help()
     }
-  } else {
-    anchors[anchors_index] = anchor_name
-    anchors_index++
-  }
-
-  anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
-  forget_descriptions_data()
-
-  # note that section data is associated only with documented anchors
-  if (length_array_posix(SECTION_DATA) > 0) {
-    if (anchor_name in anchors_section_data) {
-      printf("WARNING: [%s:%s] redefined associated section data: %s\n",
-             FILENAME,
-             FNR,
-             anchor_name) > STDERR
-    }
-
-    anchors_section_data[anchor_name] = assemble_description_section_data(SECTION_DATA)
-    forget_section_data()
-  }
-
-  return anchors_index
-}
-
-function save_section_data(string) {
-  SECTION_DATA[SECTION_DATA_INDEX++] = string
-}
-
-function forget_section_data() {
-  delete SECTION_DATA
-  SECTION_DATA_INDEX = 1
-}
-
-function get_associated_section_data(anchor_name,
-                                     anchor_section_data) {
-  if (anchor_name in anchor_section_data) {
-    return colorize_description_backticks(\
-        apply_output_specific_formatting(anchor_section_data[anchor_name]))
-  }
-  return 0 # means that there is no section data associated with this anchor
-}
-
-# true for an anchor documented with ##% when deprecated anchors are not displayed
-function is_hidden_anchor(anchor, anchors_description_data) {
-  return !DEPRECATED && get_tag_from_description(anchors_description_data[anchor]) == "##%"
-}
-
-# the length of the longest displayed anchor (0 if no anchor is displayed)
-function get_max_anchor_length(anchors, anchors_description_data, #locals
-                               max_len, key, anchor, n) {
-  max_len = 0
-  for (key in anchors) { # order is not important
-    anchor = anchors[key]
-    if (is_hidden_anchor(anchor, anchors_description_data)) {
-      continue
-    }
-    n = (anchor in SUB_LABELS) ? length(SUB_LABELS[anchor]) : length(anchor)
-    if (n > max_len) {
-      max_len = n
-    }
-  }
-  return max_len
-}
-
-function get_separator(character, len_anchors) {
-  return repeated_string(character, max(len_anchors,
-                                        max(length(HEADER_TARGETS),
-                                            length(HEADER_VARIABLES))))
-}
-
-function substitute_backticks_patterns(string, #locals
-                                       before_match, inside_match, after_match) {
-  # (gensub with a back-reference would do this in one call, but it is only in gawk)
-  while (match(string, /`([^`]+)`/)) {
-    before_match = substr(string, 1, RSTART - 1)
-    inside_match = substr(string, RSTART + 1, RLENGTH - 2)
-    after_match = substr(string, RSTART + RLENGTH)
-
-    string = before_match COLOR_BACKTICKS_CODE inside_match COLOR_RESET_CODE after_match
-  }
-  return string
-}
-
-function colorize_description_backticks(description) {
-  if (COLOR_BACKTICKS) {
-    return substitute_backticks_patterns(description)
-  }
-  return description
-}
-
-# The input contains the (\n separated) description lines associated with one anchor.
-# Each line starts with a tag (##, ##! or ##%). Here we have to strip them and to
-# introduce indentation for lines below the first one.
-function format_description_data(anchor_name,
-                                 anchors_description_data,
-                                 len_anchor_names,
-                                 #locals
-                                 k, array_of_lines, line, description, n_elements) {
-  # the automatically-assigned indexes during the split are: 1, ..., #lines
-  split(anchors_description_data[anchor_name], array_of_lines, "\n")
-
-  # the tag for the first line is stripped below (after the parameter update)
-  description = repeated_string("", OFFSET) array_of_lines[1]
-
-  n_elements = length_array_posix(array_of_lines)
-  for (k=2; k<=n_elements; k++) {
-    line = array_of_lines[k]
-    sub(/^(##|##!|##%)/, "", line) # strip the tag
-    description = sprintf("%s\n%s%s",
-                          description,
-                          repeated_string("", OFFSET + len_anchor_names),
-                          line)
-  }
-
-  update_display_parameters(description)
-  # The order of alternatives is important when using goawk v1.29.1 and below.
-  # Starting from goawk v1.30.0 this problem has been fixed.
-  sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
-
-  # apply the substitutions in the order given
-  for (k = 1; k <= DSUB_COUNT; k++) {
-    description = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], description)
-  }
-
-  return colorize_description_backticks(apply_output_specific_formatting(description))
-}
-
-function assemble_description_section_data(array, #locals
-                                           docs, k, n_elements) {
-  docs = array[1]
-  n_elements = length_array_posix(array)
-  for (k=2; k<=n_elements; k++) {
-    docs = docs "\n" array[k]
-  }
-  return docs
-}
-
-function update_display_parameters(description, #locals
-                                   tag) {
-  tag = get_tag_from_description(description)
-  if (tag == "##!") {
-    DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
-    DISPLAY_PARAMS["show"] = 1
-  } else if (tag == "##%") {
-    DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
-    DISPLAY_PARAMS["show"] = DEPRECATED
-  } else if (tag == "##") {
-    DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
-    DISPLAY_PARAMS["show"] = 1
-  } else {
-    fatal(sprintf("ERROR (we shouldn't be here): %s", description))
+    ABORT = 1
+    exit 1
   }
 }
 
-# Split the parameters of a substitution, "k1:v1,k2:v2,...", into params[key] = value and
-# keys[1..n] (the keys in the order given); return n. In a pair, only the first colon is a
-# separator, and a comma in a value is written \,
-function parse_substitution_params(string, params, keys, #locals
-                                   temp_placeholder, k, n, n_pairs, key_values, pair, key) {
-  split("", params)
-  split("", keys)
-  temp_placeholder = "\034" # the “file separator” ASCII control character
-
-  # temporarily replace escaped commas
-  gsub(/\\,/, temp_placeholder, string)
-  n_pairs = split(string, key_values, ",")
-  n = 0
-  for (k = 1; k <= n_pairs; k++) {
-    if (key_values[k] ~ /^[ \t]*$/) {
-      continue # an empty pair, e.g., after a trailing comma
-    }
-    gsub(temp_placeholder, ",", key_values[k]) # restore commas
-    split(key_values[k], pair, ":")
-    key = pair[1]
-    gsub(SPACES_TABS_REGEX, "", key)
-    params[key] = substr(key_values[k], length(pair[1]) + 2) # after the first colon
-    keys[++n] = key
-  }
-  return n
+# It would be nice to extract the options from the docstring of this script (there could
+# be some sort of prefix before each option). Unfortunately, I can get the script passed
+# with the -f flag only using gawk (so, names of options are hard-coded in print_help):
+# for (key in PROCINFO["argv"]) {
+#   if (PROCINFO["argv"][key] == "-f") {
+#     printf PROCINFO["argv"][key + 1]
+#   }
+# }
+function print_help() {
+  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
+  print "Description: Generate docs for Makefile variables and targets"
+  print "Version: " VERSION
+  print "Options:"
+  printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
+  printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
+         (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
+  printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
+  printf "  DSUB (substitutions in docs):%s\n", (DSUB == "" ? "" : " " DSUB)
+  printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
+  printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
+  printf "  VARS ([bool] show documented variables): %s\n", VARS
+  printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
+  printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
+  printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
+  printf "  COLOR ([bool] use colors): %s\n", COLOR
+  printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
+  printf "  COLOR_: "
+  printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
+  printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
+  printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
+  printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
+  printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
 }
 
-# Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
-# that are not given)
-function extract_substitution_params(string_with_parameters, #locals
-                                     keys, key) {
-  parse_substitution_params(string_with_parameters, SUB_PARAMS_CURRENT, keys)
-
-  for (key in SUB_PARAMS_DEFAULTS) {
-    if (!(key in SUB_PARAMS_CURRENT)) {
-      SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
-    }
-  }
-  # L, M and N are used as numbers (the value above is a string, e.g., "0" would be true)
-  SUB_PARAMS_CURRENT["L"] += 0
-  SUB_PARAMS_CURRENT["M"] += 0
-  SUB_PARAMS_CURRENT["N"] += 0
-}
-
-# Report the invalid parameters of the substitution of name (see option_error)
-function validate_substitution_params(name, string_with_parameters, #locals
-                                      params, keys, k, n, key, value) {
-  n = parse_substitution_params(string_with_parameters, params, keys)
-  for (k = 1; k <= n; k++) {
-    key = keys[k]
-    value = strip_start_end_spaces_tabs(params[key])
-    if (!(key in SUB_PARAMS_DEFAULTS)) {
-      option_error(sprintf("SUB: unknown parameter %s of %s (use L, M, N, S, P, I or T)",
-                           key, name))
-    } else if ((key == "L" || key == "M") && !is_bool(value)) {
-      option_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
-    } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
-      option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
-                           name))
-    }
-  }
-}
+# ------------------------------------------------------------------------------------------
+# Substitutions (the options SUB and DSUB)
+# ------------------------------------------------------------------------------------------
 
 # SUB:  NAME:VALUES or NAME:LABEL:VALUES (the first two colons are separators)
 # DSUB: NAME:VALUES (only the first colon is a separator, no_labels is set)
@@ -642,144 +554,140 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
   }
 }
 
-function initialize_substitution_parameter_defaults() {
-  # don't change the defaults
-  SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
-  SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
-  SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
-  SUB_PARAMS_DEFAULTS["S"] = "" # separator
-  SUB_PARAMS_DEFAULTS["P"] = "" # prefix
-  SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
-  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
-}
+# Split the parameters of a substitution, "k1:v1,k2:v2,...", into params[key] = value and
+# keys[1..n] (the keys in the order given); return n. In a pair, only the first colon is a
+# separator, and a comma in a value is written \,
+function parse_substitution_params(string, params, keys, #locals
+                                   temp_placeholder, k, n, n_pairs, key_values, pair, key) {
+  split("", params)
+  split("", keys)
+  temp_placeholder = "\034" # the “file separator” ASCII control character
 
-# return the text that displays the values of a substitution
-function display_substitutions(anchor, len_anchors, #locals
-                               k, n, L, M, I, value_parts,
-                               cond_indent, indentation, text, output) {
-  output = ""
-  split(SUB_VALUES[anchor], value_parts, " ")
-
-  if (SUB_PARAMS_CURRENT["N"] < 0) {
-    n = length_array_posix(value_parts)
-  } else {
-    n = min(SUB_PARAMS_CURRENT["N"], length_array_posix(value_parts))
-  }
-
-  for (k=1; k<=n; k++) {
-    L = SUB_PARAMS_CURRENT["L"]
-    M = SUB_PARAMS_CURRENT["M"]
-    I = SUB_PARAMS_CURRENT["I"]
-
-    # -----------------------------
-    # NO INDENT: !M && !L
-    #    INDENT: !M &&  L && k == 1
-    # NO INDENT: !M &&  L && k  > 1
-    # NO INDENT:  M && !L && k == 1
-    #    INDENT:  M && !L && k  > 1
-    #    INDENT:  M &&  L
-    # -----------------------------
-    # the + 1 is because of the usual one space we add between the token ## and the docs
-    indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
-    cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
-    text = sprintf(repeated_string("%s", 7),
-                   repeated_string("", cond_indent ? indentation : 1),
-                   k == 1 ? I : "",
-                   SUB_PARAMS_CURRENT["P"],
-                   value_parts[k],
-                   k == n ? "" : SUB_PARAMS_CURRENT["S"],
-                   k == n ? SUB_PARAMS_CURRENT["T"] : "",
-                   M || (!M && k == n) ? "\n" : "")
-    output = output colorize_description_backticks(apply_output_specific_formatting(text))
-  }
-
-  if (!SUB_PARAMS_CURRENT["L"] && n == 0) {
-    output = output "\n"
-  }
-  return output
-}
-
-function display_anchor_with_data(anchor, description, section, len_anchors, #locals
-                                  renamed_anchor, formatted_anchor, padding, output) {
-  extract_substitution_params(SUB_PARAMS[anchor])
-
-  # Display the section (if there is one) even if it is anchored to a deprecated anchor
-  # that is not to be displayed (unless no anchor of its kind is displayed: then this
-  # function is not called for it).
-  if (section) {
-    if (COLOR_SECTION_CODE) {
-      # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
-      # the section color has to be restored after each reset.
-      if (OUTPUT_FORMAT == "ANSI") {
-        section = string_replace(COLOR_RESET_CODE,
-                                 COLOR_RESET_CODE COLOR_SECTION_CODE,
-                                 section)
-      }
-      printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
-    } else {
-      printf("%s\n", section)
+  # temporarily replace escaped commas
+  gsub(/\\,/, temp_placeholder, string)
+  n_pairs = split(string, key_values, ",")
+  n = 0
+  for (k = 1; k <= n_pairs; k++) {
+    if (key_values[k] ~ /^[ \t]*$/) {
+      continue # an empty pair, e.g., after a trailing comma
     }
+    gsub(temp_placeholder, ",", key_values[k]) # restore commas
+    split(key_values[k], pair, ":")
+    key = pair[1]
+    gsub(SPACES_TABS_REGEX, "", key)
+    params[key] = substr(key_values[k], length(pair[1]) + 2) # after the first colon
+    keys[++n] = key
   }
-
-  if (DISPLAY_PARAMS["show"]) {
-    renamed_anchor = (anchor in SUB_LABELS) ? SUB_LABELS[anchor] : anchor
-    formatted_anchor = apply_output_specific_formatting(renamed_anchor)
-
-    # handle padding manually because there is a difference between the actual text and
-    # the visible text (for latex)
-    padding = repeated_string("", len_anchors - length(renamed_anchor))
-    if (PADDING != " ") {
-      padding = string_replace(" ", PADDING, padding)
-    }
-    if (DISPLAY_PARAMS["color"]) {
-      formatted_anchor = sprintf("%s%s%s%s",
-                                 DISPLAY_PARAMS["color"],
-                                 formatted_anchor,
-                                 padding,
-                                 COLOR_RESET_CODE)
-    } else {
-      formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
-    }
-
-    output = sprintf("%s%s%s%s",
-                     formatted_anchor,
-                     description,
-                     SUB_PARAMS_CURRENT["L"] ? "\n" : "",
-                     display_substitutions(anchor, len_anchors))
-    printf("%s", strip_trailing_blanks(output))
-  }
+  return n
 }
 
-# formatting functions to be applied just before colors have been added
-function apply_output_specific_formatting(text) {
-  return escape_for_latex_output(escape_for_html_output(text))
-}
-
-# The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
-# FG and BG. Format: ANSI_PARAM:HEX_COLOR[,...] (invalid entries are reported, see
-# option_error).
-function set_user_defined_color_theme(                                  \
-    html_colors_split, k, n, ansi_html_map, ansi_param, html_color_code) {
-  n = split(EXPORT_THEME, html_colors_split, ",")
+# Report the invalid parameters of the substitution of name (see option_error)
+function validate_substitution_params(name, string_with_parameters, #locals
+                                      params, keys, k, n, key, value) {
+  n = parse_substitution_params(string_with_parameters, params, keys)
   for (k = 1; k <= n; k++) {
-    if (html_colors_split[k] ~ /^[ \t]*$/) {
-      continue # an empty entry, e.g., after a trailing comma
-    }
-    split(html_colors_split[k], ansi_html_map, ":")
-    ansi_param = ansi_html_map[1]
-    html_color_code = ansi_html_map[2]
-    # the parameters in the range 0-9 are attributes (e.g., bold): they have no color
-    if (ansi_param != "FG" && ansi_param != "BG" &&
-        !(ansi_param ~ /^[0-9]+$/ && ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR)) {
-      option_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
-                           html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
-    } else if (!is_hex_color(html_color_code)) {
-      option_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
-                           html_colors_split[k]))
-    } else {
-      ANSI_TO_HTML_COLOR[ansi_param] = html_color_code
+    key = keys[k]
+    value = strip_start_end_spaces_tabs(params[key])
+    if (!(key in SUB_PARAMS_DEFAULTS)) {
+      option_error(sprintf("SUB: unknown parameter %s of %s (use L, M, N, S, P, I or T)",
+                           key, name))
+    } else if ((key == "L" || key == "M") && !is_bool(value)) {
+      option_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
+    } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
+      option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
+                           name))
     }
   }
+}
+
+# Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
+# that are not given)
+function extract_substitution_params(string_with_parameters, #locals
+                                     keys, key) {
+  parse_substitution_params(string_with_parameters, SUB_PARAMS_CURRENT, keys)
+
+  for (key in SUB_PARAMS_DEFAULTS) {
+    if (!(key in SUB_PARAMS_CURRENT)) {
+      SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
+    }
+  }
+  # L, M and N are used as numbers (the value above is a string, e.g., "0" would be true)
+  SUB_PARAMS_CURRENT["L"] += 0
+  SUB_PARAMS_CURRENT["M"] += 0
+  SUB_PARAMS_CURRENT["N"] += 0
+}
+
+# ------------------------------------------------------------------------------------------
+# Colors and output formats (ANSI, HTML, LATEX)
+# ------------------------------------------------------------------------------------------
+
+function initialize_colors() {
+  COLOR = COLOR == "" ? default_color_option() : COLOR
+  if (!is_bool(COLOR)) {
+    option_error("COLOR should be 0 or 1")
+    COLOR = 1
+  }
+
+  define_ansi_to_html_colors()
+  define_ansi_to_html_attributes()
+  define_ansi_to_latex_function()
+  define_color_labels()
+
+  COLOR_DEFAULT = validate_ansi_param("COLOR_DEFAULT",
+                                      COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
+  COLOR_ATTENTION = validate_ansi_param("COLOR_ATTENTION",
+                                        COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
+  COLOR_DEPRECATED = validate_ansi_param("COLOR_DEPRECATED",
+                                         COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
+  COLOR_SECTION = validate_ansi_param("COLOR_SECTION",
+                                      COLOR_SECTION == "" ? 32 : COLOR_SECTION)
+  COLOR_BACKTICKS = validate_ansi_param("COLOR_BACKTICKS",
+                                        COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
+  if (!COLOR) {
+    COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
+  }
+
+  COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = define_color(-1)
+
+  if (OUTPUT_FORMAT == "HTML") {
+    HTML_FOOTER = "</pre>\n</div>"
+    # an HTML fragment (to paste into a page): the styles, then the documentation
+    HTML_HEADER = "<style>\n" \
+        ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
+        ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
+        ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
+        ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
+        ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
+        ansi_color_param_to_html_style("FG", "FG") \
+        ansi_color_param_to_html_style("BG", "BG") \
+        "</style>\n<div class=\"makefile-doc\">\n<pre>"
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
+    LATEX_HEADER = latex_header()
+  }
+}
+
+# the default of the COLOR option: 0 if NO_COLOR is set to a non-empty value (no-color.org)
+function default_color_option() {
+  return ("NO_COLOR" in ENVIRON && ENVIRON["NO_COLOR"] != "") ? 0 : 1
+}
+
+# Return the ANSI color parameter given for a COLOR_* option (0 means no color). An
+# unsupported value is reported (see option_error).
+function validate_ansi_param(option, ansi_param) {
+  if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_TO_HTML_COLOR) {
+    # The explicit cast to int here is needed only because of a busybox awk bug
+    # see misc/busybox_awk_bug_20251107.awk
+    return int(ansi_param)
+  }
+  option_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",
+                       option))
+  return 0
 }
 
 # The solarized theme is used by default
@@ -820,6 +728,33 @@ function define_ansi_to_html_colors(            \
   set_user_defined_color_theme()
 }
 
+# The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
+# FG and BG. Format: ANSI_PARAM:HEX_COLOR[,...] (invalid entries are reported, see
+# option_error).
+function set_user_defined_color_theme(                                  \
+    html_colors_split, k, n, ansi_html_map, ansi_param, html_color_code) {
+  n = split(EXPORT_THEME, html_colors_split, ",")
+  for (k = 1; k <= n; k++) {
+    if (html_colors_split[k] ~ /^[ \t]*$/) {
+      continue # an empty entry, e.g., after a trailing comma
+    }
+    split(html_colors_split[k], ansi_html_map, ":")
+    ansi_param = ansi_html_map[1]
+    html_color_code = ansi_html_map[2]
+    # the parameters in the range 0-9 are attributes (e.g., bold): they have no color
+    if (ansi_param != "FG" && ansi_param != "BG" &&
+        !(ansi_param ~ /^[0-9]+$/ && ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR)) {
+      option_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
+                           html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
+    } else if (!is_hex_color(html_color_code)) {
+      option_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
+                           html_colors_split[k]))
+    } else {
+      ANSI_TO_HTML_COLOR[ansi_param] = html_color_code
+    }
+  }
+}
+
 function define_ansi_to_html_attributes(        \
     k) {
   ANSI_TO_HTML_ATTR[0] = ""
@@ -856,6 +791,40 @@ function define_color_labels() {
   COLOR_LABELS["BACKTICKS"] = "color-backticks"
   COLOR_LABELS["FG"] = "makefile-doc-fg"
   COLOR_LABELS["BG"] = "makefile-doc-bg"
+}
+
+# ansi_color_param:
+# == 0: no color
+#  > 0: some color
+#  < 0: reset token  (the user cannot set -1 from outside, see validate_ansi_param())
+function define_color(ansi_color_param, color_label_key) {
+  if (!ansi_color_param) {
+    return "" # token for "no color annotation should be applied at all"
+  }
+
+  if (OUTPUT_FORMAT == "ANSI") {
+    if (ansi_color_param == -1) {
+      return "\033[0m"
+    } else {
+      return "\033[" ansi_color_param "m"
+    }
+  } else if (OUTPUT_FORMAT == "HTML") {
+    if (ansi_color_param == -1) {
+      return "</span>"
+    } else {
+      return "<span class=\"" html_class(color_label_key) "\">"
+    }
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    if (ansi_color_param == -1) {
+      return "}"
+    } else {
+      if (ansi_color_param > 9) {
+        return ANSI_TO_LATEX_FUN[ansi_color_param] "{" COLOR_LABELS[color_label_key] "}{"
+      } else {
+        return ANSI_TO_LATEX_FUN[ansi_color_param] "{"
+      }
+    }
+  }
 }
 
 # the class of the HTML elements with the color of label (e.g., makefile-doc-default)
@@ -958,328 +927,189 @@ function latex_header(                          \
   return header
 }
 
-# ansi_color_param:
-# == 0: no color
-#  > 0: some color
-#  < 0: reset token  (the user cannot set -1 from outside, see validate_ansi_param())
-function define_color(ansi_color_param, color_label_key) {
-  if (!ansi_color_param) {
-    return "" # token for "no color annotation should be applied at all"
-  }
-
-  if (OUTPUT_FORMAT == "ANSI") {
-    if (ansi_color_param == -1) {
-      return "\033[0m"
-    } else {
-      return "\033[" ansi_color_param "m"
-    }
-  } else if (OUTPUT_FORMAT == "HTML") {
-    if (ansi_color_param == -1) {
-      return "</span>"
-    } else {
-      return "<span class=\"" html_class(color_label_key) "\">"
-    }
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    if (ansi_color_param == -1) {
-      return "}"
-    } else {
-      if (ansi_color_param > 9) {
-        return ANSI_TO_LATEX_FUN[ansi_color_param] "{" COLOR_LABELS[color_label_key] "}{"
-      } else {
-        return ANSI_TO_LATEX_FUN[ansi_color_param] "{"
-      }
-    }
-  }
-}
-
-# Return the ANSI color parameter given for a COLOR_* option (0 means no color). An
-# unsupported value is reported (see option_error).
-function validate_ansi_param(option, ansi_param) {
-  if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_TO_HTML_COLOR) {
-    # The explicit cast to int here is needed only because of a busybox awk bug
-    # see misc/busybox_awk_bug_20251107.awk
-    return int(ansi_param)
-  }
-  option_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",
-                       option))
-  return 0
-}
-
-# the default of the COLOR option: 0 if NO_COLOR is set to a non-empty value (no-color.org)
-function default_color_option() {
-  return ("NO_COLOR" in ENVIRON && ENVIRON["NO_COLOR"] != "") ? 0 : 1
-}
-
-function initialize_colors() {
-  COLOR = COLOR == "" ? default_color_option() : COLOR
-  if (!is_bool(COLOR)) {
-    option_error("COLOR should be 0 or 1")
-    COLOR = 1
-  }
-
-  define_ansi_to_html_colors()
-  define_ansi_to_html_attributes()
-  define_ansi_to_latex_function()
-  define_color_labels()
-
-  COLOR_DEFAULT = validate_ansi_param("COLOR_DEFAULT",
-                                      COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
-  COLOR_ATTENTION = validate_ansi_param("COLOR_ATTENTION",
-                                        COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
-  COLOR_DEPRECATED = validate_ansi_param("COLOR_DEPRECATED",
-                                         COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
-  COLOR_SECTION = validate_ansi_param("COLOR_SECTION",
-                                      COLOR_SECTION == "" ? 32 : COLOR_SECTION)
-  COLOR_BACKTICKS = validate_ansi_param("COLOR_BACKTICKS",
-                                        COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
-  if (!COLOR) {
-    COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
-  }
-
-  COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT, "DEFAULT")
-  COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION, "ATTENTION")
-  COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED, "DEPRECATED")
-  COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
-  COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
-  COLOR_RESET_CODE = define_color(-1)
-
+# <, > and & would be interpreted as HTML markup (& first, so that the & of the other
+# replacements is not escaped again; string_replace because & is special in gsub)
+function escape_for_html_output(text) {
   if (OUTPUT_FORMAT == "HTML") {
-    HTML_FOOTER = "</pre>\n</div>"
-    # an HTML fragment (to paste into a page): the styles, then the documentation
-    HTML_HEADER = "<style>\n" \
-        ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
-        ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
-        ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
-        ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
-        ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
-        ansi_color_param_to_html_style("FG", "FG") \
-        ansi_color_param_to_html_style("BG", "BG") \
-        "</style>\n<div class=\"makefile-doc\">\n<pre>"
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
-    LATEX_HEADER = latex_header()
+    text = string_replace("&", "&amp;", text)
+    text = string_replace("<", "&lt;", text)
+    text = string_replace(">", "&gt;", text)
   }
+  return text
 }
 
-# It would be nice to extract the options from the docstring of this script (there could
-# be some sort of prefix before each option). Unfortunately, I can get the script passed
-# with the -f flag only using gawk (so, names of options are hard-coded in print_help):
-# for (key in PROCINFO["argv"]) {
-#   if (PROCINFO["argv"][key] == "-f") {
-#     printf PROCINFO["argv"][key + 1]
-#   }
-# }
-function print_help() {
-  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
-  print "Description: Generate docs for Makefile variables and targets"
-  print "Version: " VERSION
-  print "Options:"
-  printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
-  printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
-         (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
-  printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
-  printf "  DSUB (substitutions in docs):%s\n", (DSUB == "" ? "" : " " DSUB)
-  printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
-  printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
-  printf "  VARS ([bool] show documented variables): %s\n", VARS
-  printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
-  printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
-  printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
-  printf "  COLOR ([bool] use colors): %s\n", COLOR
-  printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
-  printf "  COLOR_: "
-  printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
-  printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
-  printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
-  printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
-  printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
+# In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
+# a placeholder: escaping them first would escape the braces of \textbackslash{}, and
+# escaping them last would escape the backslashes of \{ and \}.
+function escape_for_latex_output(text, #locals
+                                 placeholder) {
+  if (OUTPUT_FORMAT == "LATEX") {
+    placeholder = "\034"
+    text = string_replace("\\", placeholder, text)
+    gsub(/\{/, "\\{", text)
+    gsub(/\}/, "\\}", text)
+    text = string_replace(placeholder, "\\textbackslash{}", text)
+  }
+  return text
 }
 
-# Set the global state that does not depend on user options. It is called from BEGIN and
-# can be called from unit tests (also to reset the state between tests).
-function init_globals() {
-  VERSION = "v1.8" # the only place where the version is defined
+# formatting functions to be applied just before colors have been added
+function apply_output_specific_formatting(text) {
+  return escape_for_latex_output(escape_for_html_output(text))
+}
 
-  # can be overridden with -v STDERR=file (used by the unit tests)
-  STDERR = STDERR == "" ? "/dev/stderr" : STDERR
-  ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
-  FATAL_MSG = "" # in unit-test mode, the message of the last call to fatal()
-  OPTION_ERRORS = 0 # number of invalid options (see option_error)
+# ------------------------------------------------------------------------------------------
+# Parsing helpers
+# ------------------------------------------------------------------------------------------
 
-  initialize_variables_regex()
-  initialize_substitution_parameter_defaults()
+function get_tag_from_description(string, #locals
+                                  tag) {
+  if (match(string, /^ *(##!|##%|##)/)) {
+    tag = substr(string, RSTART, RLENGTH)
+    sub(/ */, "", tag)
+    return tag
+  }
 
-  # initialize global arrays (i.e., hash tables) for clarity
-  # index variables start from 1 because this is the standard in awk
+  return 0 # if we end-up here it probably means that we are using a wrong regex
+}
 
-  # map target name to description
-  split("", TARGETS_DESCRIPTION_DATA)
+function save_description_data(string) {
+  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX++] = string
+}
 
-  # map target name to section data
-  # a section uses a target / variable as an anchor
-  split("", TARGETS_SECTION_DATA)
-
-  # the index for the next double-colon rule with description (the key doesn't include ~k)
-  split("", TARGETS_DC_COUNTER)
-
-  # map index to target name (order is important)
-  split("", TARGETS)
-  TARGETS_INDEX = 1
-
-  # map index to line in description data (to be associated with the next anchor)
-  split("", DESCRIPTION_DATA)
+function forget_descriptions_data() {
+  delete DESCRIPTION_DATA
   DESCRIPTION_DATA_INDEX = 1
+}
 
-  # map index to line in section data (to be associated with the next anchor)
-  split("", SECTION_DATA)
+function save_section_data(string) {
+  SECTION_DATA[SECTION_DATA_INDEX++] = string
+}
+
+function forget_section_data() {
+  delete SECTION_DATA
   SECTION_DATA_INDEX = 1
-
-  # map variable name to description
-  split("", VARIABLES_DESCRIPTION_DATA)
-
-  # map variable name to section
-  split("", VARIABLES_SECTION_DATA)
-
-  # map index to variable name
-  split("", VARIABLES)
-  VARIABLES_INDEX = 1
-
-  split("", DISPLAY_PARAMS)
-
-  HEADER_TARGETS = "Available targets:"
-  HEADER_VARIABLES = "Command-line arguments:"
-  NUMBER_OF_FILES_PROCESSED = 0
-  CURRENT_FILE = "" # the FILENAME of the file being read (see warn_about_continued_last_line)
-  FILES_PROCESSED = ""
-  SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
-
-  # used to decorate double-colon targets in the documentation
-  DOUBLE_COLON_SEPARATOR = "~"
-
-  reset_file_state()
 }
 
-# The parser state that must not be carried over from one Makefile to the next: a doc, a
-# rule, a continued line, recipe or comment at the end of a file ends with that file.
-# Pending section data is kept on purpose (a section is anchored to the next documented
-# anchor, which can be in the next file).
-function reset_file_state() {
-  forget_descriptions_data()
-  IN_MULTILINE_BACKSLASH_COMMENT = 0
-  IN_MULTILINE_BACKSLASH_RECIPE = 0
-  IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
-  CONTINUED_LINE = ""
-  IN_RULE = ""
+function assemble_description_section_data(array, #locals
+                                           docs, k, n_elements) {
+  docs = array[1]
+  n_elements = length_array_posix(array)
+  for (k=2; k<=n_elements; k++) {
+    docs = docs "\n" array[k]
+  }
+  return docs
 }
 
-function is_bool(value) {
-  return value ~ /^[01]$/
-}
-
-# a color of 6 hex digits (without a leading #)
-function is_hex_color(value) {
-  return length(value) == 6 && value ~ /^[0-9A-Fa-f]+$/
-}
-
-# Report an invalid value of an option. The script goes on, so that all the invalid options
-# are reported, and stops at the end of process_options().
-function option_error(message) {
-  printf("ERROR: %s\n", message) > STDERR
-  OPTION_ERRORS++
-}
-
-# A file whose last line ends with a backslash: the line cannot be joined with a next one,
-# so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
-# the next file and in END).
-function warn_about_continued_last_line() {
-  if (IN_CONTINUED_LINE) {
-    printf("WARNING: [%s] the last line ends with a backslash\n", CURRENT_FILE) > STDERR
-  }
-}
-
-# Report an error and stop. In unit-test mode, record the message and return instead, so
-# that a test can check it and the remaining tests still run.
-function fatal(message) {
-  printf("%s\n", message) > STDERR
-  if (UNIT_TEST) {
-    FATAL_MSG = message
-    return
-  }
-  ABORT = 1
-  exit 1
-}
-
-# Process the user options (called from BEGIN, but not in unit-test mode). Every invalid
-# option is reported, then the script exits with status 1 without any other output.
-function process_options() {
-  OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
-  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
-    OUTPUT_FORMAT = "ANSI"
-  }
-
-  FS = ":" # set the field separator
-
-  initialize_colors()
-
-  RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
-
-  VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
-
-  # Target matching is heuristic; this is not a complete GNU Make parser.
-  #
-  # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
-  # the rule separator is not followed by `:` or `=`, preventing assignment
-  # operators such as `:=` and `::=` from being mistaken for target separators.
-  #
-  # Known limitations:
-  #   - Colons inside variable references or function calls can cause false positives,
-  #     e.g., `$(info a: b)`.
-  #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
-  #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
-  #   - Escaped spaces remain escaped in captured target names, e.g., `foo\ bar:` is
-  #     captured as `foo\ bar`.
-  if (TARGETS_REGEX == "") {
-    TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
-  }
-
-  VARS = VARS == "" ? 1 : VARS
-  PADDING = PADDING == "" ? " " : PADDING
-  DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
-  OFFSET = OFFSET == "" ? 2 : OFFSET
-  if (!is_bool(VARS)) {
-    option_error("VARS should be 0 or 1")
-  }
-  if (length(PADDING) != 1) {
-    option_error("PADDING should have length 1")
-  }
-  if (!is_bool(DEPRECATED)) {
-    option_error("DEPRECATED should be 0 or 1")
-  }
-  if (OFFSET !~ /^[0-9]+$/) {
-    option_error("OFFSET should be a non-negative integer")
-  }
-
-  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, g_sub_names, 0)
-  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES,
-                     DSUB_NAMES, 1)
-  DSUB_COUNT = length_array_posix(DSUB_NAMES)
-
-  if (OPTION_ERRORS > 0) {
-    ABORT = 1
-    exit 1
-  }
-
-  # we could exit faster but this causes the linter to not see defined variables
-  SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
-  if (ARGC == 1) {
-    if (SHOW_HELP) {
-      print_help()
+# Save the inline doc of a target or variable line. On a target line, a ## after a ; is part
+# of an inline recipe (not a doc); in a variable assignment, a ; is part of the value. An
+# inline ##@ is not a doc either (a section is written on its own lines).
+function parse_inline_descriptions(whole_line, is_variable, #locals
+                                   inline_description) {
+  if ((is_variable || !match(whole_line, /^[^#]*;/)) &&
+      match(whole_line, / *(##!|##%|##)/)) {
+    inline_description = substr(whole_line, RSTART)
+    sub(/^ */, "", inline_description)
+    if (inline_description !~ /^##@/) {
+      save_description_data(inline_description)
     }
-    ABORT = 1
-    exit 1
   }
 }
+
+# True for a line of a special target, e.g., `.PHONY: t` or `.ONESHELL:` (a dot followed by
+# upper-case letters). These lines are skipped and the docs above them are kept.
+function detect_ignored_targets(target_line) {
+  return target_line ~ /^[ \t]*\.[A-Z_]+[ \t]*:/
+}
+
+# Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`
+# (the part before the first colon of `$(info a: b)`)
+function has_unclosed_reference(text, #locals
+                                opened, closed) {
+  opened = gsub(/[(]/, "(", text)
+  closed = gsub(/[)]/, ")", text)
+  if (opened > closed) {
+    return 1
+  }
+  opened = gsub(/[{]/, "{", text)
+  closed = gsub(/[}]/, "}", text)
+  return opened > closed
+}
+
+function is_double_colon_rule(line, #locals
+                              pos) {
+  pos = index(line, ":")
+  return pos && substr(line, pos + 1, 1) == ":"
+}
+
+function form_dc_target_name(target_name_nominal) {
+  if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
+    TARGETS_DC_COUNTER[target_name_nominal] = 1
+  }
+
+  return sprintf("%s%s%s",
+                 target_name_nominal,
+                 DOUBLE_COLON_SEPARATOR,
+                 TARGETS_DC_COUNTER[target_name_nominal])
+}
+
+# return `FOO`, given `override private export FOO := 1`
+# return `export`, given `override private export := 1` even though `export` is a qualifier
+function parse_variable_name(whole_line, #locals
+                             whole_line_split, variable_name, qualifiers_pattern) {
+  split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
+  variable_name = strip_start_end_spaces_tabs(whole_line_split[1])
+
+  qualifiers_pattern = "(" join(VARIABLE_QUALIFIERS, "|") ")"
+
+  while (match(variable_name, "^" qualifiers_pattern "[ \t]+[^ \t]")) {
+    sub("^" qualifiers_pattern "[ \t]+", "", variable_name)
+  }
+
+  return strip_start_end_spaces_tabs(variable_name)
+}
+
+function associate_data_with_anchor(anchor_name,
+                                    anchors,
+                                    anchors_index,
+                                    anchors_description_data,
+                                    anchors_section_data,
+                                    anchor_type) {
+  if (anchor_name in anchors_description_data) {
+    if (!(anchor_type == "variable" && !VARS)) {
+      printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
+             FILENAME,
+             FNR,
+             anchor_type,
+             anchor_name) > STDERR
+    }
+  } else {
+    anchors[anchors_index] = anchor_name
+    anchors_index++
+  }
+
+  anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
+  forget_descriptions_data()
+
+  # note that section data is associated only with documented anchors
+  if (length_array_posix(SECTION_DATA) > 0) {
+    if (anchor_name in anchors_section_data) {
+      printf("WARNING: [%s:%s] redefined associated section data: %s\n",
+             FILENAME,
+             FNR,
+             anchor_name) > STDERR
+    }
+
+    anchors_section_data[anchor_name] = assemble_description_section_data(SECTION_DATA)
+    forget_section_data()
+  }
+
+  return anchors_index
+}
+
+# ------------------------------------------------------------------------------------------
+# The parser: BEGIN, then one pattern rule per kind of line
+# ------------------------------------------------------------------------------------------
 
 # Initialize global variables.
 BEGIN {
@@ -1490,6 +1320,218 @@ $0 ~ VARIABLES_REGEX {
 # special targets have been handled above.)
 !PATTERN_RULE_MATCHED && $0 !~ /^[ \t]*#/ {
   forget_descriptions_data()
+}
+
+# ------------------------------------------------------------------------------------------
+# Display of the documentation (and END)
+# ------------------------------------------------------------------------------------------
+
+# true for an anchor documented with ##% when deprecated anchors are not displayed
+function is_hidden_anchor(anchor, anchors_description_data) {
+  return !DEPRECATED && get_tag_from_description(anchors_description_data[anchor]) == "##%"
+}
+
+# the length of the longest displayed anchor (0 if no anchor is displayed)
+function get_max_anchor_length(anchors, anchors_description_data, #locals
+                               max_len, key, anchor, n) {
+  max_len = 0
+  for (key in anchors) { # order is not important
+    anchor = anchors[key]
+    if (is_hidden_anchor(anchor, anchors_description_data)) {
+      continue
+    }
+    n = (anchor in SUB_LABELS) ? length(SUB_LABELS[anchor]) : length(anchor)
+    if (n > max_len) {
+      max_len = n
+    }
+  }
+  return max_len
+}
+
+function get_separator(character, len_anchors) {
+  return repeated_string(character, max(len_anchors,
+                                        max(length(HEADER_TARGETS),
+                                            length(HEADER_VARIABLES))))
+}
+
+function substitute_backticks_patterns(string, #locals
+                                       before_match, inside_match, after_match) {
+  # (gensub with a back-reference would do this in one call, but it is only in gawk)
+  while (match(string, /`([^`]+)`/)) {
+    before_match = substr(string, 1, RSTART - 1)
+    inside_match = substr(string, RSTART + 1, RLENGTH - 2)
+    after_match = substr(string, RSTART + RLENGTH)
+
+    string = before_match COLOR_BACKTICKS_CODE inside_match COLOR_RESET_CODE after_match
+  }
+  return string
+}
+
+function colorize_description_backticks(description) {
+  if (COLOR_BACKTICKS) {
+    return substitute_backticks_patterns(description)
+  }
+  return description
+}
+
+function update_display_parameters(description, #locals
+                                   tag) {
+  tag = get_tag_from_description(description)
+  if (tag == "##!") {
+    DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
+    DISPLAY_PARAMS["show"] = 1
+  } else if (tag == "##%") {
+    DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
+    DISPLAY_PARAMS["show"] = DEPRECATED
+  } else if (tag == "##") {
+    DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
+    DISPLAY_PARAMS["show"] = 1
+  } else {
+    fatal(sprintf("ERROR (we shouldn't be here): %s", description))
+  }
+}
+
+# The input contains the (\n separated) description lines associated with one anchor.
+# Each line starts with a tag (##, ##! or ##%). Here we have to strip them and to
+# introduce indentation for lines below the first one.
+function format_description_data(anchor_name,
+                                 anchors_description_data,
+                                 len_anchor_names,
+                                 #locals
+                                 k, array_of_lines, line, description, n_elements) {
+  # the automatically-assigned indexes during the split are: 1, ..., #lines
+  split(anchors_description_data[anchor_name], array_of_lines, "\n")
+
+  # the tag for the first line is stripped below (after the parameter update)
+  description = repeated_string("", OFFSET) array_of_lines[1]
+
+  n_elements = length_array_posix(array_of_lines)
+  for (k=2; k<=n_elements; k++) {
+    line = array_of_lines[k]
+    sub(/^(##|##!|##%)/, "", line) # strip the tag
+    description = sprintf("%s\n%s%s",
+                          description,
+                          repeated_string("", OFFSET + len_anchor_names),
+                          line)
+  }
+
+  update_display_parameters(description)
+  # The order of alternatives is important when using goawk v1.29.1 and below.
+  # Starting from goawk v1.30.0 this problem has been fixed.
+  sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
+
+  # apply the substitutions in the order given
+  for (k = 1; k <= DSUB_COUNT; k++) {
+    description = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], description)
+  }
+
+  return colorize_description_backticks(apply_output_specific_formatting(description))
+}
+
+function get_associated_section_data(anchor_name,
+                                     anchor_section_data) {
+  if (anchor_name in anchor_section_data) {
+    return colorize_description_backticks(\
+        apply_output_specific_formatting(anchor_section_data[anchor_name]))
+  }
+  return 0 # means that there is no section data associated with this anchor
+}
+
+# return the text that displays the values of a substitution
+function display_substitutions(anchor, len_anchors, #locals
+                               k, n, L, M, I, value_parts,
+                               cond_indent, indentation, text, output) {
+  output = ""
+  split(SUB_VALUES[anchor], value_parts, " ")
+
+  if (SUB_PARAMS_CURRENT["N"] < 0) {
+    n = length_array_posix(value_parts)
+  } else {
+    n = min(SUB_PARAMS_CURRENT["N"], length_array_posix(value_parts))
+  }
+
+  for (k=1; k<=n; k++) {
+    L = SUB_PARAMS_CURRENT["L"]
+    M = SUB_PARAMS_CURRENT["M"]
+    I = SUB_PARAMS_CURRENT["I"]
+
+    # -----------------------------
+    # NO INDENT: !M && !L
+    #    INDENT: !M &&  L && k == 1
+    # NO INDENT: !M &&  L && k  > 1
+    # NO INDENT:  M && !L && k == 1
+    #    INDENT:  M && !L && k  > 1
+    #    INDENT:  M &&  L
+    # -----------------------------
+    # the + 1 is because of the usual one space we add between the token ## and the docs
+    indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
+    cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
+    text = sprintf(repeated_string("%s", 7),
+                   repeated_string("", cond_indent ? indentation : 1),
+                   k == 1 ? I : "",
+                   SUB_PARAMS_CURRENT["P"],
+                   value_parts[k],
+                   k == n ? "" : SUB_PARAMS_CURRENT["S"],
+                   k == n ? SUB_PARAMS_CURRENT["T"] : "",
+                   M || (!M && k == n) ? "\n" : "")
+    output = output colorize_description_backticks(apply_output_specific_formatting(text))
+  }
+
+  if (!SUB_PARAMS_CURRENT["L"] && n == 0) {
+    output = output "\n"
+  }
+  return output
+}
+
+function display_anchor_with_data(anchor, description, section, len_anchors, #locals
+                                  renamed_anchor, formatted_anchor, padding, output) {
+  extract_substitution_params(SUB_PARAMS[anchor])
+
+  # Display the section (if there is one) even if it is anchored to a deprecated anchor
+  # that is not to be displayed (unless no anchor of its kind is displayed: then this
+  # function is not called for it).
+  if (section) {
+    if (COLOR_SECTION_CODE) {
+      # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
+      # the section color has to be restored after each reset.
+      if (OUTPUT_FORMAT == "ANSI") {
+        section = string_replace(COLOR_RESET_CODE,
+                                 COLOR_RESET_CODE COLOR_SECTION_CODE,
+                                 section)
+      }
+      printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
+    } else {
+      printf("%s\n", section)
+    }
+  }
+
+  if (DISPLAY_PARAMS["show"]) {
+    renamed_anchor = (anchor in SUB_LABELS) ? SUB_LABELS[anchor] : anchor
+    formatted_anchor = apply_output_specific_formatting(renamed_anchor)
+
+    # handle padding manually because there is a difference between the actual text and
+    # the visible text (for latex)
+    padding = repeated_string("", len_anchors - length(renamed_anchor))
+    if (PADDING != " ") {
+      padding = string_replace(" ", PADDING, padding)
+    }
+    if (DISPLAY_PARAMS["color"]) {
+      formatted_anchor = sprintf("%s%s%s%s",
+                                 DISPLAY_PARAMS["color"],
+                                 formatted_anchor,
+                                 padding,
+                                 COLOR_RESET_CODE)
+    } else {
+      formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
+    }
+
+    output = sprintf("%s%s%s%s",
+                     formatted_anchor,
+                     description,
+                     SUB_PARAMS_CURRENT["L"] ? "\n" : "",
+                     display_substitutions(anchor, len_anchors))
+    printf("%s", strip_trailing_blanks(output))
+  }
 }
 
 # Display results (all stdout is here).
