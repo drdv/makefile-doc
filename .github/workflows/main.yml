@@ -46,8 +46,8 @@ jobs:
         run: make check-version
 
   test:
-    name: ${{ matrix.awk }} ${{ matrix.awk_flags }}
-    runs-on: ubuntu-latest
+    name: ${{ matrix.awk }} ${{ matrix.awk_flags }} ${{ matrix.os && '(macOS)' || '' }}
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     timeout-minutes: 15
 
     strategy:
@@ -64,24 +64,36 @@ jobs:
           - awk: bawk
           - awk: wak
           - awk: goawk
+          - awk: awk # the awk that comes with macOS
+            os: macos-latest
 
     steps:
       - name: check out the repository
         uses: actions/checkout@v4
+
+      # macOS comes with GNU Make 3.81; the Makefile needs 4.0
+      - name: install GNU Make (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install make
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+          awk --version || true
 
       - name: show tool versions
         run: |
           make --version | head -n 1
           python3 --version
 
-      # the built binary is cached; the key changes when test/deps.toml changes (e.g., a new
-      # version), so the variant is built again then
+      # the built binary is cached; the key changes when test/deps.toml (e.g., a new version)
+      # or test/deps.py changes, so the variant is built again then
       - name: restore ${{ matrix.awk }} from the cache
-        if: matrix.awk != 'gawk'
+        if: matrix.awk != 'gawk' && matrix.awk != 'awk'
         uses: actions/cache@v4
         with:
           path: test/bin/${{ matrix.awk }}
-          key: ${{ matrix.awk }}-${{ runner.os }}-${{ hashFiles('test/deps.toml') }}
+          key: >-
+            ${{ matrix.awk }}-${{ runner.os }}-${{ runner.arch }}-${{
+            hashFiles('test/deps.toml', 'test/deps.py') }}
 
       - name: download and build ${{ matrix.awk }}
         run: make deps@${{ matrix.awk }}
