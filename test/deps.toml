@@ -1,7 +1,7 @@
 # What the tests download, used by test/deps.py: the awk variants (built into test/bin/)
 # and the Makefiles timed by `make bench@all` (saved into test/bin/). Every download is
-# checked against its sha256; an empty sha256 (e.g., right after changing a version)
-# skips the check and prints the value to fill in.
+# checked against its sha256; with an empty sha256 (e.g., right after changing a version)
+# nothing is installed and the value to fill in is printed.
 
 # ------------------------------------------------------------------------------------------
 # Awk variants: `make deps@<variant>` builds test/bin/<variant>
@@ -12,6 +12,8 @@
 #   build    the build command, run in the extracted sources
 #   binary   the file the build produces (path relative to the sources)
 #   os       the only OS where it can be installed (as Python's platform.system())
+#   arch     the only architectures where it can be installed (as Python's
+#            platform.machine())
 #   bench    false to leave it out of `make bench@all`
 # ------------------------------------------------------------------------------------------
 
@@ -41,7 +43,8 @@ binary = "a.out"
 version = "1.35.0"
 url = "https://busybox.net/downloads/binaries/{version}-x86_64-linux-musl/busybox_AWK"
 sha256 = "a0be3443bc46b48c761249003bf5d0750afac092bc87d2a541d09bce05172a7b"
-os = "Linux" # a prebuilt x86_64 binary
+os = "Linux" # a prebuilt binary
+arch = ["x86_64", "AMD64"]
 
 [awk.wak]
 version = "v24.10"

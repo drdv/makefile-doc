@@ -70,9 +70,12 @@ def download(urls: list[str], path: Path, sha256: str) -> Path:
             errors.append(f"{url}: {e}")
             continue
         digest = hashlib.sha256(data).hexdigest()
-        if not sha256:
-            print(f"WARNING: no sha256 to check {path.name} (it is {digest})", file=sys.stderr)
-        elif digest != sha256:
+        if not sha256:  # nothing unverified is installed
+            raise DepsError(
+                f"no sha256 to check {path.name}: if the download is trusted, "
+                f'set sha256 = "{digest}" in test/deps.toml'
+            )
+        if digest != sha256:
             errors.append(f"{url}: wrong sha256 {digest} (expected {sha256})")
             continue
         path.write_bytes(data)
@@ -89,7 +92,14 @@ def install(name: str) -> Path:
         return target
     if "os" in awk and platform.system() != awk["os"]:
         raise DepsError(f"{name} can only be installed on {awk['os']}")
+    if "arch" in awk and platform.machine() not in awk["arch"]:
+        raise DepsError(
+            f"{name} can only be installed on {' or '.join(awk['arch'])} "
+            f"(this is {platform.machine()})"
+        )
     BIN.mkdir(parents=True, exist_ok=True)
+    if target.is_symlink():  # a link to a system awk that does not exist anymore
+        target.unlink()
 
     if awk.get("system"):
         path = shutil.which(name)
