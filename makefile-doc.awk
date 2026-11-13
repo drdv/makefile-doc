@@ -6,100 +6,62 @@
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
 #
-# Usage (see project README.md for more details):
-#   awk [-v option=value] -f makefile-doc.awk [Makefile ...]
+# Usage (the README.md of the project has the details and examples):
+#   awk [-v OPTION=value ...] -f makefile-doc.awk [Makefile ...]
 #
-# Notes:
-#   * In the code, the term anchor is used to refer to Makefile targets / variables.
-#   * Docs can be placed above an anchor or inline (the latter is discarded if the
-#     former is present).
-#   * Anchor docs can start with the following tokens:
-#      * ##  default anchors (displayed in COLOR_DEFAULT)
-#      * ##! special anchors (displayed in COLOR_ATTENTION)
-#      * ##% deprecated anchor (displayed in COLOR_DEPRECATED)
-#   * The token ##@ can be used to create sections (displayed in COLOR_SECTION)
+# Docs:
+#   * Targets and variables are called anchors.
+#   * The docs of an anchor are comments placed above it or inline (the inline docs are
+#     ignored if there are docs above). They start with one of the tokens:
+#       ##   a default anchor (displayed in COLOR_DEFAULT)
+#       ##!  an anchor that needs attention (displayed in COLOR_ATTENTION)
+#       ##%  a deprecated anchor (displayed in COLOR_DEPRECATED)
+#   * Lines that start with ##@ form a section (displayed in COLOR_SECTION, above the next
+#     documented anchor).
 #
 # Options (possible values are given in {...}, (.) denotes the default):
-#   + OUTPUT_FORMAT: {(ANSI), HTML, LATEX}
-#   + EXPORT_THEME: see below
-#   + SUB: see below
-#   + DSUB: see below
-#   + TARGETS_REGEX: regex for matching targets
-#   + VARIABLES_REGEX: regex for matching variables
-#   * VARS: {0, (1)} show documented variables
-#   * PADDING: {(" "), ".", ...} a single padding character between anchors and docs
-#   * DEPRECATED: {0, (1)} show deprecated anchors
-#   * OFFSET: {0, 1, (2), ...} number of spaces to offset docs from anchors
-#   * COLOR: {0, (1)} 0 turns off all colors (the default is 0 if the environment variable
-#     NO_COLOR is set to a non-empty value, see https://no-color.org)
-#   + RECIPEPREFIX: should have the same value as the .RECIPEPREFIX from your Makefile
-#   * see as well the color codes below
+#   VARS              {0, (1)} show documented variables
+#   DEPRECATED        {0, (1)} show deprecated anchors
+#   PADDING           {(" "), ".", ...} a single padding character between anchors and docs
+#   OFFSET            {0, 1, (2), ...} number of spaces to offset docs from anchors
+#   COLOR             {0, (1)} 0 turns off all colors (the default is 0 if the environment
+#                     variable NO_COLOR is set to a non-empty value, see https://no-color.org)
+#   OUTPUT_FORMAT     {(ANSI), HTML, LATEX}
+#   EXPORT_THEME      colors of the HTML and LATEX output: ANSI_PARAMETER:HEX_COLOR[,...],
+#                     with FG and BG for the foreground and the background, e.g.,
+#                     32:d33682,35:859900,BG:000000 (no effect on ANSI output)
+#   SUB               rename anchors and list values in their docs:
+#                     [<p1:v1,...>]NAME[:LABEL]:[VALUES][;...]
+#                     (the parameters are L, M, N, S, P, I and T)
+#   DSUB              replace text in the docs: NAME:VALUES[;...]
+#   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
+#   TARGETS_REGEX     regex for matching targets
+#   VARIABLES_REGEX   regex for matching variables
+#   COLOR_DEFAULT     (34) blue
+#   COLOR_ATTENTION   (31) red
+#   COLOR_DEPRECATED  (33) yellow
+#   COLOR_SECTION     (32) green
+#   COLOR_BACKTICKS   (0) disabled -- used for text in backticks in docs
+#
+#   A color is the parameter of an ANSI escape code, e.g., the 34 in `\033[34m` for blue
+#   (https://en.wikipedia.org/wiki/ANSI_escape_code). The supported parameters are: 0, 1, 3,
+#   4, 9, 30-37, 40-47, 90-97, 100-107 (see the array ANSI_TO_HTML_COLOR).
 #
 #   An invalid value is an error: all the invalid options are reported (on stderr), nothing
 #   else is printed and the exit status is 1.
 #
-# Color codes (https://en.wikipedia.org/wiki/ANSI_escape_code):
-#   * COLOR_DEFAULT: (34) blue
-#   * COLOR_ATTENTION: (31) red
-#   * COLOR_DEPRECATED: (33) yellow
-#   * COLOR_SECTION: (32) green
-#   * COLOR_BACKTICKS: (0) disabled -- used for text in backticks in docs
-#
-#   Colors are specified using the parameter in ANSI escape codes, e.g., the parameter
-#   for blue is the 34 in `\033[34m`. The supported parameters are: 0, 1, 3, 4, 9,
-#   30-37, 40-47, 90-97, 100-107 (see array ANSI_TO_HTML_COLOR).
-#
-#   + EXPORT_THEME: user-defined mapping between ANSI color parameters and HEX color
-#     codes (without the hash tag). For example -v EXPORT_THEME=32:d33682,35:859900
-#     would change the way the ANSI colors corresponding to the parameters 32 and 35 are
-#     exported to HTML and LATEX (in effect, exchanging their default values in this
-#     example). This can be used to define a custom theme for HTML and LATEX output (it
-#     has no effect on ANSI output).
-#
-# SUB:
-#   Contains substitutions for targets and variables. For example, consider a variable
-#   named AWK whose possible values are contained in a variable SUPPORTED_AWK_VARIANTS,
-#   then passing -v SUB='AWK:$(SUPPORTED_AWK_VARIANTS)' would add the values of
-#   SUPPORTED_AWK_VARIANTS to the documentation of the variable AWK. This mechanism is
-#   also useful when documenting targets defined in terms of variables/expressions,
-#   which we might want to rename. The format of a single substitution is
-#   [<p1:v1,...>]NAME[:LABEL]:[VALUES]
-#   + NAME is the name of the variable/target to substitute in the documentation
-#   + LABEL is an optional label for renaming the variable/target
-#   + VALUES are optional space-separated values to include
-#   + <p1:v1,...> are optional, comma-separated, key-value pairs with parameters (a comma
-#     can appear as a part of a parameter value if it is escaped, i.e., \\,)
-#   + multiple ;-separated substitutions can be passed
-#
-# SUB parameters:
-#   Each substitution can include parameters <p1:v1,...>:
-#   + L:0/L:1 values are displayed starting from the current/next line
-#   + M:0/M:1 single/multi-line display
-#   + N       max number of values to display (-1, the default, means no limit)
-#   + S       value-separator
-#   + P       prefix (added to each value)
-#   + I       initial string, e.g., {
-#   + T       termination string, e.g., }
-#
-# DSUB:
-#  Similar to SUB but performs substitutions in the original descriptions. The expected
-#  format is NAME:VALUES. For example, using -v DSUB='$$(DEPS):$(DEPS)', the target
-#
-#  DEPS := x y
-#  ## Prerequisites: $(DEPS)
-#  t: $(DEPS)
-#
-#  would be documented as: t   Prerequisites: x y
-#
-#  Values containing newline characters are not supported.
-#
-#  The substitutions are applied in the order given. If a name appears more than once,
-#  the last value is used.
+#   SUB, DSUB and EXPORT_THEME are described, with examples, in the README.md.
 #
 # Code conventions:
-#   * All local variables in functions should be defined in the function signature (awk
-#     is a bit special in that respect).
-#   + The naming convention for global variables is:
+#   * All local variables of a function are declared in its signature (awk has no other way
+#     to make a variable local), after a `#locals` comment:
+#         function f(x, y, #locals
+#                    k, n) {
+#     A function without parameters cannot have a comment after the parenthesis, so its
+#     locals are declared after a backslash:
+#         function f(         \
+#             k, n) {
+#   * The naming convention for global variables is:
 #     + long-standing/important global variables are written in all upper case
 #     + temporary variables that end-up being global (simply because of where they are
 #       defined, e.g., in the END stanza) have a prefix g_.
@@ -108,8 +70,7 @@
 #     a third argument (an array that stores the groups) and have to fall-back to using
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
 #     %* patterns, some regex features etc.
-#   + Notes on the arrays in the code:
-#     Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
+#   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
 #     VARIABLES and each of them has an associated *_INDEX integer variable.
 #
 # Terminology and definitions:
