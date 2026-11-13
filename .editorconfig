@@ -1,0 +1,38 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+[*.awk]
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{yml,toml}]
+indent_style = space
+indent_size = 2
+
+# recipes must start with a tab
+[{Makefile,test/fixtures/Makefile.*}]
+indent_style = tab
+
+# expected outputs are compared byte for byte
+[test/integration/*]
+trim_trailing_whitespace = false
+insert_final_newline = false
+max_line_length = unset
+
+# whitespace-only lines are the point of this fixture
+[test/fixtures/Makefile.docs-blank-lines]
+trim_trailing_whitespace = false
+
+# CRLF line endings are the point of this fixture
+[test/fixtures/Makefile.crlf]
+end_of_line = crlf

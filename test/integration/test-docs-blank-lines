@@ -1,0 +1,12 @@
+#: desc: Lines with only spaces and tabs are blank lines: they do not discard the docs
+-v COLOR=0 test/fixtures/Makefile.docs-blank-lines
+-----------------------
+Available targets:
+-----------------------
+t1   Docs above a line of spaces
+t2   Docs above a line with a tab (an empty recipe line of t1)
+t3   Docs above a line with a tab (not in a rule)
+t4   Docs above a line of spaces and tabs
+t5   Docs with a line of spaces
+     between their lines
+-----------------------
