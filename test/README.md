@@ -14,7 +14,9 @@ deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>`
 `clean@all`) removes them. `awk` and `gawk` are the ones installed on the system; the other
 versions are pinned in `test/deps.toml`, where each download is checked against its SHA256.
 
-The test tools in `test/` are written in Python (>= 3.11, standard library only). The unit
+The test tools in `test/` are written in Python (>= 3.11, standard library only). `make
+lint-py` lints them and checks their formatting with [ruff](https://docs.astral.sh/ruff)
+(settings in `ruff.toml`; `uvx ruff format test` reformats them). The unit
 and integration tests are run by `test/run.py`. Options can be passed with `RUNNER_FLAGS`,
 e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing
 tests, `-k` selects tests whose name contains a string).

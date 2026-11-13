@@ -31,10 +31,10 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
@@ -57,7 +57,7 @@ class Result:
 AWK_ENV = {k: v for k, v in os.environ.items() if k != "NO_COLOR"}
 
 
-def run_awk(awk: str, args: List[str], text: bool = True) -> subprocess.CompletedProcess:
+def run_awk(awk: str, args: list[str], text: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
         [awk, *args],
         cwd=ROOT,
@@ -76,7 +76,7 @@ TAP_TODO = re.compile(r"#\s*TODO\b\s*(.*)$", re.IGNORECASE)
 TAP_PLAN = re.compile(r"^1\.\.(\d+)$")
 
 
-def check_tap(stdout: str, returncode: int) -> Tuple[bool, str, int]:
+def check_tap(stdout: str, returncode: int) -> tuple[bool, str, int]:
     """Return (passed, summary, number of checks) for the TAP output of one test file."""
     numbers, failed, known_bugs, fixed, plan = [], 0, 0, [], None
     for line in stdout.splitlines():
@@ -131,7 +131,7 @@ def relevant_tap_lines(stdout: str) -> str:
     return "\n".join(lines) + "\n" if lines else ""
 
 
-def run_unit_file(awk: str, awk_flags: List[str], script: str, test_file: Path) -> Result:
+def run_unit_file(awk: str, awk_flags: list[str], script: str, test_file: Path) -> Result:
     with tempfile.TemporaryDirectory() as tmp:
         stderr_file = Path(tmp) / "stderr"
         stderr_file.touch()
@@ -139,27 +139,35 @@ def run_unit_file(awk: str, awk_flags: List[str], script: str, test_file: Path) 
             awk,
             [
                 *awk_flags,
-                "-v", "UNIT_TEST=1",
-                "-v", f"STDERR={stderr_file}",
-                "-f", str(HARNESS),
-                "-f", script,
-                "-f", str(test_file),
+                "-v",
+                "UNIT_TEST=1",
+                "-v",
+                f"STDERR={stderr_file}",
+                "-f",
+                str(HARNESS),
+                "-f",
+                script,
+                "-f",
+                str(test_file),
                 "/dev/null",
             ],
         )
     passed, summary, checks = check_tap(proc.stdout, proc.returncode)
     stderr = f"[awk stderr]\n{proc.stderr}" if proc.stderr else ""
-    return Result(test_file.stem, passed, summary, proc.stdout + stderr, checks,
-                  relevant_tap_lines(proc.stdout) + stderr)
+    return Result(
+        test_file.stem,
+        passed,
+        summary,
+        proc.stdout + stderr,
+        checks,
+        relevant_tap_lines(proc.stdout) + stderr,
+    )
 
 
-def suite_unit(args: argparse.Namespace) -> List[Callable[[], Result]]:
+def suite_unit(args: argparse.Namespace) -> list[Callable[[], Result]]:
     files = sorted((ROOT / UNIT_DIR).glob("test_*.awk"))
     files = [UNIT_DIR / f.name for f in files if selected(args, f.stem)]
-    return [
-        (lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f))
-        for f in files
-    ]
+    return [(lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f)) for f in files]
 
 
 # ------------------------------------------------------------------------------------------
@@ -170,10 +178,10 @@ RECIPE_BUG = re.compile(rb"^#: bug:(.*)$")
 
 @dataclass
 class Recipe:
-    metadata: List[bytes]  # the leading `#:` lines (with their newline)
+    metadata: list[bytes]  # the leading `#:` lines (with their newline)
     args: str  # the awk arguments (shell syntax)
     expected: bytes
-    bug: Optional[str]  # the value of the `#: bug:` line (the issue number), if any
+    bug: str | None  # the value of the `#: bug:` line (the issue number), if any
 
 
 def read_recipe(path: Path) -> Recipe:
@@ -190,7 +198,7 @@ def read_recipe(path: Path) -> Recipe:
     return Recipe(lines[:k], args, b"".join(lines[k + 1 :]), bug)
 
 
-def visible(data: bytes) -> List[str]:
+def visible(data: bytes) -> list[str]:
     """Lines for a diff: escape characters are shown as ^[ (as in `cat -v`), and blanks at
     the end of a line and a missing final newline are marked."""
     lines = data.decode(errors="replace").replace("\x1b", "^[").splitlines(keepends=True)
@@ -246,7 +254,7 @@ def run_recipe(args: argparse.Namespace, path: Path) -> Result:
     return Result(path.name, False, "output differs", diff, relevant=diff)
 
 
-def recipes(args: argparse.Namespace, bugs: bool) -> List[Callable[[], Result]]:
+def recipes(args: argparse.Namespace, bugs: bool) -> list[Callable[[], Result]]:
     """The recipes to run: with or without a `#: bug:` line."""
     paths = sorted(p for p in (ROOT / INTEGRATION_DIR).iterdir() if p.is_file())
     paths = [
@@ -258,11 +266,11 @@ def recipes(args: argparse.Namespace, bugs: bool) -> List[Callable[[], Result]]:
     return [(lambda p=p: run_recipe(args, p)) for p in paths]
 
 
-def suite_integration(args: argparse.Namespace) -> List[Callable[[], Result]]:
+def suite_integration(args: argparse.Namespace) -> list[Callable[[], Result]]:
     return recipes(args, bugs=False)
 
 
-def suite_bugs(args: argparse.Namespace) -> List[Callable[[], Result]]:
+def suite_bugs(args: argparse.Namespace) -> list[Callable[[], Result]]:
     return recipes(args, bugs=True)
 
 
@@ -273,7 +281,7 @@ def selected(args: argparse.Namespace, name: str) -> bool:
     return not args.k or args.k in name
 
 
-SUITES: Dict[str, Callable[[argparse.Namespace], List[Callable[[], Result]]]] = {
+SUITES: dict[str, Callable[[argparse.Namespace], list[Callable[[], Result]]]] = {
     "unit": suite_unit,
     "integration": suite_integration,
     "bugs": suite_bugs,
@@ -297,9 +305,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--update", action="store_true", help="integration: rewrite the expected outputs"
     )
-    parser.add_argument(
-        "-j", "--jobs", type=int, default=os.cpu_count() or 1, help="parallel jobs"
-    )
+    parser.add_argument("-j", "--jobs", type=int, default=os.cpu_count() or 1, help="parallel jobs")
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="show the output of passing tests too"
     )

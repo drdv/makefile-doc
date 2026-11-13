@@ -20,7 +20,6 @@ import tomllib
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import List
 
 ROOT = Path(__file__).resolve().parent.parent
 BIN = ROOT / "test" / "bin"
@@ -53,7 +52,7 @@ def fetch(url: str, attempts: int = 4) -> bytes:
     raise AssertionError("unreachable")
 
 
-def download(urls: List[str], path: Path, sha256: str) -> Path:
+def download(urls: list[str], path: Path, sha256: str) -> Path:
     """Download path (once), trying the urls in turn, and check its sha256."""
     if path.exists():
         return path
@@ -109,7 +108,7 @@ def install(name: str) -> Path:
         subprocess.run(["tar", "xzf", archive, "-C", src, "--strip-components=1"], check=True)
         subprocess.run(awk["build"], shell=True, cwd=src, check=True)
     except subprocess.CalledProcessError as e:
-        raise DepsError(f"cannot build {name}: {e}")
+        raise DepsError(f"cannot build {name}: {e}") from e
     shutil.copy(src / awk["binary"], target)
     return target
 
