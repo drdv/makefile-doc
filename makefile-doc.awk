@@ -208,8 +208,8 @@ function form_dc_target_name(target_name_nominal) {
                  TARGETS_DC_COUNTER[target_name_nominal])
 }
 
-# assumes that array is produced from split()
-function join_splitted(array, delimiter, #locals
+# join the elements of an array produced by split()
+function join(array, delimiter, #locals
                        string, k, n_elements) {
   string = ""
   n_elements = length_array_posix(array)
@@ -266,7 +266,8 @@ function strip_trailing_blanks(text, #locals
 # In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
 # a placeholder: escaping them first would escape the braces of \textbackslash{}, and
 # escaping them last would escape the backslashes of \{ and \}.
-function escape_for_latex_output(text,    placeholder) {
+function escape_for_latex_output(text, #locals
+                                 placeholder) {
   if (OUTPUT_FORMAT == "LATEX") {
     placeholder = "\034"
     text = string_replace("\\", placeholder, text)
@@ -353,7 +354,7 @@ function initialize_variables_regex() {
   #  - Variable/function references in variable names are captured literally
   #    rather than expanded, e.g., `$(PREFIX)_FLAGS := ...`.
   VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*([ \t]*(%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
-                                    join_splitted(VARIABLE_QUALIFIERS, "|"),
+                                    join(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
 
@@ -364,7 +365,7 @@ function parse_variable_name(whole_line, #locals
   split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
   variable_name = strip_start_end_spaces_tabs(whole_line_split[1])
 
-  qualifiers_pattern = "(" join_splitted(VARIABLE_QUALIFIERS, "|") ")"
+  qualifiers_pattern = "(" join(VARIABLE_QUALIFIERS, "|") ")"
 
   while (match(variable_name, "^" qualifiers_pattern "[ \t]+[^ \t]")) {
     sub("^" qualifiers_pattern "[ \t]+", "", variable_name)
@@ -459,23 +460,13 @@ function get_separator(character, len_anchors) {
 
 function substitute_backticks_patterns(string, #locals
                                        before_match, inside_match, after_match) {
-  # --------------------------------------------------------------------------
-  # Since I cannot use this code in mawk and nawk, I implemented a manual hack
-  # --------------------------------------------------------------------------
-  # replace_with = COLOR_BACKTICKS_CODE "\\1" COLOR_RESET_CODE
-  # return gensub(/`([^`]+)`/, replace_with, "g", description) # only for gawk
-  # --------------------------------------------------------------------------
+  # (gensub with a back-reference would do this in one call, but it is only in gawk)
   while (match(string, /`([^`]+)`/)) {
     before_match = substr(string, 1, RSTART - 1)
     inside_match = substr(string, RSTART + 1, RLENGTH - 2)
     after_match = substr(string, RSTART + RLENGTH)
 
-    string = sprintf(repeated_string("%s", 5),
-                     before_match,
-                     COLOR_BACKTICKS_CODE,
-                     inside_match,
-                     COLOR_RESET_CODE,
-                     after_match)
+    string = before_match COLOR_BACKTICKS_CODE inside_match COLOR_RESET_CODE after_match
   }
   return string
 }
@@ -835,8 +826,8 @@ function set_user_defined_color_theme(                                  \
 function define_ansi_to_html_colors(            \
     k) {
   # no foreground/background by default
-  ANSI_TO_HTML_COLOR["BG"] = -1 # "000000"
-  ANSI_TO_HTML_COLOR["FG"] = -1 # "AAAAAA"
+  ANSI_TO_HTML_COLOR["BG"] = -1
+  ANSI_TO_HTML_COLOR["FG"] = -1
 
   ANSI_TO_HTML_COLOR[0] = ""
   ANSI_TO_HTML_COLOR[1] = "bold"
@@ -1118,29 +1109,29 @@ function initialize_colors() {
 #   }
 # }
 function print_help() {
-    print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
-    print "Description: Generate docs for Makefile variables and targets"
-    print "Version: " VERSION
-    print "Options:"
-    printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
-    printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
-           (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
-    printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
-    printf "  DSUB (substitutions in docs):%s\n", (DSUB == "" ? "" : " " DSUB)
-    printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
-    printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
-    printf "  VARS ([bool] show documented variables): %s\n", VARS
-    printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
-    printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
-    printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
-    printf "  COLOR ([bool] use colors): %s\n", COLOR
-    printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
-    printf "  COLOR_: "
-    printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
-    printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
-    printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
-    printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
-    printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
+  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
+  print "Description: Generate docs for Makefile variables and targets"
+  print "Version: " VERSION
+  print "Options:"
+  printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
+  printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
+         (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
+  printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
+  printf "  DSUB (substitutions in docs):%s\n", (DSUB == "" ? "" : " " DSUB)
+  printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
+  printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
+  printf "  VARS ([bool] show documented variables): %s\n", VARS
+  printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
+  printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
+  printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
+  printf "  COLOR ([bool] use colors): %s\n", COLOR
+  printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
+  printf "  COLOR_: "
+  printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
+  printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
+  printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
+  printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
+  printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
 }
 
 # Set the global state that does not depend on user options. It is called from BEGIN and

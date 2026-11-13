@@ -20,9 +20,9 @@ function test_length_array_posix(    arr) {
   check("length_array_posix: 4 elements", length_array_posix(arr), 4)
 }
 
-function test_join_splitted(    arr) {
+function test_join(    arr) {
   split("this is another test", arr, " ")
-  check("join_splitted: colon delimiter", join_splitted(arr, ":"), "this:is:another:test")
+  check("join: colon delimiter", join(arr, ":"), "this:is:another:test")
 }
 
 function test_string_replace(    text) {
@@ -65,7 +65,7 @@ BEGIN {
   test_max_min()
   test_repeated_string()
   test_length_array_posix()
-  test_join_splitted()
+  test_join()
   test_string_replace()
   test_strip_start_end_spaces_tabs()
   done()
