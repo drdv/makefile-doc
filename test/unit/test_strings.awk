@@ -25,7 +25,7 @@ function test_join(    arr) {
   check("join: colon delimiter", join(arr, ":"), "this:is:another:test")
 }
 
-function test_string_replace(    text) {
+function test_string_replace(    text, parts) {
   text = "this is my text and this also is text not end"
   check("string_replace: two matches in the middle",
         string_replace("text", "X", text),
@@ -36,6 +36,11 @@ function test_string_replace(    text) {
   check("string_replace: match at the end",
         string_replace("end", "X", text),
         "this is my text and this also is text not X")
+  # a "0" from split() looks like a number: it is false in a condition, but not empty
+  split("0", parts, ";")
+  check("string_replace: a search string of 0 (from split) is replaced",
+        string_replace(parts[1], "X", "a0b0"),
+        "aXbX")
   check("string_replace: empty search string changes nothing",
         string_replace("", "X", text),
         text)

@@ -180,7 +180,7 @@ function join(array, delimiter, #locals
 function string_replace(string, replacement, text, #locals
                         k, pre) {
   k = index(text, string)
-  if (string && k > 0) {
+  if (string != "" && k > 0) { # not `if (string)`: a string that looks like 0 is false
     pre = substr(text, 1, k-1)
     return pre replacement string_replace(string,
                                           replacement,
