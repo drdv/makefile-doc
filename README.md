@@ -236,6 +236,21 @@ without `#`). Foreground/background can be set using the tokens `FG/BG`. Unspeci
   + version 3.81 works fine for documentation generation
   + I run the tests with version 4.3
 
+## Performance
+
+Time to document two large real Makefiles, with docs added on every 5th target or variable
+(`make bench@all`, best of 5 runs, makefile-doc v1.8, Intel Core i7-13700H, Fedora 43,
+November 2026):
+
+| awk           | GCC Makefile.in (69k lines) | Linux Makefile (2k lines) |
+|---------------|----------------------------:|--------------------------:|
+| mawk 20260302 |               164 ms (1.0×) |            10.5 ms (1.0×) |
+| goawk 1.30.0  |               426 ms (2.6×) |            22.3 ms (2.1×) |
+| gawk 5.3.2    |               662 ms (4.0×) |            24.3 ms (2.3×) |
+| nawk 20240728 |               828 ms (5.0×) |            41.6 ms (4.0×) |
+| wak 24.10     |             3378 ms (20.6×) |            183 ms (17.4×) |
+| bawk 1.35.0   |             5877 ms (35.8×) |            281 ms (26.7×) |
+
 ## Running the tests
 
 Execute `make test@awk utest@awk` (this uses the system's default `awk`). To test with
