@@ -309,14 +309,17 @@ function forget_descriptions_data() {
 }
 
 # Save the inline doc of a target or variable line. On a target line, a ## after a ; is part
-# of an inline recipe (not a doc); in a variable assignment, a ; is part of the value.
+# of an inline recipe (not a doc); in a variable assignment, a ; is part of the value. An
+# inline ##@ is not a doc either (a section is written on its own lines).
 function parse_inline_descriptions(whole_line, is_variable, #locals
                                    inline_description) {
   if ((is_variable || !match(whole_line, /^[^#]*;/)) &&
       match(whole_line, / *(##!|##%|##)/)) {
     inline_description = substr(whole_line, RSTART)
     sub(/^ */, "", inline_description)
-    save_description_data(inline_description)
+    if (inline_description !~ /^##@/) {
+      save_description_data(inline_description)
+    }
   }
 }
 

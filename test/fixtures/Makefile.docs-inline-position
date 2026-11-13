@@ -14,3 +14,5 @@ t-no-docs:; ## Neither here
 
 ## Top docs can be used when there is an inline recipe
 t7:; echo 1
+
+t-no-docs-section: ##@ An inline section token is not a doc
