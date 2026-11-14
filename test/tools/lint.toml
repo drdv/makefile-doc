@@ -1,0 +1,27 @@
+# Expected warnings of `test/tools/run.py lint` (gawk --lint on the integration cases).
+#
+# Rules (defined in LINT_RULES of run.py): uninit-variable, uninit-argument, uninit-element,
+# substr-start, substr-past-end, substr-empty, substr-length, no-close. A warning that
+# matches no rule is `unknown` and is always reported.
+#
+# - ignore = [...]: rules that are never reported
+# - [rule] allow = [...]: the expected names of a rule (shell-style patterns, e.g. COLOR_*);
+#   for uninit-element, the name of the array
+#
+# An entry that expects no warning is reported after a run of all the cases.
+
+ignore = []
+
+[uninit-variable]
+allow = [
+  # options passed with -v: makefile-doc.awk sets a default when they are empty
+  "OUTPUT_FORMAT", "EXPORT_THEME", "SUB", "DSUB", "VARS", "PADDING", "DEPRECATED", "OFFSET",
+  "RECIPEPREFIX", "TARGETS_REGEX", "VARIABLES_REGEX", "COLOR", "COLOR_*",
+  # internal options (STDERR is always set by run.py lint)
+  "UNIT_TEST", "SHOW_HELP",
+]
+
+[uninit-argument]
+allow = [
+  "sub_array", # optional argument
+]
