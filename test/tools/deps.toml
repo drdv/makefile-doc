@@ -32,6 +32,13 @@ sha256 = "68740bcb801350b0d8be79fe794baa1186e3d1c718511a17d6690b8d0995bbc6"
 build = "./configure && make"
 binary = "mawk"
 
+# the mawk of Debian 12 (bookworm), the oldest still common (Debian builds it without patches)
+[awk.mawk2020]
+version = "t20200120"
+url = "https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/{version}.tar.gz"
+sha256 = "791cdc2db1ef44ba1ff04ae8870800a34d5e7b680e799dded019ec1fda7fc923"
+build = "./configure && make"
+binary = "mawk"
 [awk.nawk]
 version = "20240728"
 url = "https://github.com/onetrueawk/awk/archive/refs/tags/{version}.tar.gz"

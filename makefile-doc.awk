@@ -364,7 +364,7 @@ function initialize_variables_regex() {
   #
   # By design, variable/function references in variable names are captured literally
   # rather than expanded, e.g., `$(PREFIX)_FLAGS := ...` is displayed as `$(PREFIX)_FLAGS`.
-  VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*([ \t]*(%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
+  VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*((%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
                                     join(VARIABLE_QUALIFIERS, "|"),
                                     ASSIGNMENT_OPERATORS_PATTERN)
 }
