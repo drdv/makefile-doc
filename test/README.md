@@ -13,6 +13,9 @@ The awk variants are downloaded and built into `test/bin/` when a test needs the
 deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>` (or
 `clean@all`) removes them. `awk` and `gawk` are the ones installed on the system; the other
 versions are pinned in `test/tools/deps.toml`, where each download is checked against its SHA256.
+`make versions` shows the version that each installed variant reports and flags the ones
+that differ from `deps.toml`: a variant already in `test/bin/` is not rebuilt when its
+version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 
 The test tools in `test/` are written in Python (>= 3.11, standard library only). `make
 lint-py` lints them and checks their formatting with [ruff](https://docs.astral.sh/ruff)
