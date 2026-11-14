@@ -124,9 +124,9 @@ bugs@bawk: check-busybox-bug
 # The awk of a variant is a prerequisite of its targets above: it is then built once, by
 # this make, before the sub-makes of test@X, utest@X and bugs@X run (also with -j).
 
-## Run `lint`, `test`, `utest` and `bugs` (the tests with the variant `AWK`)
+## Run `lint`, `test`, `utest`, `bugs` (the tests with the variant `AWK`) and `test-tools`
 .PHONY: check
-check: lint test utest bugs
+check: lint test utest bugs test-tools
 
 # the tests with AWK and AWK_FLAGS (the targets above set AWK)
 .PHONY: test utest bugs
@@ -216,6 +216,11 @@ RUFF := uvx ruff@0.16.9
 lint-py:
 	@$(RUFF) check $(TEST_DIR)
 	@$(RUFF) format --check $(TEST_DIR)
+
+## Test the Python test tools (test/tools/test_*.py; the lint tests use gawk)
+.PHONY: test-tools
+test-tools: $(AWK_BIN)/gawk
+	@GAWK=$(AWK_BIN)/gawk python3 -m unittest discover -s $(TOOLS_DIR) -p 'test_*.py'
 
 $(MAKEFILE_DOC).sha256: $(MAKEFILE_DOC)
 	@sha256sum $< > $@

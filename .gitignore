@@ -1,5 +1,6 @@
 test/bin
 coverage-reports/
+__pycache__/
 demo.html
 demo.pdf
 demo.png

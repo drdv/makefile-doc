@@ -42,6 +42,9 @@ jobs:
       - name: lint the Python test tools
         run: make lint-py
 
+      - name: test the Python test tools
+        run: make test-tools
+
       - name: check the version in the README
         run: make check-version
 
