@@ -1,6 +1,6 @@
 """Tests of test/tools/run.py (standard library only).
 
-usage: python3 -m unittest discover -s test/tools -p 'test_*.py'   (or `make test-tools`)
+usage: make test-tools   (pytest), or python3 -m unittest discover -s test/tools -p 'test_*.py'
 
 The unit tests need no awk. The end-to-end tests of the lint suite run run.py with gawk (the
 environment variable GAWK, or gawk in PATH) on a copy of makefile-doc.awk with an injected
