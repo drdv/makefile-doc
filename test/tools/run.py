@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test runner for makefile-doc.
 
-usage: test/tools/run.py SUITE --awk AWK [options]
+usage: test/tools/run.py SUITE --awk AWK [options] [NAME ...]
 
 Suites:
   unit         run each test/unit/test_*.awk file in its own awk process and check its
@@ -35,6 +35,7 @@ if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a trac
 
 import argparse
 import difflib
+import fnmatch
 import os
 import re
 import shlex
@@ -44,6 +45,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 ROOT = Path(__file__).resolve().parent.parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
@@ -190,8 +192,9 @@ def run_unit_file(
 
 
 def suite_unit(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    files = sorted((ROOT / UNIT_DIR).glob("test_*.awk"))
-    files = [UNIT_DIR / f.name for f in files if selected(args, f.stem)]
+    files = [UNIT_DIR / f.name for f in sorted((ROOT / UNIT_DIR).glob("test_*.awk"))]
+    # test/unit/test_parsing.awk is selected by `parsing` or `test_parsing`
+    files = select(args, files, lambda f: [f.stem, f.stem.removeprefix("test_")])
     return [
         (lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f, args.timeout))
         for f in files
@@ -311,18 +314,21 @@ class Case:
         return Result(self.name, False, "output differs", diff, relevant=diff)
 
 
-def read_cases(args: argparse.Namespace) -> list[Case]:
-    """The selected integration cases (each file is read once)."""
+def read_cases(args: argparse.Namespace, bugs: bool | None) -> list[Case]:
+    """The selected integration cases: with bugs=False, those without a `#: bug:` line, with
+    bugs=True, those with one, and with bugs=None, all of them."""
     paths = sorted((ROOT / INTEGRATION_DIR).glob("*.test"))
-    return [Case.read(INTEGRATION_DIR / p.name) for p in paths if selected(args, p.stem)]
+    cases = [Case.read(INTEGRATION_DIR / p.name) for p in paths]
+    cases = [c for c in cases if bugs is None or (c.bug is not None) == bugs]
+    return select(args, cases, lambda c: [c.name])
 
 
 def suite_integration(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    return [(lambda c=c: c.run(args)) for c in read_cases(args) if c.bug is None]
+    return [(lambda c=c: c.run(args)) for c in read_cases(args, bugs=False)]
 
 
 def suite_bugs(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    return [(lambda c=c: c.run(args)) for c in read_cases(args) if c.bug is not None]
+    return [(lambda c=c: c.run(args)) for c in read_cases(args, bugs=True)]
 
 
 # ------------------------------------------------------------------------------------------
@@ -352,7 +358,7 @@ def lint_case(case: Case, args: argparse.Namespace) -> Result:
 
 
 def suite_lint(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    return [(lambda c=c: lint_case(c, args)) for c in read_cases(args)]
+    return [(lambda c=c: lint_case(c, args)) for c in read_cases(args, bugs=None)]
 
 
 def report_lint(results: list[Result], awk_name: str, verbose: bool) -> int:
@@ -385,8 +391,26 @@ def report_lint(results: list[Result], awk_name: str, verbose: bool) -> int:
 # ------------------------------------------------------------------------------------------
 # main
 # ------------------------------------------------------------------------------------------
-def selected(args: argparse.Namespace, name: str) -> bool:
-    return not args.k or args.k in name
+T = TypeVar("T")
+
+
+def select(args: argparse.Namespace, items: list[T], names: Callable[[T], list[str]]) -> list[T]:
+    """The items with a name that matches a NAME argument (all the items if there is none). A
+    NAME is an exact name or a shell-style pattern (* ? [...]); one that matches no item is an
+    error, so that a typo does not pass as an empty run."""
+    if not args.names:
+        return items
+    patterns = [n.removesuffix(".test").removesuffix(".awk") for n in args.names]
+    matched, chosen = set(), []
+    for item in items:
+        hits = {p for p in patterns if any(fnmatch.fnmatchcase(n, p) for n in names(item))}
+        matched |= hits
+        if hits:
+            chosen.append(item)
+    unknown = [p for p in patterns if p not in matched]
+    if unknown:
+        sys.exit(f"no {args.suite} test matches: {' '.join(unknown)}")
+    return chosen
 
 
 SUITES: dict[str, Callable[[argparse.Namespace], list[Callable[[], Result]]]] = {
@@ -410,7 +434,13 @@ def parse_args() -> argparse.Namespace:
         help="extra awk flags (e.g., goawk coverage options)",
     )
     parser.add_argument("--script", default="makefile-doc.awk", help="script under test")
-    parser.add_argument("-k", metavar="PATTERN", help="run only tests whose name contains PATTERN")
+    parser.add_argument(
+        "names",
+        nargs="*",
+        metavar="NAME",
+        help="run only these tests: exact names (e.g., misc, parsing) or shell-style patterns "
+        "(e.g., 'options-*'); a NAME that matches no test is an error",
+    )
     parser.add_argument(
         "--timeout",
         type=float,
@@ -425,14 +455,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="show the output of passing tests too"
     )
-    return parser.parse_args()
+    return parser.parse_intermixed_args()  # NAME arguments can follow the options
 
 
 def main() -> int:
     args = parse_args()
     tests = SUITES[args.suite](args)
     if not tests:
-        if args.suite == "bugs" and not args.k:
+        if args.suite == "bugs" and not args.names:
             print(f"[{Path(args.awk).name}] no known bugs")
             return 0
         print(f"no {args.suite} tests found", file=sys.stderr)

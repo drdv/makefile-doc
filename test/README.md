@@ -18,8 +18,10 @@ The test tools in `test/` are written in Python (>= 3.11, standard library only)
 lint-py` lints them and checks their formatting with [ruff](https://docs.astral.sh/ruff)
 (settings in `ruff.toml`; `uvx ruff format test` reformats them). The unit
 and integration tests are run by `test/tools/run.py`. Options can be passed with `RUNNER_FLAGS`,
-e.g., `make utest@mawk RUNNER_FLAGS='-v -k parsing'` (`-v` shows the output of passing
-tests, `-k` selects tests whose name contains a string). A test fails if its awk process
+e.g., `make utest@mawk RUNNER_FLAGS='-v parsing'` (`-v` shows the output of passing
+tests). Names select tests: a name is exact (`misc` is `test/integration/misc.test`,
+`parsing` is `test/unit/test_parsing.awk`) or a shell-style pattern (`'options-*'`,
+`'*no-color*'`); a name that matches no test is an error. A test fails if its awk process
 runs for more than 30 seconds (`--timeout`).
 
 `make bench@all` times `makefile-doc.awk` with each awk variant on large real Makefiles
@@ -85,7 +87,7 @@ line, then stdout after a `#: stdout` line (a stream without output has no such 
 
 The output must match the expected output exactly, including blanks at the end of lines and
 the final newline. Use `--update` to regenerate the expected output, e.g., `make test@awk
-RUNNER_FLAGS='--update -k docs-precedence'` (check the diff by hand).
+RUNNER_FLAGS='--update docs-precedence'` (check the diff by hand).
 
 Conventions:
 

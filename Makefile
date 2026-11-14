@@ -41,7 +41,7 @@ AWK_FLAGS :=
 
 ## Flags for `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
 ##   `-v` (show the output of passing tests)
-##   `-k PATTERN` (run only the tests whose name contains PATTERN)
+##   `NAME ...` (run only these tests: exact names or patterns, e.g., `misc 'options-*'`)
 ##   `--update` (rewrite the expected output of integration tests)
 ##   `--timeout SECONDS` (default: 30)
 ##   `--jobs N` (number of tests run in parallel)
