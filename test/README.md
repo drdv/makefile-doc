@@ -123,7 +123,7 @@ A warning is classified by a rule (`LINT_RULES` in `run.py`), e.g., `uninit-vari
 
 An entry or comment that expects no warning is reported after a run of everything (it is
 stale), and an invalid one is an error. Warnings in test code (the harness and the unit
-test files) are listed for information only.
+test files) that `lint.toml` does not expect are listed for information only.
 
 The suite also checks the global variables, in the dumps of `gawk -d` (`LINT_CHECKS` in
 `run.py`), and reports them as warnings of two rules: `global-name`, a global variable of

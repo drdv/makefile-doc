@@ -1,9 +1,10 @@
-# Expected warnings of `test/tools/run.py lint` (gawk --lint on the integration cases).
+# Expected warnings of `test/tools/run.py lint` (gawk --lint on the integration cases and the
+# unit test files; the warnings in test code are only listed when they are not expected).
 #
-# Rules (defined in LINT_RULES of run.py): uninit-variable, uninit-argument, uninit-element,
-# substr-start, substr-past-end, substr-empty, substr-length, no-close, and the checks of the
-# global variables (LINT_CHECKS): global-name, test-global. A warning that matches no rule
-# is `unknown` and is always reported.
+# Rules (LINT_RULES of run.py): uninit-variable, uninit-argument, uninit-element,
+# substr-start, substr-past-end, substr-empty, substr-length, no-close, unused-function; and
+# the checks of the global variables (LINT_CHECKS): global-name, test-global. A warning that
+# matches no rule is `unknown` and is always reported.
 #
 # - ignore = [...]: rules that are never reported
 # - [rule] allow = [...]: the expected names of a rule (shell-style patterns, e.g. COLOR_*);
@@ -31,4 +32,10 @@ allow = [
 [uninit-argument]
 allow = [
   "sub_array", # form_substitutions: the value of the option SUB or DSUB
+]
+
+[unused-function]
+allow = [
+  # helpers of test/unit/harness.awk that not every unit test file uses
+  "check_bug", "check_true", "stderr_text",
 ]

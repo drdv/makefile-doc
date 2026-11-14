@@ -374,6 +374,7 @@ LINT_RULES = {
     "substr-empty": re.compile(r"substr: source string is zero length"),
     "substr-length": re.compile(r"substr: length \S+ is not >= 1"),
     "no-close": re.compile(r"no explicit close of file `[^']*' provided"),
+    "unused-function": re.compile(r"function `(?P<name>[^']*)' defined but never called directly"),
 }
 LINT_UNKNOWN = "unknown"  # a line that matches no rule (it is always reported)
 # checks of the global variables (in the dumps of gawk -d), reported as warnings of these
@@ -639,8 +640,9 @@ class LintTally:
 def report_lint(results: list[Result], config: LintConfig, args: argparse.Namespace) -> int:
     """Print each distinct warning in makefile-doc.awk that is not expected once (ordered by
     line), with the number of times it occurs and in how many runs (with --verbose, also the
-    names of the runs), then the warnings in test code (for information only). After a run
-    of everything, the entries that expect no warning are reported too (they are stale)."""
+    names of the runs), then the warnings in test code that are not expected (for
+    information only). After a run of everything, the entries that expect no warning are
+    reported too (they are stale)."""
     awk_name = Path(args.awk).name
     parsed: dict[str, LintWarning] = {}  # each distinct line of stderr is parsed once
     unexpected = LintTally({}, {}, {})
@@ -653,13 +655,12 @@ def report_lint(results: list[Result], config: LintConfig, args: argparse.Namesp
             w = parsed.get(line) or parsed.setdefault(line, LintWarning.parse(line))
             # a warning without a file (e.g., "function f defined but never called") is in
             # test code if it is from a unit test file (integration cases run only the script)
-            if w.rule not in LINT_CHECKS and w.file != config.script and (w.file or is_unit):
-                in_test_code.add(w, r.name)
-                continue
             entry = config.expects(w)
             if entry:
                 used.add(entry)
                 expected.add(w.key)
+            elif w.rule not in LINT_CHECKS and w.file != config.script and (w.file or is_unit):
+                in_test_code.add(w, r.name)
             else:
                 unexpected.add(w, r.name)
 
