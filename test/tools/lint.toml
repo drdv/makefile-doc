@@ -2,9 +2,10 @@
 # unit test files; the warnings in test code are only listed when they are not expected).
 #
 # Rules (LINT_RULES of run.py): uninit-variable, uninit-argument, uninit-element,
-# substr-start, substr-past-end, substr-empty, substr-length, no-close, unused-function; and
-# the checks of the global variables (LINT_CHECKS): global-name, test-global. A warning that
-# matches no rule is `unknown` and is always reported.
+# substr-start, substr-past-end, substr-empty, substr-length, no-close, unused-function,
+# close-unopened, empty-file; and the checks of the global variables (LINT_CHECKS):
+# global-name, test-global. A warning that matches no rule is `unknown` and is always
+# reported.
 #
 # - ignore = [...]: rules that are never reported
 # - [rule] allow = [...]: the expected names of a rule (shell-style patterns, e.g. COLOR_*);
@@ -39,3 +40,11 @@ allow = [
   # helpers of test/unit/harness.awk that not every unit test file uses
   "check_bug", "check_true", "stderr_text",
 ]
+
+# stderr_text (test/unit/harness.awk) when nothing was written to STDERR: it closes the write
+# stream (no-op) and reads an empty file; run.py names the temporary file STDERR
+[close-unopened]
+allow = ["STDERR"]
+
+[empty-file]
+allow = ["STDERR"]

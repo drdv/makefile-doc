@@ -375,6 +375,10 @@ LINT_RULES = {
     "substr-length": re.compile(r"substr: length \S+ is not >= 1"),
     "no-close": re.compile(r"no explicit close of file `[^']*' provided"),
     "unused-function": re.compile(r"function `(?P<name>[^']*)' defined but never called directly"),
+    "close-unopened": re.compile(
+        r"close: `(?P<name>[^']*)' is not an open file, pipe or co-process"
+    ),
+    "empty-file": re.compile(r"data file `(?P<name>[^']*)' is empty"),
 }
 LINT_UNKNOWN = "unknown"  # a line that matches no rule (it is always reported)
 # checks of the global variables (in the dumps of gawk -d), reported as warnings of these
