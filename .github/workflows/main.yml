@@ -39,6 +39,9 @@ jobs:
       - name: lint the awk code
         run: make lint-awk
 
+      - name: lint the awk code while running the tests
+        run: make lint-tests
+
       - name: lint the Python test tools
         run: make lint-py
 

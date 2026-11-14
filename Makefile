@@ -39,7 +39,7 @@ AWK := awk
 ##   `-W posix` (mawk)
 AWK_FLAGS :=
 
-## Flags for `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
+## Flags for `test@<variant>`, `utest@<variant>`, `bugs@<variant>` and `lint-tests`:
 ##   `-v` (show the output of passing tests)
 ##   `NAME ...` (run only these tests: exact names or patterns, e.g., `misc 'options-*'`)
 ##   `--update` (rewrite the expected output of integration tests)
@@ -185,10 +185,17 @@ $(BENCH_ALL): bench@%:
 bench@all:
 	@$(BENCH)
 
-## Lint the awk code (`lint-awk`), the Python test tools (`lint-py`)
+## Lint the awk code (`lint-awk`, `lint-tests`), the Python test tools (`lint-py`)
 ## and check the version in the README (`check-version`)
 .PHONY: lint
-lint: lint-awk lint-py check-version
+lint: lint-awk lint-tests lint-py check-version
+
+# Lint makefile-doc.awk with `gawk --lint` while running the integration cases and the unit
+# tests (the expected warnings are in test/tools/lint.toml; see test/README.md)
+.PHONY: lint-tests
+lint-tests: override AWK := gawk
+lint-tests: $(AWK_BIN)/gawk $(MAKEFILE_DOC)
+	@$(call run-suite,lint,)
 
 # prints the version of the script (the VERSION variable set in init_globals)
 SCRIPT_VERSION := sed -n 's/^ *VERSION = "\([^"]*\)".*/\1/p' $(MAKEFILE_DOC)
