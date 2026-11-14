@@ -208,7 +208,7 @@ function strip_start_end_spaces_tabs(string) {
 # as /[ \t]+\n/ takes time quadratic in their length.
 function strip_trailing_blanks(text, #locals
                                n, lines, k, line, last) {
-  last = substr(text, length(text), 1)
+  last = substr(text, length(text), 1) # lint: ignore[substr-start] ("" for an empty text)
   if (!index(text, " \n") && !index(text, "\t\n") && last != " " && last != "\t") {
     return text # nothing to strip (the usual case)
   }
@@ -1001,7 +1001,7 @@ function forget_section_data() {
 
 function assemble_description_section_data(array, #locals
                                            docs, k, n_elements) {
-  docs = array[1]
+  docs = array_get(array, 1) # "" for an empty array
   n_elements = length_array_posix(array)
   for (k=2; k<=n_elements; k++) {
     docs = docs "\n" array[k]
