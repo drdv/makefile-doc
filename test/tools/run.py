@@ -12,7 +12,8 @@ Suites:
   lint         run each integration case (known bugs included) with `gawk --lint` and print
                each distinct lint warning once; the output of makefile-doc.awk is discarded
                (it is not compared), and the suite fails if there is a warning that is not
-               expected in test/tools/lint.toml (--awk: gawk)
+               expected in test/tools/lint.toml or by a `# lint: ignore[RULE, ...]` comment at
+               its line of makefile-doc.awk (--awk: gawk)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
@@ -357,6 +358,10 @@ LINT_RULES = {
     "no-close": re.compile(r"no explicit close of file `[^']*' provided"),
 }
 LINT_UNKNOWN = "unknown"  # a line that matches no rule (it is always reported)
+# a comment in makefile-doc.awk that expects the warnings of rules at its line, e.g.
+# `# lint: ignore[substr-start]` or `# lint: ignore[substr-start, uninit-argument]`; alone on
+# its line (a long line has no room for it), it applies to the next line
+LINT_INLINE = re.compile(r"#\s*lint:\s*ignore\[([^\]]*)\]")
 
 
 @dataclass
@@ -396,11 +401,13 @@ def is_strings(value: object) -> bool:
 class LintConfig:
     ignore: list[str]  # rules that are never reported
     allow: dict[str, list[str]]  # rule -> the expected names (shell-style patterns)
+    inline: dict[int, list[str]]  # line of makefile-doc.awk -> rules (`# lint: ignore[...]`)
 
     @classmethod
-    def read(cls, path: Path) -> "LintConfig":
-        """Read lint.toml; a key, rule or `allow` that is not valid is an error, so that a
-        typo does not silently expect nothing."""
+    def read(cls, path: Path, script: Path) -> "LintConfig":
+        """Read lint.toml and the `# lint: ignore[...]` comments of the script; a key, rule
+        or `allow` that is not valid is an error, so that a typo does not silently expect
+        nothing."""
         try:
             data = tomllib.loads((ROOT / path).read_text())
         except (OSError, tomllib.TOMLDecodeError) as e:
@@ -426,22 +433,43 @@ class LintConfig:
                 allow[key] = table["allow"]
         if errors:
             sys.exit("\n".join(f"{path}: {e}" for e in errors))
-        return cls(ignore, allow)
+
+        inline = {}
+        for number, line in enumerate((ROOT / script).read_text().splitlines(), 1):
+            m = LINT_INLINE.search(line)
+            if m:
+                rules = [r.strip() for r in m.group(1).split(",")]
+                errors += [
+                    f"{script}:{number}: unknown rule {r!r}" for r in rules if r not in LINT_RULES
+                ]
+                alone = line.lstrip().startswith("#")  # alone on its line: for the next line
+                inline[number + alone] = rules
+        if errors:
+            sys.exit("\n".join(errors))
+        return cls(ignore, allow, inline)
 
     def expects(self, w: LintWarning) -> str | None:
         """The entry of lint.toml that expects the warning, if any (e.g. "ignore no-close" or
         "[uninit-variable] allow COLOR_*")."""
         if w.rule in self.ignore:
             return f"ignore {w.rule}"
+        if w.rule in self.inline.get(w.line, []):
+            return f"makefile-doc.awk:{w.line}: ignore[{w.rule}]"
         for pattern in self.allow.get(w.rule, []):
             if w.name is not None and fnmatch.fnmatchcase(w.name, pattern):
                 return f"[{w.rule}] allow {pattern}"
         return None
 
     def entries(self) -> list[str]:
-        return [f"ignore {r}" for r in self.ignore] + [
-            f"[{rule}] allow {p}" for rule, patterns in self.allow.items() for p in patterns
-        ]
+        return (
+            [f"ignore {r}" for r in self.ignore]
+            + [f"[{rule}] allow {p}" for rule, patterns in self.allow.items() for p in patterns]
+            + [
+                f"makefile-doc.awk:{line}: ignore[{rule}]"
+                for line, rules in self.inline.items()
+                for rule in rules
+            ]
+        )
 
 
 def lint_case(case: Case, args: argparse.Namespace) -> Result:
@@ -495,7 +523,8 @@ def report_lint(results: list[Result], config: LintConfig, args: argparse.Namesp
 
     stale = [] if args.names else [e for e in config.entries() if e not in used]
     for entry in stale:
-        print(f"[{awk_name}] {LINT_CONFIG}: `{entry}` expects no warning (remove it)")
+        where = "" if entry.startswith("makefile-doc.awk:") else f"{LINT_CONFIG}: "
+        print(f"[{awk_name}] {where}`{entry}` expects no warning (remove it)")
     failed = [r for r in results if not r.passed]
     for r in failed:
         print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
@@ -588,7 +617,7 @@ def main() -> int:
         return 1
 
     awk_name = Path(args.awk).name
-    lint_config = LintConfig.read(LINT_CONFIG) if args.suite == "lint" else None
+    lint_config = LintConfig.read(LINT_CONFIG, Path(args.script)) if args.suite == "lint" else None
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         results = list(pool.map(lambda test: test(), tests))
 
