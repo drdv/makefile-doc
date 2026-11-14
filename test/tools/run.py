@@ -11,7 +11,8 @@ Suites:
   bugs         run the cases of known bugs (marked with `#: bug: N`)
   lint         run each integration case (known bugs included) with `gawk --lint` and print
                each distinct lint warning once; the output of makefile-doc.awk is discarded
-               (it is not compared), and the suite fails if there is a warning (--awk: gawk)
+               (it is not compared), and the suite fails if there is a warning that is not
+               expected in test/tools/lint.toml (--awk: gawk)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
@@ -41,6 +42,7 @@ import re
 import shlex
 import subprocess
 import tempfile
+import tomllib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -337,9 +339,109 @@ def suite_bugs(args: argparse.Namespace) -> list[Callable[[], Result]]:
 # stdout is discarded and the messages of makefile-doc.awk go to /dev/null (STDERR), so the
 # stderr of gawk holds only its lint warnings
 LINT_FLAGS = ["--lint", "-v", "STDERR=/dev/null"]
+LINT_CONFIG = Path("test/tools/lint.toml")  # the expected warnings
 # the input position in a warning, e.g. "(FILENAME=test/fixtures/Makefile.misc FNR=5) "
 LINT_POSITION = re.compile(r"\(FILENAME=.*? FNR=\d+\) ")
-LINT_LINE = re.compile(r"^gawk: [^:]+:(\d+):")  # the line of makefile-doc.awk in a warning
+# e.g. "gawk: makefile-doc.awk:1012: warning: ..." (some warnings have no file and line)
+LINT_WARNING = re.compile(r"^gawk: (?:[^:]+:(?P<line>\d+): )?warning: (?P<message>.*)$")
+# the rules: a regex for the message of each kind of warning; the group `name` is what the
+# `allow` lists of lint.toml match (for uninit-element, the name of the array)
+LINT_RULES = {
+    "uninit-variable": re.compile(r"reference to uninitialized variable `(?P<name>[^']*)'"),
+    "uninit-argument": re.compile(r"reference to uninitialized argument `(?P<name>[^']*)'"),
+    "uninit-element": re.compile(r"reference to uninitialized element `(?P<name>[^\[']*)\[.*\]'"),
+    "substr-start": re.compile(r"substr: start index \S+ is invalid, using 1"),
+    "substr-past-end": re.compile(r"substr: start index \S+ is past end of string"),
+    "substr-empty": re.compile(r"substr: source string is zero length"),
+    "substr-length": re.compile(r"substr: length \S+ is not >= 1"),
+    "no-close": re.compile(r"no explicit close of file `[^']*' provided"),
+}
+LINT_UNKNOWN = "unknown"  # a line that matches no rule (it is always reported)
+
+
+@dataclass
+class LintWarning:
+    rule: str
+    name: str | None  # the name matched by `allow` (rules with a `name` group)
+    text: str  # the line without "gawk: " and "warning: ", e.g. "makefile-doc.awk:1012: ..."
+    line: int  # the line of makefile-doc.awk (0 if there is none)
+
+    @property
+    def key(self) -> str:
+        """What is reported once: the line, rule and name (e.g. "makefile-doc.awk:1012:
+        uninit-argument is_variable"), so that the warnings about the elements of an array
+        (one per key) or about substr (one per index) are grouped; an unknown warning as is."""
+        if self.rule == LINT_UNKNOWN:
+            return f"{LINT_UNKNOWN}: {self.text}"
+        where = f"makefile-doc.awk:{self.line}: " if self.line else ""
+        return where + self.rule + (f" {self.name}" if self.name is not None else "")
+
+    @classmethod
+    def parse(cls, line: str) -> "LintWarning":
+        m = LINT_WARNING.match(line)
+        if m:
+            text = (f"makefile-doc.awk:{m['line']}: " if m["line"] else "") + m["message"]
+            for rule, regex in LINT_RULES.items():
+                r = regex.fullmatch(m["message"])
+                if r:
+                    return cls(rule, r.groupdict().get("name"), text, int(m["line"] or 0))
+        return cls(LINT_UNKNOWN, None, m and text or line, int(m and m["line"] or 0))
+
+
+def is_strings(value: object) -> bool:
+    return isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+
+@dataclass
+class LintConfig:
+    ignore: list[str]  # rules that are never reported
+    allow: dict[str, list[str]]  # rule -> the expected names (shell-style patterns)
+
+    @classmethod
+    def read(cls, path: Path) -> "LintConfig":
+        """Read lint.toml; a key, rule or `allow` that is not valid is an error, so that a
+        typo does not silently expect nothing."""
+        try:
+            data = tomllib.loads((ROOT / path).read_text())
+        except (OSError, tomllib.TOMLDecodeError) as e:
+            sys.exit(f"{path}: {e}")
+        named = [rule for rule, regex in LINT_RULES.items() if "name" in regex.groupindex]
+        errors = []
+        ignore = data.pop("ignore", [])
+        if not is_strings(ignore):
+            errors.append("ignore: a list of rules is expected")
+            ignore = []
+        errors += [f"ignore: unknown rule {r!r}" for r in ignore if r not in LINT_RULES]
+        allow = {}
+        for key, table in data.items():
+            if key not in LINT_RULES:
+                errors.append(f"unknown rule or key {key!r}")
+            elif key not in named:
+                errors.append(f"[{key}]: the warnings of this rule have no names (use ignore)")
+            elif not isinstance(table, dict) or set(table) != {"allow"}:
+                errors.append(f"[{key}]: only `allow = [...]` is expected")
+            elif not is_strings(table["allow"]):
+                errors.append(f"[{key}]: allow: a list of names is expected")
+            else:
+                allow[key] = table["allow"]
+        if errors:
+            sys.exit("\n".join(f"{path}: {e}" for e in errors))
+        return cls(ignore, allow)
+
+    def expects(self, w: LintWarning) -> str | None:
+        """The entry of lint.toml that expects the warning, if any (e.g. "ignore no-close" or
+        "[uninit-variable] allow COLOR_*")."""
+        if w.rule in self.ignore:
+            return f"ignore {w.rule}"
+        for pattern in self.allow.get(w.rule, []):
+            if w.name is not None and fnmatch.fnmatchcase(w.name, pattern):
+                return f"[{w.rule}] allow {pattern}"
+        return None
+
+    def entries(self) -> list[str]:
+        return [f"ignore {r}" for r in self.ignore] + [
+            f"[{rule}] allow {p}" for rule, patterns in self.allow.items() for p in patterns
+        ]
 
 
 def lint_case(case: Case, args: argparse.Namespace) -> Result:
@@ -361,31 +463,48 @@ def suite_lint(args: argparse.Namespace) -> list[Callable[[], Result]]:
     return [(lambda c=c: lint_case(c, args)) for c in read_cases(args, bugs=None)]
 
 
-def report_lint(results: list[Result], awk_name: str, verbose: bool) -> int:
-    """Print each distinct warning once (ordered by line of makefile-doc.awk) with the number
-    of times it occurs and in how many cases (with --verbose, also the names of the cases)."""
-    occurrences: dict[str, int] = {}
-    cases: dict[str, set[str]] = {}
+def report_lint(results: list[Result], config: LintConfig, args: argparse.Namespace) -> int:
+    """Print each distinct warning that lint.toml does not expect once (ordered by line of
+    makefile-doc.awk), with its rule, the number of times it occurs and in how many cases
+    (with --verbose, also the names of the cases). After a run of all the cases, the entries
+    of lint.toml that expect no warning are reported too (they are stale)."""
+    awk_name = Path(args.awk).name
+    parsed: dict[str, LintWarning] = {}  # each distinct line of stderr is parsed once
+    occurrences: dict[str, int] = {}  # key -> number of unexpected warnings
+    cases: dict[str, set[str]] = {}  # key -> the cases with such warnings
+    order: dict[str, int] = {}  # key -> line of makefile-doc.awk
+    expected: set[str] = set()  # the keys of the expected warnings
+    used: set[str] = set()  # the entries of lint.toml that expect a warning
     for r in results:
-        for warning in r.details.splitlines():
-            occurrences[warning] = occurrences.get(warning, 0) + 1
-            cases.setdefault(warning, set()).add(r.name)
+        for line in r.details.splitlines():
+            w = parsed.get(line) or parsed.setdefault(line, LintWarning.parse(line))
+            entry = config.expects(w)
+            if entry:
+                used.add(entry)
+                expected.add(w.key)
+                continue
+            occurrences[w.key] = occurrences.get(w.key, 0) + 1
+            cases.setdefault(w.key, set()).add(r.name)
+            order[w.key] = w.line
 
-    def by_line(warning: str) -> tuple[int, str]:
-        m = LINT_LINE.match(warning)
-        return (int(m.group(1)) if m else 0, warning)
+    for key in sorted(occurrences, key=lambda key: (order[key], key)):
+        n = len(cases[key])
+        print(f"[{awk_name}] {key} ({occurrences[key]}x, {n} case{'s' * (n != 1)})")
+        if args.verbose:
+            print("    " + " ".join(sorted(cases[key])))
 
-    for warning in sorted(occurrences, key=by_line):
-        n = len(cases[warning])
-        print(f"[{awk_name}] {warning} ({occurrences[warning]}x, {n} case{'s' * (n != 1)})")
-        if verbose:
-            print("    " + " ".join(sorted(cases[warning])))
-
+    stale = [] if args.names else [e for e in config.entries() if e not in used]
+    for entry in stale:
+        print(f"[{awk_name}] {LINT_CONFIG}: `{entry}` expects no warning (remove it)")
     failed = [r for r in results if not r.passed]
     for r in failed:
         print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
-    print(f"[{awk_name}] {len(occurrences)} distinct lint warnings in {len(results)} cases")
-    return 1 if occurrences or failed else 0
+    print(
+        f"[{awk_name}] {len(occurrences)} unexpected lint warnings in {len(results)} "
+        f"case{'s' * (len(results) != 1)} "
+        f"({len(expected)} expected, see {LINT_CONFIG})"
+    )
+    return 1 if occurrences or stale or failed else 0
 
 
 # ------------------------------------------------------------------------------------------
@@ -469,11 +588,12 @@ def main() -> int:
         return 1
 
     awk_name = Path(args.awk).name
+    lint_config = LintConfig.read(LINT_CONFIG) if args.suite == "lint" else None
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         results = list(pool.map(lambda test: test(), tests))
 
-    if args.suite == "lint":
-        return report_lint(results, awk_name, args.verbose)
+    if lint_config is not None:
+        return report_lint(results, lint_config, args)
 
     def indent(text: str) -> str:
         return "    " + text.rstrip("\n").replace("\n", "\n    ")
