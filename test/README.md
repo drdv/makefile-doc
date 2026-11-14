@@ -102,6 +102,29 @@ Conventions:
 - A `#: env: NAME=value` line sets an environment variable for the case (e.g.,
   `#: env: NO_COLOR=1`).
 
+## Lint
+
+`make lint-tests` runs every integration case and unit test file with `gawk --lint` (the
+`lint` suite of `test/tools/run.py`) and prints each distinct warning once, e.g.,
+`makefile-doc.awk:1012: uninit-argument is_variable (123x, 41 runs)`: the line, the rule and
+the name. The output of the tests is not compared. Unlike `gawk --lint` without input, this
+lints the code that runs only on input (the parsing and the output). Names select cases and
+unit test files, e.g., `make lint-tests RUNNER_FLAGS='-v misc parsing'` (`-v` lists the runs
+of each warning).
+
+A warning is classified by a rule (`LINT_RULES` in `run.py`), e.g., `uninit-variable`,
+`uninit-argument`, `uninit-element`, `substr-start`; a warning that matches no rule is
+`unknown`. The suite fails if a warning in `makefile-doc.awk` is not expected:
+
+- in `test/tools/lint.toml`: `ignore = [...]` (rules that are never reported) and, per rule,
+  `allow = [...]` (expected names, e.g., the options passed with `-v`, or `COLOR_*`);
+- or by a `# lint: ignore[RULE, ...]` comment at the end of its line (or alone on the line
+  before it), for an idiom at one place, e.g., the last character of an empty line.
+
+An entry or comment that expects no warning is reported after a run of everything (it is
+stale), and an invalid one is an error. Warnings in test code (the harness and the unit
+test files) are listed for information only.
+
 ## Reporting and fixing bugs
 
 1. **Open an issue.** Every bug should have one.
