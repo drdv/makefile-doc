@@ -148,6 +148,11 @@ function repeated_string(string, n, #locals
   return s
 }
 
+# array[key], or "" if there is no such key (unlike reading array[key], it does not create it)
+function array_get(array, key) {
+  return (key in array) ? array[key] : ""
+}
+
 # in POSIX-compliant AWK the length function works on strings but not on arrays
 function length_array_posix(array, #locals
                             key, n) {
@@ -746,7 +751,7 @@ function set_user_defined_color_theme(    html_colors_split, k, n, ansi_html_map
     }
     split(html_colors_split[k], ansi_html_map, ":")
     ansi_param = ansi_html_map[1]
-    html_color_code = ansi_html_map[2]
+    html_color_code = array_get(ansi_html_map, 2) # "" if there is no colon
     # the parameters in the range 0-9 are attributes (e.g., bold): they have no color
     if (ansi_param != "FG" && ansi_param != "BG" &&
         !(ansi_param ~ /^[0-9]+$/ && ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR)) {
@@ -891,7 +896,7 @@ function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
 function latex_definecolor(label, ansi_color_param) {
   return sprintf("\\definecolor{%s}{HTML}{%s}\n",
                  COLOR_LABELS[label],
-                 ansi_color_param_to_latex_color(ansi_color_param))
+                 ansi_color_param_to_latex_color(ansi_color_param, 0))
 }
 
 # the preamble of the LaTeX output, up to the start of the documentation
@@ -923,8 +928,8 @@ function latex_header(    header) {
   header = header "\\begin{document}\n"
   header = header "\n"
   header = header "\\begin{varwidth}{\\linewidth}\n"
-  header = header ansi_color_param_to_latex_color("FG")
-  header = header ansi_color_param_to_latex_color("BG")
+  header = header ansi_color_param_to_latex_color("FG", 0)
+  header = header ansi_color_param_to_latex_color("BG", 0)
   header = header "\n"
   header = header "\\begin{alltt}"
   return header
@@ -1270,7 +1275,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
   }
 
   if (DESCRIPTION_DATA_INDEX == 1) {
-    parse_inline_descriptions($0)
+    parse_inline_descriptions($0, 0)
   }
 
   # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
@@ -1286,6 +1291,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
     g_target_name = g_target_name_nominal
     if (is_double_colon_rule($0)) {
       g_target_name = form_dc_target_name(g_target_name_nominal)
+      TARGETS_DC_COUNTER[g_target_name_nominal]++
     }
 
     TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
@@ -1294,7 +1300,6 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
                                                TARGETS_DESCRIPTION_DATA,
                                                TARGETS_SECTION_DATA,
                                                "target")
-    TARGETS_DC_COUNTER[g_target_name_nominal]++
   }
 
   IN_RULE = g_target_name_nominal
@@ -1448,7 +1453,7 @@ function display_substitutions(anchor, len_anchors, #locals
                                k, n, L, M, I, value_parts,
                                cond_indent, indentation, text, output) {
   output = ""
-  split(SUB_VALUES[anchor], value_parts, " ")
+  split(array_get(SUB_VALUES, anchor), value_parts, " ")
 
   if (SUB_PARAMS_CURRENT["N"] < 0) {
     n = length_array_posix(value_parts)
@@ -1491,7 +1496,7 @@ function display_substitutions(anchor, len_anchors, #locals
 
 function display_anchor_with_data(anchor, description, section, len_anchors, #locals
                                   renamed_anchor, formatted_anchor, padding, output) {
-  extract_substitution_params(SUB_PARAMS[anchor])
+  extract_substitution_params(array_get(SUB_PARAMS, anchor))
 
   # Display the section (if there is one) even if it is anchored to a deprecated anchor
   # that is not to be displayed (unless no anchor of its kind is displayed: then this

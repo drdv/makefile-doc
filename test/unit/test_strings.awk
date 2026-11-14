@@ -20,6 +20,16 @@ function test_length_array_posix(    arr) {
   check("length_array_posix: 4 elements", length_array_posix(arr), 4)
 }
 
+function test_array_get(    arr) {
+  arr["k"] = "value"
+  arr["empty"] = ""
+  check("array_get: existing key", array_get(arr, "k"), "value")
+  check("array_get: key with an empty value", array_get(arr, "empty"), "")
+  check("array_get: missing key", array_get(arr, "missing"), "")
+  check_true("array_get: a missing key is not created", !("missing" in arr))
+  check("array_get: the array is unchanged", length_array_posix(arr), 2)
+}
+
 function test_join(    arr) {
   split("this is another test", arr, " ")
   check("join: colon delimiter", join(arr, ":"), "this:is:another:test")
@@ -97,6 +107,7 @@ BEGIN {
   test_max_min()
   test_repeated_string()
   test_length_array_posix()
+  test_array_get()
   test_join()
   test_string_replace()
   test_strip_start_end_spaces_tabs()
