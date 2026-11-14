@@ -217,10 +217,13 @@ lint-py:
 	@$(RUFF) check $(TEST_DIR)
 	@$(RUFF) format --check $(TEST_DIR)
 
+# the version is pinned; without uv, use an installed pytest: `make test-tools PYTEST=pytest`
+PYTEST := uvx pytest@9.1.1
+
 ## Test the Python test tools (test/tools/test_*.py; the lint tests use gawk)
 .PHONY: test-tools
 test-tools: $(AWK_BIN)/gawk
-	@GAWK=$(AWK_BIN)/gawk python3 -m unittest discover -s $(TOOLS_DIR) -p 'test_*.py'
+	@GAWK=$(AWK_BIN)/gawk $(PYTEST) --no-header -p no:cacheprovider $(TOOLS_DIR)
 
 $(MAKEFILE_DOC).sha256: $(MAKEFILE_DOC)
 	@sha256sum $< > $@

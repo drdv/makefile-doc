@@ -20,7 +20,8 @@ version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 The test tools in `test/` are written in Python (>= 3.11, standard library only). `make
 lint-py` lints them and checks their formatting with [ruff](https://docs.astral.sh/ruff)
 (settings in `ruff.toml`; `uvx ruff format test` reformats them), and `make test-tools` runs
-their tests (`test/tools/test_*.py`, with `unittest`; the tests of the lint suite run gawk on
+their tests (`test/tools/test_*.py`, written with `unittest` and run with
+[pytest](https://docs.pytest.org) through `uvx`; the tests of the lint suite run gawk on
 a copy of `makefile-doc.awk` with an injected problem). The unit
 and integration tests are run by `test/tools/run.py`. Options can be passed with `RUNNER_FLAGS`,
 e.g., `make utest@mawk RUNNER_FLAGS='-v parsing'` (`-v` shows the output of passing
