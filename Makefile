@@ -6,8 +6,6 @@ endif
 SHELL := bash
 MAKEFLAGS := --no-print-directory --warn-undefined-variables --output-sync=target
 TEST_DIR := test
-EMPTY :=
-SPACE := $(EMPTY) $(EMPTY)
 
 INTEGRATION_TEST_DIR := $(TEST_DIR)/integration
 INTEGRATION_TESTS := $(notdir $(wildcard $(INTEGRATION_TEST_DIR)/*))
@@ -185,10 +183,11 @@ $(BENCH_ALL): bench@%:
 bench@all:
 	@$(BENCH)
 
-## Lint the awk code (`lint-awk`, `lint-tests`), the Python test tools (`lint-py`)
-## and check the version in the README (`check-version`)
+## Lint the awk code (`lint-tests`), check its global variables (`check-variables`,
+## `check-test-variables`), lint the Python test tools (`lint-py`) and check the version in
+## the README (`check-version`)
 .PHONY: lint
-lint: lint-awk lint-tests lint-py check-version
+lint: lint-tests check-variables check-test-variables lint-py check-version
 
 # Lint makefile-doc.awk with `gawk --lint` while running the integration cases and the unit
 # tests (the expected warnings are in test/tools/lint.toml; see test/README.md)
@@ -217,19 +216,6 @@ RUFF := uvx ruff@0.16.9
 lint-py:
 	@$(RUFF) check $(TEST_DIR)
 	@$(RUFF) format --check $(TEST_DIR)
-
-# Lint the awk code using `gawk`
-# Warnings about these uninitialized variables are expected (options passed with -v)
-.PHONY: lint-awk
-lint-awk: UNINIT := sub_array COLOR COLOR_.* VARS OFFSET PADDING DEPRECATED RECIPEPREFIX \
-	STDERR TARGETS_REGEX VARIABLES_REGEX OUTPUT_FORMAT EXPORT_THEME UNIT_TEST SUB DSUB
-lint-awk: override AWK := gawk
-lint-awk: check-variables check-test-variables
-	@warnings=$$($(AWK_BIN)/$(AWK) --lint -v SHOW_HELP=0 -v UNIT_TEST=0 \
-		-f $(MAKEFILE_DOC) 2>&1 | \
-		grep -vE "reference to uninitialized .* \`($(subst $(SPACE),|,$(strip $(UNINIT))))'"); \
-	if [ -n "$$warnings" ]; then echo "$$warnings"; exit 1; fi; \
-	echo "lint-awk: OK"
 
 # Verify that the unit tests define no unintended global variables
 # (e.g., a local variable missing from a function signature)
