@@ -59,7 +59,7 @@ BEGIN {
   and counts it in `OPTION_ERRORS`; `init_globals()` resets the count.
 - Declare the local variables of test functions in their signature (as in makefile-doc.awk):
   `make lint` fails if a test file defines other global variables than those of
-  makefile-doc.awk and the harness (`check-test-variables`).
+  makefile-doc.awk and the harness (the rule `test-global` of `make lint-tests`).
 
 The results are printed in [TAP](https://testanything.org) format. A test file fails if a
 check fails, if it stops before `done()` (e.g., because of an `exit` or a syntax error), or if
@@ -124,6 +124,13 @@ A warning is classified by a rule (`LINT_RULES` in `run.py`), e.g., `uninit-vari
 An entry or comment that expects no warning is reported after a run of everything (it is
 stale), and an invalid one is an error. Warnings in test code (the harness and the unit
 test files) are listed for information only.
+
+The suite also checks the global variables, in the dumps of `gawk -d` (`LINT_CHECKS` in
+`run.py`), and reports them as warnings of two rules: `global-name`, a global variable of
+`makefile-doc.awk` that is neither `UPPER_CASE` nor `g_lower_case`, and `test-global`, a
+global variable that a unit test file defines and that neither `makefile-doc.awk` nor the
+harness (`HARNESS_*`) defines (e.g., a local variable missing from a function signature).
+These are checked in test code too.
 
 ## Reporting and fixing bugs
 

@@ -14,7 +14,8 @@ Suites:
                (it is not compared), and the suite fails if there is a warning in
                makefile-doc.awk that is not expected in test/tools/lint.toml or by a
                `# lint: ignore[RULE, ...]` comment at its line (warnings in test code are for
-               information only; --awk: gawk)
+               information only); it also checks the global variables (LINT_CHECKS; --awk:
+               gawk)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
@@ -375,11 +376,24 @@ LINT_RULES = {
     "no-close": re.compile(r"no explicit close of file `[^']*' provided"),
 }
 LINT_UNKNOWN = "unknown"  # a line that matches no rule (it is always reported)
+# checks of the global variables (in the dumps of gawk -d), reported as warnings of these
+# rules; unlike the other warnings, those in test code are checked (not for information)
+LINT_CHECKS = {
+    # a global variable of makefile-doc.awk is UPPER_CASE (options, state) or g_lower_case
+    "global-name": re.compile(r"^([A-Z_]+|g_[a-z_]+)$"),
+    # a unit test file defines no global variable that makefile-doc.awk and the harness
+    # (HARNESS_*) do not define (e.g., a local variable missing from a function signature)
+    "test-global": re.compile(r"^HARNESS_"),
+}
+# a warning of a check (written by run.py, parsed like the lines of gawk), e.g.,
+# "check: test/unit/test_parsing.awk: test-global x"
+LINT_CHECK_LINE = re.compile(r"^check: (?P<file>[^:]+): (?P<rule>\S+) (?P<name>\S+)$")
 # a comment in makefile-doc.awk that expects the warnings of rules at its line, e.g.
 # `# lint: ignore[substr-start]` or `# lint: ignore[substr-start, uninit-argument]`; alone on
 # its line (a long line has no room for it), it applies to the next line
 LINT_INLINE = re.compile(r"#\s*lint:\s*ignore\[([^\]]*)\]")
 UNIT_LABEL = "unit test file"  # the label of the result of a unit test file
+GLOBALS_LABEL = "global variables"  # the label of the result of the checks (LINT_CHECKS)
 
 
 @dataclass
@@ -398,11 +412,15 @@ class LintWarning:
         as is."""
         if self.rule == LINT_UNKNOWN:
             return f"{LINT_UNKNOWN}: {self.text}"
-        where = f"{self.file}:{self.line}: " if self.file else ""
+        where = f"{self.file}:{self.line}: " if self.line else f"{self.file}: " if self.file else ""
         return where + self.rule + (f" {self.name}" if self.name is not None else "")
 
     @classmethod
     def parse(cls, line: str) -> "LintWarning":
+        c = LINT_CHECK_LINE.match(line)
+        if c and c["rule"] in LINT_CHECKS:
+            text = f"{c['file']}: {c['rule']} {c['name']}"
+            return cls(c["rule"], c["name"], text, c["file"], 0)
         m = LINT_WARNING.match(line)
         if not m:
             return cls(LINT_UNKNOWN, None, line, "", 0)
@@ -435,16 +453,18 @@ class LintConfig:
             data = tomllib.loads((ROOT / path).read_text())
         except (OSError, tomllib.TOMLDecodeError) as e:
             sys.exit(f"{path}: {e}")
-        named = [rule for rule, regex in LINT_RULES.items() if "name" in regex.groupindex]
+        rules = [*LINT_RULES, *LINT_CHECKS]
+        named = [r for r, regex in LINT_RULES.items() if "name" in regex.groupindex]
+        named += list(LINT_CHECKS)
         errors = []
         ignore = data.pop("ignore", [])
         if not is_strings(ignore):
             errors.append("ignore: a list of rules is expected")
             ignore = []
-        errors += [f"ignore: unknown rule {r!r}" for r in ignore if r not in LINT_RULES]
+        errors += [f"ignore: unknown rule {r!r}" for r in ignore if r not in rules]
         allow = {}
         for key, table in data.items():
-            if key not in LINT_RULES:
+            if key not in rules:
                 errors.append(f"unknown rule or key {key!r}")
             elif key not in named:
                 errors.append(f"[{key}]: the warnings of this rule have no names (use ignore)")
@@ -461,12 +481,14 @@ class LintConfig:
         for number, line in enumerate((ROOT / script).read_text().splitlines(), 1):
             m = LINT_INLINE.search(line)
             if m:
-                rules = [r.strip() for r in m.group(1).split(",")]
+                line_rules = [r.strip() for r in m.group(1).split(",")]
                 errors += [
-                    f"{script}:{number}: unknown rule {r!r}" for r in rules if r not in LINT_RULES
+                    f"{script}:{number}: unknown rule {r!r}"
+                    for r in line_rules
+                    if r not in LINT_RULES  # not the checks: their warnings have no line
                 ]
                 alone = line.lstrip().startswith("#")  # alone on its line: for the next line
-                inline[number + alone] = rules
+                inline[number + alone] = line_rules
         if errors:
             sys.exit("\n".join(errors))
         return cls(script, ignore, allow, inline)
@@ -540,14 +562,56 @@ def lint_unit_file(test_file: Path, args: argparse.Namespace) -> Result:
     return Result(test_file.stem, True, "", details=warnings, label=UNIT_LABEL)
 
 
+def gawk_globals(args: argparse.Namespace, awk_args: list[str]) -> set[str]:
+    """The global variables of a gawk program (in the dump of gawk -d; its output and exit
+    status are ignored)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        dump = Path(tmp) / "globals"
+        try:
+            run_awk(args.awk, [f"-d{dump}", *awk_args], args.timeout)
+        except subprocess.TimeoutExpired:
+            sys.exit(f"gawk -d timed out after {args.timeout:g} s")
+        if not dump.exists():
+            sys.exit(f"gawk -d wrote no dump of the global variables ({args.awk})")
+        return {line.split(":")[0] for line in dump.read_text().splitlines() if line}
+
+
+def lint_globals(test_files: list[Path], args: argparse.Namespace) -> Result:
+    """Check the global variables (see LINT_CHECKS): those of makefile-doc.awk (with no
+    Makefile, it stops after BEGIN), and those that each unit test file adds to them."""
+    script = gawk_globals(args, ["-v", "SHOW_HELP=0", "-f", args.script])
+    lines = [
+        f"check: {args.script}: global-name {v}"
+        for v in sorted(script)
+        if not LINT_CHECKS["global-name"].match(v)
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        stderr_file = Path(tmp) / "stderr"
+        stderr_file.touch()
+        for f in test_files:
+            test = gawk_globals(args, unit_file_args([], args.script, f, stderr_file))
+            lines += [
+                f"check: {f}: test-global {v}"
+                for v in sorted(test - script)
+                if not LINT_CHECKS["test-global"].match(v)
+            ]
+    details = "".join(f"{x}\n" for x in lines)
+    return Result("global variables", True, "", details=details, label=GLOBALS_LABEL)
+
+
 def suite_lint(args: argparse.Namespace) -> list[Callable[[], Result]]:
     """The integration cases (known bugs included) and the unit test files; a NAME selects
-    from both."""
+    from both. The global variables are checked too (see LINT_CHECKS), for the selected
+    unit test files."""
     items: list[Case | Path] = [*all_cases(bugs=None), *unit_files()]
     items = select(args, items, lambda i: [i.name] if isinstance(i, Case) else unit_names(i))
+    selected_units = [i for i in items if isinstance(i, Path)]
     return [
-        (lambda i=i: lint_case(i, args) if isinstance(i, Case) else lint_unit_file(i, args))
-        for i in items
+        *[
+            (lambda i=i: lint_case(i, args) if isinstance(i, Case) else lint_unit_file(i, args))
+            for i in items
+        ],
+        lambda: lint_globals(selected_units, args),
     ]
 
 
@@ -589,7 +653,7 @@ def report_lint(results: list[Result], config: LintConfig, args: argparse.Namesp
             w = parsed.get(line) or parsed.setdefault(line, LintWarning.parse(line))
             # a warning without a file (e.g., "function f defined but never called") is in
             # test code if it is from a unit test file (integration cases run only the script)
-            if w.file != config.script and (w.file or is_unit):
+            if w.rule not in LINT_CHECKS and w.file != config.script and (w.file or is_unit):
                 in_test_code.add(w, r.name)
                 continue
             entry = config.expects(w)
@@ -612,7 +676,7 @@ def report_lint(results: list[Result], config: LintConfig, args: argparse.Namesp
         in_test_code.print(f"[{awk_name}]   ", args.verbose)
 
     n_units = sum(r.label == UNIT_LABEL for r in results)
-    n_cases = len(results) - n_units
+    n_cases = sum(not r.label for r in results)
     print(
         f"[{awk_name}] {len(unexpected.occurrences)} unexpected lint warnings in "
         f"{n_cases} case{'s' * (n_cases != 1)} and {n_units} unit "

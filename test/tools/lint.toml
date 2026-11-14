@@ -1,8 +1,9 @@
 # Expected warnings of `test/tools/run.py lint` (gawk --lint on the integration cases).
 #
 # Rules (defined in LINT_RULES of run.py): uninit-variable, uninit-argument, uninit-element,
-# substr-start, substr-past-end, substr-empty, substr-length, no-close. A warning that
-# matches no rule is `unknown` and is always reported.
+# substr-start, substr-past-end, substr-empty, substr-length, no-close, and the checks of the
+# global variables (LINT_CHECKS): global-name, test-global. A warning that matches no rule
+# is `unknown` and is always reported.
 #
 # - ignore = [...]: rules that are never reported
 # - [rule] allow = [...]: the expected names of a rule (shell-style patterns, e.g. COLOR_*);

@@ -183,14 +183,14 @@ $(BENCH_ALL): bench@%:
 bench@all:
 	@$(BENCH)
 
-## Lint the awk code (`lint-tests`), check its global variables (`check-variables`,
-## `check-test-variables`), lint the Python test tools (`lint-py`) and check the version in
-## the README (`check-version`)
+## Lint the awk code and check its global variables (`lint-tests`), lint the Python test
+## tools (`lint-py`) and check the version in the README (`check-version`)
 .PHONY: lint
-lint: lint-tests check-variables check-test-variables lint-py check-version
+lint: lint-tests lint-py check-version
 
 # Lint makefile-doc.awk with `gawk --lint` while running the integration cases and the unit
-# tests (the expected warnings are in test/tools/lint.toml; see test/README.md)
+# tests, and check the global variables (the expected warnings are in test/tools/lint.toml;
+# see test/README.md)
 .PHONY: lint-tests
 lint-tests: override AWK := gawk
 lint-tests: $(AWK_BIN)/gawk $(MAKEFILE_DOC)
@@ -216,36 +216,6 @@ RUFF := uvx ruff@0.16.9
 lint-py:
 	@$(RUFF) check $(TEST_DIR)
 	@$(RUFF) format --check $(TEST_DIR)
-
-# Verify that the unit tests define no unintended global variables
-# (e.g., a local variable missing from a function signature)
-.PHONY: check-test-variables
-check-test-variables: $(AWK_BIN)/gawk
-	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
-	$(AWK_BIN)/gawk -v SHOW_HELP=0 -d$$tmp/script -f $(MAKEFILE_DOC) >/dev/null 2>&1; \
-	status=0; \
-	for f in $(UNIT_TESTS); do \
-		$(AWK_BIN)/gawk -v UNIT_TEST=1 -v STDERR=$$tmp/stderr -d$$tmp/test \
-			-f $(UNIT_TEST_DIR)/harness.awk -f $(MAKEFILE_DOC) -f $$f /dev/null >/dev/null 2>&1; \
-		extra=$$(cut -d: -f1 $$tmp/test | grep -vxF -f <(cut -d: -f1 $$tmp/script) | \
-			grep -v '^HARNESS_' | tr '\n' ' '); \
-		if [ -n "$$extra" ]; then echo "[$$f] unintended global variables: $$extra"; status=1; fi; \
-	done; \
-	if [ $$status = 0 ]; then echo "check-test-variables: OK"; fi; \
-	exit $$status
-
-# Verify that there are no unintended global variables
-.PHONY: check-variables
-check-variables: AWK_CODE := '\
-	{ v=$$1; if (v !~ /^[A-Z_]+$$/ && v !~ /^g_[a-z_]+$$/) a[k++]=v }\
-	END { if (length(a) == 0) { print "check-variables: OK"; exit 0 } \
-	for (k in a) print "["a[k]"] violates naming rules"; exit 1 }'
-check-variables: AWKVARS_FILE := awkvars.out
-check-variables: $(AWK_BIN)/gawk
-	@# -d dumps the global variables (gawk exits with 1 as no Makefile is given)
-	@$(AWK_BIN)/gawk -v SHOW_HELP=0 -d$(AWKVARS_FILE) -f $(MAKEFILE_DOC) || true; \
-	$(AWK_BIN)/gawk -F: $(AWK_CODE) $(AWKVARS_FILE); status=$$?; \
-	rm -f $(AWKVARS_FILE); exit $$status
 
 $(MAKEFILE_DOC).sha256: $(MAKEFILE_DOC)
 	@sha256sum $< > $@
