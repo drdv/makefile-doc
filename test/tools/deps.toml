@@ -39,6 +39,15 @@ url = "https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/{version
 sha256 = "791cdc2db1ef44ba1ff04ae8870800a34d5e7b680e799dded019ec1fda7fc923"
 build = "./configure && make"
 binary = "mawk"
+
+# the mawk of Ubuntu 24.04 LTS (also the system awk of GitHub's ubuntu-latest)
+[awk.mawk2024]
+version = "t20240123"
+url = "https://github.com/ThomasDickey/mawk-snapshots/archive/refs/tags/{version}.tar.gz"
+sha256 = "38577cd9b459532ee4ee0a04db13ada71f76a2b0fd15fc562afa5c7ec11722ad"
+build = "./configure && make"
+binary = "mawk"
+
 [awk.nawk]
 version = "20240728"
 url = "https://github.com/onetrueawk/awk/archive/refs/tags/{version}.tar.gz"
