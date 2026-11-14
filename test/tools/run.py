@@ -9,6 +9,9 @@ Suites:
   integration  run each test/integration/*.test case and compare the output with the
                expected output (see test/README.md); --update rewrites the expected output
   bugs         run the cases of known bugs (marked with `#: bug: N`)
+  lint         run each integration case (known bugs included) with `gawk --lint` and print
+               each distinct lint warning once; the output of makefile-doc.awk is discarded
+               (it is not compared), and the suite fails if there is a warning (--awk: gawk)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
@@ -323,6 +326,63 @@ def suite_bugs(args: argparse.Namespace) -> list[Callable[[], Result]]:
 
 
 # ------------------------------------------------------------------------------------------
+# lint
+# ------------------------------------------------------------------------------------------
+# stdout is discarded and the messages of makefile-doc.awk go to /dev/null (STDERR), so the
+# stderr of gawk holds only its lint warnings
+LINT_FLAGS = ["--lint", "-v", "STDERR=/dev/null"]
+# the input position in a warning, e.g. "(FILENAME=test/fixtures/Makefile.misc FNR=5) "
+LINT_POSITION = re.compile(r"\(FILENAME=.*? FNR=\d+\) ")
+LINT_LINE = re.compile(r"^gawk: [^:]+:(\d+):")  # the line of makefile-doc.awk in a warning
+
+
+def lint_case(case: Case, args: argparse.Namespace) -> Result:
+    """Run a case with gawk --lint; its warnings (without input positions) are the details."""
+    try:
+        proc = run_awk(
+            args.awk,
+            [*LINT_FLAGS, *args.awk_flags, "-f", args.script, *shlex.split(case.args)],
+            args.timeout,
+            env=case.env,
+        )
+    except subprocess.TimeoutExpired:
+        return timed_out(case.name, args.timeout)
+    warnings = "".join(LINT_POSITION.sub("", line) + "\n" for line in proc.stderr.splitlines())
+    return Result(case.name, True, "", details=warnings)
+
+
+def suite_lint(args: argparse.Namespace) -> list[Callable[[], Result]]:
+    return [(lambda c=c: lint_case(c, args)) for c in read_cases(args)]
+
+
+def report_lint(results: list[Result], awk_name: str, verbose: bool) -> int:
+    """Print each distinct warning once (ordered by line of makefile-doc.awk) with the number
+    of times it occurs and in how many cases (with --verbose, also the names of the cases)."""
+    occurrences: dict[str, int] = {}
+    cases: dict[str, set[str]] = {}
+    for r in results:
+        for warning in r.details.splitlines():
+            occurrences[warning] = occurrences.get(warning, 0) + 1
+            cases.setdefault(warning, set()).add(r.name)
+
+    def by_line(warning: str) -> tuple[int, str]:
+        m = LINT_LINE.match(warning)
+        return (int(m.group(1)) if m else 0, warning)
+
+    for warning in sorted(occurrences, key=by_line):
+        n = len(cases[warning])
+        print(f"[{awk_name}] {warning} ({occurrences[warning]}x, {n} case{'s' * (n != 1)})")
+        if verbose:
+            print("    " + " ".join(sorted(cases[warning])))
+
+    failed = [r for r in results if not r.passed]
+    for r in failed:
+        print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
+    print(f"[{awk_name}] {len(occurrences)} distinct lint warnings in {len(results)} cases")
+    return 1 if occurrences or failed else 0
+
+
+# ------------------------------------------------------------------------------------------
 # main
 # ------------------------------------------------------------------------------------------
 def selected(args: argparse.Namespace, name: str) -> bool:
@@ -333,6 +393,7 @@ SUITES: dict[str, Callable[[argparse.Namespace], list[Callable[[], Result]]]] = 
     "unit": suite_unit,
     "integration": suite_integration,
     "bugs": suite_bugs,
+    "lint": suite_lint,
 }
 
 
@@ -380,6 +441,9 @@ def main() -> int:
     awk_name = Path(args.awk).name
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         results = list(pool.map(lambda test: test(), tests))
+
+    if args.suite == "lint":
+        return report_lint(results, awk_name, args.verbose)
 
     def indent(text: str) -> str:
         return "    " + text.rstrip("\n").replace("\n", "\n    ")
