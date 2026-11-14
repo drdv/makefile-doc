@@ -10,7 +10,7 @@ Options:
   SUB (substitutions):
   DSUB (substitutions in docs):
   TARGETS_REGEX (regex for matching targets): ^[ 	]*[^# 	=][^#:=]*[ 	]*&?(:|::)([^=:]|$)
-  VARIABLES_REGEX (regex for matching variables): ^[ 	]*([ 	]*(override|unexport|export|private)[ 	]+)*[^ 	#:=]+[ 	]*(=|:=|::=|:::=|!=|\?=|\+=)
+  VARIABLES_REGEX (regex for matching variables): ^[ 	]*((override|unexport|export|private)[ 	]+)*[^ 	#:=]+[ 	]*(=|:=|::=|:::=|!=|\?=|\+=)
   VARS ([bool] show documented variables): 1
   PADDING (a padding character between anchors and docs): " "
   DEPRECATED ([bool] show deprecated anchors): 1
