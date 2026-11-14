@@ -35,22 +35,22 @@ run-suite = $(RUNNER) $(1) \
 AWK := awk
 
 ## Flags for awk in `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
-## `--posix` (gawk)
-## `-W posix` (mawk)
+##   `--posix` (gawk)
+##   `-W posix` (mawk)
 AWK_FLAGS :=
 
 ## Flags for `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
-## `-v` (show the output of passing tests)
-## `-k PATTERN` (run only the tests whose name contains PATTERN)
-## `--update` (rewrite the expected output of integration tests)
-## `--timeout SECONDS` (default: 30)
-## `--jobs N` (number of tests run in parallel)
+##   `-v` (show the output of passing tests)
+##   `-k PATTERN` (run only the tests whose name contains PATTERN)
+##   `--update` (rewrite the expected output of integration tests)
+##   `--timeout SECONDS` (default: 30)
+##   `--jobs N` (number of tests run in parallel)
 RUNNER_FLAGS :=
 
 ## Flags for `bench@<variant>`:
-## `--rev REV` (also show the change from this git revision)
-## `-n N` (runs per measurement, default: 5)
-## `--keep` (save the annotated Makefiles in test/bin/)
+##   `--rev REV` (also show the change from this git revision)
+##   `-n N` (runs per measurement, default: 5)
+##   `--keep` (save the annotated Makefiles in test/bin/)
 BENCH_FLAGS :=
 
 AWK_BIN := $(TEST_DIR)/bin
