@@ -9,11 +9,12 @@ Suites:
   integration  run each test/integration/*.test case and compare the output with the
                expected output (see test/README.md); --update rewrites the expected output
   bugs         run the cases of known bugs (marked with `#: bug: N`)
-  lint         run each integration case (known bugs included) with `gawk --lint` and print
-               each distinct lint warning once; the output of makefile-doc.awk is discarded
-               (it is not compared), and the suite fails if there is a warning that is not
-               expected in test/tools/lint.toml or by a `# lint: ignore[RULE, ...]` comment at
-               its line of makefile-doc.awk (--awk: gawk)
+  lint         run each integration case (known bugs included) and each unit test file with
+               `gawk --lint` and print each distinct lint warning once; the output is discarded
+               (it is not compared), and the suite fails if there is a warning in
+               makefile-doc.awk that is not expected in test/tools/lint.toml or by a
+               `# lint: ignore[RULE, ...]` comment at its line (warnings in test code are for
+               information only; --awk: gawk)
 
 Each test file is run once with the given awk. A test file fails if a check fails, if the
 TAP plan is missing or does not match the number of checks, if awk exits with a non-zero
@@ -158,28 +159,32 @@ def relevant_tap_lines(stdout: str) -> str:
     return "\n".join(lines) + "\n" if lines else ""
 
 
+def unit_file_args(awk_flags: list[str], script: str, test_file: Path, stderr: Path) -> list[str]:
+    """The awk arguments that run a unit test file (with the harness and the script)."""
+    return [
+        *awk_flags,
+        "-v",
+        "UNIT_TEST=1",
+        "-v",
+        f"STDERR={stderr}",
+        "-f",
+        str(HARNESS),
+        "-f",
+        script,
+        "-f",
+        str(test_file),
+        "/dev/null",
+    ]
+
+
 def run_unit_file(
     awk: str, awk_flags: list[str], script: str, test_file: Path, timeout: float
 ) -> Result:
     with tempfile.TemporaryDirectory() as tmp:
         stderr_file = Path(tmp) / "stderr"
         stderr_file.touch()
-        args = [
-            *awk_flags,
-            "-v",
-            "UNIT_TEST=1",
-            "-v",
-            f"STDERR={stderr_file}",
-            "-f",
-            str(HARNESS),
-            "-f",
-            script,
-            "-f",
-            str(test_file),
-            "/dev/null",
-        ]
         try:
-            proc = run_awk(awk, args, timeout)
+            proc = run_awk(awk, unit_file_args(awk_flags, script, test_file, stderr_file), timeout)
         except subprocess.TimeoutExpired:
             return timed_out(test_file.stem, timeout)
     passed, summary, checks = check_tap(proc.stdout, proc.returncode)
@@ -194,10 +199,17 @@ def run_unit_file(
     )
 
 
+def unit_files() -> list[Path]:
+    return [UNIT_DIR / f.name for f in sorted((ROOT / UNIT_DIR).glob("test_*.awk"))]
+
+
+def unit_names(test_file: Path) -> list[str]:
+    """test/unit/test_parsing.awk is selected by `parsing` or `test_parsing`."""
+    return [test_file.stem, test_file.stem.removeprefix("test_")]
+
+
 def suite_unit(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    files = [UNIT_DIR / f.name for f in sorted((ROOT / UNIT_DIR).glob("test_*.awk"))]
-    # test/unit/test_parsing.awk is selected by `parsing` or `test_parsing`
-    files = select(args, files, lambda f: [f.stem, f.stem.removeprefix("test_")])
+    files = select(args, unit_files(), unit_names)
     return [
         (lambda f=f: run_unit_file(args.awk, args.awk_flags, args.script, f, args.timeout))
         for f in files
@@ -317,13 +329,17 @@ class Case:
         return Result(self.name, False, "output differs", diff, relevant=diff)
 
 
-def read_cases(args: argparse.Namespace, bugs: bool | None) -> list[Case]:
-    """The selected integration cases: with bugs=False, those without a `#: bug:` line, with
+def all_cases(bugs: bool | None) -> list[Case]:
+    """The integration cases: with bugs=False, those without a `#: bug:` line, with
     bugs=True, those with one, and with bugs=None, all of them."""
     paths = sorted((ROOT / INTEGRATION_DIR).glob("*.test"))
     cases = [Case.read(INTEGRATION_DIR / p.name) for p in paths]
-    cases = [c for c in cases if bugs is None or (c.bug is not None) == bugs]
-    return select(args, cases, lambda c: [c.name])
+    return [c for c in cases if bugs is None or (c.bug is not None) == bugs]
+
+
+def read_cases(args: argparse.Namespace, bugs: bool | None) -> list[Case]:
+    """The selected integration cases (see all_cases)."""
+    return select(args, all_cases(bugs), lambda c: [c.name])
 
 
 def suite_integration(args: argparse.Namespace) -> list[Callable[[], Result]]:
@@ -337,14 +353,15 @@ def suite_bugs(args: argparse.Namespace) -> list[Callable[[], Result]]:
 # ------------------------------------------------------------------------------------------
 # lint
 # ------------------------------------------------------------------------------------------
-# stdout is discarded and the messages of makefile-doc.awk go to /dev/null (STDERR), so the
-# stderr of gawk holds only its lint warnings
-LINT_FLAGS = ["--lint", "-v", "STDERR=/dev/null"]
+# Each integration case and each unit test file is run with gawk --lint; its output is
+# discarded (stdout, and the messages of makefile-doc.awk go to STDERR), so the stderr of
+# gawk holds only its lint warnings. The warnings in makefile-doc.awk are checked; those in
+# test code (the harness and the unit test files) are for information only.
 LINT_CONFIG = Path("test/tools/lint.toml")  # the expected warnings
 # the input position in a warning, e.g. "(FILENAME=test/fixtures/Makefile.misc FNR=5) "
 LINT_POSITION = re.compile(r"\(FILENAME=.*? FNR=\d+\) ")
 # e.g. "gawk: makefile-doc.awk:1012: warning: ..." (some warnings have no file and line)
-LINT_WARNING = re.compile(r"^gawk: (?:[^:]+:(?P<line>\d+): )?warning: (?P<message>.*)$")
+LINT_WARNING = re.compile(r"^gawk: (?:(?P<file>[^:]+):(?P<line>\d+): )?warning: (?P<message>.*)$")
 # the rules: a regex for the message of each kind of warning; the group `name` is what the
 # `allow` lists of lint.toml match (for uninit-element, the name of the array)
 LINT_RULES = {
@@ -362,6 +379,7 @@ LINT_UNKNOWN = "unknown"  # a line that matches no rule (it is always reported)
 # `# lint: ignore[substr-start]` or `# lint: ignore[substr-start, uninit-argument]`; alone on
 # its line (a long line has no room for it), it applies to the next line
 LINT_INLINE = re.compile(r"#\s*lint:\s*ignore\[([^\]]*)\]")
+UNIT_LABEL = "unit test file"  # the label of the result of a unit test file
 
 
 @dataclass
@@ -369,28 +387,32 @@ class LintWarning:
     rule: str
     name: str | None  # the name matched by `allow` (rules with a `name` group)
     text: str  # the line without "gawk: " and "warning: ", e.g. "makefile-doc.awk:1012: ..."
-    line: int  # the line of makefile-doc.awk (0 if there is none)
+    file: str  # the awk file of the warning ("" if there is none)
+    line: int  # the line in that file (0 if there is none)
 
     @property
     def key(self) -> str:
-        """What is reported once: the line, rule and name (e.g. "makefile-doc.awk:1012:
-        uninit-argument is_variable"), so that the warnings about the elements of an array
-        (one per key) or about substr (one per index) are grouped; an unknown warning as is."""
+        """What is reported once: the file and line, rule and name (e.g. "makefile-doc.awk:
+        1012: uninit-argument is_variable"), so that the warnings about the elements of an
+        array (one per key) or about substr (one per index) are grouped; an unknown warning
+        as is."""
         if self.rule == LINT_UNKNOWN:
             return f"{LINT_UNKNOWN}: {self.text}"
-        where = f"makefile-doc.awk:{self.line}: " if self.line else ""
+        where = f"{self.file}:{self.line}: " if self.file else ""
         return where + self.rule + (f" {self.name}" if self.name is not None else "")
 
     @classmethod
     def parse(cls, line: str) -> "LintWarning":
         m = LINT_WARNING.match(line)
-        if m:
-            text = (f"makefile-doc.awk:{m['line']}: " if m["line"] else "") + m["message"]
-            for rule, regex in LINT_RULES.items():
-                r = regex.fullmatch(m["message"])
-                if r:
-                    return cls(rule, r.groupdict().get("name"), text, int(m["line"] or 0))
-        return cls(LINT_UNKNOWN, None, m and text or line, int(m and m["line"] or 0))
+        if not m:
+            return cls(LINT_UNKNOWN, None, line, "", 0)
+        file, number = m["file"] or "", int(m["line"] or 0)
+        text = (f"{file}:{number}: " if file else "") + m["message"]
+        for rule, regex in LINT_RULES.items():
+            r = regex.fullmatch(m["message"])
+            if r:
+                return cls(rule, r.groupdict().get("name"), text, file, number)
+        return cls(LINT_UNKNOWN, None, text, file, number)
 
 
 def is_strings(value: object) -> bool:
@@ -399,12 +421,13 @@ def is_strings(value: object) -> bool:
 
 @dataclass
 class LintConfig:
+    script: str  # makefile-doc.awk (as passed to awk, and so as named in the warnings)
     ignore: list[str]  # rules that are never reported
     allow: dict[str, list[str]]  # rule -> the expected names (shell-style patterns)
-    inline: dict[int, list[str]]  # line of makefile-doc.awk -> rules (`# lint: ignore[...]`)
+    inline: dict[int, list[str]]  # line of the script -> rules (`# lint: ignore[...]`)
 
     @classmethod
-    def read(cls, path: Path, script: Path) -> "LintConfig":
+    def read(cls, path: Path, script: str) -> "LintConfig":
         """Read lint.toml and the `# lint: ignore[...]` comments of the script; a key, rule
         or `allow` that is not valid is an error, so that a typo does not silently expect
         nothing."""
@@ -446,15 +469,15 @@ class LintConfig:
                 inline[number + alone] = rules
         if errors:
             sys.exit("\n".join(errors))
-        return cls(ignore, allow, inline)
+        return cls(script, ignore, allow, inline)
 
     def expects(self, w: LintWarning) -> str | None:
-        """The entry of lint.toml that expects the warning, if any (e.g. "ignore no-close" or
-        "[uninit-variable] allow COLOR_*")."""
+        """The entry that expects the warning, if any (e.g. "ignore no-close",
+        "[uninit-variable] allow COLOR_*" or "makefile-doc.awk:1161: ignore[substr-start]")."""
         if w.rule in self.ignore:
             return f"ignore {w.rule}"
-        if w.rule in self.inline.get(w.line, []):
-            return f"makefile-doc.awk:{w.line}: ignore[{w.rule}]"
+        if w.file == self.script and w.rule in self.inline.get(w.line, []):
+            return f"{self.script}:{w.line}: ignore[{w.rule}]"
         for pattern in self.allow.get(w.rule, []):
             if w.name is not None and fnmatch.fnmatchcase(w.name, pattern):
                 return f"[{w.rule}] allow {pattern}"
@@ -465,75 +488,137 @@ class LintConfig:
             [f"ignore {r}" for r in self.ignore]
             + [f"[{rule}] allow {p}" for rule, patterns in self.allow.items() for p in patterns]
             + [
-                f"makefile-doc.awk:{line}: ignore[{rule}]"
+                f"{self.script}:{line}: ignore[{rule}]"
                 for line, rules in self.inline.items()
                 for rule in rules
             ]
         )
 
 
+def lint_lines(stderr: str) -> str:
+    """The lines of stderr without the input positions (so that identical warnings group)."""
+    return "".join(LINT_POSITION.sub("", line) + "\n" for line in stderr.splitlines())
+
+
 def lint_case(case: Case, args: argparse.Namespace) -> Result:
-    """Run a case with gawk --lint; its warnings (without input positions) are the details."""
+    """Run an integration case with gawk --lint; its warnings are the details."""
     try:
         proc = run_awk(
             args.awk,
-            [*LINT_FLAGS, *args.awk_flags, "-f", args.script, *shlex.split(case.args)],
+            [
+                "--lint",
+                *args.awk_flags,
+                "-v",
+                "STDERR=/dev/null",
+                "-f",
+                args.script,
+                *shlex.split(case.args),
+            ],
             args.timeout,
             env=case.env,
         )
     except subprocess.TimeoutExpired:
         return timed_out(case.name, args.timeout)
-    warnings = "".join(LINT_POSITION.sub("", line) + "\n" for line in proc.stderr.splitlines())
-    return Result(case.name, True, "", details=warnings)
+    return Result(case.name, True, "", details=lint_lines(proc.stderr))
+
+
+def lint_unit_file(test_file: Path, args: argparse.Namespace) -> Result:
+    """Run a unit test file with gawk --lint (its TAP output is discarded); its warnings are
+    the details."""
+    with tempfile.TemporaryDirectory() as tmp:
+        stderr_file = Path(tmp) / "stderr"  # as in run_unit_file (stderr_text reads it)
+        stderr_file.touch()
+        flags = ["--lint", *args.awk_flags]
+        try:
+            proc = run_awk(
+                args.awk, unit_file_args(flags, args.script, test_file, stderr_file), args.timeout
+            )
+        except subprocess.TimeoutExpired:
+            return timed_out(test_file.stem, args.timeout)
+    # the temporary file is named STDERR, so that identical warnings group
+    warnings = lint_lines(proc.stderr.replace(str(stderr_file), "STDERR"))
+    return Result(test_file.stem, True, "", details=warnings, label=UNIT_LABEL)
 
 
 def suite_lint(args: argparse.Namespace) -> list[Callable[[], Result]]:
-    return [(lambda c=c: lint_case(c, args)) for c in read_cases(args, bugs=None)]
+    """The integration cases (known bugs included) and the unit test files; a NAME selects
+    from both."""
+    items: list[Case | Path] = [*all_cases(bugs=None), *unit_files()]
+    items = select(args, items, lambda i: [i.name] if isinstance(i, Case) else unit_names(i))
+    return [
+        (lambda i=i: lint_case(i, args) if isinstance(i, Case) else lint_unit_file(i, args))
+        for i in items
+    ]
+
+
+@dataclass
+class LintTally:
+    """The distinct warnings of a group (e.g., unexpected ones), counted by key."""
+
+    occurrences: dict[str, int]
+    runs: dict[str, set[str]]  # key -> the runs (cases and unit test files) with the warning
+    order: dict[str, tuple[str, int]]  # key -> (file, line)
+
+    def add(self, w: LintWarning, run: str) -> None:
+        self.occurrences[w.key] = self.occurrences.get(w.key, 0) + 1
+        self.runs.setdefault(w.key, set()).add(run)
+        self.order[w.key] = (w.file, w.line)
+
+    def print(self, prefix: str, verbose: bool) -> None:
+        for key in sorted(self.occurrences, key=lambda key: (self.order[key], key)):
+            n = len(self.runs[key])
+            print(f"{prefix}{key} ({self.occurrences[key]}x, {n} run{'s' * (n != 1)})")
+            if verbose:
+                print("    " + " ".join(sorted(self.runs[key])))
 
 
 def report_lint(results: list[Result], config: LintConfig, args: argparse.Namespace) -> int:
-    """Print each distinct warning that lint.toml does not expect once (ordered by line of
-    makefile-doc.awk), with its rule, the number of times it occurs and in how many cases
-    (with --verbose, also the names of the cases). After a run of all the cases, the entries
-    of lint.toml that expect no warning are reported too (they are stale)."""
+    """Print each distinct warning in makefile-doc.awk that is not expected once (ordered by
+    line), with the number of times it occurs and in how many runs (with --verbose, also the
+    names of the runs), then the warnings in test code (for information only). After a run
+    of everything, the entries that expect no warning are reported too (they are stale)."""
     awk_name = Path(args.awk).name
     parsed: dict[str, LintWarning] = {}  # each distinct line of stderr is parsed once
-    occurrences: dict[str, int] = {}  # key -> number of unexpected warnings
-    cases: dict[str, set[str]] = {}  # key -> the cases with such warnings
-    order: dict[str, int] = {}  # key -> line of makefile-doc.awk
+    unexpected = LintTally({}, {}, {})
+    in_test_code = LintTally({}, {}, {})
     expected: set[str] = set()  # the keys of the expected warnings
-    used: set[str] = set()  # the entries of lint.toml that expect a warning
+    used: set[str] = set()  # the entries that expect a warning
     for r in results:
+        is_unit = r.label == UNIT_LABEL
         for line in r.details.splitlines():
             w = parsed.get(line) or parsed.setdefault(line, LintWarning.parse(line))
+            # a warning without a file (e.g., "function f defined but never called") is in
+            # test code if it is from a unit test file (integration cases run only the script)
+            if w.file != config.script and (w.file or is_unit):
+                in_test_code.add(w, r.name)
+                continue
             entry = config.expects(w)
             if entry:
                 used.add(entry)
                 expected.add(w.key)
-                continue
-            occurrences[w.key] = occurrences.get(w.key, 0) + 1
-            cases.setdefault(w.key, set()).add(r.name)
-            order[w.key] = w.line
+            else:
+                unexpected.add(w, r.name)
 
-    for key in sorted(occurrences, key=lambda key: (order[key], key)):
-        n = len(cases[key])
-        print(f"[{awk_name}] {key} ({occurrences[key]}x, {n} case{'s' * (n != 1)})")
-        if args.verbose:
-            print("    " + " ".join(sorted(cases[key])))
-
+    unexpected.print(f"[{awk_name}] ", args.verbose)
     stale = [] if args.names else [e for e in config.entries() if e not in used]
     for entry in stale:
-        where = "" if entry.startswith("makefile-doc.awk:") else f"{LINT_CONFIG}: "
+        where = "" if entry.startswith(f"{config.script}:") else f"{LINT_CONFIG}: "
         print(f"[{awk_name}] {where}`{entry}` expects no warning (remove it)")
     failed = [r for r in results if not r.passed]
     for r in failed:
         print(f"[{awk_name}] FAILED {r.name} ({r.summary})")
+    if in_test_code.occurrences:
+        print(f"[{awk_name}] in test code (for information only):")
+        in_test_code.print(f"[{awk_name}]   ", args.verbose)
+
+    n_units = sum(r.label == UNIT_LABEL for r in results)
+    n_cases = len(results) - n_units
     print(
-        f"[{awk_name}] {len(occurrences)} unexpected lint warnings in {len(results)} "
-        f"case{'s' * (len(results) != 1)} "
-        f"({len(expected)} expected, see {LINT_CONFIG})"
+        f"[{awk_name}] {len(unexpected.occurrences)} unexpected lint warnings in "
+        f"{n_cases} case{'s' * (n_cases != 1)} and {n_units} unit "
+        f"test file{'s' * (n_units != 1)} ({len(expected)} expected, see {LINT_CONFIG})"
     )
-    return 1 if occurrences or stale or failed else 0
+    return 1 if unexpected.occurrences or stale or failed else 0
 
 
 # ------------------------------------------------------------------------------------------
@@ -617,7 +702,7 @@ def main() -> int:
         return 1
 
     awk_name = Path(args.awk).name
-    lint_config = LintConfig.read(LINT_CONFIG, Path(args.script)) if args.suite == "lint" else None
+    lint_config = LintConfig.read(LINT_CONFIG, args.script) if args.suite == "lint" else None
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         results = list(pool.map(lambda test: test(), tests))
 

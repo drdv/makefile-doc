@@ -1,6 +1,6 @@
 function test_form_substitutions_with_labels(    params, labels, values, names) {
   form_substitutions("<L:1,M:0>NAME:LABEL:v1 v2;target:target_renamed:three items here",
-                     params, labels, values, names)
+                     params, labels, values, names, 0)
   check("form_substitutions: number of params", length_array_posix(params), 2)
   check("form_substitutions: number of labels", length_array_posix(labels), 2)
   check("form_substitutions: number of values", length_array_posix(values), 2)
@@ -14,7 +14,7 @@ function test_form_substitutions_with_labels(    params, labels, values, names) 
 }
 
 function test_form_substitutions_empty_parts(    params, labels, values, names) {
-  form_substitutions("T1:;T2:L2:;T3:V31 V32", params, labels, values, names)
+  form_substitutions("T1:;T2:L2:;T3:V31 V32", params, labels, values, names, 0)
   check("form_substitutions: number of params", length_array_posix(params), 3)
   check("form_substitutions: number of labels", length_array_posix(labels), 1)
   check("form_substitutions: number of values", length_array_posix(values), 3)
@@ -27,7 +27,7 @@ function test_form_substitutions_empty_parts(    params, labels, values, names) 
 
 function test_form_substitutions_empty_items(    params, labels, values, names) {
   init_globals()
-  form_substitutions(";T1:a; \t;T2:b;", params, labels, values, names)
+  form_substitutions(";T1:a; \t;T2:b;", params, labels, values, names, 0)
   check("form_substitutions: empty items are skipped", length_array_posix(names), 2)
   check("form_substitutions: names stay in order", names[1] " " names[2], "T1 T2")
   check("form_substitutions: empty items are not errors", OPTION_ERRORS, 0)
@@ -35,7 +35,7 @@ function test_form_substitutions_empty_items(    params, labels, values, names) 
 
 function test_form_substitutions_invalid(    params, labels, values, names) {
   init_globals()
-  form_substitutions("T1", params, labels, values, names)
+  form_substitutions("T1", params, labels, values, names, 0)
   check("form_substitutions: name only is an error",
         stderr_text(),
         "ERROR: SUB: 'T1' should be NAME[:LABEL]:[VALUES]\n")
@@ -46,12 +46,12 @@ function test_form_substitutions_invalid(    params, labels, values, names) {
         stderr_text(),
         "ERROR: DSUB: 'T1' should be NAME:VALUES\n")
 
-  form_substitutions(":v", params, labels, values, names)
+  form_substitutions(":v", params, labels, values, names, 0)
   check("form_substitutions: empty name is an error",
         stderr_text(),
         "ERROR: SUB: ':v' has an empty NAME\n")
 
-  form_substitutions("T2::v;T3:w", params, labels, values, names)
+  form_substitutions("T2::v;T3:w", params, labels, values, names, 0)
   check("form_substitutions: empty label is an error",
         stderr_text(),
         "ERROR: SUB: 'T2::v' has an empty LABEL\n")
@@ -116,14 +116,14 @@ function test_extract_substitution_params() {
 }
 
 function test_form_substitutions_colons(    params, labels, values, names) {
-  form_substitutions("t:t:/a:b;u:/a:b", params, labels, values, names)
+  form_substitutions("t:t:/a:b;u:/a:b", params, labels, values, names, 0)
   check("form_substitutions: value with colons after a label", values["t"], "/a:b")
   check("form_substitutions: without a label, the 2nd colon ends the label", labels["u"], "/a")
   check("form_substitutions: without a label, the rest is the value", values["u"], "b")
 }
 
 function test_form_substitutions_spaces_in_name(    params, labels, values, names) {
-  form_substitutions(" \tt :v", params, labels, values, names)
+  form_substitutions(" \tt :v", params, labels, values, names, 0)
   check("form_substitutions: spaces around the name are removed", names[1], "t")
   check("form_substitutions: value of a name with spaces", values["t"], "v")
 }

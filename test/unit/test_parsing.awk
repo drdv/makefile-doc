@@ -42,36 +42,36 @@ function saved_inline_description(line, is_variable) {
 
 function test_parse_inline_descriptions() {
   check("parse_inline_descriptions: ## (a ; in the doc is kept)",
-        saved_inline_description("target: ## some ;description"), "## some ;description")
+        saved_inline_description("target: ## some ;description", 0), "## some ;description")
   check("parse_inline_descriptions: ##! (a ; in the doc is kept)",
-        saved_inline_description("target: ##! some description;"), "##! some description;")
+        saved_inline_description("target: ##! some description;", 0), "##! some description;")
   check("parse_inline_descriptions: ##%",
-        saved_inline_description("target: ##% some description"), "##% some description")
+        saved_inline_description("target: ##% some description", 0), "##% some description")
   check("parse_inline_descriptions: after deps without a space",
-        saved_inline_description("target: deps1 deps2 | deps3## some description"),
+        saved_inline_description("target: deps1 deps2 | deps3## some description", 0),
         "## some description")
 
   check("parse_inline_descriptions: none after an empty inline recipe",
-        saved_inline_description("target:; ## some description"), "<none>")
+        saved_inline_description("target:; ## some description", 0), "<none>")
   check("parse_inline_descriptions: none after an inline recipe",
-        saved_inline_description("target:; @echo 1 ##! some description"), "<none>")
+        saved_inline_description("target:; @echo 1 ##! some description", 0), "<none>")
   check("parse_inline_descriptions: none after an inline recipe with two commands",
-        saved_inline_description("target: ; @echo 1 ; echo 2 ##% some description"), "<none>")
+        saved_inline_description("target: ; @echo 1 ; echo 2 ##% some description", 0), "<none>")
   check("parse_inline_descriptions: none after deps and an inline recipe",
-        saved_inline_description("target: deps1 deps2 | deps3 ; echo 1 ## some description"),
+        saved_inline_description("target: deps1 deps2 | deps3 ; echo 1 ## some description", 0),
         "<none>")
   check("parse_inline_descriptions: none without a doc",
-        saved_inline_description("target: "), "<none>")
+        saved_inline_description("target: ", 0), "<none>")
   check("parse_inline_descriptions: none after deps without a doc",
-        saved_inline_description("target: deps1 deps2 | deps3"), "<none>")
+        saved_inline_description("target: deps1 deps2 | deps3", 0), "<none>")
   check("parse_inline_descriptions: none for an inline ##@ (a section is not inline)",
-        saved_inline_description("target: ##@ some text"), "<none>")
+        saved_inline_description("target: ##@ some text", 0), "<none>")
   check("parse_inline_descriptions: none for an inline ##@ on a variable",
         saved_inline_description("X := 1 ##@ some text", 1), "<none>")
   check("parse_inline_descriptions: variable with a ; in its value",
         saved_inline_description("X := a;b ## doc", 1), "## doc")
 
-  saved_inline_description("target: ## doc")
+  saved_inline_description("target: ## doc", 0)
   check("parse_inline_descriptions: the index advances", DESCRIPTION_DATA_INDEX, 2)
 }
 
