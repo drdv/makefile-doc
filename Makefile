@@ -239,6 +239,11 @@ draft-release: check-version $(MAKEFILE_DOC).sha256
 ##@------ Install and clean ------
 ##@
 
+## Show the versions of the installed awk variants (and those that differ from deps.toml)
+.PHONY: versions
+versions:
+	@$(DEPS) versions
+
 ## Download and build an awk variant (or `deps@all`; see test/tools/deps.toml)
 $(DEPS_ALL): deps@%: $(AWK_BIN)/%
 
