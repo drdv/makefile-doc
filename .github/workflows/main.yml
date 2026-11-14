@@ -36,11 +36,11 @@ jobs:
           python3 --version
           uv --version
 
-      - name: lint the awk code
-        run: make lint-awk
-
       - name: lint the awk code while running the tests
         run: make lint-tests
+
+      - name: check the global variables of the awk code
+        run: make check-variables check-test-variables
 
       - name: lint the Python test tools
         run: make lint-py
