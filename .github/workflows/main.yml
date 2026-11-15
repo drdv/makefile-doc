@@ -24,11 +24,11 @@ jobs:
 
     steps:
       - name: check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # uvx runs the ruff version pinned in the Makefile
       - name: install uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: show tool versions
         run: |
@@ -70,7 +70,7 @@ jobs:
 
     steps:
       - name: check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # macOS comes with GNU Make 3.81; the Makefile needs 4.0
       - name: install GNU Make (macOS)
@@ -89,7 +89,7 @@ jobs:
       # version) or test/tools/deps.py changes, so the variant is built again then
       - name: restore ${{ matrix.awk }} from the cache
         if: matrix.awk != 'gawk' && matrix.awk != 'awk'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: test/bin/${{ matrix.awk }}
           key: >-

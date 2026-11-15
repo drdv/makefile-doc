@@ -45,7 +45,7 @@ class TestRelease(unittest.TestCase):
 
         (self.root / release.AWK_SCRIPT).write_text(SCRIPT)
         (self.root / release.README).write_text(README)
-        self.git("init", "-q")
+        self.git("init", "-q", "-b", "main")
         self.git("add", ".")
         self.git("commit", "-q", "-m", "Release v1.9")
 
@@ -69,7 +69,7 @@ class TestRelease(unittest.TestCase):
         self.assertEqual(self.text(release.AWK_SCRIPT), SCRIPT.replace("v1.9", "v1.10"))
         self.assertEqual(self.text(release.README), README.replace("v1.9", "v1.10"))
         self.assertIn("v1.10 set in makefile-doc.awk and README.md (not committed)", out)
-        self.assertIn("  make release-notes\n  edit release-message.md\n  make bump V=v1.10", out)
+        self.assertIn("make release-notes; edit release-message.md; make bump V=v1.10", out)
         # nothing was committed or tagged
         self.assertEqual(self.git("log", "-1", "--format=%s").strip(), "Release v1.9")
         self.assertEqual(self.git("tag", "--list"), "")
@@ -81,7 +81,7 @@ class TestRelease(unittest.TestCase):
 
         self.git("tag", "-a", "v1.9", "-m", "v1.9")
         out = self.output(release.bump, "v1.9")
-        self.assertIn("tag v1.9 exists; to publish it: git push && git push origin v1.9", out)
+        self.assertIn("tag v1.9 exists; next: git push -u origin main v1.9", out)
 
     def test_bump_invalid_version(self) -> None:
         for version in ["1.10", "v1.10.1", "v1", ""]:
@@ -96,7 +96,7 @@ class TestRelease(unittest.TestCase):
         (self.root / "staged").write_text("x")
         self.git("add", "staged")
 
-        self.output(release.bump, "v1.10")
+        out = self.output(release.bump, "v1.10")
         self.assertEqual(self.git("log", "-1", "--format=%s").strip(), "Release v1.10")
         committed = self.git("show", "--name-only", "--format=", "HEAD").split()
         self.assertEqual(sorted(committed), [release.README, release.AWK_SCRIPT])
@@ -104,6 +104,7 @@ class TestRelease(unittest.TestCase):
         self.assertEqual(self.git("tag", "-l", "--format=%(contents)", "v1.10"), notes + "\n")
         self.assertEqual(self.git("cat-file", "-t", "v1.10").strip(), "tag")
         self.assertFalse((self.root / release.RELEASE_MESSAGE).exists())
+        self.assertIn("next: git push -u origin main v1.10", out)
 
     def test_notes(self) -> None:
         self.git("tag", "-a", "v1.9", "-m", "v1.9")

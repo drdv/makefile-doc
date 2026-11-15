@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: check the version
         run: python3 test/tools/release.py check "$GITHUB_REF_NAME"
@@ -38,6 +38,8 @@ jobs:
       - name: create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "$GITHUB_REF_NAME" makefile-doc.awk makefile-doc.awk.sha256
-          --draft --notes-from-tag --title "$GITHUB_REF_NAME"
+        run: |
+          subject=$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")
+          body=$(git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME")
+          gh release create "$GITHUB_REF_NAME" makefile-doc.awk makefile-doc.awk.sha256 \
+            --draft --title "$GITHUB_REF_NAME: $subject" --notes "$body"
