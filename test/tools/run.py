@@ -40,6 +40,7 @@ if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a trac
 import argparse
 import difflib
 import fnmatch
+import functools
 import os
 import re
 import shlex
@@ -51,6 +52,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
+
+from release import AWK_SCRIPT_VERSION  # the version line of the awk script
 
 ROOT = Path(__file__).resolve().parent.parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
@@ -67,6 +70,29 @@ class Result:
     checks: int = 0  # number of checks (unit tests)
     label: str = ""  # replaces "passed" in the report (e.g., "known bug")
     relevant: str = ""  # the part of the output that explains a failure
+
+
+# In the expected output of a case, the version of the awk script (the line `Version: v1.8`
+# of --help) is a placeholder, so that a new version does not change the .test files.
+VERSION_PLACEHOLDER = b"@VERSION@"
+VERSION_LINE = b"Version: "
+
+
+@functools.cache
+def script_version(script: str) -> bytes:
+    """The version defined in the awk script."""
+    return AWK_SCRIPT_VERSION.search((ROOT / script).read_text())[2].encode()
+
+
+def expand_version(expected: bytes, version: bytes) -> bytes:
+    """The expected output with the placeholder replaced by the version."""
+    return expected.replace(VERSION_PLACEHOLDER, version)
+
+
+def placeholder_version(actual: bytes, version: bytes) -> bytes:
+    """The actual output with the version on the `Version: ` line replaced by the
+    placeholder (to write the expected output with --update)."""
+    return actual.replace(VERSION_LINE + version, VERSION_LINE + VERSION_PLACEHOLDER)
 
 
 # NO_COLOR would turn off the colors that the tests expect
@@ -304,28 +330,31 @@ class Case:
         except subprocess.TimeoutExpired:
             return timed_out(self.name, args.timeout)
         actual = render_output(proc.stderr, proc.stdout, proc.returncode)
+        version = script_version(args.script)
+        expected = expand_version(self.expected, version)
 
         diff = "".join(
             difflib.unified_diff(
-                visible(self.expected), visible(actual), "expected", "actual", lineterm="\n"
+                visible(expected), visible(actual), "expected", "actual", lineterm="\n"
             )
         )
         if diff and not diff.endswith("\n"):
             diff += "\n"
 
         if args.update:
-            if actual != self.expected:
-                new = b"".join(self.metadata) + self.args.encode() + b"\n" + actual
+            if actual != expected:
+                output = placeholder_version(actual, version)
+                new = b"".join(self.metadata) + self.args.encode() + b"\n" + output
                 (ROOT / self.path).write_bytes(new)
                 return Result(self.name, True, "updated", diff, relevant=diff)
             return Result(self.name, True, "unchanged")
 
         if self.bug is not None:
-            if actual == self.expected:
+            if actual == expected:
                 fixed = f"FIXED: replace `#: bug: {self.bug}` with `#: issue: {self.bug}`"
                 return Result(self.name, False, fixed)
             return Result(self.name, True, f"issue {self.bug}", diff, label="known bug")
-        if actual == self.expected:
+        if actual == expected:
             return Result(self.name, True, "")
         return Result(self.name, False, "output differs", diff, relevant=diff)
 

@@ -93,7 +93,10 @@ line, then stdout after a `#: stdout` line (a stream without output has no such 
 
 The output must match the expected output exactly, including blanks at the end of lines and
 the final newline. Use `--update` to regenerate the expected output, e.g., `make test@awk
-RUNNER_FLAGS='--update docs-precedence'` (check the diff by hand).
+RUNNER_FLAGS='--update docs-precedence'` (check the diff by hand). The version of the script
+(the line `Version: v1.8` of `--help`) is written `Version: @VERSION@` in expected outputs:
+the runner replaces it with the version of the script, and `--update` writes it back, so a
+new version does not change the `.test` files.
 
 Conventions:
 
@@ -137,6 +140,20 @@ The suite also checks the global variables, in the dumps of `gawk -d` (`LINT_CHE
 global variable that a unit test file defines and that neither `makefile-doc.awk` nor the
 harness (`HARNESS_*`) defines (e.g., a local variable missing from a function signature).
 These are checked in test code too.
+
+## Releasing
+
+The version is defined in `makefile-doc.awk` (`VERSION = "v1.9"`); the install snippet of
+the README (`help: VER := v1.9`) is a copy of it. A release:
+
+1. `make bump V=v1.10` sets the version in the script and the README
+   (`test/tools/release.py`);
+2. commit, and create an annotated tag: `git tag -a v1.10 -m v1.10`;
+3. push the commit and the tag: `git push && git push origin v1.10`;
+4. the tag runs `.github/workflows/release.yml`: the tests (the CI workflow), a check that
+   the tag, the script and the README have the same version, then a draft release with
+   `makefile-doc.awk` and its checksum;
+5. review the draft on GitHub and publish it.
 
 ## Reporting and fixing bugs
 

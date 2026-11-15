@@ -6,6 +6,7 @@ on:
       - main
   pull_request:
   workflow_dispatch: # "Run workflow" button in the Actions tab
+  workflow_call: # run by release.yml before it creates a draft release
 
 permissions:
   contents: read
@@ -44,9 +45,6 @@ jobs:
 
       - name: test the Python test tools
         run: make test-tools
-
-      - name: check the version in the README
-        run: make check-version
 
   test:
     name: ${{ matrix.awk }} ${{ matrix.awk_flags }} ${{ matrix.os && '(macOS)' || '' }}
