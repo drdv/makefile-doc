@@ -197,11 +197,17 @@ lint-tests: override AWK := gawk
 lint-tests: $(AWK_BIN)/gawk $(MAKEFILE_DOC)
 	@$(call run-suite,lint,)
 
-## The new version for `bump`, e.g., `v1.9`
+## Write a draft of the release notes (the commits since the last tag) to release-message.md
+.PHONY: release-notes
+release-notes:
+	@$(RELEASE) notes
+
+## The new version for `bump`, e.g., `v1.10`
 V :=
 
-## Set the version `V` in the script and the README (then commit, tag with `git tag -a`,
-## and push the commit and the tag: CI tests and creates a draft release)
+## Set the version `V` in the script and the README; with release-message.md, also commit
+## them and create an annotated tag with its message (then push the commit and the tag: CI
+## tests and creates a draft release)
 .PHONY: bump
 bump:
 	@$(RELEASE) bump "$(V)"

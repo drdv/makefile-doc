@@ -1,6 +1,7 @@
 test/bin
 coverage-reports/
 __pycache__/
+release-message.md
 demo.html
 demo.pdf
 demo.png
