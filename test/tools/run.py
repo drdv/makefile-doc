@@ -53,7 +53,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
 
-from release import AWK_SCRIPT_VERSION  # the version line of the awk script
+from release import AWK_SCRIPT_VERSION_PATTERN  # the version line of the awk script
 
 ROOT = Path(__file__).resolve().parent.parent.parent  # paths are relative to the project root
 UNIT_DIR = Path("test/unit")
@@ -81,7 +81,7 @@ VERSION_LINE = b"Version: "
 @functools.cache
 def script_version(script: str) -> bytes:
     """The version defined in the awk script."""
-    return AWK_SCRIPT_VERSION.search((ROOT / script).read_text())[2].encode()
+    return AWK_SCRIPT_VERSION_PATTERN.search((ROOT / script).read_text())[2].encode()
 
 
 def expand_version(expected: bytes, version: bytes) -> bytes:

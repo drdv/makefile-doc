@@ -12,7 +12,6 @@ if sys.version_info < (3, 11):  # noqa: UP036 (a clear message instead of a trac
 
 import argparse
 import re
-import shlex
 import subprocess
 from pathlib import Path
 
@@ -22,10 +21,9 @@ README = "README.md"
 RELEASE_MESSAGE = "release-message.md"  # the release notes: the message of the tag
 
 # the version lines: the same patterns read and write them (group 2 is the version)
-AWK_SCRIPT_VERSION = re.compile(r'^(\s*VERSION = ")([^"]*)(".*)$', re.MULTILINE)
-README_VERSION = re.compile(r"^(help: VER := )(\S*)()$", re.MULTILINE)
-# a version: v<major>.<minor>, e.g. v1.10
-VALID_VERSION = re.compile(r"^v\d+\.\d+$")
+AWK_SCRIPT_VERSION_PATTERN = re.compile(r'^(\s*VERSION = ")([^"]*)(".*)$', re.MULTILINE)
+README_VERSION_PATTERN = re.compile(r"^(help: VER := )(\S*)()$", re.MULTILINE)
+VALID_VERSION_PATTERN = re.compile(r"^v\d+\.\d+$")  # e.g. v1.10
 
 
 class ReleaseError(Exception):
@@ -35,7 +33,7 @@ class ReleaseError(Exception):
 def read_version(name: str, pattern: re.Pattern) -> str:
     """Read the version in a file.
 
-    The pattern is AWK_SCRIPT_VERSION or README_VERSION (group 2 is the version).
+    The pattern is AWK_SCRIPT_VERSION_PATTERN or README_VERSION_PATTERN (group 2 is the version).
     """
     return pattern.search((ROOT / name).read_text())[2]
 
@@ -43,7 +41,8 @@ def read_version(name: str, pattern: re.Pattern) -> str:
 def write_version(name: str, pattern: re.Pattern, version: str) -> None:
     """Replace the version in a file.
 
-    The pattern is AWK_SCRIPT_VERSION or README_VERSION (group 2 is the version).
+    The pattern is AWK_SCRIPT_VERSION_PATTERN or README_VERSION_PATTERN: each has three groups
+    (before, version, after).
     """
     path = ROOT / name
     path.write_text(pattern.sub(lambda m: m[1] + version + m[3], path.read_text(), count=1))
@@ -70,8 +69,8 @@ def notes() -> None:
 
     try:
         last_tag = git("describe", "--tags", "--abbrev=0").strip()
-    except subprocess.CalledProcessError:  # no tag yet: all the commits
-        last_tag = ""
+    except subprocess.CalledProcessError:
+        last_tag = ""  # lists every commit in the history if there is no tag
     commits = git("log", "--pretty=format:- %s (%h)", f"{last_tag}..HEAD" if last_tag else "HEAD")
 
     since = f" since {last_tag}" if last_tag else ""
@@ -85,26 +84,27 @@ def bump(version: str) -> None:
     With release-message.md, also commit the two files and create an annotated tag with
     release-message.md as its message, then delete it.
     """
-    if not VALID_VERSION.match(version):
+    if not VALID_VERSION_PATTERN.match(version):
         raise ReleaseError(f"invalid version {version!r} (expected e.g. v1.10)")
 
-    old = read_version(AWK_SCRIPT, AWK_SCRIPT_VERSION)
-    write_version(AWK_SCRIPT, AWK_SCRIPT_VERSION, version)
-    write_version(README, README_VERSION, version)
+    old = read_version(AWK_SCRIPT, AWK_SCRIPT_VERSION_PATTERN)
+    write_version(AWK_SCRIPT, AWK_SCRIPT_VERSION_PATTERN, version)
+    write_version(README, README_VERSION_PATTERN, version)
 
     message = ROOT / RELEASE_MESSAGE
+    current_branch = git("branch", "--show-current").strip()
     if not message.exists():
         if old != version:
             print(f"bump: {version} set in {AWK_SCRIPT} and {README} (not committed)")
         else:
             print(f"bump: {AWK_SCRIPT} and {README} are already at {version} (nothing changed)")
         if git("tag", "--list", version):
-            print(f"tag {version} exists; to publish it: git push && git push origin {version}")
+            print(f"tag {version} exists; next: git push -u origin {current_branch} {version}")
         else:
-            print(f"to commit and tag {version}:")
-            print("  make release-notes")
-            print(f"  edit {RELEASE_MESSAGE}")
-            print(f"  make bump V={version}")
+            print(
+                f"to commit and tag {version}: "
+                f"make release-notes; edit {RELEASE_MESSAGE}; make bump V={version}"
+            )
         return
 
     # commit only the two files (not other staged changes)
@@ -112,8 +112,8 @@ def bump(version: str) -> None:
     git("commit", "-m", f"Release {version}", AWK_SCRIPT, README)
     git("tag", "-a", version, "-F", RELEASE_MESSAGE, "--cleanup=whitespace")
     message.unlink()
-    print(f"bump: {version}, committed and tagged ({RELEASE_MESSAGE}, now deleted); now push:")
-    print(f"  git push && git push origin {version}")
+    print(f"bump: {version}, committed and tagged ({RELEASE_MESSAGE}, now deleted)")
+    print(f"next: git push -u origin {current_branch} {version}")
 
 
 def check(tag: str) -> None:
@@ -121,8 +121,8 @@ def check(tag: str) -> None:
 
     Run by .github/workflows/release.yml with the pushed tag.
     """
-    script = read_version(AWK_SCRIPT, AWK_SCRIPT_VERSION)
-    readme = read_version(README, README_VERSION)
+    script = read_version(AWK_SCRIPT, AWK_SCRIPT_VERSION_PATTERN)
+    readme = read_version(README, README_VERSION_PATTERN)
     if not tag == script == readme:
         raise ReleaseError(f"tag {tag}, {AWK_SCRIPT} {script}, {README} {readme}")
 
@@ -148,8 +148,7 @@ def main() -> int:
         print(f"{Path(__file__).name} {args.command}: {e}", file=sys.stderr)
         return 1
     except subprocess.CalledProcessError as e:
-        print(f"{Path(__file__).name} {args.command}: {shlex.join(e.cmd)} failed:", file=sys.stderr)
-        print(e.stdout + e.stderr, end="", file=sys.stderr)  # git explains on either
+        print(e.stdout + e.stderr, end="", file=sys.stderr)
         return 1
     return 0
 
