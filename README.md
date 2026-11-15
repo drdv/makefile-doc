@@ -86,7 +86,7 @@ Define the first target of your `Makefile` (or if it is not the first target, se
 `.DEFAULT_GOAL := help`) as:
 
 ```Makefile
-help: VER := v1.8
+help: VER := v1.9
 help: URL := https://github.com/drdv/makefile-doc/releases/download/$(VER)/makefile-doc.awk
 help: SCR := $(HOME)/.local/share/makefile-doc/makefile-doc-$(VER).awk
 help: ## show this help
