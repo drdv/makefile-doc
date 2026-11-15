@@ -21,6 +21,7 @@ DEPS := python3 $(TOOLS_DIR)/deps.py
 
 # test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
 RUNNER := python3 $(TOOLS_DIR)/run.py
+RELEASE := python3 $(TOOLS_DIR)/release.py
 # $(call run-suite,SUITE[,OPTIONS])
 run-suite = $(RUNNER) $(1) \
 	--awk $(AWK_BIN)/$(AWK) \
@@ -183,10 +184,10 @@ $(BENCH_ALL): bench@%:
 bench@all:
 	@$(BENCH)
 
-## Lint the awk code and check its global variables (`lint-tests`), lint the Python test
-## tools (`lint-py`) and check the version in the README (`check-version`)
+## Lint the awk code and check its global variables (`lint-tests`) and lint the Python test
+## tools (`lint-py`)
 .PHONY: lint
-lint: lint-tests lint-py check-version
+lint: lint-tests lint-py
 
 # Lint makefile-doc.awk with `gawk --lint` while running the integration cases and the unit
 # tests, and check the global variables (the expected warnings are in test/tools/lint.toml;
@@ -196,17 +197,14 @@ lint-tests: override AWK := gawk
 lint-tests: $(AWK_BIN)/gawk $(MAKEFILE_DOC)
 	@$(call run-suite,lint,)
 
-# prints the version of the script (the VERSION variable set in init_globals)
-SCRIPT_VERSION := sed -n 's/^ *VERSION = "\([^"]*\)".*/\1/p' $(MAKEFILE_DOC)
+## The new version for `bump`, e.g., `v1.9`
+V :=
 
-# Verify that the README installs the version of the script (the `help: VER := ...` line)
-.PHONY: check-version
-check-version:
-	@version=$$($(SCRIPT_VERSION)); \
-	readme=$$(sed -n 's/^help: VER := //p' README.md); \
-	test -n "$$version" && test "$$readme" = "$$version" || \
-		{ echo "README.md installs '$$readme', $(MAKEFILE_DOC) is '$$version'"; exit 1; }; \
-	echo "check-version: OK"
+## Set the version `V` in the script and the README (then commit, tag with `git tag -a`,
+## and push the commit and the tag: CI tests and creates a draft release)
+.PHONY: bump
+bump:
+	@$(RELEASE) bump "$(V)"
 
 # the version is pinned; without uv, use an installed ruff: `make lint-py RUFF=ruff`
 RUFF := uvx ruff@0.16.9
@@ -224,19 +222,6 @@ PYTEST := uvx pytest@9.1.1
 .PHONY: test-tools
 test-tools: $(AWK_BIN)/gawk
 	@GAWK=$(AWK_BIN)/gawk $(PYTEST) --no-header -p no:cacheprovider $(TOOLS_DIR)
-
-$(MAKEFILE_DOC).sha256: $(MAKEFILE_DOC)
-	@sha256sum $< > $@
-
-##! Create a draft github release at the tag of HEAD
-.PHONY: draft-release
-draft-release: check-version $(MAKEFILE_DOC).sha256
-	@tag=$$(git describe --tags --exact-match 2>/dev/null) || { echo "HEAD has no tag"; exit 1; }; \
-	version=$$($(SCRIPT_VERSION)); \
-	test "$$version" = "$$tag" || \
-		{ echo "Version $$version in $(MAKEFILE_DOC) differs from tag $$tag"; exit 1; }; \
-	gh release create "$$tag" $(MAKEFILE_DOC) $(MAKEFILE_DOC).sha256 \
-		--draft --generate-notes -t "$$tag"
 
 ##@
 ##@------ Install and clean ------
@@ -257,7 +242,6 @@ $(CLEAN_ALL): clean@%:
 ## Remove coverage reports
 clean:
 	@rm -rf $(COVER_DIR)
-	@rm -f $(MAKEFILE_DOC).sha256
 
 .PHONY: deps@all clean@all clean $(DEPS_ALL) $(CLEAN_ALL)
 deps@all: $(DEPS_ALL)

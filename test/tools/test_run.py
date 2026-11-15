@@ -22,7 +22,9 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 ROOT = TOOLS.parent.parent
 
-# run.py is not a package: load it from its file (registered in sys.modules for dataclasses)
+# run.py is not a package: load it from its file (registered in sys.modules for dataclasses);
+# it imports release.py from its directory
+sys.path.insert(0, str(TOOLS))
 _spec = importlib.util.spec_from_file_location("run", TOOLS / "run.py")
 run = importlib.util.module_from_spec(_spec)
 sys.modules["run"] = run
@@ -334,6 +336,18 @@ class TestCase(TempDir):
         self.assertEqual(case.bug, "12")
         self.assertEqual(case.env, {"NO_COLOR": "1"})
         self.assertEqual(case.expected, b"#: stdout\nout\n#: exit: 1\n")
+
+    def test_version_placeholder(self) -> None:
+        expected = b"#: stdout\nUsage: ...\nVersion: @VERSION@\n"
+        actual = b"#: stdout\nUsage: ...\nVersion: v1.9\n"
+        self.assertEqual(run.expand_version(expected, b"v1.9"), actual)
+        # --update writes the placeholder back (only on the `Version: ` line)
+        self.assertEqual(run.placeholder_version(actual, b"v1.9"), expected)
+        self.assertEqual(run.placeholder_version(b"uses v1.9\n", b"v1.9"), b"uses v1.9\n")
+
+    def test_script_version(self) -> None:
+        script = self.write("s.awk", 'BEGIN {\n  VERSION = "v2.3" # comment\n}\n')
+        self.assertEqual(run.script_version(str(script)), b"v2.3")
 
     def test_render_output(self) -> None:
         self.assertEqual(run.render_output(b"", b"out\n", 0), b"#: stdout\nout\n")
