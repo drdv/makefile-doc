@@ -144,15 +144,18 @@ These are checked in test code too.
 ## Releasing
 
 The version is defined in `makefile-doc.awk` (`VERSION = "v1.9"`); the install snippet of
-the README (`help: VER := v1.9`) is a copy of it. A release:
+the README (`help: VER := v1.9`) is a copy of it. The release notes are the message of the
+annotated tag, so they are kept in git (`git show v1.10`). A release:
 
-1. `make bump V=v1.10` sets the version in the script and the README
-   (`test/tools/release.py`);
-2. commit, and create an annotated tag: `git tag -a v1.10 -m v1.10`;
+1. `make release-notes` writes a draft of the notes to `release-message.md` (the commits
+   since the last tag); edit it;
+2. `make bump V=v1.10` sets the version in the script and the README, commits them, creates
+   the annotated tag with `release-message.md` as its message, and deletes the file
+   (`test/tools/release.py`; without `release-message.md`, `bump` only sets the version);
 3. push the commit and the tag: `git push && git push origin v1.10`;
 4. the tag runs `.github/workflows/release.yml`: the tests (the CI workflow), a check that
    the tag, the script and the README have the same version, then a draft release with
-   `makefile-doc.awk` and its checksum;
+   `makefile-doc.awk` and its checksum, and the message of the tag as notes;
 5. review the draft on GitHub and publish it.
 
 ## Reporting and fixing bugs
