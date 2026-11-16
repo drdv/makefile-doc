@@ -31,7 +31,7 @@
 #                     with FG and BG for the foreground and the background, e.g.,
 #                     32:d33682,35:859900,BG:000000 (no effect on ANSI output)
 #   SUB               rename anchors and list values in their docs:
-#                     [<p1:v1,...>]NAME[:LABEL]:[VALUES][;...]
+#                     [<p1:v1,...>]NAME:[[LABEL]:][VALUES][;...]
 #                     (the parameters are L, M, N, S, P, I and T)
 #   DSUB              replace text in the docs: NAME:VALUES[;...]
 #   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
@@ -474,16 +474,17 @@ function print_help() {
 # Substitutions (the options SUB and DSUB)
 # ------------------------------------------------------------------------------------------
 
-# SUB:  NAME:VALUES or NAME:LABEL:VALUES (the first two colons are separators)
+# SUB:  NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (the first two colons are
+#       separators; an empty label is no label)
 # DSUB: NAME:VALUES (only the first colon is a separator, no_labels is set)
 # Everything after the last separator is the value, so it can contain colons.
 #
 # Caveat: for SUB, NAME:A:B is always read as NAME:LABEL:VALUES, so A is the label.
-# To give a value that contains a colon without renaming, repeat the name as the label:
-# t:t:/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
+# To give a value that contains a colon without renaming, leave the label empty:
+# t::/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
 #
 # Empty items (e.g., after a trailing ;) are skipped. Invalid items are reported (see
-# option_error) and skipped: no colon, an empty name, an empty label, invalid parameters.
+# option_error) and skipped: no colon, an empty name, invalid parameters.
 function form_substitutions(sub_array, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
@@ -515,7 +516,7 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     colon = index(substitution_rest, ":")
     if (colon == 0) {
       option_error(sprintf("%s: '%s' should be %s", option, string,
-                           no_labels ? "NAME:VALUES" : "NAME[:LABEL]:[VALUES]"))
+                           no_labels ? "NAME:VALUES" : "NAME:[[LABEL]:][VALUES]"))
       continue
     }
     name = substr(substitution_rest, 1, colon - 1)
@@ -525,16 +526,12 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     if (colon > 0) {
       label = substr(values, 1, colon - 1)
       values = substr(values, colon + 1)
-      has_label = 1
+      has_label = (label != "") # NAME::VALUES has no label
     }
     gsub(SPACES_TABS_REGEX, "", name)
 
     if (name == "") {
       option_error(sprintf("%s: '%s' has an empty NAME", option, string))
-      continue
-    }
-    if (has_label && label == "") {
-      option_error(sprintf("%s: '%s' has an empty LABEL", option, string))
       continue
     }
     if (!no_labels) {
