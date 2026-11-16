@@ -57,7 +57,7 @@ shell (`NO_COLOR`, `AWKPATH`, the locale) do not change the results. An awk proc
 runs for more than 30 seconds fails its test.
 
 `make lint-py` lints the Python code and checks its formatting with
-[ruff](https://docs.astral.sh/ruff) (settings in `ruff.toml`; `uv run ruff format`
+[ruff](https://docs.astral.sh/ruff) (settings in `pyproject.toml`; `uv run ruff format`
 reformats it), and `make test-tools` runs the tests of the tools (`test/tools/test_*.py`).
 
 ## Unit tests

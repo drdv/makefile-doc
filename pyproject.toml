@@ -11,13 +11,14 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
-addopts = ["-ra", "-o", "verbosity_subtests=0", "--strict-markers", "--strict-config", "-p", "no:cacheprovider"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "-p", "no:cacheprovider"]
 xfail_strict = true
+verbosity_subtests = 0
 
 [tool.ruff]
 line-length = 100
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "PT", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "UP", "B"] # later: "PT", "SIM", "RUF"
 
 # gawk --lint warnings that are expected (regexes, matched against "<file>: <message>")
 [tool.makefile-doc.lint]

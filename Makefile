@@ -203,7 +203,7 @@ bump:
 # the version of ruff is pinned in uv.lock
 RUFF := $(UV_RUN) ruff
 
-# Lint and check the formatting of the Python code (settings in ruff.toml)
+# Lint and check the formatting of the Python code (settings in pyproject.toml)
 .PHONY: lint-py
 lint-py:
 	@$(RUFF) check $(TEST_DIR)
