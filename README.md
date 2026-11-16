@@ -213,7 +213,7 @@ values), and `DSUB` replaces text inside docs.
 
 ### `SUB`: rename an anchor and list its values
 
-The format of `SUB` is `NAME[:LABEL]:[VALUES]`: the anchor `NAME` is displayed as `LABEL` (or
+The format of `SUB` is `NAME:[[LABEL]:][VALUES]`: the anchor `NAME` is displayed as `LABEL` (or
 unchanged without a label), and the space-separated `VALUES` are added to its doc. Several
 substitutions are separated by `;`. For example, running `make` with
 
@@ -252,16 +252,16 @@ two or more colons, the text between the first two is always the label:
 |-------------|----------------|--------|
 | `t:a b`     | `t`            | `a b`  |
 | `t:new:a b` | `new`          | `a b`  |
-| `t:t:/a:b`  | `t`            | `/a:b` |
+| `t::/a:b`   | `t`            | `/a:b` |
 | `t:/a:b`    | `/a`           | `b`    |
 
-To give a value with a colon without renaming the anchor, repeat its name as the label
-(third row).
+An empty label does not rename the anchor: use it to give a value with a colon (third
+row).
 
 ### `SUB` parameters
 
 A substitution can start with parameters that control how the values are displayed:
-`<p1:v1,...>NAME[:LABEL]:[VALUES]`.
+`<p1:v1,...>NAME:[[LABEL]:][VALUES]`.
 
 | Parameter | Meaning                                                    | Default |
 |-----------|------------------------------------------------------------|---------|

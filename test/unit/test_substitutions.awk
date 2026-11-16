@@ -38,7 +38,7 @@ function test_form_substitutions_invalid(    params, labels, values, names) {
   form_substitutions("T1", params, labels, values, names, 0)
   check("form_substitutions: name only is an error",
         stderr_text(),
-        "ERROR: SUB: 'T1' should be NAME[:LABEL]:[VALUES]\n")
+        "ERROR: SUB: 'T1' should be NAME:[[LABEL]:][VALUES]\n")
   check("form_substitutions: name only is not kept", length_array_posix(names), 0)
 
   form_substitutions("T1", params, labels, values, names, 1)
@@ -51,10 +51,8 @@ function test_form_substitutions_invalid(    params, labels, values, names) {
         stderr_text(),
         "ERROR: SUB: ':v' has an empty NAME\n")
 
-  form_substitutions("T2::v;T3:w", params, labels, values, names, 0)
-  check("form_substitutions: empty label is an error",
-        stderr_text(),
-        "ERROR: SUB: 'T2::v' has an empty LABEL\n")
+  form_substitutions(":v;T3:w", params, labels, values, names, 0)
+  stderr_text()
   check("form_substitutions: the valid items are kept", names[1], "T3")
   check("form_substitutions: every invalid item is counted", OPTION_ERRORS, 4)
 }
@@ -116,8 +114,14 @@ function test_extract_substitution_params() {
 }
 
 function test_form_substitutions_colons(    params, labels, values, names) {
-  form_substitutions("t:t:/a:b;u:/a:b", params, labels, values, names, 0)
+  init_globals()
+  form_substitutions("t:t:/a:b;u:/a:b;v::/a:b;w::", params, labels, values, names, 0)
   check("form_substitutions: value with colons after a label", values["t"], "/a:b")
+  check_true("form_substitutions: an empty label is no label", !("v" in labels))
+  check("form_substitutions: value with colons after an empty label", values["v"], "/a:b")
+  check_true("form_substitutions: NAME:: has no label", !("w" in labels))
+  check("form_substitutions: NAME:: has empty values", values["w"], "")
+  check("form_substitutions: an empty label is not an error", OPTION_ERRORS, 0)
   check("form_substitutions: without a label, the 2nd colon ends the label", labels["u"], "/a")
   check("form_substitutions: without a label, the rest is the value", values["u"], "b")
 }
