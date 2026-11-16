@@ -227,7 +227,7 @@ e.g., the `34` in `\033[34m` for blue. The supported parameters are `0`, `1`, `3
 
 A target is sometimes defined through a variable or an expression. `SUB` replaces the
 name that is displayed with a label and adds a list of values to the docs. Its format is
-`NAME[:LABEL]:[VALUES]`, where `VALUES` are separated by spaces; several substitutions
+`NAME:[[LABEL]:][VALUES]`, where `VALUES` are separated by spaces; several substitutions
 are separated by `;`. For example, running `make` with
 
 ```Makefile
@@ -265,16 +265,16 @@ two or more colons, the text between the first two is always the label:
 |-------------|----------------|--------|
 | `t:a b`     | `t`            | `a b`  |
 | `t:new:a b` | `new`          | `a b`  |
-| `t:t:/a:b`  | `t`            | `/a:b` |
+| `t::/a:b`   | `t`            | `/a:b` |
 | `t:/a:b`    | `/a`           | `b`    |
 
-To give a value with a colon without renaming the anchor, repeat its name as the label
-(third row).
+An empty label does not rename the anchor: use it to give a value with a colon (third
+row).
 
 ### `SUB` parameters
 
 A substitution can start with parameters that control how the values are displayed:
-`<p1:v1,...>NAME[:LABEL]:[VALUES]`.
+`<p1:v1,...>NAME:[[LABEL]:][VALUES]`.
 
 | Parameter | Meaning                                                  | Default |
 |-----------|----------------------------------------------------------|---------|
