@@ -4,9 +4,9 @@
 
 Generate `make help` from comments in your Makefile.
 
-`makefile-doc.awk` is a single awk script with no dependencies other than `awk`. It reads
-your Makefiles and prints the targets and variables you documented, with sections, colors,
-and optional export to HTML and LaTeX.
+`makefile-doc.awk` is a single awk script with no dependencies other than `awk`. It reads your
+Makefiles and prints the targets and variables you documented, with sections, colors, and optional
+export to HTML and LaTeX.
 
 ```Makefile
 help: ## Show this help
@@ -39,36 +39,13 @@ upload:
 
 Running `make` prints:
 
-```
------------------------
-Available targets:
------------------------
-help      Show this help
+<img src="misc/demo.svg" alt="The help of the example above, as displayed in a terminal"
+width="600">
 
- --- Build ---
+See [this blog post](https://drdv.github.io/blog/202511-makefile-doc) for another example.
 
-build     Compile the project
-test      Run the tests
-          (set `JOBS` to run them in parallel)
-
- --- Release ---
-
-publish   Publish the release (cannot be undone)
-upload    Use `publish` instead
-
------------------------
-Command-line arguments:
------------------------
-JOBS      Number of parallel jobs
------------------------
-```
-
-In a terminal the names are colored: blue by default, red for `publish` (`##!`), yellow for
-the deprecated `upload` (`##%`), green for the sections. A colored example can be seen
-[here](https://drdv.github.io/blog/202511-makefile-doc).
-
-The script started as a more elaborate version of
-[this one-liner](https://gist.github.com/prwhite/8168133).
+The script started as a more elaborate version of [this
+one-liner](https://gist.github.com/prwhite/8168133).
 
 **Contents:** [Install](#install) ·
 [Writing docs](#writing-docs) ·
@@ -82,48 +59,52 @@ The script started as a more elaborate version of
 
 ### Download on first use
 
-Define the first target of your `Makefile` (or if it is not the first target, set
-`.DEFAULT_GOAL := help`) as:
+Define the first target of your `Makefile` (or set `.DEFAULT_GOAL := help`) as:
 
 ```Makefile
 help: VER := v1.9
 help: URL := https://github.com/drdv/makefile-doc/releases/download/$(VER)/makefile-doc.awk
 help: SCR := $(HOME)/.local/share/makefile-doc/makefile-doc-$(VER).awk
-help: ## show this help
+help: ## Show this help
 	@test -f $(SCR) || { mkdir -p $(dir $(SCR)) && \
 		curl -fsSL -o $(SCR).tmp $(URL) && mv $(SCR).tmp $(SCR); }
 	@awk -f $(SCR) $(MAKEFILE_LIST)
 ```
 
-This downloads version `VER` of the awk script on first use (into
-`~/.local/share/makefile-doc`) and reuses it afterwards. To upgrade, change `VER`:
-the new version is downloaded next to the old one.
+The first `make help` downloads version `VER` of the script into `~/.local/share/makefile-doc`, and
+later runs reuse it. To upgrade, change `VER`: the new version is downloaded next to the old one.
 
 ### Manual installation
 
-Download `makefile-doc.awk` from the
-[releases](https://github.com/drdv/makefile-doc/releases), place it in a directory of your
-choice and define the first target of your `Makefile` as:
+Download `makefile-doc.awk` from the [releases](https://github.com/drdv/makefile-doc/releases),
+place it in a directory of your choice and make this the first target of your `Makefile`:
 
 ```Makefile
-help: ## show this help
+help: ## Show this help
 	@awk -f /path/to/makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
-If your awk supports `AWKPATH` (e.g., gawk), you can use it to locate the script without
-its full path.
+If your awk supports `AWKPATH` (e.g., gawk), you can use it to locate the script without its full
+path.
+
+### Compatibility
+
+makefile-doc works with GNU Make 3.81 or later and with all the major awks (gawk, mawk, the one true
+awk, busybox awk, wak and goawk), in versions spanning 30 years: from mawk 1.3.3 (1996) and gawk
+3.1.7 to the latest releases. The tested versions are listed as platforms in
+[test/containers.toml](test/containers.toml).
 
 ## Writing docs
 
-Docs are comments that start with one of four tokens. Targets and variables are called
-*anchors* below: they are what docs and sections are attached to.
+makefile-doc reads comments that start with one of four tokens. A doc is attached to a target or a
+variable, which we call an _anchor_. A section is displayed above the anchors that follow it.
 
-| Token | Meaning                             | Default color |
-|-------|-------------------------------------|---------------|
-| `##`  | doc of a target or a variable       | blue          |
-| `##!` | doc of an anchor that needs care    | red           |
-| `##%` | doc of a deprecated anchor          | yellow        |
-| `##@` | section title                       | green         |
+| Token | Meaning                          | Default color |
+|-------|----------------------------------|---------------|
+| `##`  | doc of a target or a variable    | blue          |
+| `##!` | doc of an anchor that needs care | red           |
+| `##%` | doc of a deprecated anchor       | yellow        |
+| `##@` | section title                    | green         |
 
 ```Makefile
 ## doc of a variable the user might want to set on the command line
@@ -138,25 +119,29 @@ target2: ## inline doc
 
 ### Docs of targets and variables
 
-- A doc is placed **above** its anchor (one or more lines) or **inline**, after it[^inline].
-  If both are present, the doc above is used.
-- In a multi-line doc, only the first line needs the `##!` or `##%` token; the other
-  lines can start with `##`.
+A doc goes either **above** its anchor, on one or more lines, or **inline**, after it[^inline]. If
+an anchor has both, the doc above is used.
+
+Some lines can appear between a doc and its anchor: blank lines, comments, conditionals (`ifeq` ...
+`endif`) and special targets such as `.PHONY: target` or `.ONESHELL:`. Any other line discards the
+doc: `include`, `vpath`, `define`, an `export` without an assignment, a function call such as
+`$(info ...)`, or a comment banner (a line of three or more `#` only, e.g., `###`).
+
+The remaining details:
+
+- In a multi-line doc, only the first line needs the `##!` or `##%` token; the other lines can start
+  with `##`.
 - Deprecated anchors (`##%`) can be hidden with `-v DEPRECATED=0`.
-- Between a doc and its anchor there can be blank lines, comments, conditionals (`ifeq`
-  ... `endif`) and lines of special targets such as `.PHONY: target` or `.ONESHELL:`.
-- Any other line discards the doc above it: `include`, `vpath`, `define`, `export` without
-  an assignment, a function call such as `$(info ...)`, and a comment banner (a line of
-  three or more `#` only, e.g., `###`).
-- On a target line, a `##` after an inline recipe (`target: ; command ## text`) is part
-  of the recipe, not a doc.
-- Docs and sections can be indented with spaces or tabs. In a rule, a line that starts
-  with the recipe prefix (a tab by default) is a recipe line, not a doc.
+- On a target line, a `##` after an inline recipe (`target: ; command ## text`) is part of the
+  recipe, not a doc.
+- Docs and sections can be indented with spaces or tabs. In a rule, a line that starts with the
+  recipe prefix (a tab by default) is a recipe line, not a doc.
 
 ### Sections
 
-- A section is one or more lines that start with `##@`. Every line of a multi-line
-  section needs the token; blank lines between them are ignored.
+- A section is one or more lines that start with `##@`; an empty `##@` line displays a blank line,
+  e.g., to separate the section from the anchors around it. Every line of a multi-line section needs
+  the token; blank lines between them are ignored.
 - A section is displayed above the next documented anchor, so it needs at least one after
   it (a hidden deprecated one is enough).
 - A section is not displayed if all the anchors of its kind (all targets, or all
@@ -169,7 +154,7 @@ target2: ## inline doc
 - [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&` (also in double-colon
   form).
-- Targets and variables documented inside a `define` block are displayed (e.g., for canned
+- Inside a `define` block, documented targets and variables are displayed too (e.g., in canned
   recipes).
 
 See `test/fixtures/Makefile.*` for many more examples.
@@ -179,56 +164,58 @@ See `test/fixtures/Makefile.*` for many more examples.
 Options are passed to `awk` with `-v OPTION=value`:
 
 ```Makefile
-help: ## show this help
+help: ## Show this help
 	@awk -v DEPRECATED=0 -v PADDING=. -f makefile-doc.awk $(MAKEFILE_LIST)
 ```
 
-| Option            | Values (default)           | Meaning                                   |
-|-------------------|----------------------------|-------------------------------------------|
-| `VARS`            | `0`, (`1`)                 | show documented variables                 |
-| `DEPRECATED`      | `0`, (`1`)                 | show deprecated anchors                   |
-| `PADDING`         | one character (space)      | fills the gap between anchors and docs    |
-| `OFFSET`          | `0`, `1`, (`2`), ...       | number of spaces between anchors and docs |
-| `COLOR`           | `0`, (`1`)                 | `0` turns off all colors                  |
-| `OUTPUT_FORMAT`   | (`ANSI`), `HTML`, `LATEX`  | see [export](#export-to-html-and-latex)   |
-| `EXPORT_THEME`    | see below                  | colors of the HTML and LaTeX output       |
-| `SUB`, `DSUB`     | see below                  | see [Substitutions](#substitutions)       |
-| `RECIPEPREFIX`    | one character (tab)        | the `.RECIPEPREFIX` of your Makefile      |
-| `TARGETS_REGEX`   | a regex                    | replaces the regex that matches targets   |
-| `VARIABLES_REGEX` | a regex                    | replaces the regex that matches variables |
+| Option            | Values (default)                        | Meaning                                   |
+|-------------------|-----------------------------------------|-------------------------------------------|
+| `VARS`            | `0`, (`1`)                              | show documented variables                 |
+| `DEPRECATED`      | `0`, (`1`)                              | show deprecated anchors                   |
+| `PADDING`         | one character (space)                   | fills the gap between anchors and docs    |
+| `OFFSET`          | `0`, `1`, (`2`), ...                    | number of spaces between anchors and docs |
+| `COLOR`           | `0`, (`1`)                              | `0` turns off all colors                  |
+| `OUTPUT_FORMAT`   | (`ANSI`), `HTML`, `LATEX`               | format of the output                      |
+| `EXPORT_THEME`    | see [export](#export-to-html-and-latex) | colors of the HTML and LaTeX output       |
+| `SUB`, `DSUB`     | see [Substitutions](#substitutions)     | substitutions in names and docs           |
+| `RECIPEPREFIX`    | one character (tab)                     | the `.RECIPEPREFIX` of your Makefile      |
+| `TARGETS_REGEX`   | a regex                                 | replaces the regex that matches targets   |
+| `VARIABLES_REGEX` | a regex                                 | replaces the regex that matches variables |
 
-`COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty
-value (see [no-color.org](https://no-color.org)).
-
-An invalid value is an error: all the invalid options are reported, nothing else is
-printed and the exit status is 1.
-
-Running `awk -f makefile-doc.awk` without a Makefile prints the options with their current
-values.
+`COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty value (see
+[no-color.org](https://no-color.org)). An invalid value is an error: all the invalid options are
+reported, nothing else is printed and the exit status is 1. Running `awk -f makefile-doc.awk`
+without a Makefile prints the options with their current values.
 
 ### Colors
 
-| Option             | Default       | Used for                              |
-|--------------------|---------------|---------------------------------------|
-| `COLOR_DEFAULT`    | `34` (blue)   | anchors whose docs start with `##`    |
-| `COLOR_ATTENTION`  | `31` (red)    | anchors whose docs start with `##!`   |
-| `COLOR_DEPRECATED` | `33` (yellow) | anchors whose docs start with `##%`   |
-| `COLOR_SECTION`    | `32` (green)  | sections                              |
-| `COLOR_BACKTICKS`  | `0` (off)     | text in backticks in docs             |
+The colors are options too, e.g., `-v COLOR_SECTION=35` for magenta sections:
+
+| Option             | Default       | Used for                            |
+|--------------------|---------------|-------------------------------------|
+| `COLOR_DEFAULT`    | `34` (blue)   | anchors whose docs start with `##`  |
+| `COLOR_ATTENTION`  | `31` (red)    | anchors whose docs start with `##!` |
+| `COLOR_DEPRECATED` | `33` (yellow) | anchors whose docs start with `##%` |
+| `COLOR_SECTION`    | `32` (green)  | sections                            |
+| `COLOR_BACKTICKS`  | `0` (off)     | text in backticks in docs           |
 
 A color is the parameter of an [ANSI escape
-code](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters),
-e.g., the `34` in `\033[34m` for blue. The supported parameters are `0`, `1`, `3`, `4`,
-`9`, `30`-`37`, `40`-`47`, `90`-`97` and `100`-`107`.
+code](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters), e.g., the
+`34` in `\033[34m` for blue. The supported parameters are `0`, `1`, `3`, `4`, `9`, `30`-`37`,
+`40`-`47`, `90`-`97` and `100`-`107`.
 
 ## Substitutions
 
+makefile-doc does not expand Make variables: a target written `$(OPEN_NOTES):` is displayed as
+`$(OPEN_NOTES)`, and a doc that mentions `$(DEPS)` shows `$(DEPS)`. Substitutions, passed on the
+command line, fill this gap: `SUB` changes how an anchor is displayed (a new name and a list of
+values), and `DSUB` replaces text inside docs.
+
 ### `SUB`: rename an anchor and list its values
 
-A target is sometimes defined through a variable or an expression. `SUB` replaces the
-name that is displayed with a label and adds a list of values to the docs. Its format is
-`NAME[:LABEL]:[VALUES]`, where `VALUES` are separated by spaces; several substitutions
-are separated by `;`. For example, running `make` with
+The format of `SUB` is `NAME[:LABEL]:[VALUES]`: the anchor `NAME` is displayed as `LABEL` (or
+unchanged without a label), and the space-separated `VALUES` are added to its doc. Several
+substitutions are separated by `;`. For example, running `make` with
 
 ```Makefile
 NOTES := my-budget trip-info misc
@@ -276,8 +263,8 @@ To give a value with a colon without renaming the anchor, repeat its name as the
 A substitution can start with parameters that control how the values are displayed:
 `<p1:v1,...>NAME[:LABEL]:[VALUES]`.
 
-| Parameter | Meaning                                                  | Default |
-|-----------|----------------------------------------------------------|---------|
+| Parameter | Meaning                                                    | Default |
+|-----------|------------------------------------------------------------|---------|
 | `L`       | `0`: values start on the line of the doc, `1`: on the next | `1`     |
 | `M`       | `0`: all values on one line, `1`: one value per line       | `1`     |
 | `N`       | maximum number of values to display (`-1`: no limit)       | `-1`    |
@@ -294,13 +281,13 @@ For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, 
   be doubled (`\\,`).
 - A parameter value cannot contain `>`, which ends the parameters.
 
-See the `Makefile` of this project and `test/integration/sub-*.test` for more examples.
+See `test/integration/sub-*.test` for more examples.
 
 ### `DSUB`: replace text in docs
 
-`DSUB` replaces text in the docs themselves. Its format is `NAME:VALUES`; everything after
-the first colon is the value, so it can contain colons. For example, with
-`-v DSUB='$$(DEPS):$(DEPS)'`, the target
+`DSUB` replaces text in the docs themselves. Its format is `NAME:VALUE`; everything after the first
+colon is the value, so it can contain colons. For example, with `-v DSUB='$$(DEPS):$(DEPS)'`, the
+target
 
 ```Makefile
 DEPS := x y
@@ -319,17 +306,19 @@ appears more than once, the last value is used. Values cannot contain newlines.
 
 ## Export to HTML and LaTeX
 
-`-v OUTPUT_FORMAT=html` and `-v OUTPUT_FORMAT=latex` print the documentation as HTML or
-LaTeX. The HTML output is a fragment to paste into a page: a `<style>` element followed by
-a `<div class="makefile-doc">`; the names of all its classes start with `makefile-doc`.
+`-v OUTPUT_FORMAT=html` and `-v OUTPUT_FORMAT=latex` (the value is case-insensitive) print the
+documentation as HTML or LaTeX. The HTML output is a fragment to paste into a page: a `<style>`
+element followed by a `<div class="makefile-doc">`, and the names of all its classes start with
+`makefile-doc`. The LaTeX output is a complete document, cropped to the text, to compile with, e.g.,
+`tectonic`.
 
 The ANSI colors are mapped to the
-[Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) dark
-palette by default.
-
-`EXPORT_THEME` changes this mapping. Its format is `ANSI_COLOR_PARAMETER:HEX_COLOR[,...]`,
-with the hex color written without `#`. The tokens `FG` and `BG` set the foreground and
-the background. Colors that are not listed keep their default. For example, to use the
+[Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) dark palette by
+default, and `EXPORT_THEME` changes this mapping. Its format is
+`ANSI_COLOR_PARAMETER:HEX_COLOR[,...]`, with the hex color written without `#`. The tokens `FG` and
+`BG` set the foreground and the background; without them, the uncolored text and the background
+follow the page in the HTML output, and are black on white in the LaTeX output. Colors that are not
+listed keep their default. For example, to use the
 [Dracula](https://github.com/dracula/dracula-theme?tab=readme-ov-file#color-palette) theme:
 
 ```Makefile
@@ -337,7 +326,7 @@ DRACULA := 30:21222c,31:ff5555,32:50fa7b,33:f1fa8c,34:bd93f9,35:ff79c6,36:8be9fd
 DRACULA := $(DRACULA),90:6272a4,91:ff6e6e,92:69ff94,93:ffffa5,94:d6acff,95:ff92df,96:a4ffff
 DRACULA := $(DRACULA),97:ffffff,BG:000000,FG:AAAAAA
 
-help: ## show this help
+help: ## Show this help
 	@awk \
 		-v EXPORT_THEME=$(DRACULA) \
 		-v OUTPUT_FORMAT=html \
@@ -348,8 +337,8 @@ help: ## show this help
 
 ## Limitations
 
-`makefile-doc` finds targets and variable assignments with awk regular expressions. It is
-not a GNU Make parser, so some valid constructs are not recognized.
+makefile-doc finds targets and variable assignments with awk regular expressions. It is not a GNU
+Make parser, so some valid constructs are not recognized.
 
 ### Targets
 
@@ -357,27 +346,29 @@ not a GNU Make parser, so some valid constructs are not recognized.
   ```makefile
   foo\#bar:
   ```
-  GNU Make treats the `#` as part of the name; the regex always excludes it.
+  GNU Make treats the `#` as part of the name; the regex always excludes it, so the target is not
+  displayed and its doc is lost.
 
 - **An escaped `:` in a target name is not handled.**
   ```makefile
   foo\:bar:
   ```
-  The escaped colon is taken for the rule separator.
+  The escaped colon is taken for the rule separator, so the target is displayed as `foo\`.
 
 - **A colon inside a reference in a target name is not handled.**
   ```makefile
   $(SRCS:.c=.o):
   ```
-  The target (here with a substitution reference) is not recognized.
+  The target (here with a substitution reference) is not recognized, so it is not displayed.
 
 Escaped spaces are displayed as written: `foo\ bar:` is shown as `foo\ bar`, which is how
 the target is invoked (`make foo\ bar`).
 
 ### Variables
 
-- Names are not expanded (by design): `$(PREFIX)_FLAGS := -O2` is displayed as
-  `$(PREFIX)_FLAGS`.
+- Names are not expanded (by design): `$(PREFIX)_FLAGS := -O2` is displayed as `$(PREFIX)_FLAGS`.
+  Use [`SUB`](#sub-rename-an-anchor-and-list-its-values) to display them differently, e.g., `-v
+  SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`.
 - Multi-line variables (`define NAME` ... `endef`) cannot be documented: `define` discards
   the doc above it.
 
@@ -389,57 +380,12 @@ ASCII character.
 
 ## Development
 
-### Supported awk implementations
+The tests are run by pytest through [uv](https://docs.astral.sh/uv), which is the only thing to
+install: `uv run` sets up Python and the test dependencies on first use. `make help` lists the
+targets, e.g., `make check` lints the code and runs all the tests with the system's awk.
 
-The script is tested on Fedora, Ubuntu and macOS with:
-
-| awk                                              | Version                                  |
-|--------------------------------------------------|------------------------------------------|
-| [gawk](https://www.gnu.org/software/gawk)        | `5.1` to `5.3` (also with `--posix`)     |
-| [mawk](https://invisible-island.net/mawk)        | `1.3.4 20260302` (also with `-W posix`)  |
-| [nawk](https://github.com/onetrueawk/awk)        | `20240728`                               |
-| [busybox awk](https://www.busybox.net/)          | `1.35.0`                                 |
-| [wak](https://github.com/raygard/wak)            | `v24.10`                                 |
-| [goawk](https://github.com/benhoyt/goawk)        | `v1.30.0`                                |
-
-Generating the documentation works with GNU Make 3.81 or later.
-
-### Running the tests
-
-The development `Makefile` needs GNU Make 4.0 or later and Python 3.11 or later (standard
-library only). `make help` lists its targets.
-
-| Command                         | What it runs                                         |
-|---------------------------------|------------------------------------------------------|
-| `make test@awk utest@awk`       | integration and unit tests with the system's `awk`   |
-| `make test@mawk utest@mawk`     | the same with another awk (see `make help`)          |
-| `make test@all utest@all`       | the same with every supported awk                    |
-| `make lint`                     | lints the awk code and the Python test tools         |
-| `make check`                    | `lint` and all the tests with the system's `awk`     |
-
-`make lint` needs `gawk` and [uv](https://docs.astral.sh/uv). The awk implementations
-other than `awk` and `gawk` are downloaded and built into
-`test/bin/` on first use. This needs a standard build environment, plus `bison` for nawk
-and Go for goawk (e.g., `dnf install bison golang`). The busybox binary is available for
-Linux only.
-
-See [test/README.md](test/README.md) for the test format and for how to report and fix
-bugs.
-
-### Performance
-
-Time to document two large real Makefiles, with docs added on every 5th target or variable
-(`make bench@all`, best of 5 runs, makefile-doc v1.8, Intel Core i7-13700H, Fedora 43,
-November 2026):
-
-| awk           | GCC Makefile.in (69k lines) | Linux Makefile (2k lines) |
-|---------------|----------------------------:|--------------------------:|
-| mawk 20260302 |               127 ms (1.0×) |             8.4 ms (1.0×) |
-| gawk 5.3.2    |               249 ms (2.0×) |            18.8 ms (2.2×) |
-| goawk 1.30.0  |               312 ms (2.5×) |            13.9 ms (1.7×) |
-| nawk 20240728 |               522 ms (4.1×) |            31.5 ms (3.7×) |
-| wak 24.10     |             2104 ms (16.6×) |            115 ms (13.7×) |
-| bawk 1.35.0   |             3187 ms (25.1×) |            176 ms (21.0×) |
+See [test/README.md](test/README.md) for how the tests work, how to write new ones, and how known
+bugs are reported and fixed.
 
 ## License
 

@@ -34,82 +34,74 @@ jobs:
       - name: install uv
         uses: astral-sh/setup-uv@v10.3.3
 
-      - name: show tool versions
-        run: |
-          gawk --version | head -n 1
-          make --version | head -n 1
-          uv --version
-          uv run python --version
-
       - name: lint the awk code while running the tests (and check its global variables)
-        run: make lint-tests
+        run: uv run pytest test/test_lint.py
 
       - name: lint the Python test tools
-        run: make lint-py
-
-      - name: test the Python test tools
-        run: make test-tools
-
-  test:
-    name: ${{ matrix.awk }} ${{ matrix.awk_flags }} ${{ matrix.os && '(macOS)' || '' }}
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
-    timeout-minutes: 15
-
-    strategy:
-      fail-fast: false # report the results of every awk variant
-      matrix:
-        include:
-          - awk: gawk
-          - awk: gawk
-            awk_flags: --posix
-          - awk: mawk
-          - awk: mawk
-            awk_flags: -W posix
-          - awk: nawk
-          - awk: bawk
-          - awk: wak
-          - awk: goawk
-          - awk: awk # the awk that comes with macOS
-            os: macos-latest
-
-    steps:
-      - name: check out the repository
-        uses: actions/checkout@v6
-
-      # macOS comes with GNU Make 3.81; the Makefile needs 4.0
-      - name: install GNU Make (macOS)
-        if: runner.os == 'macOS'
         run: |
-          brew install make
-          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
-          awk --version || true
+          uv run ruff check test
+          uv run ruff format --check test
+
+  # the platforms of test/containers.toml with `ci = true`: the matrix of the next job
+  platforms:
+    name: list the platforms
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      platforms: ${{ steps.list.outputs.platforms }}
+    steps:
+      - uses: actions/checkout@v6
 
       - name: install uv
         uses: astral-sh/setup-uv@v10.3.3
 
-      - name: show tool versions
-        run: |
-          make --version | head -n 1
-          uv --version
-          uv run python --version
+      - id: list
+        run: echo "platforms=$(uv run python test/platforms.py list --ci --json)" >> "$GITHUB_OUTPUT"
 
-      # the built binary is cached; the key changes when test/tools/deps.toml (e.g., a new
-      # version) or test/tools/deps.py changes, so the variant is built again then
-      - name: restore ${{ matrix.awk }} from the cache
-        if: matrix.awk != 'gawk' && matrix.awk != 'awk'
+  # the tests run on the runner; awk runs on it too (host platforms) or in a container
+  tests:
+    name: ${{ matrix.platform.name }}
+    needs: platforms
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false # report the results of every platform
+      matrix:
+        platform: ${{ fromJSON(needs.platforms.outputs.platforms) }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      # a host platform with `build`: the binary built in a container (with its stamp) is
+      # cached; a change of the Containerfiles or of containers.toml is a new key
+      - name: restore the binary from the cache
+        if: matrix.platform.build
         uses: actions/cache@v6
         with:
-          path: test/bin/${{ matrix.awk }}
+          path: test/bin
           key: >-
-            ${{ matrix.awk }}-${{ runner.os }}-${{ runner.arch }}-${{
-            hashFiles('test/tools/deps.toml', 'test/tools/deps.py') }}
+            ${{ matrix.platform.name }}-${{ runner.os }}-${{ runner.arch }}-${{
+            hashFiles('test/containers.toml', 'test/containers/*') }}
 
-      - name: download and build ${{ matrix.awk }}
-        run: make deps@${{ matrix.awk }}
+      # the cases of known bugs are part of them: they are expected to fail
+      - name: integration and unit tests
+        run: uv run pytest test/test_integration.py test/test_unit.py --platform ${{ matrix.platform.name }}
 
-      # the cases of known bugs are part of both: they are expected to fail
-      - name: integration tests
-        run: make test@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
+  # the awk that comes with macOS
+  macos:
+    name: host-awk (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 15
 
-      - name: unit tests
-        run: make utest@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: integration and unit tests
+        run: uv run pytest test/test_integration.py test/test_unit.py --platform host-awk

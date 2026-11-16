@@ -185,6 +185,12 @@ function test_export_theme() {
              !(5 in ANSI_TO_HTML_COLOR))
   check("export theme: the background of a color is set separately",
         ANSI_TO_HTML_COLOR[42], "859900")
+  check("export theme: unsupported parameters are errors",
+        stderr_text(),
+        "ERROR: EXPORT_THEME: '3:ffffff' should start with FG, BG or one of " \
+        "30-37, 40-47, 90-97, 100-107\n" \
+        "ERROR: EXPORT_THEME: '5:123456' should start with FG, BG or one of " \
+        "30-37, 40-47, 90-97, 100-107\n")
 
   setup_colors("", "")
 }
