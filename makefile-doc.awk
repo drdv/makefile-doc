@@ -33,7 +33,9 @@
 #   SUB               rename anchors and list values in their docs:
 #                     [<p1:v1,...>]NAME:[[LABEL]:][VALUES][;...]
 #                     (the parameters are L, M, N, S, P, I and T)
-#   DSUB              replace text in the docs: NAME:VALUES[;...]
+#   DSUB              replace text in the docs and, with the parameter A:1, in the names
+#                     of anchors: [<p1:v1,...>]NAME:VALUES[;...]
+#                     (the parameters are A and D)
 #   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
 #   TARGETS_REGEX     regex for matching targets
 #   VARIABLES_REGEX   regex for matching variables
@@ -276,6 +278,7 @@ function init_globals() {
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
   OPTION_ERRORS = 0 # number of invalid options (see option_error)
+  DSUB_COUNT = 0 # number of DSUB substitutions (set by process_options)
 
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
@@ -368,7 +371,7 @@ function initialize_substitution_parameter_defaults() {
 
 # Process the user options (called from BEGIN, but not in unit-test mode). Every invalid
 # option is reported, then the script exits with status 1 without any other output.
-function process_options(    sub_names, dummy_array_params, dummy_array_labels) {
+function process_options(    sub_names, dummy_array_labels) {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
     option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
@@ -419,8 +422,9 @@ function process_options(    sub_names, dummy_array_params, dummy_array_labels) 
   }
 
   form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, sub_names, 0)
-  form_substitutions(DSUB, dummy_array_params, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
+  form_substitutions(DSUB, DSUB_PARAMS, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
+  set_dsub_scopes()
 
   if (OPTION_ERRORS > 0) {
     ABORT = 1
@@ -453,7 +457,7 @@ function print_help() {
   printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
          (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
   printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
-  printf "  DSUB (substitutions in docs):%s\n", (DSUB == "" ? "" : " " DSUB)
+  printf "  DSUB (substitutions in docs and names):%s\n", (DSUB == "" ? "" : " " DSUB)
   printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
   printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
   printf "  VARS ([bool] show documented variables): %s\n", VARS
@@ -477,6 +481,7 @@ function print_help() {
 # SUB:  NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (the first two colons are
 #       separators; an empty label is no label)
 # DSUB: NAME:VALUES (only the first colon is a separator, no_labels is set)
+# Both can start with parameters, <p1:v1,...> (see the validate_*_params functions).
 # Everything after the last separator is the value, so it can contain colons.
 #
 # Caveat: for SUB, NAME:A:B is always read as NAME:LABEL:VALUES, so A is the label.
@@ -484,7 +489,8 @@ function print_help() {
 # t::/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
 #
 # Empty items (e.g., after a trailing ;) are skipped. Invalid items are reported (see
-# option_error) and skipped: no colon, an empty name, invalid parameters.
+# option_error) and skipped: no colon, an empty name, invalid parameters, a name that is
+# already given.
 function form_substitutions(sub_array, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
@@ -525,8 +531,9 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     colon = no_labels ? 0 : index(values, ":")
     if (colon > 0) {
       label = substr(values, 1, colon - 1)
+      gsub(SPACES_TABS_REGEX, "", label)
       values = substr(values, colon + 1)
-      has_label = (label != "") # NAME::VALUES has no label
+      has_label = (label != "") # NAME::VALUES (or a blank label) has no label
     }
     gsub(SPACES_TABS_REGEX, "", name)
 
@@ -534,8 +541,15 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
       option_error(sprintf("%s: '%s' has an empty NAME", option, string))
       continue
     }
-    if (!no_labels) {
+    if (no_labels) {
+      validate_dsub_params(name, substitution_params)
+    } else {
       validate_substitution_params(name, substitution_params)
+    }
+
+    if (name in sub_values_array) {
+      option_error(sprintf("%s: '%s' is given more than once", option, name))
+      continue
     }
 
     sub_names_array[++n] = name
@@ -590,6 +604,46 @@ function validate_substitution_params(name, string_with_parameters, #locals
       option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
                            name))
     }
+  }
+}
+
+# Report the invalid parameters of the DSUB substitution of name (see option_error):
+#   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
+#   D  0: the docs are not changed, 1: (default) name is replaced in the docs
+function validate_dsub_params(name, string_with_parameters, #locals
+                              params, keys, k, n, key, value, a, d) {
+  a = 0
+  d = 1
+  n = parse_substitution_params(string_with_parameters, params, keys)
+  for (k = 1; k <= n; k++) {
+    key = keys[k]
+    value = strip_start_end_spaces_tabs(params[key])
+    if (key != "A" && key != "D") {
+      option_error(sprintf("DSUB: unknown parameter %s of %s (use A or D)", key, name))
+    } else if (!is_bool(value)) {
+      option_error(sprintf("DSUB: parameter %s of %s should be 0 or 1", key, name))
+    } else if (key == "A") {
+      a = value + 0
+    } else {
+      d = value + 0
+    }
+  }
+  if (!a && !d) {
+    option_error(sprintf("DSUB: %s is replaced nowhere (A and D are both 0)", name))
+  }
+}
+
+# Set where each name of DSUB is replaced: DSUB_IN_ANCHORS[name] (parameter A, default 0)
+# and DSUB_IN_DOCS[name] (parameter D, default 1). The parameters have already been
+# checked by validate_dsub_params.
+function set_dsub_scopes(    k, name, params, keys) {
+  split("", DSUB_IN_ANCHORS)
+  split("", DSUB_IN_DOCS)
+  for (k = 1; k <= DSUB_COUNT; k++) {
+    name = DSUB_NAMES[k]
+    parse_substitution_params(array_get(DSUB_PARAMS, name), params, keys)
+    DSUB_IN_ANCHORS[name] = ("A" in params) ? params["A"] + 0 : 0
+    DSUB_IN_DOCS[name] = ("D" in params) ? params["D"] + 0 : 1
   }
 }
 
@@ -1326,6 +1380,24 @@ function is_hidden_anchor(anchor, anchors_description_data) {
   return !DEPRECATED && get_tag_from_description(anchors_description_data[anchor]) == "##%"
 }
 
+# The name that is displayed for an anchor: its SUB label if it has one, otherwise its name
+# after the DSUB substitutions with the parameter A:1 (in the order given).
+# SUB is looked up with the name as written in the Makefile, so DSUB never affects which
+# SUB applies.
+function display_name(anchor, #locals
+                      k, name) {
+  if (anchor in SUB_LABELS) {
+    return SUB_LABELS[anchor]
+  }
+  for (k = 1; k <= DSUB_COUNT; k++) {
+    name = DSUB_NAMES[k]
+    if (DSUB_IN_ANCHORS[name]) {
+      anchor = string_replace(name, DSUB_VALUES[name], anchor)
+    }
+  }
+  return anchor
+}
+
 # the length of the longest displayed anchor (0 if no anchor is displayed)
 function get_max_anchor_length(anchors, anchors_description_data, #locals
                                max_len, key, anchor, n) {
@@ -1335,7 +1407,7 @@ function get_max_anchor_length(anchors, anchors_description_data, #locals
     if (is_hidden_anchor(anchor, anchors_description_data)) {
       continue
     }
-    n = (anchor in SUB_LABELS) ? length(SUB_LABELS[anchor]) : length(anchor)
+    n = length(display_name(anchor))
     if (n > max_len) {
       max_len = n
     }
@@ -1415,7 +1487,9 @@ function format_description_data(anchor_name,
 
   # apply the substitutions in the order given
   for (k = 1; k <= DSUB_COUNT; k++) {
-    description = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], description)
+    if (DSUB_IN_DOCS[DSUB_NAMES[k]]) {
+      description = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], description)
+    }
   }
 
   return colorize_description_backticks(apply_output_specific_formatting(description))
@@ -1499,7 +1573,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   }
 
   if (DISPLAY_PARAMS["show"]) {
-    renamed_anchor = (anchor in SUB_LABELS) ? SUB_LABELS[anchor] : anchor
+    renamed_anchor = display_name(anchor)
     formatted_anchor = apply_output_specific_formatting(renamed_anchor)
 
     # handle padding manually because there is a difference between the actual text and

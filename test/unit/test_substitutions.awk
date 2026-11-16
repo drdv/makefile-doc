@@ -130,20 +130,89 @@ function test_form_substitutions_spaces_in_name(    params, labels, values, name
   form_substitutions(" \tt :v", params, labels, values, names, 0)
   check("form_substitutions: spaces around the name are removed", names[1], "t")
   check("form_substitutions: value of a name with spaces", values["t"], "v")
+
+  form_substitutions("t: \tnew :v;u: :w", params, labels, values, names, 0)
+  check("form_substitutions: spaces around the label are removed", labels["t"], "new")
+  check_true("form_substitutions: a blank label is no label", !("u" in labels))
+  check("form_substitutions: value after a blank label", values["u"], "w")
 }
 
 function test_form_substitutions_dsub(    params, labels, values, names) {
-  form_substitutions("$(X):a:b;$(Y):;$(X):c", params, labels, values, names, 1)
+  form_substitutions("$(X):a:b;$(Y):;$(Z):c", params, labels, values, names, 1)
   check("form_substitutions (DSUB): no labels", length_array_posix(labels), 0)
   check("form_substitutions (DSUB): the value is everything after the 1st colon",
         values["$(Y)"], "")
-  check("form_substitutions (DSUB): the last value of a repeated name is used",
-        values["$(X)"], "c")
-  check("form_substitutions (DSUB): names in the order given (repeats kept)",
-        names[1] " " names[2] " " names[3], "$(X) $(Y) $(X)")
+  check("form_substitutions (DSUB): names in the order given",
+        names[1] " " names[2] " " names[3], "$(X) $(Y) $(Z)")
 
-  form_substitutions("$(X):a:b", params, labels, values, names, 1)
+  form_substitutions("<A:1>$(X):a:b", params, labels, values, names, 1)
+  check("form_substitutions (DSUB): parameters", params["$(X)"], "A:1")
   check("form_substitutions (DSUB): value with colons", values["$(X)"], "a:b")
+}
+
+function test_form_substitutions_repeated(    params, labels, values, names) {
+  init_globals()
+  form_substitutions("t:a;u:b;t:c;t:a", params, labels, values, names, 0)
+  check("form_substitutions: a repeated name is an error (also an identical repeat)",
+        stderr_text(),
+        "ERROR: SUB: 't' is given more than once\n" \
+        "ERROR: SUB: 't' is given more than once\n")
+  check("form_substitutions: every repeat is counted", OPTION_ERRORS, 2)
+
+  form_substitutions("$(X):a;$(X):b", params, labels, values, names, 1)
+  check("form_substitutions (DSUB): a repeated name is an error",
+        stderr_text(),
+        "ERROR: DSUB: '$(X)' is given more than once\n")
+
+  init_globals()
+  form_substitutions("t:a", params, labels, values, names, 0)
+  form_substitutions("t:b", params, labels, values, names, 1)
+  check("form_substitutions: the same name in SUB and DSUB is not an error", OPTION_ERRORS, 0)
+}
+
+function test_validate_dsub_params() {
+  init_globals()
+  validate_dsub_params("x", "")
+  validate_dsub_params("x", "A:1")
+  validate_dsub_params("x", " A : 1 , D:0,")
+  check("validate_dsub_params: valid parameters are not errors", OPTION_ERRORS, 0)
+
+  validate_dsub_params("x", "L:0")
+  check("validate_dsub_params: unknown parameter",
+        stderr_text(), "ERROR: DSUB: unknown parameter L of x (use A or D)\n")
+  validate_dsub_params("x", "A:yes")
+  check("validate_dsub_params: A should be 0 or 1",
+        stderr_text(), "ERROR: DSUB: parameter A of x should be 0 or 1\n")
+  validate_dsub_params("x", "D:0")
+  check("validate_dsub_params: replaced nowhere",
+        stderr_text(), "ERROR: DSUB: x is replaced nowhere (A and D are both 0)\n")
+  check("validate_dsub_params: every invalid parameter is counted", OPTION_ERRORS, 3)
+  init_globals()
+}
+
+function test_set_dsub_scopes(    labels) {
+  form_substitutions("<A:1>b:2;<A:1,D:0>c:3;d:6",
+                     DSUB_PARAMS, labels, DSUB_VALUES, DSUB_NAMES, 1)
+  DSUB_COUNT = length_array_posix(DSUB_NAMES)
+  set_dsub_scopes()
+  check("set_dsub_scopes: default", DSUB_IN_ANCHORS["d"] " " DSUB_IN_DOCS["d"], "0 1")
+  check("set_dsub_scopes: A:1", DSUB_IN_ANCHORS["b"] " " DSUB_IN_DOCS["b"], "1 1")
+  check("set_dsub_scopes: A:1,D:0", DSUB_IN_ANCHORS["c"] " " DSUB_IN_DOCS["c"], "1 0")
+  DSUB_COUNT = 0
+}
+
+function test_display_name(    labels) {
+  form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", DSUB_PARAMS, labels, DSUB_VALUES,
+                     DSUB_NAMES, 1)
+  DSUB_COUNT = length_array_posix(DSUB_NAMES)
+  set_dsub_scopes()
+  check("display_name: replaced in the order given", display_name("$(D)/a"), "o/a")
+  check("display_name: every occurrence", display_name("$(D)/a $(D)/b"), "o/a o/b")
+  check("display_name: a name without the text", display_name("plain"), "plain")
+  SUB_LABELS["$(D)/a"] = "label"
+  check("display_name: a SUB label wins", display_name("$(D)/a"), "label")
+  delete SUB_LABELS["$(D)/a"]
+  DSUB_COUNT = 0
 }
 
 BEGIN {
@@ -157,5 +226,9 @@ BEGIN {
   test_form_substitutions_colons()
   test_form_substitutions_spaces_in_name()
   test_form_substitutions_dsub()
+  test_form_substitutions_repeated()
+  test_validate_dsub_params()
+  test_set_dsub_scopes()
+  test_display_name()
   done()
 }

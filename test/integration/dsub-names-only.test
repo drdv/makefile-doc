@@ -1,0 +1,15 @@
+#: desc: With the parameters A:1 and D:0, DSUB replaces text in the names of anchors but not in the docs
+-v COLOR=0 -v DSUB='<A:1,D:0>$(OUT_DIR):out' test/fixtures/Makefile.dsub-names
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+out/a       Write $(OUT_DIR)/a
+out/b       Write b (after $(OUT_DIR)/a)
+plain       A target without the variable in its name
+
+-----------------------
+Command-line arguments:
+-----------------------
+out_FLAGS   Flags used for the files in $(OUT_DIR)
+-----------------------
