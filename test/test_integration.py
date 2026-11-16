@@ -2,22 +2,23 @@
 
 import shlex
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
 import pytest
-from conftest import ROOT, SCRIPT, VERSION
+from platforms import ROOT, SCRIPT, VERSION, Awk
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class Case:
+class Case(BaseModel):
     """A test/integration/*.test file."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     path: Path
     head: str  # the metadata lines and the line of the awk arguments
     meta: dict[str, list[str]]  # the `#: key: value` lines at the start
-    args: str  # the awk arguments, in shell syntax
+    args: tuple[str, ...]  # the awk arguments (the line is in shell syntax)
     expected: str  # the expected output
 
     @classmethod
@@ -29,8 +30,14 @@ class Case:
         for line in lines[:k]:
             key, _, value = line[2:].partition(":")
             meta.setdefault(key.strip(), []).append(value.strip())
-        args = lines[k].rstrip("\n") if k < len(lines) else ""
-        return cls(path, "".join(lines[: k + 1]), meta, args, "".join(lines[k + 1 :]))
+        args = tuple(shlex.split(lines[k])) if k < len(lines) else ()
+        return cls(
+            path=path,
+            head="".join(lines[: k + 1]),
+            meta=meta,
+            args=args,
+            expected="".join(lines[k + 1 :]),
+        )
 
     @property
     def name(self) -> str:
@@ -54,18 +61,20 @@ class Case:
 CASES = [Case.read(path) for path in sorted((ROOT / "test/integration").glob("*.test"))]
 
 
-def render(proc: subprocess.CompletedProcess) -> str:
+def render(proc: subprocess.CompletedProcess[bytes]) -> str:
     """Return the result of an awk process in the format of the expected output."""
     out = ""
     for name, data in (("stderr", proc.stderr), ("stdout", proc.stdout)):
         if data:
+            # output without a final newline is a bug of the script: it is never accepted
+            assert data.endswith(b"\n"), f"{name} does not end with a newline"
             out += f"#: {name}\n" + data.decode(errors="surrogateescape")
     if proc.returncode:
         out += f"#: exit: {proc.returncode}\n"
     return out.replace(f"Version: {VERSION}", "Version: @VERSION@")
 
 
-def params() -> list:
+def params() -> list[pytest.ParameterSet]:
     """One parameter per case; the case of a known bug is expected to fail."""
     return [
         pytest.param(
@@ -78,12 +87,12 @@ def params() -> list:
 
 
 @pytest.mark.parametrize("case", params())
-def test_case(awk, case: Case, request: pytest.FixtureRequest) -> None:
-    actual = render(awk("-f", SCRIPT, *shlex.split(case.args), env=case.env))
+def test_case(awk: Awk, case: Case, request: pytest.FixtureRequest) -> None:
+    actual = render(awk("-f", SCRIPT, *case.args, env=case.env))
 
     # the expected output of a known bug is written by hand: it is never updated
     if request.config.getoption("update") and not case.bug and actual != case.expected:
         case.update(actual)
-        return
+        pytest.skip(f"updated {case.path.relative_to(ROOT)}")
     # lists of lines: pytest shows a line diff with escapes and trailing blanks visible
     assert actual.splitlines(keepends=True) == case.expected.splitlines(keepends=True)

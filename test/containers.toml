@@ -1,0 +1,229 @@
+# The platforms whose awk the tests run (see test/README.md). A new table is a new platform.
+#
+# A container platform runs awk in a container. Only awk runs there, so an image needs
+# nothing else:
+#
+#   image    the image
+#   awk      the awk command to test (e.g., "gawk --posix")
+#   install  optional: a shell command that installs the awk in the container
+#
+# A host platform (`host = true`) runs awk on this machine:
+#
+#   awk      an installed awk (e.g., "gawk"), or, with build, the path of the binary
+#   build    optional: a Containerfile that builds the binary (copied out of the image to awk)
+#   args     optional, with build: its build arguments (e.g., the version and its SHA256)
+#
+# Any platform:
+#
+#   extends  optional: the name of a table whose keys this one takes (its own keys win)
+#   ci       optional: true to also run the platform in CI
+
+# ------------------------------------------------------------------------------------------
+# awk variants on the host platform. The binaries are built in a container, statically
+# linked (they run on any Linux), and copied to test/bin/ the first time they are needed
+# (and again when the Containerfile or its args change)
+# ------------------------------------------------------------------------------------------
+
+[host-awk]
+host = true
+ci = true
+awk = "awk"
+
+[host-gawk]
+host = true
+ci = true
+awk = "gawk"
+
+[host-gawk-posix]
+extends = "host-gawk"
+awk = "gawk --posix"
+
+[host-mawk]
+host = true
+ci = true
+build = "test/containers/mawk.Containerfile"
+args = { VERSION = "t20260302", SHA256 = "68740bcb801350b0d8be79fe794baa1186e3d1c718511a17d6690b8d0995bbc6" }
+awk = "test/bin/mawk"
+
+# the same binary as [host-mawk], in POSIX mode
+[host-mawk-posix]
+extends = "host-mawk"
+awk = "test/bin/mawk -W posix"
+
+# the mawk of Debian 12
+[host-mawk2020]
+host = true
+ci = true
+build = "test/containers/mawk.Containerfile"
+args = { VERSION = "t20200120", SHA256 = "791cdc2db1ef44ba1ff04ae8870800a34d5e7b680e799dded019ec1fda7fc923" }
+awk = "test/bin/mawk2020"
+
+# the mawk of Ubuntu 24.04 (also the system awk of GitHub's ubuntu-latest)
+[host-mawk2024]
+host = true
+build = "test/containers/mawk.Containerfile"
+args = { VERSION = "t20240123", SHA256 = "38577cd9b459532ee4ee0a04db13ada71f76a2b0fd15fc562afa5c7ec11722ad" }
+awk = "test/bin/mawk2024"
+
+[host-nawk]
+host = true
+ci = true
+build = "test/containers/nawk.Containerfile"
+args = { VERSION = "20240728", SHA256 = "2d479817f95d5997fc4348ecebb1d8a1b25c81cebedb46ca4f59434247e08543" }
+awk = "test/bin/nawk"
+
+# a prebuilt binary for x86_64
+[host-bawk]
+host = true
+ci = true
+build = "test/containers/bawk.Containerfile"
+args = { VERSION = "1.35.0", SHA256 = "a0be3443bc46b48c761249003bf5d0750afac092bc87d2a541d09bce05172a7b" }
+awk = "test/bin/bawk"
+
+[host-wak]
+host = true
+ci = true
+build = "test/containers/wak.Containerfile"
+args = { VERSION = "v24.10", SHA256 = "b0902e299d9956e5920c3a0fff686de3b9dc60b7e3cc5c658fb379a5835d4c0c" }
+awk = "test/bin/wak"
+
+[host-goawk]
+host = true
+ci = true
+build = "test/containers/goawk.Containerfile"
+args = { VERSION = "v1.30.0", SHA256 = "7a42ca223f1319483c3f46014c80f5e78e8410be29175ac852d88b79e3e64a36" }
+awk = "test/bin/goawk"
+
+# goawk that writes the coverage of the script, for `make coverage` (not in CI; its name
+# does not match `host-*`, as the profile is only written there)
+[coverage]
+extends = "host-goawk"
+ci = false
+awk = "test/bin/goawk -coverprofile coverage-reports/all.out -coverappend"
+
+# ------------------------------------------------------------------------------------------
+# mawk (the default awk of Debian and Ubuntu)
+# ------------------------------------------------------------------------------------------
+
+# mawk 1.3.3 (1996 code base)
+[debian10]
+image = "debian:10"
+awk = "mawk"
+
+# mawk 1.3.3
+[ubuntu1804]
+image = "ubuntu:18.04"
+awk = "mawk"
+
+# mawk 1.3.4 20200120
+[debian12]
+image = "debian:12"
+awk = "mawk"
+
+# mawk 1.3.4 20240123
+[ubuntu2404]
+image = "ubuntu:24.04"
+awk = "mawk"
+ci = true
+
+# mawk 1.3.4 20260129
+[ubuntu2604]
+image = "ubuntu:26.04"
+awk = "mawk"
+
+# ------------------------------------------------------------------------------------------
+# gawk (the default awk of the RHEL family and Fedora; a package elsewhere)
+# ------------------------------------------------------------------------------------------
+
+# gawk 3.1.7
+[centos6]
+image = "centos:6"
+awk = "gawk"
+
+# gawk 4.0.2
+[centos7]
+image = "centos:7"
+awk = "gawk"
+
+[amazonlinux2]
+image = "amazonlinux:2"
+awk = "gawk"
+install = "command -v gawk || yum install -y -q gawk"
+
+# gawk 4.2.1
+[alma8]
+image = "almalinux:8"
+awk = "gawk"
+
+[ubuntu2004-gawk]
+image = "ubuntu:20.04"
+awk = "gawk"
+install = "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gawk"
+
+# gawk 5.1.0
+[alma9]
+image = "almalinux:9"
+awk = "gawk"
+
+[debian12-gawk]
+image = "debian:12"
+awk = "gawk"
+install = "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gawk"
+
+[fedora44]
+image = "fedora:44"
+awk = "gawk"
+install = "command -v gawk || dnf install -y -q gawk"
+
+[fedora45]
+image = "fedora:45"
+awk = "gawk"
+install = "command -v gawk || dnf install -y -q gawk"
+
+# ------------------------------------------------------------------------------------------
+# busybox awk (the default awk of Alpine)
+# ------------------------------------------------------------------------------------------
+
+# busybox 1.31
+[alpine312]
+image = "alpine:3.12"
+awk = "awk"
+
+# busybox 1.36.1
+[alpine320]
+image = "alpine:3.20"
+awk = "awk"
+
+# busybox 1.37.0
+[alpine323]
+image = "alpine:3.23"
+awk = "awk"
+
+# ------------------------------------------------------------------------------------------
+# BWK awk (the one true awk; macOS runs in CI)
+# ------------------------------------------------------------------------------------------
+
+[alpine322-nawk]
+image = "alpine:3.22"
+awk = "nawk"
+install = "apk add --no-cache -q nawk"
+
+[debian11-original-awk]
+image = "debian:11"
+awk = "original-awk"
+install = "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq original-awk"
+
+[ubuntu2004-original-awk]
+image = "ubuntu:20.04"
+awk = "original-awk"
+install = "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq original-awk"
+
+[debian12-original-awk]
+image = "debian:12"
+awk = "original-awk"
+install = "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq original-awk"
+
+[ubuntu2404-original-awk]
+image = "ubuntu:24.04"
+awk = "original-awk"
+install = "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq original-awk"

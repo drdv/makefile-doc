@@ -1,0 +1,26 @@
+help: ## Show this help
+	@awk -f makefile-doc.awk $(MAKEFILE_LIST)
+
+## Number of parallel jobs
+JOBS := 4
+
+##@
+##@ --- Build ---
+##@
+
+## Compile the project
+build:
+
+## Run the tests
+## (set `JOBS` to run them in parallel)
+test: build
+
+##@
+##@ --- Release ---
+##@
+
+##! Publish the release (cannot be undone)
+publish: test
+
+##% Use `publish` instead
+upload:

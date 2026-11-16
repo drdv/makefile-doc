@@ -76,7 +76,7 @@ function check_bug(name, got, want, issue) {
 # file. STDERR must be a regular file (the test runner passes one with -v STDERR=...).
 function stderr_text(    line, text) {
   if (STDERR == "/dev/stderr") {
-    printf("Bail out! STDERR is not a file (run the tests with make utest)\n")
+    printf("Bail out! STDERR must be a regular file: pass -v STDERR=<file>\n")
     exit 2
   }
   close(STDERR) # flush the stream used for writing

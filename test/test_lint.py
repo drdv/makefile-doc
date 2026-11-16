@@ -6,15 +6,16 @@ A warning in makefile-doc.awk is expected (see test/README.md)
 """
 
 import re
-import shlex
 import shutil
 import tomllib
 from collections import defaultdict
+from pathlib import Path
 from typing import NamedTuple, Self
 
 import pytest
-from conftest import ROOT, SCRIPT, Awk
+from platforms import ROOT, SCRIPT, Awk
 from test_integration import CASES
+from test_unit import UNIT_FILES, unit_args
 
 IGNORE = [
     re.compile(p)
@@ -22,7 +23,6 @@ IGNORE = [
         "ignore"
     ]
 ]
-UNIT = sorted(p.relative_to(ROOT) for p in (ROOT / "test/unit").glob("test_*.awk"))
 
 # what gawk adds to a warning: its name, the position in the input and the word `warning`
 NOISE = re.compile(r"^gawk: |\(FILENAME=.*? FNR=\d+\) |warning: ")
@@ -33,7 +33,7 @@ INLINE = re.compile(r"# lint: ignore\[(?P<text>[^\]]*)\]")
 class LintWarning(NamedTuple):
     """A warning of gawk --lint, e.g., `makefile-doc.awk:211: substr: start index 0 is ...`."""
 
-    file: str | None  # None: gawk gives no location (e.g., for a function never called)
+    file: str | None  # None: gawk gives no location e.g., for a function never called
     line: int | None
     message: str
 
@@ -87,30 +87,29 @@ def inline_comments(lines: list[str]) -> list[Inline]:
 INLINE_COMMENTS = inline_comments((ROOT / SCRIPT).read_text().splitlines())
 
 
-def unit_args(path, stderr):
-    return ["-v", "UNIT_TEST=1", "-v", f"STDERR={stderr}",
-            "-f", "test/unit/harness.awk", "-f", SCRIPT, "-f", path, "/dev/null"]  # fmt: skip
-
-
 @pytest.fixture(scope="session")
 def gawk() -> Awk:
     if not shutil.which("gawk"):
         pytest.skip("gawk is not installed")
-    return Awk(("gawk",))
+    return Awk(awk=("gawk",))
 
 
 @pytest.fixture(scope="session")
-def warnings(gawk, tmp_path_factory) -> dict[LintWarning, set[str]]:
+def warnings(gawk: Awk, tmp_path_factory: pytest.TempPathFactory) -> dict[LintWarning, set[str]]:
     """Each distinct warning (without the input position) -> the runs that print it."""
     stderr = tmp_path_factory.mktemp("lint") / "STDERR"
     stderr.touch()
+    # name -> (awk arguments, environment): the cases run with their `#: env:` variables
     runs = {
-        case.name: ["-v", "STDERR=/dev/null", "-f", SCRIPT, *shlex.split(case.args)]
+        case.name: (["-v", "STDERR=/dev/null", "-f", SCRIPT, *case.args], case.env)
         for case in CASES
-    } | {path.stem: unit_args(path, stderr) for path in UNIT}
-    found = defaultdict(set)
-    for name, args in runs.items():
-        out = gawk("--lint", *args).stderr.decode(errors="replace").replace(str(stderr), "STDERR")
+    } | {path.stem: (unit_args(path, stderr), {}) for path in UNIT_FILES}
+    found: defaultdict[LintWarning, set[str]] = defaultdict(set)
+    for name, (args, env) in runs.items():
+        proc = gawk("--lint", *args, env=env)
+        out = proc.stderr.decode(errors="replace").replace(str(stderr), "STDERR")
+        if "fatal:" in out:
+            pytest.fail(f"{name}: gawk failed\n{out}", pytrace=False)
         for line in out.splitlines():
             found[LintWarning.parse(NOISE.sub("", line))].add(name)
     return found
@@ -143,7 +142,7 @@ def test_inline_comments() -> None:
     assert not first.expects(LintWarning("test/unit/harness.awk", 4, "the first message"))
 
 
-def test_no_unexpected_warnings(warnings) -> None:
+def test_no_unexpected_warnings(warnings: dict[LintWarning, set[str]]) -> None:
     unexpected = {
         str(warning): sorted(runs)[:3]  # with up to three of the runs that print it
         for warning, runs in warnings.items()
@@ -153,7 +152,7 @@ def test_no_unexpected_warnings(warnings) -> None:
     assert not unexpected
 
 
-def test_no_stale_ignore(warnings) -> None:
+def test_no_stale_ignore(warnings: dict[LintWarning, set[str]]) -> None:
     """Every `ignore` expression and every inline comment expects at least one warning."""
     stale = [p.pattern for p in IGNORE if not any(p.search(w.without_line) for w in warnings)]
     stale += [
@@ -164,19 +163,19 @@ def test_no_stale_ignore(warnings) -> None:
     assert not stale
 
 
-def globals_of(gawk: Awk, tmp_path, *args) -> set[str]:
+def globals_of(gawk: Awk, tmp_path: Path, *args: str) -> set[str]:
     dump = tmp_path / "globals"
     gawk(f"-d{dump}", *args)
     return {line.split(":")[0] for line in dump.read_text().splitlines() if line}
 
 
-def test_global_names(gawk, tmp_path) -> None:
+def test_global_names(gawk: Awk, tmp_path: Path) -> None:
     names = globals_of(gawk, tmp_path, "-v", "SHOW_HELP=0", "-f", SCRIPT)
     assert not sorted(n for n in names if not re.fullmatch(r"[A-Z_]+|g_[a-z_]+", n))
 
 
-@pytest.mark.parametrize("path", UNIT, ids=lambda p: p.stem)
-def test_unit_file_defines_no_globals(gawk, tmp_path, path) -> None:
+@pytest.mark.parametrize("path", UNIT_FILES, ids=lambda p: p.stem)
+def test_unit_file_defines_no_globals(gawk: Awk, tmp_path: Path, path: Path) -> None:
     script = globals_of(gawk, tmp_path, "-v", "SHOW_HELP=0", "-f", SCRIPT)
     stderr = tmp_path / "stderr"
     stderr.touch()
