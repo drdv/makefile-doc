@@ -2,12 +2,13 @@
 
 - `make test@<variant>`: integration tests (`test/integration/`)
 - `make utest@<variant>`: unit tests (`test/unit/`)
-- `make bugs@<variant>`: reproducers for known, unfixed bugs (cases with `#: bug: N` in
-  `test/integration/`)
+- `make lint`: lint the awk code (`lint-tests`) and the Python code (`lint-py`)
+- `make test-tools`: tests of the Python tools in `test/tools/`
+- `make check`: all of the above, with the awk variant `AWK`
 
 For example, `make test@mawk` runs the integration tests with mawk, and `make test@all`
-with every variant. `make test`, `utest` and `bugs` use `AWK` (default `awk`) and
-`AWK_FLAGS`, e.g., `make test AWK=gawk AWK_FLAGS=--posix`.
+with every variant. `make test` and `utest` use `AWK` (default `awk`) and `AWK_FLAGS`,
+e.g., `make test AWK=gawk AWK_FLAGS=--posix`.
 
 The awk variants are downloaded and built into `test/bin/` when a test needs them. `make
 deps@<variant>` (or `deps@all`) does this in advance, and `make clean@<variant>` (or
@@ -17,25 +18,46 @@ versions are pinned in `test/tools/deps.toml`, where each download is checked ag
 that differ from `deps.toml`: a variant already in `test/bin/` is not rebuilt when its
 version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 
-The test tools in `test/` are written in Python (>= 3.11, standard library only). `make
-lint-py` lints them and checks their formatting with [ruff](https://docs.astral.sh/ruff)
-(settings in `ruff.toml`; `uvx ruff format test` reformats them), and `make test-tools` runs
-their tests (`test/tools/test_*.py`, written with `unittest` and run with
-[pytest](https://docs.pytest.org) through `uvx`; the tests of the lint suite run gawk on
-a copy of `makefile-doc.awk` with an injected problem). The unit
-and integration tests are run by `test/tools/run.py`. Options can be passed with `RUNNER_FLAGS`,
-e.g., `make utest@mawk RUNNER_FLAGS='-v parsing'` (`-v` shows the output of passing
-tests). Names select tests: a name is exact (`misc` is `test/integration/misc.test`,
-`parsing` is `test/unit/test_parsing.awk`) or a shell-style pattern (`'options-*'`,
-`'*no-color*'`); a name that matches no test is an error. A test fails if its awk process
-runs for more than 30 seconds (`--timeout`).
+## Python, uv and pytest
 
-`make bench@all` times `makefile-doc.awk` with each awk variant on large real Makefiles
-(downloaded once into `test/bin/`, with docs inserted automatically) and prints a Markdown
-table; `make bench@<variant>` times one variant. Options of `test/tools/bench.py` can be passed
-with `BENCH_FLAGS`, e.g., `make bench@mawk BENCH_FLAGS='--rev HEAD --keep -n 10'`: also
-show the change from the last commit (useful after changes to the parsing), keep the
-annotated Makefiles in `test/bin/`, and take the best of 10 runs.
+The tests are run by [pytest](https://docs.pytest.org) (`tests_new/`), and the tools in
+`test/tools/` are written in Python. [uv](https://docs.astral.sh/uv) is the only thing to
+install: `uv run` creates `.venv/` with the Python version and the packages of
+`pyproject.toml`, at the versions pinned in `uv.lock`. The Makefile calls everything
+through `uv run`.
+
+| File                            | Tests                                                |
+|---------------------------------|------------------------------------------------------|
+| `tests_new/conftest.py`         | the `--awk` and `--update` options, how awk is run   |
+| `tests_new/test_integration.py` | one test per `test/integration/*.test` case          |
+| `tests_new/test_unit.py`        | one test per `test/unit/test_*.awk` file             |
+| `tests_new/test_lint.py`        | `gawk --lint` and the checks of the global variables |
+
+pytest can be called directly; `--awk` is an awk command with its flags and can be
+repeated (the default is `$AWK`, or `awk`):
+
+```
+uv run pytest --awk gawk                              # everything, with gawk
+uv run pytest --awk gawk --awk 'gawk --posix' --awk mawk
+uv run pytest --awk 'busybox awk' tests_new/test_unit.py
+uv run pytest --awk gawk -k options-no-color           # the tests with this text in their name
+uv run pytest --awk gawk --collect-only -q             # list the tests
+```
+
+A test is named after its awk and its case or file, e.g.,
+`test_case[gawk-options-no-color]` and `test_unit[mawk-parsing]`. `-k` selects by a part of
+the name (`-k options-`, `-k 'parsing and mawk'`); it does not take patterns such as
+`options-*`. Other useful options: `-x` (stop at the first failure), `-vv` (full diffs) and
+`--pdb` (open the debugger at a failure). With `make`, options are passed with
+`PYTEST_FLAGS`, e.g., `make utest@mawk PYTEST_FLAGS='-k parsing'`.
+
+awk runs in a fixed environment (`PATH` and `LC_ALL=C` only), so the variables of your
+shell (`NO_COLOR`, `AWKPATH`, the locale) do not change the results. An awk process that
+runs for more than 30 seconds fails its test.
+
+`make lint-py` lints the Python code and checks its formatting with
+[ruff](https://docs.astral.sh/ruff) (settings in `ruff.toml`; `uv run ruff format`
+reformats it), and `make test-tools` runs the tests of the tools (`test/tools/test_*.py`).
 
 ## Unit tests
 
@@ -65,11 +87,13 @@ BEGIN {
   and counts it in `OPTION_ERRORS`; `init_globals()` resets the count.
 - Declare the local variables of test functions in their signature (as in makefile-doc.awk):
   `make lint` fails if a test file defines other global variables than those of
-  makefile-doc.awk and the harness (the rule `test-global` of `make lint-tests`).
+  makefile-doc.awk and the harness.
 
-The results are printed in [TAP](https://testanything.org) format. A test file fails if a
-check fails, if it stops before `done()` (e.g., because of an `exit` or a syntax error), or if
-awk exits with a non-zero status.
+The results are printed in [TAP](https://testanything.org) format, which
+`tests_new/test_unit.py` reads: each check is reported as a subtest of the test of its
+file, and a failed check is shown with its `got` and `want` values. A test file fails if a
+check fails, if it stops before `done()` (e.g., because of an `exit` or a syntax error), or
+if awk exits with a non-zero status.
 
 ## Integration tests
 
@@ -92,11 +116,11 @@ line, then stdout after a `#: stdout` line (a stream without output has no such 
 ```
 
 The output must match the expected output exactly, including blanks at the end of lines and
-the final newline. Use `--update` to regenerate the expected output, e.g., `make test@awk
-RUNNER_FLAGS='--update docs-precedence'` (check the diff by hand). The version of the script
-(the line `Version: v1.8` of `--help`) is written `Version: @VERSION@` in expected outputs:
-the runner replaces it with the version of the script, and `--update` writes it back, so a
-new version does not change the `.test` files.
+the final newline. `--update` writes the actual output into the cases that differ, e.g.,
+`make test@awk PYTEST_FLAGS='--update -k docs-precedence'` (check the diff by hand); it
+takes one `--awk` only, and does not touch the cases of known bugs. The version of the
+script (the line `Version: v1.8` of `--help`) is written `Version: @VERSION@` in expected
+outputs, so a new version does not change the `.test` files.
 
 Conventions:
 
@@ -107,39 +131,42 @@ Conventions:
   with `targets-`, about variables with `vars-`, and about docs with `docs-`.
 - Every case has a `#: desc:` line, and an `#: issue:` line if it comes from an issue.
 - Colors are turned off (`-v COLOR=0`) unless the case is about colors or output formats.
-  The runner removes `NO_COLOR` from the environment of the tests.
 - A `#: env: NAME=value` line sets an environment variable for the case (e.g.,
   `#: env: NO_COLOR=1`).
 
 ## Lint
 
-`make lint-tests` runs every integration case and unit test file with `gawk --lint` (the
-`lint` suite of `test/tools/run.py`) and prints each distinct warning once, e.g.,
-`makefile-doc.awk:1012: uninit-argument is_variable (123x, 41 runs)`: the line, the rule and
-the name. The output of the tests is not compared. Unlike `gawk --lint` without input, this
-lints the code that runs only on input (the parsing and the output). Names select cases and
-unit test files, e.g., `make lint-tests RUNNER_FLAGS='-v misc parsing'` (`-v` lists the runs
-of each warning).
+`make lint-tests` (`tests_new/test_lint.py`) runs every integration case and unit test file
+with `gawk --lint` and collects the distinct warnings; the output of the tests is not
+compared. Unlike `gawk --lint` without input, this lints the code that runs only on input
+(the parsing and the output). It uses the `gawk` in `PATH` and is skipped without one.
 
-A warning is classified by a rule (`LINT_RULES` in `run.py`), e.g., `uninit-variable`,
-`uninit-argument`, `uninit-element`, `substr-start`; a warning that matches no rule is
-`unknown`. The suite fails if a warning in `makefile-doc.awk` is not expected:
+A warning in `makefile-doc.awk` fails `test_no_unexpected_warnings` unless it is expected:
 
-- in `test/tools/lint.toml`: `ignore = [...]` (rules that are never reported) and, per rule,
-  `allow = [...]` (expected names, e.g., the options passed with `-v`, or `COLOR_*`);
-- or by a `# lint: ignore[RULE, ...]` comment at the end of its line (or alone on the line
-  before it), for an idiom at one place, e.g., the last character of an empty line.
+- by a regular expression of `ignore` in `[tool.makefile-doc.lint]` of `pyproject.toml`.
+  It is searched in the warning written as `<file>: <message>`, e.g.,
+  ``makefile-doc.awk: reference to uninitialized variable `COLOR_DEFAULT'``;
+- or by a `# lint: ignore[...]` comment at the end of its line (or alone on the line
+  before it), for an idiom at one place, e.g., the last character of an empty line. The
+  text in the brackets is for the reader: the comment expects any warning at its line.
 
-An entry or comment that expects no warning is reported after a run of everything (it is
-stale), and an invalid one is an error. Warnings in test code (the harness and the unit
-test files) that `lint.toml` does not expect are listed for information only.
+An `ignore` entry that matches no warning fails `test_no_stale_ignore`. Warnings in test
+code (the harness and the unit test files) are not checked.
 
-The suite also checks the global variables, in the dumps of `gawk -d` (`LINT_CHECKS` in
-`run.py`), and reports them as warnings of two rules: `global-name`, a global variable of
-`makefile-doc.awk` that is neither `UPPER_CASE` nor `g_lower_case`, and `test-global`, a
-global variable that a unit test file defines and that neither `makefile-doc.awk` nor the
-harness (`HARNESS_*`) defines (e.g., a local variable missing from a function signature).
-These are checked in test code too.
+Two more tests check the global variables, in the dumps of `gawk -d`: `test_global_names`
+fails for a global variable of `makefile-doc.awk` that is neither `UPPER_CASE` nor
+`g_lower_case`, and `test_unit_file_defines_no_globals` for a global variable that a unit
+test file defines and that neither `makefile-doc.awk` nor the harness (`HARNESS_*`) defines
+(e.g., a local variable missing from a function signature).
+
+## Benchmark
+
+`make bench@all` times `makefile-doc.awk` with each awk variant on large real Makefiles
+(downloaded once into `test/bin/`, with docs inserted automatically) and prints a Markdown
+table; `make bench@<variant>` times one variant. Options of `test/tools/bench.py` can be passed
+with `BENCH_FLAGS`, e.g., `make bench@mawk BENCH_FLAGS='--rev HEAD --keep -n 10'`: also
+show the change from the last commit (useful after changes to the parsing), keep the
+annotated Makefiles in `test/bin/`, and take the best of 10 runs.
 
 ## Releasing
 
@@ -164,16 +191,18 @@ annotated tag, so they are kept in git (`git show v1.10`). A release:
 2. **Reproducer (optional, can be a separate PR):** written by hand with the *correct*
    expected result. It is merged even if no fix exists yet.
    - Integration test: a case `test/integration/<name>.test` with a `#: bug: N` line.
-     `make test` skips it and `make bugs` runs it.
    - Unit test: a `check_bug(name, got, want, issue)` call next to the other checks of the
-     same function. `make utest` reports it as a known bug.
+     same function.
+
+   Both are run with the other tests and are expected to fail: pytest reports them as
+   `xfailed`.
 3. **Fix:** the fix PR changes the code and turns the reproducer into a regular test:
-   `#: bug: N` becomes `#: issue: N`, and `check_bug` becomes `check`. `make bugs` and
-   `make utest` fail once a reproducer passes, so a forgotten change is caught.
+   `#: bug: N` becomes `#: issue: N`, and `check_bug` becomes `check`. The tests fail once
+   a reproducer passes (`XPASS(strict)` for a case, `FIXED` for a check), so a forgotten
+   change is caught.
 
 Every reproducer needs an issue number, so known bugs never become an undocumented backlog.
 
-`make bugs@bawk` also runs `misc/busybox_awk_bug_20251107.awk`, a bug of busybox awk that
+`make test@bawk` also runs `misc/busybox_awk_bug_20251107.awk`, a bug of busybox awk that
 `makefile-doc.awk` works around: it fails once busybox has fixed it, and the workaround can
 then be removed.
-`make bugs` lists the known bugs of the integration tests (`-v` shows their diffs).

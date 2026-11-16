@@ -1,4 +1,4 @@
-"""Tests of test/tools/release.py (standard library only; see test_run.py for how to run them)."""
+"""Tests of test/tools/release.py (run them with `make test-tools`)."""
 
 import contextlib
 import importlib.util

@@ -41,7 +41,8 @@ def test_case(awk, path: Path, request: pytest.FixtureRequest) -> None:
         actual += f"#: exit: {proc.returncode}\n"
     actual = actual.replace(f"Version: {VERSION}", "Version: @VERSION@")
 
-    if request.config.getoption("update") and actual != expected:
+    # the expected output of a known bug is written by hand: it is never updated
+    if request.config.getoption("update") and "bug" not in meta and actual != expected:
         head = path.read_bytes().decode(errors="surrogateescape")[: -len(expected) or None]
         path.write_bytes((head + actual).encode(errors="surrogateescape"))
         return

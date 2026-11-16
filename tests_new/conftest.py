@@ -41,6 +41,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption("--update", action="store_true", help="rewrite the expected outputs")
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    if config.getoption("update") and len(config.getoption("awk")) > 1:
+        raise pytest.UsageError("--update rewrites the expected outputs: give one --awk")
+
+
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     if "awk" in metafunc.fixturenames:
         specs = metafunc.config.getoption("awk") or [os.environ.get("AWK", "awk")]
