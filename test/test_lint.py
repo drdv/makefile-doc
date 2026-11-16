@@ -10,7 +10,7 @@ import shlex
 import shutil
 import tomllib
 from collections import defaultdict
-from typing import NamedTuple
+from typing import NamedTuple, Self
 
 import pytest
 from conftest import ROOT, SCRIPT, Awk
@@ -38,7 +38,7 @@ class LintWarning(NamedTuple):
     message: str
 
     @classmethod
-    def parse(cls, text: str) -> "LintWarning":
+    def parse(cls, text: str) -> Self:
         m = LOCATION.fullmatch(text)
         return cls(m["file"], int(m["line"]), m["message"]) if m else cls(None, None, text)
 
