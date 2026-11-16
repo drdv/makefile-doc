@@ -1,0 +1,20 @@
+#: desc: A name replaced by DSUB with A:1 is escaped in the HTML output
+-v OUTPUT_FORMAT=html -v VARS=0 -v DSUB='<A:1>$(OUT_DIR):<out>' test/fixtures/Makefile.dsub-names
+#: stdout
+<style>
+  .makefile-doc-attention { color: #dc322f; }
+  .makefile-doc-section { color: #859900; }
+  .makefile-doc-deprecated { color: #b58900; }
+  .makefile-doc-default { color: #268bd2; }
+</style>
+<div class="makefile-doc">
+<pre>
+-----------------------
+Available targets:
+-----------------------
+<span class="makefile-doc-default">&lt;out&gt;/a</span>   Write &lt;out&gt;/a
+<span class="makefile-doc-default">&lt;out&gt;/b</span>   Write b (after &lt;out&gt;/a)
+<span class="makefile-doc-default">plain  </span>   A target without the variable in its name
+-----------------------
+</pre>
+</div>

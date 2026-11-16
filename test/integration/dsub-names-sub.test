@@ -1,0 +1,17 @@
+#: desc: A SUB label wins over DSUB with A:1; an anchor with SUB values but no label is still renamed
+-v COLOR=0 -v SUB='$(OUT_DIR)/a:first:;$(OUT_DIR)/b:v1 v2' -v DSUB='<A:1>$(OUT_DIR):out' test/fixtures/Makefile.dsub-names
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+first       Write out/a
+out/b       Write b (after out/a)
+            v1
+            v2
+plain       A target without the variable in its name
+
+-----------------------
+Command-line arguments:
+-----------------------
+out_FLAGS   Flags used for the files in out
+-----------------------
