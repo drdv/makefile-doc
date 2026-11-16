@@ -44,7 +44,8 @@ uv run pytest --awk gawk -k options-no-color           # the tests with this tex
 uv run pytest --awk gawk --collect-only -q             # list the tests
 ```
 
-A test is named after its awk and its case or file, e.g.,
+The awk commands of a run are shown after the number of collected tests (`awk: gawk,
+mawk`). A test is named after its awk and its case or file, e.g.,
 `test_case[gawk-options-no-color]` and `test_unit[mawk-parsing]`. `-k` selects by a part of
 the name (`-k options-`, `-k 'parsing and mawk'`); it does not take patterns such as
 `options-*`. Other useful options: `-x` (stop at the first failure), `-vv` (full diffs) and
@@ -146,12 +147,19 @@ A warning in `makefile-doc.awk` fails `test_no_unexpected_warnings` unless it is
 - by a regular expression of `ignore` in `[tool.makefile-doc.lint]` of `pyproject.toml`.
   It is searched in the warning written as `<file>: <message>`, e.g.,
   ``makefile-doc.awk: reference to uninitialized variable `COLOR_DEFAULT'``;
-- or by a `# lint: ignore[...]` comment at the end of its line (or alone on the line
-  before it), for an idiom at one place, e.g., the last character of an empty line. The
-  text in the brackets is for the reader: the comment expects any warning at its line.
+- or by a `# lint: ignore[TEXT]` comment, for an idiom at one place, where `TEXT` is a
+  part of the message of the warning:
 
-An `ignore` entry that matches no warning fails `test_no_stale_ignore`. Warnings in test
-code (the harness and the unit test files) are not checked.
+  ```awk
+  last = substr(text, length(text), 1) # lint: ignore[substr: start index] ("" for an empty text)
+  ```
+
+  The comment is at the end of the line of the warning, or alone on the line before it.
+  For several warnings at one line, write one comment per line above it. What follows
+  the `]` is a note for the reader.
+
+An `ignore` entry or a comment that expects no warning fails `test_no_stale_ignore`.
+Warnings in test code (the harness and the unit test files) are not checked.
 
 Two more tests check the global variables, in the dumps of `gawk -d`: `test_global_names`
 fails for a global variable of `makefile-doc.awk` that is neither `UPPER_CASE` nor

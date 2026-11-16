@@ -46,10 +46,21 @@ def pytest_configure(config: pytest.Config) -> None:
         raise pytest.UsageError("--update rewrites the expected outputs: give one --awk")
 
 
+def awk_commands(config: pytest.Config) -> list[str]:
+    """The awk commands to test: the --awk options, by default $AWK or awk."""
+    return config.getoption("awk") or [os.environ.get("AWK", "awk")]
+
+
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     if "awk" in metafunc.fixturenames:
-        specs = metafunc.config.getoption("awk") or [os.environ.get("AWK", "awk")]
-        metafunc.parametrize("awk", specs, indirect=True, scope="session")
+        metafunc.parametrize("awk", awk_commands(metafunc.config), indirect=True, scope="session")
+
+
+def pytest_report_collectionfinish(config: pytest.Config, items: list[pytest.Item]) -> str | None:
+    """Show the awk commands after `collected N items`, if a collected test runs them."""
+    if any("awk" in getattr(item, "fixturenames", ()) for item in items):
+        return "awk: " + ", ".join(awk_commands(config))
+    return None
 
 
 @pytest.fixture(scope="session")
