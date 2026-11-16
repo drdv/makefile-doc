@@ -208,7 +208,7 @@ function strip_start_end_spaces_tabs(string) {
 # as /[ \t]+\n/ takes time quadratic in their length.
 function strip_trailing_blanks(text, #locals
                                n, lines, k, line, last) {
-  last = substr(text, length(text), 1) # lint: ignore[substr-start] ("" for an empty text)
+  last = substr(text, length(text), 1) # lint: ignore[substr: start index] ("" for an empty text)
   if (!index(text, " \n") && !index(text, "\t\n") && last != " " && last != "\t") {
     return text # nothing to strip (the usual case)
   }
@@ -1158,7 +1158,7 @@ BEGIN {
 # at the first line of each file.
 
 # Makefiles with CRLF line endings: drop the \r
-substr($0, length($0)) == "\r" { sub(/\r$/, "") } # lint: ignore[substr-start]
+substr($0, length($0)) == "\r" { sub(/\r$/, "") } # lint: ignore[substr: start index]
 
 FNR == 1 {
   warn_about_continued_last_line()
@@ -1184,7 +1184,7 @@ IN_CONTINUED_LINE {
 
 # Skip backslash multiline comments
 IN_MULTILINE_BACKSLASH_COMMENT ||
-    # lint: ignore[substr-start] (the last character of an empty line is "")
+    # lint: ignore[substr: start index] (the last character of an empty line is "")
     (substr($0, length($0)) == "\\" && /^ *#/ && has_odd_terminal_backslashes($0)) {
   if (!IN_MULTILINE_BACKSLASH_COMMENT) {
     IN_MULTILINE_BACKSLASH_COMMENT = 1
@@ -1196,7 +1196,7 @@ IN_MULTILINE_BACKSLASH_COMMENT ||
 }
 
 # (RECIPEPREFIX is a single character)
-# lint: ignore[substr-start] (the last character of an empty line is "")
+# lint: ignore[substr: start index] (the last character of an empty line is "")
 substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX) &&
     !IN_MULTILINE_BACKSLASH_RECIPE && has_odd_terminal_backslashes($0) {
   CONTINUED_LINE = substr($0, 1, length($0) - 1)

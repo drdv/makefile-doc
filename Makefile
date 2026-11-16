@@ -28,7 +28,7 @@ RELEASE := $(UV_RUN) python $(TOOLS_DIR)/release.py
 PYTEST := $(UV_RUN) pytest
 PYTEST_DIR := tests_new
 # $(call run-tests,FILE): run the tests of FILE with the awk variant AWK and AWK_FLAGS
-run-tests = $(PYTEST) $(PYTEST_DIR)/$(1) --awk '$(AWK_BIN)/$(AWK) $(AWK_FLAGS)' $(PYTEST_FLAGS)
+run-tests = $(PYTEST) $(PYTEST_DIR)/$(1) --awk '$(strip $(AWK_BIN)/$(AWK) $(AWK_FLAGS))' $(PYTEST_FLAGS)
 
 ## Supported awk variants:
 AWK := awk

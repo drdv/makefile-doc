@@ -1,14 +1,20 @@
-"""Lint makefile-doc.awk with `gawk --lint` while it runs every case and unit test file."""
+"""Lint makefile-doc.awk with `gawk --lint` while it runs every case and unit test file.
+
+A warning in makefile-doc.awk is expected (see test/README.md)
+  * by a regular expression of `ignore` in [tool.makefile-doc.lint] of pyproject.toml, or
+  * by a `# lint: ignore[TEXT]` comment at its line, where TEXT is a part of its message.
+"""
 
 import re
 import shlex
 import shutil
 import tomllib
 from collections import defaultdict
+from typing import NamedTuple
 
 import pytest
 from conftest import ROOT, SCRIPT, Awk
-from test_integration import load
+from test_integration import CASES
 
 IGNORE = [
     re.compile(p)
@@ -17,7 +23,68 @@ IGNORE = [
     ]
 ]
 UNIT = sorted(p.relative_to(ROOT) for p in (ROOT / "test/unit").glob("test_*.awk"))
-POSITION = re.compile(r"\(FILENAME=.*? FNR=\d+\) |^gawk: |warning: ")
+
+# what gawk adds to a warning: its name, the position in the input and the word `warning`
+NOISE = re.compile(r"^gawk: |\(FILENAME=.*? FNR=\d+\) |warning: ")
+LOCATION = re.compile(r"(?P<file>[^:\s]+):(?P<line>\d+): (?P<message>.*)")
+INLINE = re.compile(r"# lint: ignore\[(?P<text>[^\]]*)\]")
+
+
+class LintWarning(NamedTuple):
+    """A warning of gawk --lint, e.g., `makefile-doc.awk:211: substr: start index 0 is ...`."""
+
+    file: str | None  # None: gawk gives no location (e.g., for a function never called)
+    line: int | None
+    message: str
+
+    @classmethod
+    def parse(cls, text: str) -> "LintWarning":
+        m = LOCATION.fullmatch(text)
+        return cls(m["file"], int(m["line"]), m["message"]) if m else cls(None, None, text)
+
+    def __str__(self) -> str:
+        return f"{self.file}:{self.line}: {self.message}" if self.file else self.message
+
+    @property
+    def without_line(self) -> str:
+        """The form that the `ignore` expressions of pyproject.toml are searched in."""
+        return f"{self.file}: {self.message}" if self.file else self.message
+
+
+class Inline(NamedTuple):
+    """A `# lint: ignore[TEXT]` comment of makefile-doc.awk."""
+
+    line: int  # the line of the comment
+    target: int  # the line whose warnings it expects
+    text: str
+
+    def expects(self, warning: LintWarning) -> bool:
+        return (
+            warning.file == SCRIPT and warning.line == self.target and self.text in warning.message
+        )
+
+
+def inline_comments(lines: list[str]) -> list[Inline]:
+    """Return the `# lint: ignore[TEXT]` comments of a script.
+
+    A comment at the end of a line of code is for that line. A comment alone on its line is
+    for the next line of code: several such comments can follow each other, one per text.
+    """
+    comments = []
+    pending = []  # (line, text) of the comments that wait for the next line of code
+    for number, line in enumerate(lines, start=1):
+        m = INLINE.search(line)
+        if m and line.lstrip().startswith("# lint: ignore["):
+            pending.append((number, m["text"]))
+            continue
+        comments += [Inline(n, number, text) for n, text in pending]
+        pending = []
+        if m:
+            comments.append(Inline(number, number, m["text"]))
+    return comments
+
+
+INLINE_COMMENTS = inline_comments((ROOT / SCRIPT).read_text().splitlines())
 
 
 def unit_args(path, stderr):
@@ -33,46 +100,68 @@ def gawk() -> Awk:
 
 
 @pytest.fixture(scope="session")
-def warnings(gawk, tmp_path_factory) -> dict[str, set[str]]:
+def warnings(gawk, tmp_path_factory) -> dict[LintWarning, set[str]]:
     """Each distinct warning (without the input position) -> the runs that print it."""
     stderr = tmp_path_factory.mktemp("lint") / "STDERR"
     stderr.touch()
     runs = {
-        p.stem: ["-v", "STDERR=/dev/null", "-f", SCRIPT, *shlex.split(load(p)[1])]
-        for p in sorted((ROOT / "test/integration").glob("*.test"))
-    } | {p.stem: unit_args(p, stderr) for p in UNIT}
+        case.name: ["-v", "STDERR=/dev/null", "-f", SCRIPT, *shlex.split(case.args)]
+        for case in CASES
+    } | {path.stem: unit_args(path, stderr) for path in UNIT}
     found = defaultdict(set)
     for name, args in runs.items():
         out = gawk("--lint", *args).stderr.decode(errors="replace").replace(str(stderr), "STDERR")
         for line in out.splitlines():
-            found[POSITION.sub("", line)].add(name)
+            found[LintWarning.parse(NOISE.sub("", line))].add(name)
     return found
 
 
-def inline_ignored(warning: str) -> bool:
-    """`# lint: ignore` at the end of the line of the warning, or alone on the line before."""
-    m = re.match(rf"{re.escape(SCRIPT)}:(\d+): ", warning)
-    if not m:
-        return False
-    lines = [""] + (ROOT / SCRIPT).read_text().splitlines()
-    n = int(m[1])
-    return "# lint: ignore" in lines[n] or lines[n - 1].lstrip().startswith("# lint: ignore")
+def expected(warning: LintWarning) -> bool:
+    return any(p.search(warning.without_line) for p in IGNORE) or any(
+        comment.expects(warning) for comment in INLINE_COMMENTS
+    )
+
+
+def test_inline_comments() -> None:
+    lines = [
+        "x = 1 # lint: ignore[at the end] (a note)",  # 1
+        "# lint: ignore[first]",  # 2
+        "    # lint: ignore[second] (a note)",  # 3
+        "y = 2 # lint: ignore[third]",  # 4
+        "# an ordinary comment",  # 5
+    ]
+    assert inline_comments(lines) == [
+        Inline(1, 1, "at the end"),
+        Inline(2, 4, "first"),
+        Inline(3, 4, "second"),
+        Inline(4, 4, "third"),
+    ]
+    first = Inline(2, 4, "first")
+    assert first.expects(LintWarning(SCRIPT, 4, "the first message"))
+    assert not first.expects(LintWarning(SCRIPT, 4, "another message"))
+    assert not first.expects(LintWarning(SCRIPT, 5, "the first message"))
+    assert not first.expects(LintWarning("test/unit/harness.awk", 4, "the first message"))
 
 
 def test_no_unexpected_warnings(warnings) -> None:
     unexpected = {
-        w: sorted(runs)[:3]
-        for w, runs in warnings.items()
-        if not any(p.search(re.sub(r":\d+:", ":", w, count=1)) for p in IGNORE)
-        and not inline_ignored(w)
-        and not w.startswith("test/")  # test code: not checked
+        str(warning): sorted(runs)[:3]  # with up to three of the runs that print it
+        for warning, runs in warnings.items()
+        if not expected(warning)
+        and not (warning.file or "").startswith("test/")  # test code is not checked
     }
     assert not unexpected
 
 
 def test_no_stale_ignore(warnings) -> None:
-    flat = [re.sub(r":\d+:", ":", w, count=1) for w in warnings]
-    assert not [p.pattern for p in IGNORE if not any(p.search(w) for w in flat)]
+    """Every `ignore` expression and every inline comment expects at least one warning."""
+    stale = [p.pattern for p in IGNORE if not any(p.search(w.without_line) for w in warnings)]
+    stale += [
+        f"{SCRIPT}:{comment.line}: # lint: ignore[{comment.text}]"
+        for comment in INLINE_COMMENTS
+        if not comment.text or not any(comment.expects(w) for w in warnings)
+    ]
+    assert not stale
 
 
 def globals_of(gawk: Awk, tmp_path, *args) -> set[str]:
