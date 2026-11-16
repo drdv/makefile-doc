@@ -227,7 +227,7 @@ e.g., the `34` in `\033[34m` for blue. The supported parameters are `0`, `1`, `3
 
 A target is sometimes defined through a variable or an expression. `SUB` replaces the
 name that is displayed with a label and adds a list of values to the docs. Its format is
-`NAME[:LABEL]:[VALUES]`, where `VALUES` are separated by spaces; several substitutions
+`NAME:[[LABEL]:][VALUES]`, where `VALUES` are separated by spaces; several substitutions
 are separated by `;`. For example, running `make` with
 
 ```Makefile
@@ -265,16 +265,16 @@ two or more colons, the text between the first two is always the label:
 |-------------|----------------|--------|
 | `t:a b`     | `t`            | `a b`  |
 | `t:new:a b` | `new`          | `a b`  |
-| `t:t:/a:b`  | `t`            | `/a:b` |
+| `t::/a:b`   | `t`            | `/a:b` |
 | `t:/a:b`    | `/a`           | `b`    |
 
-To give a value with a colon without renaming the anchor, repeat its name as the label
-(third row).
+An empty label does not rename the anchor: use it to give a value with a colon (third
+row).
 
 ### `SUB` parameters
 
 A substitution can start with parameters that control how the values are displayed:
-`<p1:v1,...>NAME[:LABEL]:[VALUES]`.
+`<p1:v1,...>NAME:[[LABEL]:][VALUES]`.
 
 | Parameter | Meaning                                                  | Default |
 |-----------|----------------------------------------------------------|---------|
@@ -296,7 +296,7 @@ For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, 
 
 See the `Makefile` of this project and `test/integration/sub-*.test` for more examples.
 
-### `DSUB`: replace text in docs
+### `DSUB`: replace text in docs and names
 
 `DSUB` replaces text in the docs themselves. Its format is `NAME:VALUES`; everything after
 the first colon is the value, so it can contain colons. For example, with
@@ -315,7 +315,36 @@ t   Prerequisites: x y
 ```
 
 Several substitutions are separated by `;` and applied in the order given. If a name
-appears more than once, the last value is used. Values cannot contain newlines.
+appears more than once, the last value (and the last parameters) are used. Values cannot
+contain newlines.
+
+A substitution can start with parameters, `<p1:v1,...>NAME:VALUES`, that say where the
+text is replaced:
+
+| Parameter | Meaning                                                           | Default |
+|-----------|-------------------------------------------------------------------|---------|
+| `A`       | `1`: also replace in the displayed names of targets and variables | `0`     |
+| `D`       | `0`: do not replace in the docs                                   | `1`     |
+
+For example, with `-v DSUB='<A:1>$$(OUT_DIR):$(OUT_DIR)'`,
+
+```Makefile
+OUT_DIR := out
+## Write the report (after $(OUT_DIR)/data)
+$(OUT_DIR)/report:
+```
+
+is documented as
+
+```
+out/report   Write the report (after out/data)
+```
+
+and with `<A:1,D:0>` only the name is changed. Because of the parameters, a `NAME` cannot
+start with `<...>`.
+
+`DSUB` changes only the docs and, optionally, the names of anchors that `SUB` has not
+renamed.
 
 ## Export to HTML and LaTeX
 

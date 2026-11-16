@@ -1,0 +1,13 @@
+OUT_DIR := out
+
+## Write $(OUT_DIR)/a
+$(OUT_DIR)/a:
+
+## Write b (after $(OUT_DIR)/a)
+$(OUT_DIR)/b:
+
+## A target without the variable in its name
+plain:
+
+## Flags used for the files in $(OUT_DIR)
+$(OUT_DIR)_FLAGS :=
