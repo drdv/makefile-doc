@@ -26,18 +26,25 @@ class Awk:
         base = {"PATH": os.environ["PATH"], "LC_ALL": "C"}
         return subprocess.run(
             [*self.argv, *map(str, args)],
-            cwd=ROOT, env={**base, **(env or {})}, stdin=subprocess.DEVNULL,
-            capture_output=True, timeout=timeout, check=False,
-        )  # fmt: skip
+            cwd=ROOT,
+            env={**base, **(env or {})},
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+        )
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     group = parser.getgroup("makefile-doc")
     group.addoption(
-        "--awk", action="append", default=[], metavar="CMD",
+        "--awk",
+        action="append",
+        default=[],
+        metavar="CMD",
         help="awk command to test, with its flags (repeatable), e.g. --awk gawk "
         "--awk 'gawk --posix' --awk 'busybox awk' (default: $AWK or awk)",
-    )  # fmt: skip
+    )
     group.addoption("--update", action="store_true", help="rewrite the expected outputs")
 
 

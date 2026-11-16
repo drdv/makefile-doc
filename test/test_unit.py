@@ -14,9 +14,18 @@ def test_unit(awk, path: Path, tmp_path: Path, subtests: pytest.Subtests) -> Non
     stderr = tmp_path / "stderr"
     stderr.touch()
     proc = awk(
-        "-v", "UNIT_TEST=1", "-v", f"STDERR={stderr}",
-        "-f", "test/unit/harness.awk", "-f", SCRIPT, "-f", path, "/dev/null",
-    )  # fmt: skip
+        "-v",
+        "UNIT_TEST=1",
+        "-v",
+        f"STDERR={stderr}",
+        "-f",
+        "test/unit/harness.awk",
+        "-f",
+        SCRIPT,
+        "-f",
+        path,
+        "/dev/null",
+    )
     lines = list(Parser().parse_text(proc.stdout.decode(errors="replace")))
     checks = [line for line in lines if line.category == "test"]
     plans = [line for line in lines if line.category == "plan"]

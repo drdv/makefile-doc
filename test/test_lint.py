@@ -88,8 +88,19 @@ INLINE_COMMENTS = inline_comments((ROOT / SCRIPT).read_text().splitlines())
 
 
 def unit_args(path, stderr):
-    return ["-v", "UNIT_TEST=1", "-v", f"STDERR={stderr}",
-            "-f", "test/unit/harness.awk", "-f", SCRIPT, "-f", path, "/dev/null"]  # fmt: skip
+    return [
+        "-v",
+        "UNIT_TEST=1",
+        "-v",
+        f"STDERR={stderr}",
+        "-f",
+        "test/unit/harness.awk",
+        "-f",
+        SCRIPT,
+        "-f",
+        path,
+        "/dev/null",
+    ]
 
 
 @pytest.fixture(scope="session")
