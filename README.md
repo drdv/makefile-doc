@@ -209,13 +209,14 @@ code](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_pa
 makefile-doc does not expand Make variables: a target written `$(OPEN_NOTES):` is displayed as
 `$(OPEN_NOTES)`, and a doc that mentions `$(DEPS)` shows `$(DEPS)`. Substitutions, passed on the
 command line, fill this gap: `SUB` changes how an anchor is displayed (a new name and a list of
-values), and `DSUB` replaces text inside docs.
+values), and `DSUB` replaces text inside docs and, optionally, in the names of anchors.
 
 ### `SUB`: rename an anchor and list its values
 
 The format of `SUB` is `NAME:[[LABEL]:][VALUES]`: the anchor `NAME` is displayed as `LABEL` (or
 unchanged without a label), and the space-separated `VALUES` are added to its doc. Several
-substitutions are separated by `;`. For example, running `make` with
+substitutions are separated by `;`, and a name can appear only once. For example, running `make`
+with
 
 ```Makefile
 NOTES := my-budget trip-info misc
@@ -283,7 +284,7 @@ For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, 
 
 See `test/integration/sub-*.test` for more examples.
 
-### `DSUB`: replace text in docs
+### `DSUB`: replace text in docs and names
 
 `DSUB` replaces text in the docs themselves. Its format is `NAME:VALUE`; everything after the first
 colon is the value, so it can contain colons. For example, with `-v DSUB='$$(DEPS):$(DEPS)'`, the
@@ -301,8 +302,36 @@ is documented as
 t   Prerequisites: x y
 ```
 
-Several substitutions are separated by `;` and applied in the order given. If a name
-appears more than once, the last value is used. Values cannot contain newlines.
+Several substitutions are separated by `;` and applied in the order given, and a name can appear
+only once. Values cannot contain newlines.
+
+A substitution can start with parameters, `<p1:v1,...>NAME:VALUE`, that say where the
+text is replaced:
+
+| Parameter | Meaning                                                           | Default |
+|-----------|-------------------------------------------------------------------|---------|
+| `A`       | `1`: also replace in the displayed names of targets and variables | `0`     |
+| `D`       | `0`: do not replace in the docs                                   | `1`     |
+
+For example, with `-v DSUB='<A:1>$$(OUT_DIR):$(OUT_DIR)'`,
+
+```Makefile
+OUT_DIR := out
+## Write the report (after $(OUT_DIR)/data)
+$(OUT_DIR)/report:
+```
+
+is documented as
+
+```
+out/report   Write the report (after out/data)
+```
+
+and with `<A:1,D:0>` only the name is changed. Because of the parameters, a `NAME` cannot
+start with `<...>`.
+
+`DSUB` changes only the docs and, optionally, the names of anchors that `SUB` has not renamed: it
+never changes `SUB` labels and values, or section titles.
 
 ## Export to HTML and LaTeX
 
@@ -367,8 +396,10 @@ the target is invoked (`make foo\ bar`).
 ### Variables
 
 - Names are not expanded (by design): `$(PREFIX)_FLAGS := -O2` is displayed as `$(PREFIX)_FLAGS`.
-  Use [`SUB`](#sub-rename-an-anchor-and-list-its-values) to display them differently, e.g., `-v
-  SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`.
+  Use [`SUB`](#sub-rename-an-anchor-and-list-its-values) to display one name differently, e.g., `-v
+  SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`, or [`DSUB`](#dsub-replace-text-in-docs-and-names) with `A:1` to
+  replace the reference in every name at once, e.g., `-v DSUB='<A:1>$$(PREFIX):MY'`.
+
 - Multi-line variables (`define NAME` ... `endef`) cannot be documented: `define` discards
   the doc above it.
 
