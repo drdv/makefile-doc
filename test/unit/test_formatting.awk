@@ -86,7 +86,7 @@ function setup_colors(output_format, export_theme) {
 
 function test_default_color_option() {
   if ("NO_COLOR" in ENVIRON) {
-    delete ENVIRON["NO_COLOR"] # run.py removes it from the environment of the tests
+    delete ENVIRON["NO_COLOR"] # the tests run without it in their environment
   }
   check("default_color_option: colors without NO_COLOR", default_color_option(), 1)
   ENVIRON["NO_COLOR"] = ""

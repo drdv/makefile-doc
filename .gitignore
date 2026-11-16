@@ -1,6 +1,8 @@
 test/bin
 coverage-reports/
 __pycache__/
+.venv/
+.ruff_cache/
 release-message.md
 demo.html
 demo.pdf

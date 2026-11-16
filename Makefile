@@ -16,35 +16,34 @@ UNIT_TESTS := $(wildcard $(UNIT_TEST_DIR)/test_*.awk)
 # the test tools (see test/README.md)
 TOOLS_DIR := $(TEST_DIR)/tools
 
-# downloads what the tests need (see test/tools/deps.toml)
-DEPS := python3 $(TOOLS_DIR)/deps.py
+# Python and its tools (pytest, ruff) are run by uv, in the environment of pyproject.toml
+# and uv.lock (https://docs.astral.sh/uv)
+UV_RUN := uv run
 
-# test runner (see its docstring); extra options can be passed with RUNNER_FLAGS
-RUNNER := python3 $(TOOLS_DIR)/run.py
-RELEASE := python3 $(TOOLS_DIR)/release.py
-# $(call run-suite,SUITE[,OPTIONS])
-run-suite = $(RUNNER) $(1) \
-	--awk $(AWK_BIN)/$(AWK) \
-	--script $(MAKEFILE_DOC) \
-	--awk-flags='$(AWK_FLAGS)' \
-	$(2) \
-	$(RUNNER_FLAGS)
+# downloads what the tests need (see test/tools/deps.toml)
+DEPS := $(UV_RUN) python $(TOOLS_DIR)/deps.py
+RELEASE := $(UV_RUN) python $(TOOLS_DIR)/release.py
+
+# the tests of makefile-doc.awk, run by pytest (see test/README.md)
+PYTEST := $(UV_RUN) pytest
+PYTEST_DIR := tests_new
+# $(call run-tests,FILE): run the tests of FILE with the awk variant AWK and AWK_FLAGS
+run-tests = $(PYTEST) $(PYTEST_DIR)/$(1) --awk '$(AWK_BIN)/$(AWK) $(AWK_FLAGS)' $(PYTEST_FLAGS)
 
 ## Supported awk variants:
 AWK := awk
 
-## Flags for awk in `test@<variant>`, `utest@<variant>` and `bugs@<variant>`:
+## Flags for awk in `test@<variant>` and `utest@<variant>`:
 ##   `--posix` (gawk)
 ##   `-W posix` (mawk)
 AWK_FLAGS :=
 
-## Flags for `test@<variant>`, `utest@<variant>`, `bugs@<variant>` and `lint-tests`:
-##   `-v` (show the output of passing tests)
-##   `NAME ...` (run only these tests: exact names or patterns, e.g., `misc 'options-*'`)
+## Flags for pytest in `test@<variant>`, `utest@<variant>` and `lint-tests`:
+##   `-k NAME` (run only the tests with NAME in their name, e.g., `-k options-`)
 ##   `--update` (rewrite the expected output of integration tests)
-##   `--timeout SECONDS` (default: 30)
-##   `--jobs N` (number of tests run in parallel)
-RUNNER_FLAGS :=
+##   `-x` (stop at the first failure)
+##   `-vv` (show full diffs)
+PYTEST_FLAGS :=
 
 ## Flags for `bench@<variant>`:
 ##   `--rev REV` (also show the change from this git revision)
@@ -61,7 +60,6 @@ endif
 # one target per awk variant: test@awk, test@mawk, ...
 TEST_ALL := $(addprefix test@,$(SUPPORTED_AWK_VARIANTS))
 UTEST_ALL := $(addprefix utest@,$(SUPPORTED_AWK_VARIANTS))
-BUGS_ALL := $(addprefix bugs@,$(SUPPORTED_AWK_VARIANTS))
 DEPS_ALL := $(addprefix deps@,$(SUPPORTED_AWK_VARIANTS))
 CLEAN_ALL := $(addprefix clean@,$(SUPPORTED_AWK_VARIANTS))
 BENCH_ALL := $(addprefix bench@,$(SUPPORTED_AWK_VARIANTS))
@@ -78,8 +76,7 @@ COVER_DIR := coverage-reports
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
 # the targets per awk variant are shown as, e.g., test@<variant>
 help: VARIANT_SUB := $$(TEST_ALL):test@<variant>:;$$(UTEST_ALL):utest@<variant>:;\
-	$$(BUGS_ALL):bugs@<variant>:;$$(DEPS_ALL):deps@<variant>:;$$(CLEAN_ALL):clean@<variant>:;\
-	$$(BENCH_ALL):bench@<variant>:
+	$$(DEPS_ALL):deps@<variant>:;$$(CLEAN_ALL):clean@<variant>:;$$(BENCH_ALL):bench@<variant>:
 help: VFLAGS := \
 	-v SUB='$(VARIANT_SUB);$(AWK_SUB)' \
 	-v EXPORT_THEME=$(EXPORT_THEME) \
@@ -93,7 +90,7 @@ help: $(AWK_BIN)/$(AWK)
 ##@
 
 ## Run integration tests with an awk variant (or `test@all`)
-## (e.g., `make test@mawk AWK_FLAGS='-W posix' RUNNER_FLAGS='-v'`)
+## (e.g., `make test@mawk AWK_FLAGS='-W posix' PYTEST_FLAGS='-k options-'`)
 $(TEST_ALL): test@%: $(AWK_BIN)/%
 	@$(MAKE) test AWK=$*
 
@@ -101,18 +98,13 @@ $(TEST_ALL): test@%: $(AWK_BIN)/%
 $(UTEST_ALL): utest@%: $(AWK_BIN)/%
 	@$(MAKE) utest AWK=$*
 
-## Run tests of known bugs with an awk variant (or `bugs@all`)
-$(BUGS_ALL): bugs@%: $(AWK_BIN)/%
-	@$(MAKE) bugs AWK=$*
-
-.PHONY: test@all utest@all bugs@all $(TEST_ALL) $(UTEST_ALL) $(BUGS_ALL)
+.PHONY: test@all utest@all $(TEST_ALL) $(UTEST_ALL)
 test@all: $(TEST_ALL)
 utest@all: $(UTEST_ALL)
-bugs@all: $(BUGS_ALL)
 
 # A known bug of busybox awk: a -v value of 0 returned by a function is true (see the file).
 # This fails once the bug is fixed in the pinned busybox: then remove the workaround, the
-# int() in validate_ansi_param(). It is part of `bugs@bawk`.
+# int() in validate_ansi_param(). It is part of `test@bawk`.
 .PHONY: check-busybox-bug
 check-busybox-bug: $(AWK_BIN)/bawk
 	@out=$$($< -v a=0 -f misc/busybox_awk_bug_20251107.awk); \
@@ -120,25 +112,23 @@ check-busybox-bug: $(AWK_BIN)/bawk
 		{ echo "[bawk] FIXED: the busybox awk bug of validate_ansi_param()"; exit 1; }; \
 	echo "[bawk] known bug of busybox awk: still there"
 
-bugs@bawk: check-busybox-bug
+test@bawk: check-busybox-bug
 
 # The awk of a variant is a prerequisite of its targets above: it is then built once, by
-# this make, before the sub-makes of test@X, utest@X and bugs@X run (also with -j).
+# this make, before the sub-makes of test@X and utest@X run (also with -j).
 
-## Run `lint`, `test`, `utest`, `bugs` (the tests with the variant `AWK`) and `test-tools`
+## Run `lint`, `test`, `utest` (the tests with the variant `AWK`) and `test-tools`
 .PHONY: check
-check: lint test utest bugs test-tools
+check: lint test utest test-tools
 
-# the tests with AWK and AWK_FLAGS (the targets above set AWK)
-.PHONY: test utest bugs
+# the tests with AWK and AWK_FLAGS (the targets above set AWK); the cases of known bugs
+# (`#: bug: N`, `check_bug`) are part of them: they are expected to fail
+.PHONY: test utest
 test: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
-	@$(call run-suite,integration,)
+	@$(call run-tests,test_integration.py)
 
 utest: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC) $(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk
-	@$(call run-suite,unit,)
-
-bugs: $(AWK_BIN)/$(AWK) $(MAKEFILE_DOC)
-	@$(call run-suite,bugs,)
+	@$(call run-tests,test_unit.py)
 
 ##@
 ##@------ Development ------
@@ -154,27 +144,27 @@ $(COVER_DIR)/all.html: $(COVER_DIR)/integration.html $(COVER_DIR)/unit.html
 
 # $(call coverage-run,MAKE_TARGET,PROFILE): run the tests of MAKE_TARGET with goawk and
 # write their coverage to PROFILE. The profile is removed first, as each test process
-# appends to it (one at a time: --jobs 1).
+# appends to it (pytest runs them one at a time).
 define coverage-run
 	@rm -f $(2)
-	@$(MAKE) $(1) AWK=goawk AWK_FLAGS='-coverprofile $(2) -coverappend' RUNNER_FLAGS='--jobs 1'
+	@$(MAKE) $(1) AWK=goawk AWK_FLAGS='-coverprofile $(2) -coverappend'
 	@go tool cover -html=$(2) -o $@
 endef
 
 # Run the integration tests with goawk and generate a coverage report
-$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(TOOLS_DIR)/run.py \
+$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(wildcard $(PYTEST_DIR)/*.py) \
 		$(addprefix $(INTEGRATION_TEST_DIR)/,$(INTEGRATION_TESTS)) | $(COVER_DIR)
 	$(call coverage-run,test,$(COVER_DIR)/integration.out)
 
 # Run the unit tests with goawk and generate a coverage report
-$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(TOOLS_DIR)/run.py \
+$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(wildcard $(PYTEST_DIR)/*.py) \
 		$(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk | $(COVER_DIR)
 	$(call coverage-run,utest,$(COVER_DIR)/unit.out)
 
 $(COVER_DIR):
 	@mkdir -p $@
 
-BENCH := python3 $(TOOLS_DIR)/bench.py --script $(MAKEFILE_DOC) $(BENCH_FLAGS)
+BENCH := $(UV_RUN) python $(TOOLS_DIR)/bench.py --script $(MAKEFILE_DOC) $(BENCH_FLAGS)
 
 ## Time the script with an awk variant (or `bench@all`; see test/README.md)
 $(BENCH_ALL): bench@%:
@@ -190,12 +180,11 @@ bench@all:
 lint: lint-tests lint-py
 
 # Lint makefile-doc.awk with `gawk --lint` while running the integration cases and the unit
-# tests, and check the global variables (the expected warnings are in test/tools/lint.toml;
-# see test/README.md)
+# tests, and check the global variables (the expected warnings are in pyproject.toml; see
+# test/README.md). It uses the gawk in PATH.
 .PHONY: lint-tests
-lint-tests: override AWK := gawk
-lint-tests: $(AWK_BIN)/gawk $(MAKEFILE_DOC)
-	@$(call run-suite,lint,)
+lint-tests: $(MAKEFILE_DOC)
+	@$(PYTEST) $(PYTEST_DIR)/test_lint.py $(PYTEST_FLAGS)
 
 ## Write a draft of the release notes (the commits since the last tag) to release-message.md
 .PHONY: release-notes
@@ -212,22 +201,19 @@ V :=
 bump:
 	@$(RELEASE) bump "$(V)"
 
-# the version is pinned; without uv, use an installed ruff: `make lint-py RUFF=ruff`
-RUFF := uvx ruff@0.16.9
+# the version of ruff is pinned in uv.lock
+RUFF := $(UV_RUN) ruff
 
-# Lint and check the formatting of the Python test tools (settings in ruff.toml)
+# Lint and check the formatting of the Python code (settings in ruff.toml)
 .PHONY: lint-py
 lint-py:
-	@$(RUFF) check $(TEST_DIR)
-	@$(RUFF) format --check $(TEST_DIR)
+	@$(RUFF) check $(TEST_DIR) $(PYTEST_DIR)
+	@$(RUFF) format --check $(TEST_DIR) $(PYTEST_DIR)
 
-# the version is pinned; without uv, use an installed pytest: `make test-tools PYTEST=pytest`
-PYTEST := uvx pytest@9.1.1
-
-## Test the Python test tools (test/tools/test_*.py; the lint tests use gawk)
+## Test the Python test tools (test/tools/test_*.py)
 .PHONY: test-tools
-test-tools: $(AWK_BIN)/gawk
-	@GAWK=$(AWK_BIN)/gawk $(PYTEST) --no-header -p no:cacheprovider $(TOOLS_DIR)
+test-tools:
+	@$(PYTEST) --no-header $(TOOLS_DIR)
 
 ##@
 ##@------ Install and clean ------

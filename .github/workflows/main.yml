@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+# uv fails if uv.lock does not match pyproject.toml (instead of updating it)
+env:
+  UV_LOCKED: "1"
+
 # a new push to a PR branch cancels the run of the previous push
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,7 +30,7 @@ jobs:
       - name: check out the repository
         uses: actions/checkout@v6
 
-      # uvx runs the ruff version pinned in the Makefile
+      # uv runs Python, pytest and ruff (versions in pyproject.toml and uv.lock)
       - name: install uv
         uses: astral-sh/setup-uv@v10.3.3
 
@@ -34,8 +38,8 @@ jobs:
         run: |
           gawk --version | head -n 1
           make --version | head -n 1
-          python3 --version
           uv --version
+          uv run python --version
 
       - name: lint the awk code while running the tests (and check its global variables)
         run: make lint-tests
@@ -80,10 +84,14 @@ jobs:
           echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
           awk --version || true
 
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
       - name: show tool versions
         run: |
           make --version | head -n 1
-          python3 --version
+          uv --version
+          uv run python --version
 
       # the built binary is cached; the key changes when test/tools/deps.toml (e.g., a new
       # version) or test/tools/deps.py changes, so the variant is built again then
@@ -99,11 +107,9 @@ jobs:
       - name: download and build ${{ matrix.awk }}
         run: make deps@${{ matrix.awk }}
 
+      # the cases of known bugs are part of both: they are expected to fail
       - name: integration tests
         run: make test@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
 
       - name: unit tests
         run: make utest@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
-
-      - name: known bugs
-        run: make bugs@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
