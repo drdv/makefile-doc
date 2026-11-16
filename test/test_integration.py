@@ -4,6 +4,7 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Self
 
 import pytest
 from conftest import ROOT, SCRIPT, VERSION
@@ -20,7 +21,7 @@ class Case:
     expected: str  # the expected output
 
     @classmethod
-    def read(cls, path: Path) -> "Case":
+    def read(cls, path: Path) -> Self:
         lines = path.read_bytes().decode(errors="surrogateescape").splitlines(keepends=True)
         # k: the line of the arguments, the first one that is not metadata
         k = next((k for k, line in enumerate(lines) if not line.startswith("#:")), len(lines))

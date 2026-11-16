@@ -20,26 +20,26 @@ version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 
 ## Python, uv and pytest
 
-The tests are run by [pytest](https://docs.pytest.org) (`tests_new/`), and the tools in
+The tests are run by [pytest](https://docs.pytest.org) (`test/test_*.py`), and the tools in
 `test/tools/` are written in Python. [uv](https://docs.astral.sh/uv) is the only thing to
 install: `uv run` creates `.venv/` with the Python version and the packages of
 `pyproject.toml`, at the versions pinned in `uv.lock`. The Makefile calls everything
 through `uv run`.
 
-| File                            | Tests                                                |
-|---------------------------------|------------------------------------------------------|
-| `tests_new/conftest.py`         | the `--awk` and `--update` options, how awk is run   |
-| `tests_new/test_integration.py` | one test per `test/integration/*.test` case          |
-| `tests_new/test_unit.py`        | one test per `test/unit/test_*.awk` file             |
-| `tests_new/test_lint.py`        | `gawk --lint` and the checks of the global variables |
+| File                       | Tests                                                |
+|----------------------------|------------------------------------------------------|
+| `test/conftest.py`         | the `--awk` and `--update` options, how awk is run   |
+| `test/test_integration.py` | one test per `test/integration/*.test` case          |
+| `test/test_unit.py`        | one test per `test/unit/test_*.awk` file             |
+| `test/test_lint.py`        | `gawk --lint` and the checks of the global variables |
 
 pytest can be called directly; `--awk` is an awk command with its flags and can be
 repeated (the default is `$AWK`, or `awk`):
 
 ```
-uv run pytest --awk gawk                              # everything, with gawk
+uv run pytest --awk gawk                              # everything (also test/tools), with gawk
 uv run pytest --awk gawk --awk 'gawk --posix' --awk mawk
-uv run pytest --awk 'busybox awk' tests_new/test_unit.py
+uv run pytest --awk 'busybox awk' test/test_unit.py
 uv run pytest --awk gawk -k options-no-color           # the tests with this text in their name
 uv run pytest --awk gawk --collect-only -q             # list the tests
 ```
@@ -91,7 +91,7 @@ BEGIN {
   makefile-doc.awk and the harness.
 
 The results are printed in [TAP](https://testanything.org) format, which
-`tests_new/test_unit.py` reads: each check is reported as a subtest of the test of its
+`test/test_unit.py` reads: each check is reported as a subtest of the test of its
 file, and a failed check is shown with its `got` and `want` values. A test file fails if a
 check fails, if it stops before `done()` (e.g., because of an `exit` or a syntax error), or
 if awk exits with a non-zero status.
@@ -137,7 +137,7 @@ Conventions:
 
 ## Lint
 
-`make lint-tests` (`tests_new/test_lint.py`) runs every integration case and unit test file
+`make lint-tests` (`test/test_lint.py`) runs every integration case and unit test file
 with `gawk --lint` and collects the distinct warnings; the output of the tests is not
 compared. Unlike `gawk --lint` without input, this lints the code that runs only on input
 (the parsing and the output). It uses the `gawk` in `PATH` and is skipped without one.

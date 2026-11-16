@@ -9,7 +9,7 @@
 #   #   want: "..."
 #   1..2
 #
-# Test files are run by tests_new/test_unit.py (pytest), one awk process per file:
+# Test files are run by test/test_unit.py (pytest), one awk process per file:
 #
 #   awk -v UNIT_TEST=1 -v STDERR=<tmpfile> \
 #       -f test/unit/harness.awk -f makefile-doc.awk -f test/unit/test_x.awk /dev/null

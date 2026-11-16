@@ -24,11 +24,10 @@ UV_RUN := uv run
 DEPS := $(UV_RUN) python $(TOOLS_DIR)/deps.py
 RELEASE := $(UV_RUN) python $(TOOLS_DIR)/release.py
 
-# the tests of makefile-doc.awk, run by pytest (see test/README.md)
+# the tests of makefile-doc.awk, run by pytest (test/test_*.py; see test/README.md)
 PYTEST := $(UV_RUN) pytest
-PYTEST_DIR := tests_new
 # $(call run-tests,FILE): run the tests of FILE with the awk variant AWK and AWK_FLAGS
-run-tests = $(PYTEST) $(PYTEST_DIR)/$(1) --awk '$(strip $(AWK_BIN)/$(AWK) $(AWK_FLAGS))' $(PYTEST_FLAGS)
+run-tests = $(PYTEST) $(TEST_DIR)/$(1) --awk '$(strip $(AWK_BIN)/$(AWK) $(AWK_FLAGS))' $(PYTEST_FLAGS)
 
 ## Supported awk variants:
 AWK := awk
@@ -152,12 +151,12 @@ define coverage-run
 endef
 
 # Run the integration tests with goawk and generate a coverage report
-$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(wildcard $(PYTEST_DIR)/*.py) \
+$(COVER_DIR)/integration.html: $(MAKEFILE_DOC) $(wildcard $(TEST_DIR)/*.py) \
 		$(addprefix $(INTEGRATION_TEST_DIR)/,$(INTEGRATION_TESTS)) | $(COVER_DIR)
 	$(call coverage-run,test,$(COVER_DIR)/integration.out)
 
 # Run the unit tests with goawk and generate a coverage report
-$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(wildcard $(PYTEST_DIR)/*.py) \
+$(COVER_DIR)/unit.html: $(MAKEFILE_DOC) $(wildcard $(TEST_DIR)/*.py) \
 		$(UNIT_TESTS) $(UNIT_TEST_DIR)/harness.awk | $(COVER_DIR)
 	$(call coverage-run,utest,$(COVER_DIR)/unit.out)
 
@@ -184,7 +183,7 @@ lint: lint-tests lint-py
 # test/README.md). It uses the gawk in PATH.
 .PHONY: lint-tests
 lint-tests: $(MAKEFILE_DOC)
-	@$(PYTEST) $(PYTEST_DIR)/test_lint.py $(PYTEST_FLAGS)
+	@$(PYTEST) $(TEST_DIR)/test_lint.py $(PYTEST_FLAGS)
 
 ## Write a draft of the release notes (the commits since the last tag) to release-message.md
 .PHONY: release-notes
@@ -207,8 +206,8 @@ RUFF := $(UV_RUN) ruff
 # Lint and check the formatting of the Python code (settings in ruff.toml)
 .PHONY: lint-py
 lint-py:
-	@$(RUFF) check $(TEST_DIR) $(PYTEST_DIR)
-	@$(RUFF) format --check $(TEST_DIR) $(PYTEST_DIR)
+	@$(RUFF) check $(TEST_DIR)
+	@$(RUFF) format --check $(TEST_DIR)
 
 ## Test the Python test tools (test/tools/test_*.py)
 .PHONY: test-tools
