@@ -18,6 +18,26 @@ versions are pinned in `test/tools/deps.toml`, where each download is checked ag
 that differ from `deps.toml`: a variant already in `test/bin/` is not rebuilt when its
 version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 
+## Containers
+
+`make ctest@<platform>` runs the integration and unit tests on a platform, with the awk
+that the platform ships, in a container; `make ctest@all` runs every platform. It needs
+[podman](https://podman.io) (or docker: `make ctest@all CONTAINER=docker`) and nothing
+else: no awk variant is built.
+
+The platforms are the lines of `test/containers.txt`, e.g.,
+
+```
+debian12|debian:12|mawk|
+```
+
+for the name, the base image, the awk command to test and, if the image does not have
+that awk, the command that installs it. A new line is a new platform, also in CI.
+
+`test/Containerfile` is the image of every platform: the base image with its awk, uv and
+the Python environment of `uv.lock`. The repository is mounted read-only, and pytest runs
+in the container as it does on the host, with the awk of the line as `$AWK`.
+
 ## Python, uv and pytest
 
 The tests are run by [pytest](https://docs.pytest.org) (`test/test_*.py`), and the tools in

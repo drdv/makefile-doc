@@ -113,3 +113,39 @@ jobs:
 
       - name: unit tests
         run: make utest@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
+
+  # the platforms of test/containers.txt, as the matrix of the next job
+  platforms:
+    name: list the container platforms
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      names: ${{ steps.list.outputs.names }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: list
+        run: |
+          names=$(sed -n 's/^\([^#|][^|]*\)|.*/\1/p' test/containers.txt | jq -R . | jq -sc .)
+          echo "names=$names" >> "$GITHUB_OUTPUT"
+
+  containers:
+    name: ${{ matrix.platform }} (container)
+    needs: platforms
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false # report the results of every platform
+      matrix:
+        platform: ${{ fromJSON(needs.platforms.outputs.names) }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # the Makefile runs its Python tools with uv
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: integration and unit tests
+        run: make ctest@${{ matrix.platform }}

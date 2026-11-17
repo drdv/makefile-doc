@@ -75,7 +75,8 @@ COVER_DIR := coverage-reports
 help: AWK_SUB := <L:0,M:0,I:{,T:},S:\\,>AWK:$(foreach x,$(SUPPORTED_AWK_VARIANTS),`$(x)`)
 # the targets per awk variant are shown as, e.g., test@<variant>
 help: VARIANT_SUB := $$(TEST_ALL):test@<variant>:;$$(UTEST_ALL):utest@<variant>:;\
-	$$(DEPS_ALL):deps@<variant>:;$$(CLEAN_ALL):clean@<variant>:;$$(BENCH_ALL):bench@<variant>:
+	$$(DEPS_ALL):deps@<variant>:;$$(CLEAN_ALL):clean@<variant>:;$$(BENCH_ALL):bench@<variant>:;\
+	$$(CTEST_ALL):ctest@<platform>:
 help: VFLAGS := \
 	-v SUB='$(VARIANT_SUB);$(AWK_SUB)' \
 	-v EXPORT_THEME=$(EXPORT_THEME) \
@@ -100,6 +101,39 @@ $(UTEST_ALL): utest@%: $(AWK_BIN)/%
 .PHONY: test@all utest@all $(TEST_ALL) $(UTEST_ALL)
 test@all: $(TEST_ALL)
 utest@all: $(UTEST_ALL)
+
+# ----------------------------------------------------------------------------------------
+# The tests in containers: one platform per line of test/containers.txt
+# ----------------------------------------------------------------------------------------
+
+## The container engine of `ctest@<platform>`: `podman` or `docker`
+CONTAINER := podman
+
+CONTAINERS := $(TEST_DIR)/containers.txt
+CONTAINERFILE := $(TEST_DIR)/Containerfile
+# the names: the first field of the lines that are neither comments nor empty
+PLATFORMS := $(shell sed -n 's/^\([^#|][^|]*\)|.*/\1/p' $(CONTAINERS))
+CTEST_ALL := $(addprefix ctest@,$(PLATFORMS))
+
+.PHONY: ctest@all $(CTEST_ALL)
+ctest@all: $(CTEST_ALL)
+
+# The fields of the line of the platform are read by the shell (the INSTALL command can
+# contain `|`: it is what remains after the third one). The repository is mounted
+# read-only (`Z`: let the container read it on a host with SELinux).
+#
+## Run the integration and unit tests on a platform, in a container (or `ctest@all`;
+## see test/containers.txt)
+$(CTEST_ALL): ctest@%:
+	@grep '^$*|' $(CONTAINERS) | { \
+		IFS='|' read -r name image awk install; \
+		echo "[$$name] $$image, awk: $$awk"; \
+		$(CONTAINER) build --quiet --file $(CONTAINERFILE) \
+			--build-arg BASE="$$image" --build-arg INSTALL="$$install" \
+			--tag makefile-doc-test:$$name . >/dev/null && \
+		$(CONTAINER) run --rm --volume "$(CURDIR)":/src:ro,Z --env AWK="$$awk" \
+			makefile-doc-test:$$name; \
+	}
 
 # A known bug of busybox awk: a -v value of 0 returned by a function is true (see the file).
 # This fails once the bug is fixed in the pinned busybox: then remove the workaround, the

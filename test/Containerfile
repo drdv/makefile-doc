@@ -1,0 +1,32 @@
+# The image of one platform of test/containers.txt: its awk, and uv with the Python
+# environment of the tests. The repository is not in the image: it is mounted on /src.
+#
+#   podman build -f test/Containerfile --build-arg BASE=debian:12 -t makefile-doc-test:debian12 .
+#   podman run --rm -v "$PWD":/src:ro -e AWK=mawk makefile-doc-test:debian12
+#
+# (`make ctest@debian12` does both.)
+
+ARG BASE
+ARG UV_VERSION=0.11
+
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+FROM ${BASE}
+
+# install the awk, if the image does not have it
+ARG INSTALL=""
+RUN eval "$INSTALL"
+
+# uv, a Python and the packages of uv.lock, outside of /src: the mounted repository is
+# only read, and a .venv of the host is not used
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_PYTHON_INSTALL_DIR=/opt/python \
+    UV_CACHE_DIR=/opt/uv-cache \
+    PYTHONDONTWRITEBYTECODE=1
+COPY pyproject.toml uv.lock /opt/project/
+RUN uv sync --locked --project /opt/project
+
+WORKDIR /src
+# the awk to test is $AWK (see test/conftest.py)
+CMD ["uv", "run", "--frozen", "--no-sync", "pytest", "test/test_integration.py", "test/test_unit.py"]
