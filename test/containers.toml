@@ -1,0 +1,27 @@
+# The platforms that the tests run on, in containers: `make ctest@<name>` (see
+# test/README.md). A new table is a new platform, also in CI.
+#
+#   image    the base image, or
+#   build    a Containerfile that builds the base image (e.g., an awk compiled from source)
+#   awk      the awk command to test (a pytest --awk value, e.g., "gawk --posix")
+#   install  optional: a shell command that installs the awk in the base image
+
+# mawk 1.3.4 20200120 (the default awk of Debian and Ubuntu)
+[debian12]
+image = "debian:12"
+awk = "mawk"
+
+# gawk 5.1.0 (the default awk of the RHEL family)
+[alma9]
+image = "almalinux:9"
+awk = "gawk"
+
+# busybox awk 1.37.0 (the default awk of Alpine)
+[alpine323]
+image = "alpine:3.23"
+awk = "awk"
+
+# mawk 1.3.4 20240123, compiled from source
+[mawk2024]
+build = "test/containers/mawk2024.Containerfile"
+awk = "mawk"

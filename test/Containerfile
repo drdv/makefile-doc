@@ -1,10 +1,8 @@
-# The image of one platform of test/containers.txt: its awk, and uv with the Python
-# environment of the tests. The repository is not in the image: it is mounted on /src.
+# The common part of the image of every platform of test/containers.toml: on top of the
+# base image (BASE) with its awk, uv and the Python environment of the tests. The
+# repository is not in the image: it is mounted on /src.
 #
-#   podman build -f test/Containerfile --build-arg BASE=debian:12 -t makefile-doc-test:debian12 .
-#   podman run --rm -v "$PWD":/src:ro -e AWK=mawk makefile-doc-test:debian12
-#
-# (`make ctest@debian12` does both.)
+# `make ctest@<platform>` builds the image and runs the tests in it (test/tools/containers.py).
 
 ARG BASE
 ARG UV_VERSION=0.11

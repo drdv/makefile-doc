@@ -114,7 +114,7 @@ jobs:
       - name: unit tests
         run: make utest@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
 
-  # the platforms of test/containers.txt, as the matrix of the next job
+  # the platforms of test/containers.toml, as the matrix of the next job
   platforms:
     name: list the container platforms
     runs-on: ubuntu-latest
@@ -124,10 +124,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
       - id: list
-        run: |
-          names=$(sed -n 's/^\([^#|][^|]*\)|.*/\1/p' test/containers.txt | jq -R . | jq -sc .)
-          echo "names=$names" >> "$GITHUB_OUTPUT"
+        run: echo "names=$(uv run python test/tools/containers.py list --json)" >> "$GITHUB_OUTPUT"
 
   containers:
     name: ${{ matrix.platform }} (container)

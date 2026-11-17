@@ -37,7 +37,7 @@ AWK := awk
 ##   `-W posix` (mawk)
 AWK_FLAGS :=
 
-## Flags for pytest in `test@<variant>`, `utest@<variant>` and `lint-tests`:
+## Flags for pytest in `test@<variant>`, `utest@<variant>`, `ctest@<platform>` and `lint-tests`:
 ##   `-k NAME` (run only the tests with NAME in their name, e.g., `-k options-`)
 ##   `--update` (rewrite the expected output of integration tests)
 ##   `-x` (stop at the first failure)
@@ -103,37 +103,24 @@ test@all: $(TEST_ALL)
 utest@all: $(UTEST_ALL)
 
 # ----------------------------------------------------------------------------------------
-# The tests in containers: one platform per line of test/containers.txt
+# The tests in containers: one platform per table of test/containers.toml
 # ----------------------------------------------------------------------------------------
 
-## The container engine of `ctest@<platform>`: `podman` or `docker`
+## The container engine of `ctest@<platform>`
 CONTAINER := podman
 
-CONTAINERS := $(TEST_DIR)/containers.txt
-CONTAINERFILE := $(TEST_DIR)/Containerfile
-# the names: the first field of the lines that are neither comments nor empty
-PLATFORMS := $(shell sed -n 's/^\([^#|][^|]*\)|.*/\1/p' $(CONTAINERS))
+# builds the image of a platform and runs pytest in it (see its docstring)
+CONTAINERS := $(UV_RUN) python $(TOOLS_DIR)/containers.py
+PLATFORMS := $(shell $(CONTAINERS) list)
 CTEST_ALL := $(addprefix ctest@,$(PLATFORMS))
 
 .PHONY: ctest@all $(CTEST_ALL)
 ctest@all: $(CTEST_ALL)
 
-# The fields of the line of the platform are read by the shell (the INSTALL command can
-# contain `|`: it is what remains after the third one). The repository is mounted
-# read-only (`Z`: let the container read it on a host with SELinux).
-#
 ## Run the integration and unit tests on a platform, in a container (or `ctest@all`;
-## see test/containers.txt)
+## see test/containers.toml)
 $(CTEST_ALL): ctest@%:
-	@grep '^$*|' $(CONTAINERS) | { \
-		IFS='|' read -r name image awk install; \
-		echo "[$$name] $$image, awk: $$awk"; \
-		$(CONTAINER) build --quiet --file $(CONTAINERFILE) \
-			--build-arg BASE="$$image" --build-arg INSTALL="$$install" \
-			--tag makefile-doc-test:$$name . >/dev/null && \
-		$(CONTAINER) run --rm --volume "$(CURDIR)":/src:ro,Z --env AWK="$$awk" \
-			makefile-doc-test:$$name; \
-	}
+	@$(CONTAINERS) run $* --engine $(CONTAINER) $(PYTEST_FLAGS)
 
 # A known bug of busybox awk: a -v value of 0 returned by a function is true (see the file).
 # This fails once the bug is fixed in the pinned busybox: then remove the workaround, the

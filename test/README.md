@@ -22,21 +22,38 @@ version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 
 `make ctest@<platform>` runs the integration and unit tests on a platform, with the awk
 that the platform ships, in a container; `make ctest@all` runs every platform. It needs
-[podman](https://podman.io) (or docker: `make ctest@all CONTAINER=docker`) and nothing
-else: no awk variant is built.
+[podman](https://podman.io) and nothing else: no awk is installed on the host.
+`PYTEST_FLAGS` works as for the other targets, e.g., `make ctest@alma9 PYTEST_FLAGS='-k
+options-'`.
 
-The platforms are the lines of `test/containers.txt`, e.g.,
+The platforms are the tables of `test/containers.toml`. A new table is a new platform,
+also in CI:
 
+```toml
+[debian12]
+image = "debian:12"
+awk = "mawk"
 ```
-debian12|debian:12|mawk|
-```
 
-for the name, the base image, the awk command to test and, if the image does not have
-that awk, the command that installs it. A new line is a new platform, also in CI.
+| Key       | Meaning                                                                  |
+|-----------|--------------------------------------------------------------------------|
+| `image`   | the base image, or                                                       |
+| `build`   | a Containerfile that builds the base image                               |
+| `awk`     | the awk command to test, e.g., `"gawk --posix"`                          |
+| `install` | optional: a shell command that installs the awk in the base image        |
 
-`test/Containerfile` is the image of every platform: the base image with its awk, uv and
-the Python environment of `uv.lock`. The repository is mounted read-only, and pytest runs
-in the container as it does on the host, with the awk of the line as `$AWK`.
+`build` is for an awk that no image ships, e.g., a version compiled from source:
+`test/containers/mawk2024.Containerfile` downloads a pinned version of mawk, checks its
+SHA256 and compiles it. To test another version, change `VERSION` and `SHA256` in that
+file, or copy it for a new platform.
+
+`test/Containerfile` is the common part of every image: on top of the base image, uv and
+the Python environment of `uv.lock`. `test/tools/containers.py` builds the image and runs
+pytest in it as on the host, on the repository mounted read-only, with the awk of the
+platform as `$AWK`.
+
+To try an awk binary that you already have, no container is needed: `uv run pytest --awk
+/path/to/awk`.
 
 ## Python, uv and pytest
 
