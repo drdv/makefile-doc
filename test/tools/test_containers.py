@@ -56,3 +56,19 @@ def test_commands_with_build() -> None:
     assert "localhost/makefile-doc-base:p" in base
     assert "BASE=localhost/makefile-doc-base:p" in build
     assert "INSTALL=" in build
+
+
+def test_run_without_build(monkeypatch: pytest.MonkeyPatch) -> None:
+    ran = []
+
+    def fake_run(command, **kwargs):
+        ran.append(command[:2])
+        return containers.subprocess.CompletedProcess(command, 0, stdout=b"")
+
+    monkeypatch.setattr(containers.subprocess, "run", fake_run)
+    name = next(iter(containers.load()))
+    assert containers.run(name, "podman", build_image=False, args=[]) == 0
+    assert ran == [["podman", "run"]]
+    ran.clear()
+    assert containers.run(name, "podman", build_image=True, args=[]) == 0
+    assert ran == [["podman", "build"], ["podman", "run"]]

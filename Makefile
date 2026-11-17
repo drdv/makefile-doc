@@ -113,6 +113,8 @@ CONTAINER := podman
 CONTAINERS := $(UV_RUN) python $(TOOLS_DIR)/containers.py
 PLATFORMS := $(shell $(CONTAINERS) list)
 CTEST_ALL := $(addprefix ctest@,$(PLATFORMS))
+# options of `containers.py run` (CI: --no-build, when the image comes from its cache)
+CONTAINERS_FLAGS :=
 
 .PHONY: ctest@all $(CTEST_ALL)
 ctest@all: $(CTEST_ALL)
@@ -120,7 +122,7 @@ ctest@all: $(CTEST_ALL)
 ## Run the integration and unit tests on a platform, in a container (or `ctest@all`;
 ## see test/containers.toml)
 $(CTEST_ALL): ctest@%:
-	@$(CONTAINERS) run $* --engine $(CONTAINER) $(PYTEST_FLAGS)
+	@$(CONTAINERS) run $* --engine $(CONTAINER) $(CONTAINERS_FLAGS) $(PYTEST_FLAGS)
 
 # A known bug of busybox awk: a -v value of 0 returned by a function is true (see the file).
 # This fails once the bug is fixed in the pinned busybox: then remove the workaround, the

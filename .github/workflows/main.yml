@@ -148,5 +148,28 @@ jobs:
       - name: install uv
         uses: astral-sh/setup-uv@v10.3.3
 
+      # the built image is cached, as a file; the key changes when a file that defines the
+      # image changes, so the image is built again then
+      - name: restore the image from the cache
+        id: image
+        uses: actions/cache@v6
+        with:
+          path: image.tar
+          key: >-
+            image-${{ matrix.platform }}-${{ runner.os }}-${{ runner.arch }}-${{
+            hashFiles('test/Containerfile', 'test/containers/**', 'test/containers.toml',
+            'pyproject.toml', 'uv.lock', '.dockerignore') }}
+
+      - name: load the image
+        if: steps.image.outputs.cache-hit == 'true'
+        run: podman load --input image.tar
+
       - name: integration and unit tests
-        run: make ctest@${{ matrix.platform }}
+        run: >-
+          make ctest@${{ matrix.platform }}
+          CONTAINERS_FLAGS=${{ steps.image.outputs.cache-hit == 'true' && '--no-build' || '' }}
+
+      # stored in the cache when the job ends
+      - name: save the image
+        if: steps.image.outputs.cache-hit != 'true'
+        run: podman save --output image.tar localhost/makefile-doc-test:${{ matrix.platform }}

@@ -1,10 +1,11 @@
 """Run the tests on the platforms of test/containers.toml, in containers.
 
 usage: containers.py list [--json]
-       containers.py run NAME [--engine ENGINE] [PYTEST_ARG ...]
+       containers.py run NAME [--engine ENGINE] [--no-build] [PYTEST_ARG ...]
 
 `run` builds the image of the platform and runs pytest in it, on the repository mounted
-read-only. See test/README.md.
+read-only. With --no-build the image is used as it is (CI restores it from its cache).
+See test/README.md.
 """
 
 import argparse
@@ -56,12 +57,15 @@ def commands(name: str, platform: dict[str, str], engine: str, args: list[str]) 
     return cmds
 
 
-def run(name: str, engine: str, args: list[str]) -> int:
+def run(name: str, engine: str, build_image: bool, args: list[str]) -> int:
     platforms = load()
     if name not in platforms:
         sys.exit(f"ERROR: {name}: not a platform of {PLATFORMS.relative_to(ROOT)}")
     *builds, test = commands(name, platforms[name], engine, args)
-    print(f"[{name}] building the image", flush=True)
+    if not build_image:
+        builds = []
+    else:
+        print(f"[{name}] building the image", flush=True)
     for build in builds:  # show the output of a build only if it fails
         proc = subprocess.run(build, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if proc.returncode:
@@ -78,13 +82,14 @@ def main() -> int:
     run_parser = sub.add_parser("run", help="run the tests on a platform")
     run_parser.add_argument("name")
     run_parser.add_argument("--engine", default="podman", help="podman (default) or docker")
+    run_parser.add_argument("--no-build", action="store_true", help="use the image as it is")
     args, pytest_args = parser.parse_known_args()
     try:
         if args.command == "list":
             names = list(load())
             print(json.dumps(names) if args.json else "\n".join(names))
             return 0
-        return run(args.name, args.engine, pytest_args)
+        return run(args.name, args.engine, not args.no_build, pytest_args)
     except (OSError, ValueError) as error:
         sys.exit(f"ERROR: {error}")
 
