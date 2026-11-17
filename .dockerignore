@@ -1,4 +1,0 @@
-# the build context of test/Containerfile: only what it copies
-*
-!pyproject.toml
-!uv.lock

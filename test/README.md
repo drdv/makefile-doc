@@ -3,7 +3,7 @@
 - `make test@<variant>`: integration tests (`test/integration/`)
 - `make utest@<variant>`: unit tests (`test/unit/`)
 - `make lint`: lint the awk code (`lint-tests`) and the Python code (`lint-py`)
-- `make test-tools`: tests of the Python tools in `test/tools/`
+- `make test-tools`: tests of the Python tools (`test/tools/` and `test/platforms.py`)
 - `make check`: all of the above, with the awk variant `AWK`
 
 For example, `make test@mawk` runs the integration tests with mawk, and `make test@all`
@@ -20,37 +20,44 @@ version changes (rebuild it with `make clean@<variant> deps@<variant>`).
 
 ## Containers
 
-`make ctest@<platform>` runs the integration and unit tests on a platform, with the awk
-that the platform ships, in a container; `make ctest@all` runs every platform. It needs
-[podman](https://podman.io) and nothing else: no awk is installed on the host.
-`PYTEST_FLAGS` works as for the other targets, e.g., `make ctest@alma9 PYTEST_FLAGS='-k
-options-'`.
+`make ctest@<platform>` runs the integration and unit tests with the awk of another
+platform, e.g., the mawk of Debian 12 or the gawk of CentOS 6; `make ctest@all` runs every
+platform (`make -k -j4 ctest@all`: four at a time, without stopping at a failure). It
+needs [podman](https://podman.io).
 
-The platforms are the tables of `test/containers.toml`. A new table is a new platform,
-also in CI:
+The tests run on the host, as always. Only awk runs in a container: the container of the
+platform is started once, and each awk process of the tests is an `exec` in it. An image
+therefore needs nothing but its awk, so old distributions work too. The repository is
+mounted read-only in the container, and pytest's temporary directory read-write.
+
+The platforms are the tables of `test/containers.toml`. A new table is a new platform:
 
 ```toml
 [debian12]
 image = "debian:12"
 awk = "mawk"
+ci = true
 ```
 
-| Key       | Meaning                                                                  |
-|-----------|--------------------------------------------------------------------------|
-| `image`   | the base image, or                                                       |
-| `build`   | a Containerfile that builds the base image                               |
-| `awk`     | the awk command to test, e.g., `"gawk --posix"`                          |
-| `install` | optional: a shell command that installs the awk in the base image        |
+| Key       | Meaning                                                                |
+|-----------|------------------------------------------------------------------------|
+| `image`   | the image, or                                                          |
+| `build`   | a Containerfile that builds the image                                  |
+| `args`    | optional, with `build`: its build arguments                            |
+| `awk`     | the awk command to test, e.g., `"gawk --posix"`                        |
+| `install` | optional: a shell command, run in the container, that installs the awk |
+| `ci`      | optional: `true` to also run the platform in CI                        |
 
 `build` is for an awk that no image ships, e.g., a version compiled from source:
-`test/containers/mawk2024.Containerfile` downloads a pinned version of mawk, checks its
-SHA256 and compiles it. To test another version, change `VERSION` and `SHA256` in that
-file, or copy it for a new platform.
+`test/containers/mawk.Containerfile` downloads a version of mawk, checks its SHA256 and
+compiles it, and the tables `[mawk]`, `[mawk2020]` and `[mawk2024]` give it the version
+and the SHA256 as `args`. A new version is a new table. The image is built on the first
+run, and again only when the Containerfile or the `args` change.
 
-`test/Containerfile` is the common part of every image: on top of the base image, uv and
-the Python environment of `uv.lock`. `test/tools/containers.py` builds the image and runs
-pytest in it as on the host, on the repository mounted read-only, with the awk of the
-platform as `$AWK`.
+`make ctest@<platform>` is `pytest --platform <platform>`: the `awk` fixture of
+`test/conftest.py` starts and removes the container (`test/platforms.py`). `--platform`
+can be repeated and combined with `--awk`, e.g., `uv run pytest --platform debian12
+--platform alma9 --awk gawk -k options-`.
 
 To try an awk binary that you already have, no container is needed: `uv run pytest --awk
 /path/to/awk`.
@@ -63,12 +70,13 @@ install: `uv run` creates `.venv/` with the Python version and the packages of
 `pyproject.toml`, at the versions pinned in `uv.lock`. The Makefile calls everything
 through `uv run`.
 
-| File                       | Tests                                                |
-|----------------------------|------------------------------------------------------|
-| `test/conftest.py`         | the `--awk` and `--update` options, how awk is run   |
-| `test/test_integration.py` | one test per `test/integration/*.test` case          |
-| `test/test_unit.py`        | one test per `test/unit/test_*.awk` file             |
-| `test/test_lint.py`        | `gawk --lint` and the checks of the global variables |
+| File                       | Tests                                                            |
+|----------------------------|------------------------------------------------------------------|
+| `test/conftest.py`         | the `--awk`, `--platform` and `--update` options, how awk is run |
+| `test/test_integration.py` | one test per `test/integration/*.test` case                      |
+| `test/test_unit.py`        | one test per `test/unit/test_*.awk` file                         |
+| `test/test_lint.py`        | `gawk --lint` and the checks of the global variables             |
+| `test/test_platforms.py`   | the reading of `test/containers.toml`                            |
 
 pytest can be called directly; `--awk` is an awk command with its flags and can be
 repeated (the default is `$AWK`, or `awk`):
@@ -95,7 +103,8 @@ runs for more than 30 seconds fails its test.
 
 `make lint-py` lints the Python code and checks its formatting with
 [ruff](https://docs.astral.sh/ruff) (settings in `pyproject.toml`; `uv run ruff format`
-reformats it), and `make test-tools` runs the tests of the tools (`test/tools/test_*.py`).
+reformats it), and `make test-tools` runs the tests of the tools (`test/tools/test_*.py` and
+`test/test_platforms.py`).
 
 ## Unit tests
 

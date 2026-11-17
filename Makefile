@@ -103,26 +103,23 @@ test@all: $(TEST_ALL)
 utest@all: $(UTEST_ALL)
 
 # ----------------------------------------------------------------------------------------
-# The tests in containers: one platform per table of test/containers.toml
+# The awk of other platforms, in containers: one platform per table of test/containers.toml
 # ----------------------------------------------------------------------------------------
 
 ## The container engine of `ctest@<platform>`
 CONTAINER := podman
 
-# builds the image of a platform and runs pytest in it (see its docstring)
-CONTAINERS := $(UV_RUN) python $(TOOLS_DIR)/containers.py
-PLATFORMS := $(shell $(CONTAINERS) list)
+PLATFORMS := $(shell $(UV_RUN) python $(TEST_DIR)/platforms.py list)
 CTEST_ALL := $(addprefix ctest@,$(PLATFORMS))
-# options of `containers.py run` (CI: --no-build, when the image comes from its cache)
-CONTAINERS_FLAGS :=
 
 .PHONY: ctest@all $(CTEST_ALL)
 ctest@all: $(CTEST_ALL)
 
-## Run the integration and unit tests on a platform, in a container (or `ctest@all`;
-## see test/containers.toml)
+## Run the integration and unit tests with the awk of a platform, in a container (or
+## `ctest@all`; see test/containers.toml)
 $(CTEST_ALL): ctest@%:
-	@$(CONTAINERS) run $* --engine $(CONTAINER) $(CONTAINERS_FLAGS) $(PYTEST_FLAGS)
+	@$(PYTEST) $(TEST_DIR)/test_integration.py $(TEST_DIR)/test_unit.py \
+		--platform $* --engine $(CONTAINER) $(PYTEST_FLAGS)
 
 # A known bug of busybox awk: a -v value of 0 returned by a function is true (see the file).
 # This fails once the bug is fixed in the pinned busybox: then remove the workaround, the
@@ -232,10 +229,10 @@ lint-py:
 	@$(RUFF) check $(TEST_DIR)
 	@$(RUFF) format --check $(TEST_DIR)
 
-## Test the Python test tools (test/tools/test_*.py)
+## Test the Python test tools (test/tools/test_*.py and test/test_platforms.py)
 .PHONY: test-tools
 test-tools:
-	@$(PYTEST) --no-header $(TOOLS_DIR)
+	@$(PYTEST) --no-header $(TOOLS_DIR) $(TEST_DIR)/test_platforms.py
 
 ##@
 ##@------ Install and clean ------

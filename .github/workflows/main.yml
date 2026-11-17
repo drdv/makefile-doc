@@ -114,13 +114,13 @@ jobs:
       - name: unit tests
         run: make utest@${{ matrix.awk }} AWK_FLAGS='${{ matrix.awk_flags }}'
 
-  # the platforms of test/containers.toml, as the matrix of the next job
+  # the platforms of test/containers.toml with `ci = true`, as the matrix of the next job
   platforms:
     name: list the container platforms
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      names: ${{ steps.list.outputs.names }}
+      platforms: ${{ steps.list.outputs.platforms }}
     steps:
       - uses: actions/checkout@v6
 
@@ -128,10 +128,11 @@ jobs:
         uses: astral-sh/setup-uv@v10.3.3
 
       - id: list
-        run: echo "names=$(uv run python test/tools/containers.py list --json)" >> "$GITHUB_OUTPUT"
+        run: echo "platforms=$(uv run python test/platforms.py list --ci --json)" >> "$GITHUB_OUTPUT"
 
+  # the tests run on the runner; only awk runs in the container of the platform
   containers:
-    name: ${{ matrix.platform }} (container)
+    name: ${{ matrix.platform.name }} (container)
     needs: platforms
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -139,37 +140,39 @@ jobs:
     strategy:
       fail-fast: false # report the results of every platform
       matrix:
-        platform: ${{ fromJSON(needs.platforms.outputs.names) }}
+        platform: ${{ fromJSON(needs.platforms.outputs.platforms) }}
 
     steps:
       - uses: actions/checkout@v6
 
-      # the Makefile runs its Python tools with uv
       - name: install uv
         uses: astral-sh/setup-uv@v10.3.3
 
-      # the built image is cached, as a file; the key changes when a file that defines the
-      # image changes, so the image is built again then
-      - name: restore the image from the cache
+      # A platform with `build` compiles its awk into an image. Like the awk binaries of
+      # the job above, the image is cached, as a file; its name ends with a hash of what
+      # defines it, so it is built again when that changes. The other platforms use an
+      # image of a registry as it is: nothing to cache.
+      - name: name of the built image
+        if: matrix.platform.build
         id: image
+        run: echo "tag=$(uv run python test/platforms.py image ${{ matrix.platform.name }})" >> "$GITHUB_OUTPUT"
+
+      - name: restore the built image from the cache
+        if: matrix.platform.build
+        id: cache
         uses: actions/cache@v6
         with:
           path: image.tar
-          key: >-
-            image-${{ matrix.platform }}-${{ runner.os }}-${{ runner.arch }}-${{
-            hashFiles('test/Containerfile', 'test/containers/**', 'test/containers.toml',
-            'pyproject.toml', 'uv.lock', '.dockerignore') }}
+          key: ${{ steps.image.outputs.tag }}-${{ runner.os }}-${{ runner.arch }}
 
-      - name: load the image
-        if: steps.image.outputs.cache-hit == 'true'
+      - name: load the built image
+        if: matrix.platform.build && steps.cache.outputs.cache-hit == 'true'
         run: podman load --input image.tar
 
       - name: integration and unit tests
-        run: >-
-          make ctest@${{ matrix.platform }}
-          CONTAINERS_FLAGS=${{ steps.image.outputs.cache-hit == 'true' && '--no-build' || '' }}
+        run: make ctest@${{ matrix.platform.name }}
 
       # stored in the cache when the job ends
-      - name: save the image
-        if: steps.image.outputs.cache-hit != 'true'
-        run: podman save --output image.tar localhost/makefile-doc-test:${{ matrix.platform }}
+      - name: save the built image
+        if: matrix.platform.build && steps.cache.outputs.cache-hit != 'true'
+        run: podman save --output image.tar ${{ steps.image.outputs.tag }}
