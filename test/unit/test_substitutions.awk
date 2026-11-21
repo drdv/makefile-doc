@@ -150,6 +150,22 @@ function test_form_substitutions_dsub(    params, labels, values, names) {
   check("form_substitutions (DSUB): value with colons", values["$(X)"], "a:b")
 }
 
+function test_form_substitutions_name_with_angle_brackets(    params, labels, values, names) {
+  init_globals()
+  form_substitutions("<><t>:new:v;<L:0><u>:w", params, labels, values, names, 0)
+  check("form_substitutions: empty parameters before a NAME that starts with <...>",
+        names[1] " " labels["<t>"] " " values["<t>"], "<t> new v")
+  check("form_substitutions: parameters before a NAME that starts with <...>",
+        names[2] " " params["<u>"] " " values["<u>"], "<u> L:0 w")
+
+  form_substitutions("<><b>:B;<A:1, D:0><i>:I", params, labels, values, names, 1)
+  check("form_substitutions (DSUB): empty parameters before a NAME that starts with <...>",
+        names[1] " " values["<b>"], "<b> B")
+  check("form_substitutions (DSUB): parameters before a NAME that starts with <...>",
+        names[2] " " params["<i>"] " " values["<i>"], "<i> A:1, D:0 I")
+  check("form_substitutions: a NAME that starts with <...> is not an error", OPTION_ERRORS, 0)
+}
+
 function test_form_substitutions_repeated(    params, labels, values, names) {
   init_globals()
   form_substitutions("t:a;u:b;t:c;t:a", params, labels, values, names, 0)
@@ -226,6 +242,7 @@ BEGIN {
   test_form_substitutions_colons()
   test_form_substitutions_spaces_in_name()
   test_form_substitutions_dsub()
+  test_form_substitutions_name_with_angle_brackets()
   test_form_substitutions_repeated()
   test_validate_dsub_params()
   test_set_dsub_scopes()
