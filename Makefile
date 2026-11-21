@@ -99,10 +99,11 @@ bump:
 ##@------ Clean ------
 ##@
 
-## Remove the coverage reports
-.PHONY: clean-coverage
-clean-coverage:
-	@rm -rf $(COVER_DIR)
+## Remove
+.PHONY: clean
+clean:
+	@rm -rf $(COVER_DIR) .ruff_cache .mypy_cache .pytest_cache
+	@find $(TEST_DIR) -type d -name __pycache__ -prune -exec rm -rf {} +
 
 ## Remove the binaries of the host platforms (built again when needed)
 .PHONY: clean-bin
