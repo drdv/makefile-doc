@@ -19,7 +19,8 @@
 
 # make control characters visible in the diagnostics (no gsub: the meaning of backslashes
 # in the replacement string differs between awk implementations)
-function harness_escape(string,    k, c, out) {
+function harness_escape(string, #locals
+                        k, c, out) {
   out = ""
   for (k = 1; k <= length(string); k++) {
     c = substr(string, k, 1)

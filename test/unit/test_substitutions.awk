@@ -44,7 +44,7 @@ function test_form_substitutions_invalid(    params, labels, values, names) {
   form_substitutions("T1", params, labels, values, names, 1)
   check("form_substitutions (DSUB): name only is an error that names DSUB",
         stderr_text(),
-        "ERROR: DSUB: 'T1' should be NAME:VALUES\n")
+        "ERROR: DSUB: 'T1' should be NAME:VALUE\n")
 
   form_substitutions(":v", params, labels, values, names, 0)
   check("form_substitutions: empty name is an error",

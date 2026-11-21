@@ -34,7 +34,7 @@
 #                     [<p1:v1,...>]NAME:[[LABEL]:][VALUES][;...]
 #                     (the parameters are L, M, N, S, P, I and T)
 #   DSUB              replace text in the docs and section titles and, with the parameter
-#                     A:1, in the names of anchors: [<p1:v1,...>]NAME:VALUES[;...]
+#                     A:1, in the names of anchors: [<p1:v1,...>]NAME:VALUE[;...]
 #                     (the parameters are A and D)
 #   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
 #   COLOR_DEFAULT     (34) blue
@@ -65,14 +65,15 @@
 #   * The naming convention for global variables is:
 #     * long-standing/important global variables are written in all upper case
 #     * temporary variables that end-up being global (simply because of where they are
-#       defined, e.g., in the END stanza) have a prefix g_.
+#       defined, e.g., in the pattern rules) have a prefix g_.
 #   * The code is meant to run with most major awk implementations, and as a result we
 #     need to stick to basic syntax. For example, we cannot use a match function with
 #     a third argument (an array that stores the groups) and have to fall-back to using
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
 #     %* patterns, some regex features etc.
-#   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
-#     VARIABLES and each of them has an associated *_INDEX integer variable.
+#   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS and
+#     VARIABLES, each with an associated *_INDEX integer variable (the next free index), and
+#     to DSUB_NAMES, whose number of elements is DSUB_COUNT.
 #
 # Structure of this file (each part starts with a banner):
 #   1. General helpers
@@ -374,11 +375,13 @@ function initialize_substitution_parameter_defaults() {
   SUB_PARAMS_DEFAULTS["S"] = "" # separator
   SUB_PARAMS_DEFAULTS["P"] = "" # prefix
   SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
-  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., , ...)
+  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., )
 }
 
-# Process the user options (called from BEGIN, but not in unit-test mode). Every invalid
-# option is reported, then the script exits with status 1 without any other output.
+# Process the user options (called from BEGIN, but not in unit-test mode: it can exit, on an
+# invalid option or to print the help, and an exit in BEGIN would end the unit test before
+# its checks run). Every invalid option is reported, then the script exits with status 1
+# without any other output.
 function process_options(    sub_names, dummy_array_labels) {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
@@ -392,20 +395,10 @@ function process_options(    sub_names, dummy_array_labels) {
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
 
-  # Target matching is heuristic; this is not a complete GNU Make parser.
-  #
-  # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
-  # the rule separator is not followed by `:` or `=`, preventing assignment
-  # operators such as `:=` and `::=` from being mistaken for target separators.
-  #
-  # Known limitations:
-  #   - A colon inside a reference in a target name is not handled, e.g., `$(SRCS:.c=.o):`
-  #     is not recognized as a target.
-  #   - Escaped `#` in target names is not handled, e.g., `foo\#bar:`.
-  #   - Escaped `:` in target names is mistaken for the rule separator, e.g., `foo\:bar:`.
-  #
-  # Escaped spaces are kept as written: `foo\ bar:` is captured as `foo\ bar`, which is how
-  # the target is invoked (not a limitation).
+  # Target matching is heuristic (this is not a GNU Make parser; see "Limitations" in the
+  # README). Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that the rule
+  # separator is not followed by `:` or `=`, so that assignment operators such as `:=` and
+  # `::=` are not taken for rule separators.
   TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
 
   VARS = VARS == "" ? 1 : VARS
@@ -481,7 +474,7 @@ function print_help() {
 
 # SUB:  NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (the first two colons are
 #       separators; an empty label is no label)
-# DSUB: NAME:VALUES (only the first colon is a separator, no_labels is set)
+# DSUB: NAME:VALUE (only the first colon is a separator, no_labels is set)
 # Both can start with parameters, <p1:v1,...> (see the validate_*_params functions).
 # Everything after the last separator is the value, so it can contain colons.
 #
@@ -523,7 +516,7 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     colon = index(substitution_rest, ":")
     if (colon == 0) {
       option_error(sprintf("%s: '%s' should be %s", option, string,
-                           no_labels ? "NAME:VALUES" : "NAME:[[LABEL]:][VALUES]"))
+                           no_labels ? "NAME:VALUE" : "NAME:[[LABEL]:][VALUES]"))
       continue
     }
     name = substr(substitution_rest, 1, colon - 1)
@@ -1196,7 +1189,7 @@ BEGIN {
 # at the first line of each file.
 
 # Makefiles with CRLF line endings: drop the \r
-# (goawk drops it itself, so the coverage report, shows the action as not covered)
+# (goawk drops it itself, so the coverage report shows the action as not covered)
 substr($0, length($0)) == "\r" { sub(/\r$/, "") } # lint: ignore[substr: start index]
 
 FNR == 1 {
@@ -1541,7 +1534,8 @@ function display_substitutions(anchor, len_anchors, #locals
     #    INDENT:  M && !L && k  > 1
     #    INDENT:  M &&  L
     # -----------------------------
-    # the + 1 is because of the usual one space we add between the token ## and the docs
+    # the + 1 assumes the usual space after the token (as in `## doc`), so that the values
+    # line up with the text of the doc
     indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
     cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
     text = sprintf(repeated_string("%s", 7),
