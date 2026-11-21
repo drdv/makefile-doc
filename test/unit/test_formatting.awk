@@ -70,7 +70,7 @@ function test_get_max_anchor_length(    anchors, docs) {
   delete anchors[3]
   check("get_max_anchor_length: 0 when no anchor is displayed",
         get_max_anchor_length(anchors, docs), 0)
-  delete SUB_LABELS["t"]
+  init_globals()
   DEPRECATED = ""
 }
 

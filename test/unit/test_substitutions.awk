@@ -214,7 +214,7 @@ function test_set_dsub_scopes(    labels) {
   check("set_dsub_scopes: default", DSUB_IN_ANCHORS["d"] " " DSUB_IN_DOCS["d"], "0 1")
   check("set_dsub_scopes: A:1", DSUB_IN_ANCHORS["b"] " " DSUB_IN_DOCS["b"], "1 1")
   check("set_dsub_scopes: A:1,D:0", DSUB_IN_ANCHORS["c"] " " DSUB_IN_DOCS["c"], "1 0")
-  DSUB_COUNT = 0
+  init_globals()
 }
 
 function test_display_name(    labels) {
@@ -227,8 +227,7 @@ function test_display_name(    labels) {
   check("display_name: a name without the text", display_name("plain"), "plain")
   SUB_LABELS["$(D)/a"] = "label"
   check("display_name: a SUB label wins", display_name("$(D)/a"), "label")
-  delete SUB_LABELS["$(D)/a"]
-  DSUB_COUNT = 0
+  init_globals()
 }
 
 BEGIN {

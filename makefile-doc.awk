@@ -316,6 +316,16 @@ function init_globals() {
   split("", VARIABLES)
   VARIABLES_INDEX = 1
 
+  # the substitutions of the options SUB and DSUB (set by process_options)
+  split("", SUB_PARAMS)
+  split("", SUB_LABELS)
+  split("", SUB_VALUES)
+  split("", DSUB_PARAMS)
+  split("", DSUB_VALUES)
+  split("", DSUB_NAMES)
+  split("", DSUB_IN_ANCHORS)
+  split("", DSUB_IN_DOCS)
+
   split("", DISPLAY_PARAMS)
 
   HEADER_TARGETS = "Available targets:"
