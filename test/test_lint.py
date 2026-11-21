@@ -170,13 +170,13 @@ def globals_of(gawk: Awk, tmp_path: Path, *args: str) -> set[str]:
 
 
 def test_global_names(gawk: Awk, tmp_path: Path) -> None:
-    names = globals_of(gawk, tmp_path, "-v", "SHOW_HELP=0", "-f", SCRIPT)
+    names = globals_of(gawk, tmp_path, "-f", SCRIPT)
     assert not sorted(n for n in names if not re.fullmatch(r"[A-Z_]+|g_[a-z_]+", n))
 
 
 @pytest.mark.parametrize("path", UNIT_FILES, ids=lambda p: p.stem)
 def test_unit_file_defines_no_globals(gawk: Awk, tmp_path: Path, path: Path) -> None:
-    script = globals_of(gawk, tmp_path, "-v", "SHOW_HELP=0", "-f", SCRIPT)
+    script = globals_of(gawk, tmp_path, "-f", SCRIPT)
     stderr = tmp_path / "stderr"
     stderr.touch()
     leaked = globals_of(gawk, tmp_path, *unit_args(path, stderr)) - script

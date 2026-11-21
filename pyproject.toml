@@ -35,7 +35,7 @@ ignore = [
   'substr: (length \S+ is not >= 1|start index \S+ is past end of string|source string is zero length)',
   'no explicit close of file',
   # options passed with -v
-  "makefile-doc.awk: reference to uninitialized variable `(OUTPUT_FORMAT|EXPORT_THEME|D?SUB|VARS|PADDING|DEPRECATED|OFFSET|RECIPEPREFIX|(TARGETS|VARIABLES)_REGEX|COLOR(_\\w+)?|UNIT_TEST|SHOW_HELP)'",
+  "makefile-doc.awk: reference to uninitialized variable `(OUTPUT_FORMAT|EXPORT_THEME|D?SUB|VARS|PADDING|DEPRECATED|OFFSET|RECIPEPREFIX|(TARGETS|VARIABLES)_REGEX|COLOR(_\\w+)?|UNIT_TEST)'",
   "makefile-doc.awk: reference to uninitialized argument `sub_array'",
   # harness helpers that not every unit test file uses
   "function `(check_bug|check_true|stderr_text)' defined but never called directly",
