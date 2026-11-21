@@ -12,6 +12,7 @@ double-colon~2                     Second definition, spaces before ::
 double-colon~3                     Third definition, tab before ::
 multi-space-a multi-space-b        Targets separated by spaces
 multi-tab-a multi-tab-b            Targets separated by a tab
+spaces-a spaces-b spaces-c         Targets separated by several spaces
 group-space-a group-space-b&       Grouped targets with spaces between names
 group-tab-a group-tab-b&           Grouped targets with tabs between names
 group-tab-c group-tab-d&           Grouped targets with tabs between names and before &

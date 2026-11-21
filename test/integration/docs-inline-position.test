@@ -11,4 +11,5 @@ t4   No space needed
 t5   No space needed after a target-specific variable
 t6   No space needed after prerequisites
 t7   Top docs can be used when there is an inline recipe
+t8   Also with prerequisites before the inline recipe
 -----------------------

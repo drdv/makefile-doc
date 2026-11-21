@@ -22,6 +22,9 @@ multi-space-a multi-space-b:
 ## Targets separated by a tab
 multi-tab-a	multi-tab-b:
 
+## Targets separated by several spaces
+spaces-a    spaces-b   spaces-c:
+
 # Grouped single-colon targets
 ## Grouped targets with spaces between names
 group-space-a group-space-b&:
