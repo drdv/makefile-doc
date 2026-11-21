@@ -458,12 +458,11 @@ function print_help() {
   printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
   printf "  COLOR ([bool] use colors): %s\n", COLOR
   printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
-  printf "  COLOR_: "
-  printf "%sDEFAULT%s, ", COLOR_DEFAULT_CODE, COLOR_RESET_CODE
-  printf "%sATTENTION%s, ", COLOR_ATTENTION_CODE, COLOR_RESET_CODE
-  printf "%sDEPRECATED%s, ", COLOR_DEPRECATED_CODE, COLOR_RESET_CODE
-  printf "%sSECTION%s, ", COLOR_SECTION_CODE, COLOR_RESET_CODE
-  printf "%sBACKTICKS%s\n", COLOR_BACKTICKS_CODE, COLOR_RESET_CODE
+  printf "  COLOR_DEFAULT: %s\n", COLOR_DEFAULT
+  printf "  COLOR_ATTENTION: %s\n", COLOR_ATTENTION
+  printf "  COLOR_DEPRECATED: %s\n", COLOR_DEPRECATED
+  printf "  COLOR_SECTION: %s\n", COLOR_SECTION
+  printf "  COLOR_BACKTICKS: %s\n", COLOR_BACKTICKS
 }
 
 # ------------------------------------------------------------------------------------------
