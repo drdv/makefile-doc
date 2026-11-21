@@ -1,0 +1,4 @@
+#: desc: Without any docs, a warning says there are no documented targets or variables
+-v COLOR=0 test/fixtures/Makefile.docs-none
+#: stderr
+WARNING: no documented targets/variables in test/fixtures/Makefile.docs-none
