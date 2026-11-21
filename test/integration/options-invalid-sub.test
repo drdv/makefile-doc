@@ -7,7 +7,7 @@ ERROR: SUB: unknown parameter Z of t (use L, M, N, S, P, I or T)
 ERROR: SUB: parameter L of t should be 0 or 1
 ERROR: SUB: parameter M of t should be 0 or 1
 ERROR: SUB: parameter N of t should be -1 or a non-negative integer
-ERROR: DSUB: 'no-colon' should be NAME:VALUES
+ERROR: DSUB: 'no-colon' should be NAME:VALUE
 ERROR: DSUB: ':v' has an empty NAME
 ERROR: DSUB: unknown parameter Z of x (use A or D)
 ERROR: DSUB: parameter A of x should be 0 or 1
