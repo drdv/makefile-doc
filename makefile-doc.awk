@@ -428,12 +428,10 @@ function process_options() {
     exit 1
   }
 
-  # we could exit faster but this causes the linter to not see defined variables
-  SHOW_HELP = SHOW_HELP == "" ? 1 : SHOW_HELP  # to suppress during linting
+  # Without a Makefile, print the help and exit. This must come after the options are processed
+  # (above), because the help shows their values.
   if (ARGC == 1) {
-    if (SHOW_HELP) {
-      print_help()
-    }
+    print_help()
     ABORT = 1
     exit 1
   }
