@@ -254,18 +254,6 @@ function option_error(message) {
   OPTION_ERRORS++
 }
 
-# Report an error and stop. In unit-test mode, record the message and return instead, so
-# that a test can check it and the remaining tests still run.
-function fatal(message) {
-  printf("%s\n", message) > STDERR
-  if (UNIT_TEST) {
-    FATAL_MSG = message
-    return
-  }
-  ABORT = 1
-  exit 1
-}
-
 # A file whose last line ends with a backslash: the line cannot be joined with a next one,
 # so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
 # the next file and in END).
@@ -287,7 +275,6 @@ function init_globals() {
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
-  FATAL_MSG = "" # in unit-test mode, the message of the last call to fatal()
   OPTION_ERRORS = 0 # number of invalid options (see option_error)
 
   initialize_variables_regex()
@@ -1396,11 +1383,9 @@ function update_display_parameters(description, #locals
   } else if (tag == "##%") {
     DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
     DISPLAY_PARAMS["show"] = DEPRECATED
-  } else if (tag == "##") {
+  } else { # ## (a doc starts with one of the three tags)
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
     DISPLAY_PARAMS["show"] = 1
-  } else {
-    fatal(sprintf("ERROR (we shouldn't be here): %s", description))
   }
 }
 
