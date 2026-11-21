@@ -207,7 +207,8 @@ code](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_pa
 makefile-doc does not expand Make variables: a target written `$(OPEN_NOTES):` is displayed as
 `$(OPEN_NOTES)`, and a doc that mentions `$(DEPS)` shows `$(DEPS)`. Substitutions, passed on the
 command line, fill this gap: `SUB` changes how an anchor is displayed (a new name and a list of
-values), and `DSUB` replaces text inside docs and, optionally, in the names of anchors.
+values), and `DSUB` replaces text inside docs and section titles and, optionally, in the names of
+anchors.
 
 ### `SUB`: rename an anchor and list its values
 
@@ -284,9 +285,9 @@ See `test/integration/sub-*.test` for more examples.
 
 ### `DSUB`: replace text in docs and names
 
-`DSUB` replaces text in the docs themselves. Its format is `NAME:VALUE`; everything after the first
-colon is the value, so it can contain colons. For example, with `-v DSUB='$$(DEPS):$(DEPS)'`, the
-target
+`DSUB` replaces text in the docs and section titles. Its format is `NAME:VALUE`; everything after
+the first colon is the value, so it can contain colons. For example, with `-v
+DSUB='$$(DEPS):$(DEPS)'`, the target
 
 ```Makefile
 DEPS := x y
@@ -309,7 +310,7 @@ text is replaced:
 | Parameter | Meaning                                                           | Default |
 |-----------|-------------------------------------------------------------------|---------|
 | `A`       | `1`: also replace in the displayed names of targets and variables | `0`     |
-| `D`       | `0`: do not replace in the docs                                   | `1`     |
+| `D`       | `0`: do not replace in the docs and section titles                | `1`     |
 
 For example, with `-v DSUB='<A:1>$$(OUT_DIR):$(OUT_DIR)'`,
 
@@ -328,8 +329,8 @@ out/report   Write the report (after out/data)
 and with `<A:1,D:0>` only the name is changed. Because of the parameters, a `NAME` cannot
 start with `<...>`.
 
-`DSUB` changes only the docs and, optionally, the names of anchors that `SUB` has not renamed: it
-never changes `SUB` labels and values, or section titles.
+`DSUB` changes only the docs, the section titles and, optionally, the names of anchors that `SUB`
+has not renamed: it never changes `SUB` labels and values.
 
 ## Export to HTML and LaTeX
 
