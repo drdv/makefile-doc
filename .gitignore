@@ -3,7 +3,8 @@ coverage-reports/
 __pycache__/
 .venv/
 .ruff_cache/
+.mypy_cache/
+.pytest_cache/
 release-message.md
-demo.html
-demo.pdf
-demo.png
+/demo.*
+/out/

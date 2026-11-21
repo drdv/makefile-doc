@@ -677,8 +677,8 @@ function default_color_option() {
 # unsupported value is reported (see option_error).
 function validate_ansi_param(option, ansi_param) {
   if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_TO_HTML_COLOR) {
-    # The explicit cast to int here is needed only because of a busybox awk bug, see
-    # misc/busybox_awk_bug_20251107.awk (`make test@bawk` fails once the bug is fixed)
+    # The explicit cast to int here is needed only because of a busybox awk bug,
+    # see misc/busybox_awk_bug_20251107.awk
     return int(ansi_param)
   }
   option_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",
@@ -1546,8 +1546,9 @@ function print_anchors(anchors, description_data, section_data, max_anchor_lengt
 
 # Display the documentation (all its output is printed from here).
 function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
-                             separator, variables_display_pattern) {
+                             separator) {
   max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
+  # 0 when the variables are not shown (VARS=0)
   max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
   max_anchor_length = max(max_target_length, max_variable_length)
   separator = get_separator("-", max_anchor_length)
@@ -1565,15 +1566,16 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   }
 
   # process variables
-  if (max_variable_length > 0 && VARS) {
-    variables_display_pattern = max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
-
-    printf(variables_display_pattern, separator, HEADER_VARIABLES, separator)
+  if (max_variable_length > 0) {
+    if (max_target_length > 0) {
+      printf("\n") # a blank line after the targets
+    }
+    printf("%s\n%s\n%s\n", separator, HEADER_VARIABLES, separator)
     print_anchors(VARIABLES, VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA,
                   max_anchor_length)
   }
 
-  if (max_target_length > 0 || (max_variable_length > 0 && VARS)) {
+  if (max_target_length > 0 || max_variable_length > 0) {
     printf("%s\n", separator)
   } else {
     if (NUMBER_OF_FILES_PROCESSED > 0) {
