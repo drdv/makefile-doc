@@ -368,7 +368,7 @@ function initialize_substitution_parameter_defaults() {
 
 # Process the user options (called from BEGIN, but not in unit-test mode). Every invalid
 # option is reported, then the script exits with status 1 without any other output.
-function process_options() {
+function process_options(    sub_names, dummy_array_params, dummy_array_labels) {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
     option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
@@ -418,8 +418,8 @@ function process_options() {
     option_error("OFFSET should be a non-negative integer")
   }
 
-  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, g_sub_names, 0)
-  form_substitutions(DSUB, g_dummy_array_params, g_dummy_array_labels, DSUB_VALUES,
+  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, sub_names, 0)
+  form_substitutions(DSUB, dummy_array_params, dummy_array_labels, DSUB_VALUES,
                      DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
