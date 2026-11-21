@@ -419,8 +419,7 @@ function process_options(    sub_names, dummy_array_params, dummy_array_labels) 
   }
 
   form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, sub_names, 0)
-  form_substitutions(DSUB, dummy_array_params, dummy_array_labels, DSUB_VALUES,
-                     DSUB_NAMES, 1)
+  form_substitutions(DSUB, dummy_array_params, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
   if (OPTION_ERRORS > 0) {
@@ -1531,12 +1530,27 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
   }
 }
 
+# Display the anchors of one kind (TARGETS or VARIABLES) with their docs and sections.
+function print_anchors(anchors, description_data, section_data, max_anchor_length, #locals
+                       n_elements, indx, anchor, description, section) {
+  n_elements = length_array_posix(anchors)
+  for (indx = 1; indx <= n_elements; indx++) {
+    anchor = anchors[indx]
+    description = format_description_data(anchor,
+                                          description_data,
+                                          max_anchor_length)
+    section = get_associated_section_data(anchor, section_data)
+    display_anchor_with_data(anchor, description, section, max_anchor_length)
+  }
+}
+
 # Display the documentation (all its output is printed from here).
-function print_documentation() {
-  g_max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
-  g_max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
-  g_max_anchor_length = max(g_max_target_length, g_max_variable_length)
-  g_separator = get_separator("-", g_max_anchor_length)
+function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
+                             separator, variables_display_pattern) {
+  max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
+  max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
+  max_anchor_length = max(max_target_length, max_variable_length)
+  separator = get_separator("-", max_anchor_length)
 
   if (OUTPUT_FORMAT == "HTML") {
     print(HTML_HEADER)
@@ -1545,38 +1559,22 @@ function print_documentation() {
   }
 
   # process targets
-  if (g_max_target_length > 0) {
-    printf("%s\n%s\n%s\n", g_separator, HEADER_TARGETS, g_separator)
-
-    g_n_elements = length_array_posix(TARGETS)
-    for (g_indx = 1; g_indx <= g_n_elements; g_indx++) {
-      g_target = TARGETS[g_indx]
-      g_description = format_description_data(g_target,
-                                              TARGETS_DESCRIPTION_DATA,
-                                              g_max_anchor_length)
-      g_section = get_associated_section_data(g_target, TARGETS_SECTION_DATA)
-      display_anchor_with_data(g_target, g_description, g_section, g_max_anchor_length)
-    }
+  if (max_target_length > 0) {
+    printf("%s\n%s\n%s\n", separator, HEADER_TARGETS, separator)
+    print_anchors(TARGETS, TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA, max_anchor_length)
   }
 
   # process variables
-  if (g_max_variable_length > 0 && VARS) {
-    g_variables_display_pattern = g_max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
+  if (max_variable_length > 0 && VARS) {
+    variables_display_pattern = max_target_length > 0 ? "\n%s\n%s\n%s\n": "%s\n%s\n%s\n"
 
-    printf(g_variables_display_pattern, g_separator, HEADER_VARIABLES, g_separator)
-    g_n_elements = length_array_posix(VARIABLES)
-    for (g_indx = 1; g_indx <= g_n_elements; g_indx++) {
-      g_variable = VARIABLES[g_indx]
-      g_description = format_description_data(g_variable,
-                                              VARIABLES_DESCRIPTION_DATA,
-                                              g_max_anchor_length)
-      g_section = get_associated_section_data(g_variable, VARIABLES_SECTION_DATA)
-      display_anchor_with_data(g_variable, g_description, g_section, g_max_anchor_length)
-    }
+    printf(variables_display_pattern, separator, HEADER_VARIABLES, separator)
+    print_anchors(VARIABLES, VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA,
+                  max_anchor_length)
   }
 
-  if (g_max_target_length > 0 || (g_max_variable_length > 0 && VARS)) {
-    printf("%s\n", g_separator)
+  if (max_target_length > 0 || (max_variable_length > 0 && VARS)) {
+    printf("%s\n", separator)
   } else {
     if (NUMBER_OF_FILES_PROCESSED > 0) {
       printf("WARNING: no documented targets/variables in %s\n",
