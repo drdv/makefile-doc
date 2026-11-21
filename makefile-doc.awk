@@ -1651,8 +1651,13 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
     printf("%s\n", separator)
   } else {
     if (NUMBER_OF_FILES_PROCESSED > 0) {
-      printf("WARNING: no documented targets/variables in %s\n",
-             FILES_PROCESSED) > STDERR
+      if (TARGETS_INDEX > 1 || VARIABLES_INDEX > 1) { # documented, but hidden
+        printf("WARNING: all documented targets/variables are hidden in %s\n",
+               FILES_PROCESSED) > STDERR
+      } else {
+        printf("WARNING: no documented targets/variables in %s\n",
+               FILES_PROCESSED) > STDERR
+      }
     }
   }
 
