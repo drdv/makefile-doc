@@ -1145,6 +1145,7 @@ BEGIN {
 # at the first line of each file.
 
 # Makefiles with CRLF line endings: drop the \r
+# (goawk drops it itself, so the coverage report, shows the action as not covered)
 substr($0, length($0)) == "\r" { sub(/\r$/, "") } # lint: ignore[substr: start index]
 
 FNR == 1 {
