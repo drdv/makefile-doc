@@ -1437,19 +1437,17 @@ function colorize_description_backticks(description) {
   return description
 }
 
-function update_display_parameters(description, #locals
+function update_display_parameters(anchor_name, anchors_description_data, #locals
                                    tag) {
-  tag = get_tag_from_description(description)
+  tag = get_tag_from_description(anchors_description_data[anchor_name])
   if (tag == "##!") {
     DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
-    DISPLAY_PARAMS["show"] = 1
   } else if (tag == "##%") {
     DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
-    DISPLAY_PARAMS["show"] = DEPRECATED
   } else { # ## (a doc starts with one of the three tags)
     DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
-    DISPLAY_PARAMS["show"] = 1
   }
+  DISPLAY_PARAMS["show"] = !is_hidden_anchor(anchor_name, anchors_description_data)
 }
 
 # The input contains the (\n separated) description lines associated with one anchor.
@@ -1476,7 +1474,7 @@ function format_description_data(anchor_name,
                           line)
   }
 
-  update_display_parameters(description)
+  update_display_parameters(anchor_name, anchors_description_data)
   # The order of alternatives is important when using goawk v1.29.1 and below.
   # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
