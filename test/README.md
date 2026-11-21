@@ -265,7 +265,8 @@ awk = "mawk"
   `install` key can provide a shell command that installs it.
 
 A table can inherit the keys of another table with `extends`, and any key it sets itself overrides
-the inherited one. `ci = true` also runs the platform in CI.
+the inherited one. `ci = true` also runs the platform in CI, and `explicit = true` runs it only when
+named explicitly (a pattern such as `'*'` does not select it).
 
 Building binaries and running containers need a container engine: `podman` by default, or another
 one set with `--engine` (`ENGINE=` with make), e.g., `--engine docker`.

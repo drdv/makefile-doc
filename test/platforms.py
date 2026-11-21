@@ -132,6 +132,7 @@ class Platform(BaseModel):
 
     host: StrictBool = False  # run awk on this machine, not in a container
     ci: StrictBool = False  # also run in CI
+    explicit: StrictBool = False  # selected only by its name, not by a pattern
 
     engine: str = ENGINE
 
@@ -338,24 +339,33 @@ def load(
     platform_names: tuple[str, ...],
     path: Path = PLATFORMS,
     engine: str = ENGINE,
+    with_explicit: bool = False,
 ) -> dict[str, Platform]:
     """Return the (validated) platforms of a TOML file that match platform_names.
 
     A name can be a shell-style pattern (e.g. "debian*", or "*" for all of them); a name
-    that matches no platform is an error. `engine` is the container engine of every platform.
+    that matches no platform is an error. A pattern does not match a platform with
+    `explicit = true`, unless with_explicit is true. `engine` is the container engine of
+    every platform.
     """
     try:
         raw_tables = tomllib.loads(path.read_text())
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise PlatformError(f"cannot read {path}: {error}") from None
     tables = {name: extended(name, raw_tables) for name in raw_tables}
-    unknown = [p for p in platform_names if not any(fnmatchcase(name, p) for name in tables)]
+
+    def matches(name: str, pattern: str) -> bool:
+        if name == pattern:
+            return True
+        return fnmatchcase(name, pattern) and (with_explicit or not tables[name].get("explicit"))
+
+    unknown = [p for p in platform_names if not any(matches(name, p) for name in tables)]
     if unknown:
         raise PlatformError(f"not a platform of {path.name}: {', '.join(unknown)}")
     return {
         name: Platform.from_table(name, table, engine)
         for name, table in tables.items()
-        if any(fnmatchcase(name, p) for p in platform_names)
+        if any(matches(name, p) for p in platform_names)
     }
 
 
@@ -376,7 +386,7 @@ def get_args() -> argparse.Namespace:
 def main() -> int:
     args = get_args()
     try:
-        platforms = load(("*",))
+        platforms = load(("*",), with_explicit=True)
         if args.command == "image":
             print(platforms[args.name].tag)
         else:
