@@ -1108,9 +1108,11 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_index,
                                     anchors_description_data,
                                     anchors_section_data,
-                                    anchor_type) {
+                                    anchor_type, #locals
+                                    warn) {
+  warn = !(anchor_type == "variable" && !VARS) # no warnings about hidden variables
   if (anchor_name in anchors_description_data) {
-    if (!(anchor_type == "variable" && !VARS)) {
+    if (warn) {
       printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
              FILENAME,
              FNR,
@@ -1127,7 +1129,7 @@ function associate_data_with_anchor(anchor_name,
 
   # note that section data is associated only with documented anchors
   if (length_array_posix(SECTION_DATA) > 0) {
-    if (anchor_name in anchors_section_data) {
+    if (warn && anchor_name in anchors_section_data) {
       printf("WARNING: [%s:%s] redefined associated section data: %s\n",
              FILENAME,
              FNR,

@@ -1,0 +1,10 @@
+##@ Section 1
+## First docs
+V := 1
+
+##@ Section 2
+## Second docs
+V := 2
+
+## A target
+t:
