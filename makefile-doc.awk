@@ -33,8 +33,8 @@
 #   SUB               rename anchors and list values in their docs:
 #                     [<p1:v1,...>]NAME:[[LABEL]:][VALUES][;...]
 #                     (the parameters are L, M, N, S, P, I and T)
-#   DSUB              replace text in the docs and, with the parameter A:1, in the names
-#                     of anchors: [<p1:v1,...>]NAME:VALUES[;...]
+#   DSUB              replace text in the docs and section titles and, with the parameter
+#                     A:1, in the names of anchors: [<p1:v1,...>]NAME:VALUES[;...]
 #                     (the parameters are A and D)
 #   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
 #   COLOR_DEFAULT     (34) blue
@@ -600,7 +600,7 @@ function validate_substitution_params(name, string_with_parameters, #locals
 
 # Report the invalid parameters of the DSUB substitution of name (see option_error):
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
-#   D  0: the docs are not changed, 1: (default) name is replaced in the docs
+#   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
 function validate_dsub_params(name, string_with_parameters, #locals
                               params, keys, k, n, key, value, a, d) {
   a = 0
@@ -1478,21 +1478,29 @@ function format_description_data(anchor_name,
   # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
 
-  # apply the substitutions in the order given
-  for (k = 1; k <= DSUB_COUNT; k++) {
-    if (DSUB_IN_DOCS[DSUB_NAMES[k]]) {
-      description = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], description)
-    }
-  }
+  description = apply_doc_substitutions(description)
 
   return colorize_description_backticks(apply_output_specific_formatting(description))
 }
 
+# Apply the DSUB substitutions to the text of docs or section titles (those with D:1), in
+# the order given.
+function apply_doc_substitutions(text, #locals
+                                 k) {
+  for (k = 1; k <= DSUB_COUNT; k++) {
+    if (DSUB_IN_DOCS[DSUB_NAMES[k]]) {
+      text = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], text)
+    }
+  }
+  return text
+}
+
 function get_associated_section_data(anchor_name,
-                                     anchor_section_data) {
+                                     anchor_section_data, #locals
+                                     section) {
   if (anchor_name in anchor_section_data) {
-    return colorize_description_backticks(\
-        apply_output_specific_formatting(anchor_section_data[anchor_name]))
+    section = strip_trailing_blanks(apply_doc_substitutions(anchor_section_data[anchor_name]))
+    return colorize_description_backticks(apply_output_specific_formatting(section))
   }
   return 0 # means that there is no section data associated with this anchor
 }

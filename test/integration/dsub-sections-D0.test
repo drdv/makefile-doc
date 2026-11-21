@@ -1,0 +1,11 @@
+#: desc: With the parameter D:0, DSUB leaves section titles as they are (their trailing blanks are still removed)
+-v COLOR=0 -v DSUB='<A:1,D:0>$(OUT_DIR):out' test/fixtures/Makefile.dsub-sections
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+
+ --- Files in $(OUT_DIR) ---
+
+out/a   Write $(OUT_DIR)/a
+-----------------------

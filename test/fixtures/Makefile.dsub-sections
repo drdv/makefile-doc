@@ -1,0 +1,6 @@
+##@
+##@ --- Files in $(OUT_DIR) ---   
+##@
+
+## Write $(OUT_DIR)/a
+$(OUT_DIR)/a:
