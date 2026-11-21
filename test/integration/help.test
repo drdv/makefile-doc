@@ -15,5 +15,9 @@ Options:
   OFFSET (offset of docs from anchors): 2
   COLOR ([bool] use colors): 1
   RECIPEPREFIX: |	|
-  COLOR_: [34mDEFAULT[0m, [31mATTENTION[0m, [33mDEPRECATED[0m, [32mSECTION[0m, BACKTICKS[0m
+  COLOR_DEFAULT: 34
+  COLOR_ATTENTION: 31
+  COLOR_DEPRECATED: 33
+  COLOR_SECTION: 32
+  COLOR_BACKTICKS: 0
 #: exit: 1
