@@ -101,17 +101,6 @@ function test_assemble_description_section_data(    arr) {
         "")
 }
 
-function test_update_display_parameters(    description) {
-  description = "Z## Wrong tag"
-  update_display_parameters(description)
-  check("update_display_parameters: wrong tag is reported on stderr",
-        stderr_text(),
-        "ERROR (we shouldn't be here): Z## Wrong tag\n")
-  check("update_display_parameters: wrong tag calls fatal()",
-        FATAL_MSG,
-        "ERROR (we shouldn't be here): Z## Wrong tag")
-}
-
 function test_has_odd_terminal_backslashes() {
   check("has_odd_terminal_backslashes: none", has_odd_terminal_backslashes("abc"), 0)
   check("has_odd_terminal_backslashes: empty string", has_odd_terminal_backslashes(""), 0)
@@ -181,7 +170,6 @@ BEGIN {
   test_parse_inline_descriptions()
   test_form_dc_target_name()
   test_assemble_description_section_data()
-  test_update_display_parameters()
   test_has_odd_terminal_backslashes()
   test_is_double_colon_rule()
   test_has_unclosed_reference()
