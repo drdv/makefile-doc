@@ -17,6 +17,8 @@
 #
 #   extends  optional: the name of a table whose keys this one takes (its own keys win)
 #   ci       optional: true to also run the platform in CI
+#   explicit optional: true to run the platform only when named explicitly (a pattern such as `*`
+#            does not select it)
 
 # ------------------------------------------------------------------------------------------
 # awk variants on the host platform. The binaries are built in a container, statically
@@ -94,11 +96,11 @@ build = "test/containers/goawk.Containerfile"
 args = { VERSION = "v1.30.0", SHA256 = "7a42ca223f1319483c3f46014c80f5e78e8410be29175ac852d88b79e3e64a36" }
 awk = "test/bin/goawk"
 
-# goawk that writes the coverage of the script, for `make coverage` (not in CI; its name
-# does not match `host-*`, as the profile is only written there)
-[coverage]
+# goawk that writes the coverage of the script, for `make coverage`
+[host-coverage]
 extends = "host-goawk"
 ci = false
+explicit = true
 awk = "test/bin/goawk -coverprofile coverage-reports/all.out -coverappend"
 
 # ------------------------------------------------------------------------------------------

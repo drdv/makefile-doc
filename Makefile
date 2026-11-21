@@ -78,7 +78,7 @@ platforms:
 .PHONY: coverage
 coverage: | $(COVER_DIR)
 	@rm -f $(COVER_DIR)/all.out
-	@$(MAKE) test PLATFORM=coverage
+	@$(MAKE) test PLATFORM=host-coverage
 	@go tool cover -html=$(COVER_DIR)/all.out -o $(COVER_DIR)/all.html
 
 $(COVER_DIR):
