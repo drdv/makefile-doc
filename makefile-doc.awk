@@ -1007,7 +1007,7 @@ function get_tag_from_description(string, #locals
     return tag
   }
 
-  return 0 # if we end-up here it probably means that we are using a wrong regex
+  return "" # if we end-up here it probably means that we are using a wrong regex
 }
 
 function save_description_data(string) {
@@ -1503,7 +1503,7 @@ function get_associated_section_data(anchor_name,
     section = strip_trailing_blanks(apply_doc_substitutions(anchor_section_data[anchor_name]))
     return colorize_description_backticks(apply_output_specific_formatting(section))
   }
-  return 0 # means that there is no section data associated with this anchor
+  return "" # means that there is no section data associated with this anchor
 }
 
 # return the text that displays the values of a substitution
