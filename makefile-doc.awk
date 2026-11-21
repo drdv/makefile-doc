@@ -37,8 +37,6 @@
 #                     of anchors: [<p1:v1,...>]NAME:VALUES[;...]
 #                     (the parameters are A and D)
 #   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
-#   TARGETS_REGEX     regex for matching targets
-#   VARIABLES_REGEX   regex for matching variables
 #   COLOR_DEFAULT     (34) blue
 #   COLOR_ATTENTION   (31) red
 #   COLOR_DEPRECATED  (33) yellow
@@ -354,9 +352,9 @@ function initialize_variables_regex() {
   #
   # By design, variable/function references in variable names are captured literally
   # rather than expanded, e.g., `$(PREFIX)_FLAGS := ...` is displayed as `$(PREFIX)_FLAGS`.
-  VARIABLES_REGEX_DEFAULT = sprintf("^[ \t]*((%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
-                                    join(VARIABLE_QUALIFIERS, "|"),
-                                    ASSIGNMENT_OPERATORS_PATTERN)
+  VARIABLES_REGEX = sprintf("^[ \t]*((%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
+                            join(VARIABLE_QUALIFIERS, "|"),
+                            ASSIGNMENT_OPERATORS_PATTERN)
 }
 
 function initialize_substitution_parameter_defaults() {
@@ -384,8 +382,6 @@ function process_options(    sub_names, dummy_array_labels) {
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
 
-  VARIABLES_REGEX = VARIABLES_REGEX == "" ? VARIABLES_REGEX_DEFAULT : VARIABLES_REGEX
-
   # Target matching is heuristic; this is not a complete GNU Make parser.
   #
   # Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that
@@ -400,9 +396,7 @@ function process_options(    sub_names, dummy_array_labels) {
   #
   # Escaped spaces are kept as written: `foo\ bar:` is captured as `foo\ bar`, which is how
   # the target is invoked (not a limitation).
-  if (TARGETS_REGEX == "") {
-    TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
-  }
+  TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
 
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
@@ -458,8 +452,6 @@ function print_help() {
          (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
   printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
   printf "  DSUB (substitutions in docs and names):%s\n", (DSUB == "" ? "" : " " DSUB)
-  printf "  TARGETS_REGEX (regex for matching targets): %s\n", TARGETS_REGEX
-  printf "  VARIABLES_REGEX (regex for matching variables): %s\n", VARIABLES_REGEX
   printf "  VARS ([bool] show documented variables): %s\n", VARS
   printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
   printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED

@@ -179,8 +179,6 @@ help: ## Show this help
 | `EXPORT_THEME`    | see [export](#export-to-html-and-latex) | colors of the HTML and LaTeX output       |
 | `SUB`, `DSUB`     | see [Substitutions](#substitutions)     | substitutions in names and docs           |
 | `RECIPEPREFIX`    | one character (tab)                     | the `.RECIPEPREFIX` of your Makefile      |
-| `TARGETS_REGEX`   | a regex                                 | replaces the regex that matches targets   |
-| `VARIABLES_REGEX` | a regex                                 | replaces the regex that matches variables |
 
 `COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty value (see
 [no-color.org](https://no-color.org)). An invalid value is an error: all the invalid options are
