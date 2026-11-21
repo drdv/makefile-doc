@@ -282,6 +282,8 @@ For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, 
 - A comma in a parameter value is written `\,`; on the command line the backslash has to
   be doubled (`\\,`).
 - A parameter value cannot contain `>`, which ends the parameters.
+- A `NAME` that starts with `<...>` would be read as parameters: put parameters before it, empty
+  ones if needed, e.g., `<><t>:label:`.
 
 See `test/integration/sub-*.test` for more examples.
 
@@ -328,8 +330,8 @@ is documented as
 out/report   Write the report (after out/data)
 ```
 
-and with `<A:1,D:0>` only the name is changed. Because of the parameters, a `NAME` cannot
-start with `<...>`.
+and with `<A:1,D:0>` only the name is changed. As with `SUB`, a `NAME` that starts with `<...>`
+needs parameters before it, empty ones if needed, e.g., `-v DSUB='<><b>:B'` replaces `<b>`.
 
 `DSUB` changes only the docs, the section titles and, optionally, the names of anchors that `SUB`
 has not renamed: it never changes `SUB` labels and values.
