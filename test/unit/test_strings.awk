@@ -33,6 +33,16 @@ function test_array_get(    arr) {
 function test_join(    arr) {
   split("this is another test", arr, " ")
   check("join: colon delimiter", join(arr, ":"), "this:is:another:test")
+
+  split("", arr)
+  arr[1] = "first line"
+  check("join: one element", join(arr, "\n"), "first line")
+  arr[2] = "   second line"
+  arr[3] = "\t last line  "
+  check("join: lines joined with newlines (spaces kept)",
+        join(arr, "\n"), "first line\n   second line\n\t last line  ")
+  split("", arr)
+  check("join: empty array", join(arr, "\n"), "")
 }
 
 function test_string_replace(    text, parts) {
