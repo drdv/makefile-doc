@@ -158,16 +158,16 @@ function test_define_color() {
 function test_export_theme() {
   init_globals()
   setup_colors("HTML", "")
-  check("export theme: no FG by default", ANSI_PARAM_COLOR["FG"], -1)
-  check("export theme: no BG by default", ANSI_PARAM_COLOR["BG"], -1)
-  check("export theme: default (solarized) blue", ANSI_PARAM_COLOR[34], "268bd2")
+  check("export theme: no FG by default", EXPORT_FG_BG["FG"], "")
+  check("export theme: no BG by default", EXPORT_FG_BG["BG"], "")
+  check("export theme: default (solarized) blue", EXPORT_PALETTE[34], "268bd2")
 
   setup_colors("HTML", "32:d33682,,FG:000000,BG:AAAAAA")
-  check("export theme: color", ANSI_PARAM_COLOR[32], "d33682")
-  check("export theme: FG", ANSI_PARAM_COLOR["FG"], "000000")
-  check("export theme: BG", ANSI_PARAM_COLOR["BG"], "AAAAAA")
+  check("export theme: color", EXPORT_PALETTE[32], "d33682")
+  check("export theme: FG", EXPORT_FG_BG["FG"], "000000")
+  check("export theme: BG", EXPORT_FG_BG["BG"], "AAAAAA")
   check("export theme: the background of a color is set separately",
-        ANSI_PARAM_COLOR[42], "859900")
+        EXPORT_PALETTE[42], "859900")
   check("export theme: valid and empty entries are not errors", OPTION_ERRORS, 0)
 
   setup_colors("HTML", "3:ffffff,5:123456,34:fff")
@@ -178,9 +178,9 @@ function test_export_theme() {
         "ERROR: EXPORT_THEME: '5:123456' should start with FG, BG or one of " \
         "30-37, 40-47, 90-97, 100-107\n" \
         "ERROR: EXPORT_THEME: '34:fff' should end with a color of 6 hex digits\n")
-  check("export theme: attributes (0-9) cannot be changed", ANSI_PARAM_COLOR[3], "italic")
-  check_true("export theme: unsupported parameters are not added", !(5 in ANSI_PARAM_COLOR))
-  check("export theme: an invalid entry keeps the default", ANSI_PARAM_COLOR[34], "268bd2")
+  check("export theme: attributes (0-9) cannot be changed", ANSI_TO_HTML_VALUE[3], "italic")
+  check_true("export theme: unsupported parameters are not added", !(5 in EXPORT_PALETTE))
+  check("export theme: an invalid entry keeps the default", EXPORT_PALETTE[34], "268bd2")
 
   setup_colors("", "")
 }
