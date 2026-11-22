@@ -8,6 +8,7 @@
 #
 # Usage (the README.md of the project has the details and examples):
 #   awk [-v OPTION=value ...] -f makefile-doc.awk [Makefile ...]
+#   (without a Makefile, it is read from stdin; if stdin is empty, the help is printed)
 #
 # Docs:
 #   * Targets and variables are called anchors.
@@ -346,7 +347,7 @@ function init_globals() {
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
   NUMBER_OF_FILES_PROCESSED = 0
-  CURRENT_FILE = "" # the FILENAME of the file being read (see warn_about_continued_last_line)
+  CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
   FILES_PROCESSED = ""
 
   # used to decorate double-colon targets in the documentation
@@ -390,10 +391,10 @@ function initialize_substitution_parameter_defaults() {
   SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., )
 }
 
-# Process the user options (called from BEGIN, but not in unit-test mode: it can exit, on an
-# invalid option or to print the help, and an exit in BEGIN would end the unit test before
-# its checks run). Every invalid option is reported, then the script exits with status 1
-# without any other output.
+# Process the user options (called from BEGIN, but not in unit-test mode: it exits on an
+# invalid option, and an exit in BEGIN would end the unit test before its checks run).
+# Every invalid option is reported, then the script exits with status 1 without any other
+# output.
 function process_options(    sub_names, dummy_array_labels) {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
@@ -433,14 +434,6 @@ function process_options(    sub_names, dummy_array_labels) {
     ABORT = 1
     exit 1
   }
-
-  # Without a Makefile, print the help and exit. This must come after the options are processed
-  # (above), because the help shows their values.
-  if (ARGC == 1) {
-    print_help()
-    ABORT = 1
-    exit 1
-  }
 }
 
 # Report the operands that awk takes for assignments, e.g., VARS=0 (see option_error). awk
@@ -457,7 +450,7 @@ function report_assignment_operands(    k) {
 }
 
 function print_help() {
-  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
+  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)"
   print "Description: Generate docs for Makefile variables and targets"
   print "Version: " VERSION
   print "Options:"
@@ -1131,7 +1124,7 @@ function associate_data_with_anchor(anchor_name,
   if (anchor_name in anchors_description_data) {
     if (warn) {
       printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
-             FILENAME,
+             CURRENT_FILE,
              FNR,
              anchor_type,
              anchor_name) > STDERR
@@ -1148,7 +1141,7 @@ function associate_data_with_anchor(anchor_name,
   if (length_array_posix(SECTION_DATA) > 0) {
     if (warn && anchor_name in anchors_section_data) {
       printf("WARNING: [%s:%s] redefined associated section data: %s\n",
-             FILENAME,
+             CURRENT_FILE,
              FNR,
              anchor_name) > STDERR
     }
@@ -1208,12 +1201,13 @@ substr($0, length($0)) == "\r" { sub(/\r$/, "") } # lint: ignore[substr: start i
 FNR == 1 {
   warn_about_continued_last_line()
   reset_file_state()
-  CURRENT_FILE = FILENAME
+  # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
+  CURRENT_FILE = FILENAME == "" ? "-" : FILENAME
   NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED != "") {
-    FILES_PROCESSED = FILES_PROCESSED " " FILENAME
+    FILES_PROCESSED = FILES_PROCESSED " " CURRENT_FILE
   } else {
-    FILES_PROCESSED = FILENAME
+    FILES_PROCESSED = CURRENT_FILE
   }
 }
 
@@ -1667,6 +1661,12 @@ END {
     exit ABORT
   }
   if (!UNIT_TEST) {
+    # Without a Makefile, awk reads stdin: if it is empty (e.g., < /dev/null, or Ctrl-D in
+    # a terminal), print the help
+    if (ARGC == 1 && NR == 0) {
+      print_help()
+      exit 1
+    }
     warn_about_continued_last_line()
     print_documentation()
   }

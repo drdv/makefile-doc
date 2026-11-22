@@ -99,14 +99,15 @@ def warnings(gawk: Awk, tmp_path_factory: pytest.TempPathFactory) -> dict[LintWa
     """Each distinct warning (without the input position) -> the runs that print it."""
     stderr = tmp_path_factory.mktemp("lint") / "STDERR"
     stderr.touch()
-    # name -> (awk arguments, environment): the cases run with their `#: env:` variables
+    # name -> (awk arguments, environment, stdin): the cases run with their `#: env:` variables
+    # and their `#: stdin:` file
     runs = {
-        case.name: (["-v", "STDERR=/dev/null", "-f", SCRIPT, *case.args], case.env)
+        case.name: (["-v", "STDERR=/dev/null", "-f", SCRIPT, *case.args], case.env, case.stdin)
         for case in CASES
-    } | {path.stem: (unit_args(path, stderr), {}) for path in UNIT_FILES}
+    } | {path.stem: (unit_args(path, stderr), {}, b"") for path in UNIT_FILES}
     found: defaultdict[LintWarning, set[str]] = defaultdict(set)
-    for name, (args, env) in runs.items():
-        proc = gawk("--lint", *args, env=env)
+    for name, (args, env, stdin) in runs.items():
+        proc = gawk("--lint", *args, env=env, stdin=stdin)
         out = proc.stderr.decode(errors="replace").replace(str(stderr), "STDERR")
         if "fatal:" in out:
             pytest.fail(f"{name}: gawk failed\n{out}", pytrace=False)
