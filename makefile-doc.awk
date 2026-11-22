@@ -1520,51 +1520,42 @@ function get_associated_section_data(anchor_name,
   return "" # means that there is no section data associated with this anchor
 }
 
-# return the text that displays the values of a substitution
+# Return the text that follows the doc of an anchor: the values of its SUB substitution
+# (with the parameters in SUB_PARAMS_CURRENT), then a newline. Each value is made into an
+# item (P before it, S after it, I before the first one, T after the last one instead of S);
+# the items are on one line (M=0) or on one line each (M=1). The first line follows the doc
+# (L=0) or starts on the next line (L=1).
 function display_substitutions(anchor, len_anchors, #locals
-                               k, n, L, M, I, value_parts,
-                               cond_indent, indentation, text, output) {
-  output = ""
-  split(array_get(SUB_VALUES, anchor), value_parts, " ")
-
-  if (SUB_PARAMS_CURRENT["N"] < 0) {
-    n = length_array_posix(value_parts)
-  } else {
-    n = min(SUB_PARAMS_CURRENT["N"], length_array_posix(value_parts))
+                               values, n, k, item, lines, n_lines, indentation, output) {
+  n = split(array_get(SUB_VALUES, anchor), values, " ")
+  if (SUB_PARAMS_CURRENT["N"] >= 0) {
+    n = min(n, SUB_PARAMS_CURRENT["N"])
+  }
+  if (n == 0) {
+    return "\n"
   }
 
+  n_lines = 0
   for (k = 1; k <= n; k++) {
-    L = SUB_PARAMS_CURRENT["L"]
-    M = SUB_PARAMS_CURRENT["M"]
-    I = SUB_PARAMS_CURRENT["I"]
-
-    # -----------------------------
-    # NO INDENT: !M && !L
-    #    INDENT: !M &&  L && k == 1
-    # NO INDENT: !M &&  L && k  > 1
-    # NO INDENT:  M && !L && k == 1
-    #    INDENT:  M && !L && k  > 1
-    #    INDENT:  M &&  L
-    # -----------------------------
-    # the + 1 assumes the usual space after the token (as in `## doc`), so that the values
-    # line up with the text of the doc
-    indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
-    cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
-    text = sprintf("%s%s%s%s%s%s%s",
-                   repeated_string("", cond_indent ? indentation : 1),
-                   k == 1 ? I : "",
-                   SUB_PARAMS_CURRENT["P"],
-                   value_parts[k],
-                   k == n ? "" : SUB_PARAMS_CURRENT["S"],
-                   k == n ? SUB_PARAMS_CURRENT["T"] : "",
-                   M || (!M && k == n) ? "\n" : "")
-    output = output colorize_description_backticks(apply_output_specific_formatting(text))
+    item = (k == 1 ? SUB_PARAMS_CURRENT["I"] : "") SUB_PARAMS_CURRENT["P"] values[k] \
+           (k < n ? SUB_PARAMS_CURRENT["S"] : SUB_PARAMS_CURRENT["T"])
+    item = colorize_description_backticks(apply_output_specific_formatting(item))
+    if (SUB_PARAMS_CURRENT["M"] || k == 1) {
+      lines[++n_lines] = item
+    } else {
+      lines[n_lines] = lines[n_lines] " " item
+    }
   }
 
-  if (!SUB_PARAMS_CURRENT["L"] && n == 0) {
-    output = output "\n"
+  # the + 1 assumes the usual space after the token (as in `## doc`), so that the values
+  # line up with the text of the doc
+  indentation = repeated_string("", len_anchors + OFFSET + 1)
+  output = (SUB_PARAMS_CURRENT["L"] ? "\n" indentation : " ") lines[1]
+  for (k = 2; k <= n_lines; k++) { # (aligned with the first value, after I)
+    output = output "\n" indentation repeated_string("", length(SUB_PARAMS_CURRENT["I"])) \
+             lines[k]
   }
-  return output
+  return output "\n"
 }
 
 # Display an anchor (if show is true) with its doc, its section and the values of its SUB
@@ -1609,11 +1600,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, col
       formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
     }
 
-    output = sprintf("%s%s%s%s",
-                     formatted_anchor,
-                     description,
-                     SUB_PARAMS_CURRENT["L"] ? "\n" : "",
-                     display_substitutions(anchor, len_anchors))
+    output = formatted_anchor description display_substitutions(anchor, len_anchors)
     append_output(strip_trailing_blanks(output))
   }
 }
