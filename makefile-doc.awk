@@ -72,9 +72,9 @@
 #     a third argument (an array that stores the groups) and have to fall-back to using
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
 #     %* patterns, some regex features etc.
-#   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS and
-#     VARIABLES, each with an associated *_INDEX integer variable (the next free index), and
-#     to DSUB_NAMES, whose number of elements is DSUB_COUNT.
+#   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
+#     VARIABLES and ANCHOR_ORDER, each with an associated *_INDEX integer variable (the next
+#     free index), and to DSUB_NAMES, whose number of elements is DSUB_COUNT.
 #
 # Structure of this file (each part starts with a banner):
 #   1. General helpers
@@ -335,9 +335,14 @@ function init_globals() {
   # map target name to the tag of its doc (##, ##! or ##%)
   split("", TARGETS_TAG)
 
-  # map target name to section data
-  # a section uses a target / variable as an anchor
+  # map target name to section data (set by place_sections, when rendering)
   split("", TARGETS_SECTION_DATA)
+
+  # the anchors in the order in which they get docs (redefinitions included), across targets
+  # and variables: kind SUBSEP name, with the section just before them (see place_sections)
+  split("", ANCHOR_ORDER)
+  ANCHOR_ORDER_INDEX = 1
+  split("", SECTION_BEFORE)
 
   # the index for the next double-colon rule with description (the key doesn't include ~k)
   split("", TARGETS_DC_COUNTER)
@@ -1151,13 +1156,9 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_index,
                                     anchors_description_data,
                                     anchors_tags,
-                                    anchors_section_data,
                                     anchor_type, #locals
-                                    tag, shown, k) {
+                                    tag, k) {
   tag = get_tag_from_description(DESCRIPTION_DATA[1]) # the tag of the first line decides
-  # a hidden anchor (a variable with VARS=0, a deprecated one with DEPRECATED=0) does not
-  # take the pending section: it is kept for the next displayed anchor
-  shown = !(anchor_type == "variable" && !VARS) && !(!DEPRECATED && tag == "##%")
   if (anchor_name in anchors_description_data) {
     add_warning(anchor_type, sprintf("[%s:%s] redefined docs of %s: %s",
                                      CURRENT_FILE, FNR, anchor_type, anchor_name))
@@ -1174,16 +1175,13 @@ function associate_data_with_anchor(anchor_name,
   anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
   forget_descriptions_data()
 
-  # note that section data is associated only with documented anchors that are displayed
-  if (shown && length_array_posix(SECTION_DATA) > 0) {
-    if (anchor_name in anchors_section_data) {
-      add_warning(anchor_type, sprintf("[%s:%s] redefined associated section data: %s",
-                                       CURRENT_FILE, FNR, anchor_name))
-    }
-
-    anchors_section_data[anchor_name] = assemble_description_section_data(SECTION_DATA)
+  # the file order, with the pending section (placed by place_sections, when rendering)
+  ANCHOR_ORDER[ANCHOR_ORDER_INDEX] = anchor_type SUBSEP anchor_name
+  if (length_array_posix(SECTION_DATA) > 0) {
+    SECTION_BEFORE[ANCHOR_ORDER_INDEX] = assemble_description_section_data(SECTION_DATA)
     forget_section_data()
   }
+  ANCHOR_ORDER_INDEX++
 
   return anchors_index
 }
@@ -1358,7 +1356,6 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
                                                TARGETS_TAG,
-                                               TARGETS_SECTION_DATA,
                                                "target")
   }
 
@@ -1378,7 +1375,6 @@ $0 ~ VARIABLES_REGEX {
                                                  VARIABLES_INDEX,
                                                  VARIABLES_DESCRIPTION_DATA,
                                                  VARIABLES_TAG,
-                                                 VARIABLES_SECTION_DATA,
                                                  "variable")
   }
 
@@ -1589,8 +1585,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, col
                                   renamed_anchor, formatted_anchor, padding, output) {
   extract_substitution_params(array_get(SUB_PARAMS, anchor))
 
-  # a section is displayed only with its anchor (a hidden anchor has a section only if it
-  # was redefined with a deprecated doc, see associate_data_with_anchor)
+  # (only displayed anchors have a section, see place_sections)
   if (show) {
     if (section) {
       if (COLOR_SECTION_CODE) {
@@ -1646,6 +1641,32 @@ function print_anchors(anchors, description_data, tags, section_data, max_anchor
   }
 }
 
+# Give each section to the next displayed anchor after it in the Makefiles (TARGETS_SECTION_DATA
+# and VARIABLES_SECTION_DATA). Hidden anchors (variables with VARS=0, deprecated anchors with
+# DEPRECATED=0) are skipped, sections with no displayed anchor after them are dropped, and
+# consecutive sections are merged. A later section of the same anchor replaces an earlier one.
+function place_sections(    k, parts, name, has_section, section) {
+  has_section = 0
+  for (k = 1; k < ANCHOR_ORDER_INDEX; k++) {
+    if (k in SECTION_BEFORE) {
+      section = has_section ? section "\n" SECTION_BEFORE[k] : SECTION_BEFORE[k]
+      has_section = 1
+    }
+    split(ANCHOR_ORDER[k], parts, SUBSEP)
+    name = parts[2]
+    if (!has_section) {
+      continue
+    }
+    if (parts[1] == "target" && !is_hidden_anchor(name, TARGETS_TAG)) {
+      TARGETS_SECTION_DATA[name] = section
+      has_section = 0
+    } else if (parts[1] == "variable" && VARS && !is_hidden_anchor(name, VARIABLES_TAG)) {
+      VARIABLES_SECTION_DATA[name] = section
+      has_section = 0
+    }
+  }
+}
+
 # add text to the documentation (OUTPUT_BODY, printed by print_documentation)
 function append_output(text) {
   OUTPUT_BODY = OUTPUT_BODY text
@@ -1661,6 +1682,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   separator = get_separator("-", max_anchor_length)
   OUTPUT_BODY = ""
   print_warnings() # (on stderr, before the docs)
+  place_sections()
 
   # process targets
   if (max_target_length > 0) {

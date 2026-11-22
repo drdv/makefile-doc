@@ -1,0 +1,9 @@
+##@ Build
+## Compile
+build:
+
+##% Use `make` instead (the section moves to the next displayed target)
+build:
+
+## Run the tests
+test:
