@@ -7,7 +7,9 @@ from typing import Self
 
 import pytest
 from platforms import ROOT, SCRIPT, VERSION, Awk
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
+
+META_KEYS = {"desc", "issue", "bug", "env"}  # the keys of the `#:` lines (see test/README.md)
 
 
 class Case(BaseModel):
@@ -20,6 +22,14 @@ class Case(BaseModel):
     meta: dict[str, list[str]]  # the `#: key: value` lines at the start
     args: tuple[str, ...]  # the awk arguments (the line is in shell syntax)
     expected: str  # the expected output
+
+    @model_validator(mode="after")
+    def check_meta(self) -> Self:
+        if unknown := sorted(self.meta.keys() - META_KEYS):
+            raise ValueError(f"{self.path.name}: unknown metadata: {', '.join(unknown)}")
+        if not any(self.meta.get("desc", [])):
+            raise ValueError(f"{self.path.name}: needs a non-empty `#: desc:` line")
+        return self
 
     @classmethod
     def read(cls, path: Path) -> Self:
