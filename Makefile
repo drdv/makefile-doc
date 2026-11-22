@@ -111,24 +111,38 @@ clean-bin:
 	@rm -rf $(TEST_DIR)/bin
 
 # --------------------------------------------------------------------------
-# Internal stuff
+# Internal stuff (demo)
 # --------------------------------------------------------------------------
+OUT_DIR := out
 DEMO := misc/Makefile.demo
 DEMO_FLAGS := -v EXPORT_THEME=BG:000000,FG:F7F7F7
+DEMO_DIR := $(OUT_DIR)/demo
+DEMO_DPI := 300
 
-demo.html: $(DEMO) $(MAKEFILE_DOC)
-	@$(AWK) $(DEMO_FLAGS) -v OUTPUT_FORMAT=html -f $(MAKEFILE_DOC) $(DEMO) > $@
+# out/demo/demo.{html,tex}, and out/demo/ENGINE/demo.{pdf,svg,png} for each LaTeX engine
+DEMO_PDFS := $(DEMO_DIR)/tectonic/demo.pdf $(DEMO_DIR)/pdflatex/demo.pdf
+DEMO_SVGS := $(DEMO_PDFS:.pdf=.svg)
+DEMO_PNGS := $(DEMO_PDFS:.pdf=.png)
 
-demo.pdf: %.pdf : $(DEMO) $(MAKEFILE_DOC)
-	@$(AWK) $(DEMO_FLAGS) -v OUTPUT_FORMAT=latex -f $(MAKEFILE_DOC) $(DEMO) > $*.tex
-	@tectonic $*.tex
-	@rm -f $*.tex
+.PHONY: demo-all
+demo-all: $(DEMO_DIR)/demo.html $(DEMO_SVGS) $(DEMO_PNGS)
 
-demo.svg: %.svg : %.pdf
+$(DEMO_DIR)/demo.html: FORMAT := html
+$(DEMO_DIR)/demo.tex: FORMAT := latex
+$(DEMO_DIR)/demo.html $(DEMO_DIR)/demo.tex: $(DEMO) $(MAKEFILE_DOC)
+	@mkdir -p $(@D)
+	@$(AWK) $(DEMO_FLAGS) -v OUTPUT_FORMAT=$(FORMAT) -f $(MAKEFILE_DOC) $(DEMO) > $@
+
+$(DEMO_DIR)/tectonic/demo.pdf: $(DEMO_DIR)/demo.tex
+	@mkdir -p $(@D)
+	@tectonic --outdir $(@D) $<
+
+$(DEMO_DIR)/pdflatex/demo.pdf: $(DEMO_DIR)/demo.tex
+	@mkdir -p $(@D)
+	@pdflatex -interaction=nonstopmode -halt-on-error -output-directory=$(@D) $< > /dev/null
+
+$(DEMO_SVGS): %.svg: %.pdf
 	@pdftocairo -svg $< $@
-	@rm -f $<
 
-demo.png: DPI := 300
-demo.png: %.png : %.pdf
-	@magick -density $(DPI) $< -quality 90 $@
-	@rm -f $<
+$(DEMO_PNGS): %.png: %.pdf
+	@magick -density $(DEMO_DPI) $< -quality 90 $@

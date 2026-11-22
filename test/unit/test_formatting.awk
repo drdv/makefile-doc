@@ -195,13 +195,17 @@ function test_ansi_color_param_to_html_style() {
         "  .makefile-doc-backticks { font-weight: bold; }\n")
   check("ansi_color_param_to_html_style: no rule without a color",
         ansi_color_param_to_html_style(0, "SECTION"), "")
-  check("ansi_color_param_to_html_style: FG not set",
-        ansi_color_param_to_html_style("FG", "FG"), "")
+  check("html_box_style: without FG and BG",
+        html_box_style(), "  .makefile-doc { display: inline-block; }\n")
 
   setup_colors("HTML", "BG:000000")
-  check("ansi_color_param_to_html_style: BG",
-        ansi_color_param_to_html_style("BG", "BG"),
-        "  .makefile-doc { background-color: #000000; }\n")
+  check("html_box_style: BG",
+        html_box_style(), "  .makefile-doc { display: inline-block; background-color: #000000; }\n")
+
+  setup_colors("HTML", "FG:ffffff,BG:000000")
+  check("html_box_style: FG and BG",
+        html_box_style(),
+        "  .makefile-doc { display: inline-block; color: #ffffff; background-color: #000000; }\n")
 
   setup_colors("", "")
 }

@@ -7,8 +7,7 @@
   .makefile-doc-deprecated { text-decoration: underline; }
   .makefile-doc-default { color: #7c3f00; }
   .makefile-doc-backticks { text-decoration: line-through; }
-  .makefile-doc { color: #000000; }
-  .makefile-doc { background-color: #AAAAAA; }
+  .makefile-doc { display: inline-block; color: #000000; background-color: #AAAAAA; }
 </style>
 <div class="makefile-doc">
 <pre>

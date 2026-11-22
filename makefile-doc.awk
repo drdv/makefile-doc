@@ -733,8 +733,7 @@ function initialize_colors() {
         ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
         ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
         ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
-        ansi_color_param_to_html_style("FG", "FG") \
-        ansi_color_param_to_html_style("BG", "BG") \
+        html_box_style() \
         "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
   } else if (OUTPUT_FORMAT == "LATEX") {
     OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
@@ -897,20 +896,9 @@ function html_class(label) {
   return "makefile-doc-" tolower(label)
 }
 
-# Return the CSS rule (one line) for a color option, or "" if there is nothing to style.
-# Here ansi_color_param is a normal ANSI color param, e.g., 30-37, but it could as well be
-# "FG" or "BG": these style the whole output (the element with the class makefile-doc).
+# Return the CSS rule (one line) for a color option, or "" if there is nothing to style
 function ansi_color_param_to_html_style(ansi_color_param, label, #locals
                                         attr) {
-  if (ansi_color_param == "FG" || ansi_color_param == "BG") {
-    if (ANSI_PARAM_COLOR[ansi_color_param] == -1) {
-      return ""
-    }
-    return sprintf("  .makefile-doc { %s: #%s; }\n",
-                   ansi_color_param == "FG" ? "color" : "background-color",
-                   ANSI_PARAM_COLOR[ansi_color_param])
-  }
-
   if (ansi_color_param && ansi_color_param in ANSI_PARAM_COLOR) {
     attr = ANSI_TO_HTML_ATTR[ansi_color_param]
     return sprintf("  .%s { %s: %s%s; }\n",
@@ -921,6 +909,20 @@ function ansi_color_param_to_html_style(ansi_color_param, label, #locals
   }
 
   return ""
+}
+
+# Return the CSS rule (one line) of the whole output (the element with the class
+# makefile-doc): as wide as its text (a div is as wide as the page by default, which shows
+# with a background color), with the colors FG and BG of EXPORT_THEME if they are set
+function html_box_style(    style) {
+  style = "display: inline-block;"
+  if (ANSI_PARAM_COLOR["FG"] != -1) {
+    style = style " color: #" ANSI_PARAM_COLOR["FG"] ";"
+  }
+  if (ANSI_PARAM_COLOR["BG"] != -1) {
+    style = style " background-color: #" ANSI_PARAM_COLOR["BG"] ";"
+  }
+  return "  .makefile-doc { " style " }\n"
 }
 
 function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
