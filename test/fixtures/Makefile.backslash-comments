@@ -1,76 +1,54 @@
-## 1234 5678\
-1234 5678\
-maybe we should allow this for form top docs in the future\
-1234 5678
-t-no-docs: # This will not have docs
+	## A doc indented with a tab (outside a rule) \
+continued
+t-tab:
 
-## 1234 5678\
-1234 5678\
-1234 5678\
-1234 5678
-t-with-docs: ## Include in the docs because of the inline description
+ 	## A doc indented with a space and a tab \
+continued
+t-space-tab:
 
-## 987
-vvv0 := 1 ## 0
-z0:
-	@echo $(vvv1)
+## A doc continued \
+on the next line
+t-joined:
 
-## 987\
-vvv1 := 1 ## 1
-z1:
-	@echo $(vvv1)
+## A doc continued   \
+   with blanks around the \
+	backslash-newline
+t-blanks:
 
-## 987\\
-vvv2 := 1 ## 2
-z2:
-	@echo $(vvv2)
+## A doc that ends with two backslashes (not continued) \\
+t-two-backslashes:
 
-## 987\\\
-vvv3 := 1 ## 3
-z3:
-	@echo $(vvv3)
+## A doc that ends with three backslashes (continued) \\\
+on the next line
+t-three-backslashes:
 
-## 987\\\\
-vvv4 := 1 ## 4
-z4:
-	@echo $(vvv4)
+## A continued doc swallows the next line, a target \
+t-swallowed:
+t-after-target:
 
-## 987\\\\\
-vvv5 := 1 ## 5
-z5:
-	@echo $(vvv5)
+## A continued doc swallows the next line, a variable \
+V_SWALLOWED := 1 ## part of the doc above
+t-after-variable:
 
-## Spaces\ \
-sss2 := 1 ## 2
-s2:
-	@echo $(sss2)
+## A doc kept above a continued plain comment
+# a plain comment \
+continued
+t-plain-comment:
 
-## Spaces\ \   \ \
-sss3 := 1 ## 3
-s3:
-	@echo $(sss3)
+##@ A section \
+continued
+## A doc below the section
+t-section:
 
-## should ignore this comment and the variable
-## which is a part of the above recipe
-	BAD := 1
+## A doc \
+## continued with a doc line
+t-doc-doc:
 
-z6: X:=1
-z6: Y:=2
-z6: Z:=3
-z6:
+t-rule:
 	@echo 1
 
-# stuff \
-more stuff
+## In a rule, this is a recipe line, not a variable: the doc above is discarded
+	V_RECIPE := 1
 
-	@echo 1
-
-#S:=1
-
-## kkk
-	@yes: ## BAD
-
-## stuff \
-more stuff\
-## d|
-BAD := 1
+## In a rule, this is a recipe line, not a target
+	@yes: ## not a doc

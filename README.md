@@ -133,6 +133,9 @@ The remaining details:
 - In a multi-line doc, only the first line needs the `##!` or `##%` token; the other lines can start
   with `##`.
 - Deprecated anchors (`##%`) can be hidden with `-v DEPRECATED=0`.
+- As in GNU Make, a doc or a comment that ends with a backslash continues on the next line,
+  whatever that line is: the two are joined with a space. For example, a target on the next
+  line becomes part of the doc (Make does not see the target either).
 - On a target line, a `##` after an inline recipe (`target: ; command ## text`) is part of the
   recipe, not a doc.
 - Docs and sections can be indented with spaces or tabs. In a rule, a line that starts with the

@@ -1,15 +1,19 @@
-#: desc: A comment ending with an odd number of backslashes continues on the next line
+#: desc: A comment continued with a backslash (a doc too) is joined with the next line
 -v COLOR=0 test/fixtures/Makefile.backslash-comments
 #: stdout
 -----------------------
 Available targets:
 -----------------------
-t-with-docs   Include in the docs because of the inline description
-
------------------------
-Command-line arguments:
------------------------
-vvv0          987
-vvv2          987\\
-vvv4          987\\\\
+t-tab                 A doc indented with a tab (outside a rule) continued
+t-space-tab           A doc indented with a space and a tab continued
+t-joined              A doc continued on the next line
+t-blanks              A doc continued with blanks around the backslash-newline
+t-two-backslashes     A doc that ends with two backslashes (not continued) \\
+t-three-backslashes   A doc that ends with three backslashes (continued) \\ on the next line
+t-after-target        A continued doc swallows the next line, a target t-swallowed:
+t-after-variable      A continued doc swallows the next line, a variable V_SWALLOWED := 1 ## part of the doc above
+t-plain-comment       A doc kept above a continued plain comment
+ A section continued
+t-section             A doc below the section
+t-doc-doc             A doc ## continued with a doc line
 -----------------------

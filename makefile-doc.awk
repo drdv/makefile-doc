@@ -349,12 +349,11 @@ function init_globals() {
 }
 
 # The parser state that must not be carried over from one Makefile to the next: a doc, a
-# rule, a continued line, recipe or comment at the end of a file ends with that file.
+# rule, a continued line or recipe at the end of a file ends with that file.
 # Pending section data is kept on purpose (a section is anchored to the next documented
 # anchor, which can be in the next file).
 function reset_file_state() {
   forget_descriptions_data()
-  IN_MULTILINE_BACKSLASH_COMMENT = 0
   IN_MULTILINE_BACKSLASH_RECIPE = 0
   IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
   CONTINUED_LINE = ""
@@ -1157,8 +1156,7 @@ BEGIN {
 #   Kind of line                                Pending docs       The line is
 #   ------------------------------------------  -----------------  -------------------------
 #   continuation of a line ending in \          -                  joined to it, then parsed
-#   comment continued with \ (all its lines)    kept               skipped
-#   line ending in \ (not a recipe, comment)    -                  stored for the next line
+#   line ending in \ (not a recipe line)        -                  stored for the next line
 #   recipe line                                 discarded (1)      skipped
 #   comment banner (###...)                     discarded          skipped
 #   doc (##, ##!, ##%)                          extended           added to the pending docs
@@ -1194,27 +1192,15 @@ FNR == 1 {
   }
 }
 
-# A line continued with a backslash (outside recipes and comments) is joined with the next
-# one, as in GNU Make: the backslash, the newline and the whitespace around them become one
-# space. The rules below then see the whole logical line.
+# A line continued with a backslash (a comment too, but not a recipe line) is joined with
+# the next one, as in GNU Make: the backslash, the newline and the whitespace around them
+# become one space. The rules below then see the whole logical line, e.g., a doc continued
+# with a backslash is one doc line, whatever the next line is.
 IN_CONTINUED_LINE {
   g_continuation = $0
   sub(/^[ \t]+/, "", g_continuation)
   $0 = CONTINUED_LINE " " g_continuation
   IN_CONTINUED_LINE = 0
-}
-
-# Skip backslash multiline comments
-IN_MULTILINE_BACKSLASH_COMMENT ||
-    # lint: ignore[substr: start index] (the last character of an empty line is "")
-    (substr($0, length($0)) == "\\" && /^ *#/ && has_odd_terminal_backslashes($0)) {
-  if (!IN_MULTILINE_BACKSLASH_COMMENT) {
-    IN_MULTILINE_BACKSLASH_COMMENT = 1
-  } else if (!has_odd_terminal_backslashes($0)) {
-    IN_MULTILINE_BACKSLASH_COMMENT = 0
-  }
-
-  next
 }
 
 # (RECIPEPREFIX is a single character)
