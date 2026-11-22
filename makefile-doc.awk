@@ -21,7 +21,7 @@
 #       ##!  an anchor that needs attention (displayed in COLOR_ATTENTION)
 #       ##%  a deprecated anchor (displayed in COLOR_DEPRECATED)
 #   * Lines that start with ##@ form a section (displayed in COLOR_SECTION, above the next
-#     documented anchor).
+#     displayed anchor).
 
 #### Options
 #   Passed with -v OPTION=value. print_help() lists them (run the script with an empty
@@ -46,9 +46,11 @@
 #     a third argument (an array that stores the groups) and have to fall-back to using
 #     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
 #     %* patterns, some regex features etc.
-#   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
-#     VARIABLES and ANCHOR_ORDER, each with an associated *_INDEX integer variable (the next
-#     free index), and to DSUB_NAMES, whose number of elements is DSUB_COUNT.
+#   * awk arrays are associative: `for (key in array)` visits the keys in no defined order.
+#     To store elements in a desired order, we use the keys 1, 2, 3, ... and keep an
+#     additional variable that marks the end of the array: *_INDEX, the next free key (e.g.,
+#     ANCHOR_ORDER_INDEX), or *_COUNT, the number of elements (e.g., WARNING_COUNT). The
+#     elements are then read in order with a loop from 1 to that end.
 
 #### Structure of the code
 #   Helpers                pure functions (no global variables)
@@ -142,7 +144,7 @@ function length_array_posix(array, #locals
   return n
 }
 
-# join the elements of an array produced by split()
+# join the elements 1..n of an array (e.g., one produced by split())
 function join(array, delimiter, #locals
               string, k, n_elements) {
   string = ""
@@ -958,7 +960,7 @@ function escape_for_latex_output(text, #locals
   return text
 }
 
-# formatting functions to be applied just before colors have been added
+# the escapes of the output format (HTML or LaTeX), applied before the colors are added
 function apply_output_specific_formatting(text) {
   return escape_for_latex_output(escape_for_html_output(text))
 }
@@ -1126,17 +1128,17 @@ function associate_data_with_anchor(anchor_name,
 }
 
 # Each input line goes through the rules below, in this order, until a rule that fully
-# handles it ends with `next`. The cheap tests come first (a comparison of one character
-# before a regex or a function call). "Pending docs" are the doc lines seen since the last
-# anchor: they are waiting for the target or variable they document.
+# handles it ends with `next`. The order matters, e.g., recipe lines are tested before docs,
+# so that a ## in a recipe is not a doc. "Pending docs" are the doc lines seen since the
+# last anchor: they are waiting for the target or variable they document.
 #
 #   Kind of line                                Pending docs       The line is
 #   ------------------------------------------  -----------------  -------------------------
 #   continuation of a line ending in \          -                  joined to it, then parsed
 #   line ending in \ (not a recipe line)        -                  stored for the next line
-#   recipe line                                 discarded (1)      skipped
-#   comment banner (###...)                     discarded          skipped
-#   doc (##, ##!, ##%)                          extended           added to the pending docs
+#   recipe line (and its \ continuations)       discarded (1)      skipped
+#   comment banner (only ###...)                discarded          skipped
+#   doc (## not followed by @)                  extended           added to the pending docs
 #   blank line                                  kept               skipped
 #   section (##@)                               kept               saved (pending section)
 #   conditional (ifeq, ..., endif)              kept               skipped
