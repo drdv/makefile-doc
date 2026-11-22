@@ -90,7 +90,11 @@ function test_validate_substitution_params() {
         stderr_text(),
         "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n" \
         "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n")
-  check("validate_substitution_params: every error is counted", OPTION_ERRORS, 5)
+  validate_substitution_params("t", "L:0,M:1,L:1")
+  check("validate_substitution_params: a repeated parameter",
+        stderr_text(),
+        "ERROR: SUB: parameter L of t is given more than once\n")
+  check("validate_substitution_params: every error is counted", OPTION_ERRORS, 6)
 }
 
 function test_extract_substitution_params() {
@@ -202,7 +206,10 @@ function test_validate_dsub_params() {
   validate_dsub_params("x", "D:0")
   check("validate_dsub_params: replaced nowhere",
         stderr_text(), "ERROR: DSUB: x is replaced nowhere (A and D are both 0)\n")
-  check("validate_dsub_params: every invalid parameter is counted", OPTION_ERRORS, 3)
+  validate_dsub_params("x", "A:1, A :1")
+  check("validate_dsub_params: a repeated parameter",
+        stderr_text(), "ERROR: DSUB: parameter A of x is given more than once\n")
+  check("validate_dsub_params: every invalid parameter is counted", OPTION_ERRORS, 4)
   init_globals()
 }
 
