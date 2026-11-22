@@ -269,11 +269,7 @@ function init_globals() {
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
-  split("", WARNINGS) # the warnings about the Makefiles (see add_warning)
-  split("", WARNING_KINDS)
-  WARNING_COUNT = 0
   OPTION_ERRORS = 0 # number of invalid options (see option_error)
-  DSUB_COUNT = 0 # number of DSUB substitutions (set by process_options)
 
   FS = ":" # set the field separator
 
@@ -302,53 +298,62 @@ function init_globals() {
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
 
-  # initialize global arrays (i.e., hash tables) for clarity
-  # index variables start from 1 because this is the standard in awk
+  HEADER_TARGETS = "Available targets:"
+  HEADER_VARIABLES = "Command-line arguments:"
+  DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
 
-  # map target name to description
+  # ---------------------------------------------------------------------------------------
+  # The interface between parsing and rendering: written while parsing (see
+  # associate_data_with_anchor and add_warning), read when rendering (see
+  # print_documentation). An *_INDEX is the next free index of its array.
+  # ---------------------------------------------------------------------------------------
+
+  # the documented anchors, in the order of their first definition: index -> name
+  split("", TARGETS)
+  TARGETS_INDEX = 1
+  split("", VARIABLES)
+  VARIABLES_INDEX = 1
+
+  # name -> doc (its lines without their tags, joined by \n; the last definition wins)
   split("", TARGETS_DESCRIPTION_DATA)
+  split("", VARIABLES_DESCRIPTION_DATA)
 
-  # map target name to the tag of its doc (##, ##! or ##%)
+  # name -> tag of the doc (##, ##! or ##%)
   split("", TARGETS_TAG)
-
-  # map target name to section data (set by place_sections, when rendering)
-  split("", TARGETS_SECTION_DATA)
+  split("", VARIABLES_TAG)
 
   # the anchors in the order in which they get docs (redefinitions included), across targets
-  # and variables: kind SUBSEP name, with the section just before them (see place_sections)
+  # and variables: index -> kind SUBSEP name; and index -> the section just before (if any)
   split("", ANCHOR_ORDER)
   ANCHOR_ORDER_INDEX = 1
   split("", SECTION_BEFORE)
 
-  # the index for the next double-colon rule with description (the key doesn't include ~k)
-  split("", TARGETS_DC_COUNTER)
+  # the warnings about the Makefiles: index -> message and kind (see add_warning)
+  split("", WARNINGS)
+  split("", WARNING_KINDS)
+  WARNING_COUNT = 0
 
-  # map index to target name (order is important)
-  split("", TARGETS)
-  TARGETS_INDEX = 1
+  FILES_PROCESSED = "" # the names of the files read, separated by spaces
 
-  # map index to line in description data (to be associated with the next anchor)
+  # ---------------------------------------------------------------------------------------
+  # The state of the parser (and of the current file, see reset_file_state)
+  # ---------------------------------------------------------------------------------------
+
+  # the lines of the pending doc and section (to be associated with the next anchor)
   split("", DESCRIPTION_DATA)
   DESCRIPTION_DATA_INDEX = 1
-
-  # map index to line in section data (to be associated with the next anchor)
   split("", SECTION_DATA)
   SECTION_DATA_INDEX = 1
 
-  # map variable name to description
-  split("", VARIABLES_DESCRIPTION_DATA)
+  # the index for the next double-colon rule with description (the key doesn't include ~k)
+  split("", TARGETS_DC_COUNTER)
 
-  # map variable name to the tag of its doc
-  split("", VARIABLES_TAG)
+  CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
 
-  # map variable name to section
-  split("", VARIABLES_SECTION_DATA)
+  # ---------------------------------------------------------------------------------------
+  # The settings of SUB and DSUB (set by process_options) and the state of the rendering
+  # ---------------------------------------------------------------------------------------
 
-  # map index to variable name
-  split("", VARIABLES)
-  VARIABLES_INDEX = 1
-
-  # the substitutions of the options SUB and DSUB (set by process_options)
   split("", SUB_PARAMS)
   split("", SUB_LABELS)
   split("", SUB_VALUES)
@@ -357,16 +362,12 @@ function init_globals() {
   split("", DSUB_NAMES)
   split("", DSUB_IN_ANCHORS)
   split("", DSUB_IN_DOCS)
+  DSUB_COUNT = 0 # number of DSUB substitutions
+
+  # name -> section (set by place_sections)
+  split("", TARGETS_SECTION_DATA)
+  split("", VARIABLES_SECTION_DATA)
   split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
-
-
-  HEADER_TARGETS = "Available targets:"
-  HEADER_VARIABLES = "Command-line arguments:"
-  CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
-  FILES_PROCESSED = "" # the names of the files read, separated by spaces
-
-  # used to decorate double-colon targets in the documentation
-  DOUBLE_COLON_SEPARATOR = "~"
 
   reset_file_state()
 }
