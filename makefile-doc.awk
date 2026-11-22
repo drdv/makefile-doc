@@ -286,6 +286,13 @@ function init_globals() {
   # `::=` are not taken for rule separators.
   TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
 
+  # The special built-in targets of GNU Make (see is_special_target). Suffix rules, which
+  # GNU Make also counts as special targets, are not among them: they are displayed.
+  SPECIAL_TARGETS_REGEX = "^[ \t]*\\.(PHONY|SUFFIXES|DEFAULT|PRECIOUS|INTERMEDIATE|" \
+                          "NOTINTERMEDIATE|SECONDARY|SECONDEXPANSION|DELETE_ON_ERROR|" \
+                          "IGNORE|LOW_RESOLUTION_TIME|SILENT|EXPORT_ALL_VARIABLES|" \
+                          "NOTPARALLEL|ONESHELL|POSIX)[ \t]*:"
+
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
 
@@ -1044,10 +1051,11 @@ function parse_inline_descriptions(whole_line, is_variable, #locals
   }
 }
 
-# True for a line of a special target, e.g., `.PHONY: t` or `.ONESHELL:` (a dot followed by
-# upper-case letters). These lines are skipped and the docs above them are kept.
-function detect_ignored_targets(target_line) {
-  return target_line ~ /^[ \t]*\.[A-Z_]+[ \t]*:/
+# True for a line of a special built-in target of GNU Make, e.g., `.PHONY: t` or
+# `.ONESHELL:` (see SPECIAL_TARGETS_REGEX). These lines are skipped and the docs above them
+# are kept. Other targets whose names start with a dot (e.g., `.ENV:`) are regular targets.
+function is_special_target(target_line) {
+  return target_line ~ SPECIAL_TARGETS_REGEX
 }
 
 # Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`
@@ -1282,7 +1290,7 @@ substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX)
 
 # (a colon inside a reference, as in `$(info a: b)`, is not a rule separator)
 $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
-  if (detect_ignored_targets($0)) {
+  if (is_special_target($0)) {
     next
   }
 
@@ -1339,8 +1347,8 @@ $0 ~ VARIABLES_REGEX {
 
 # Docs are discarded when they are followed by an unrelated line (e.g., a function call,
 # define), so that they do not end up on the next anchor. Comments are not unrelated: the
-# docs above them are kept. (Blank lines, sections, directives, anchors and ignored
-# special targets have been handled above.)
+# docs above them are kept. (Blank lines, sections, directives, anchors and special
+# targets have been handled above.)
 !PATTERN_RULE_MATCHED && $0 !~ /^[ \t]*#/ {
   forget_descriptions_data()
 }

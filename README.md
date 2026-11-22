@@ -123,10 +123,13 @@ A doc goes either **above** its anchor, on one or more lines, or **inline**, aft
 an anchor has both, the doc above is used.
 
 Some lines can appear between a doc and its anchor: blank lines, comments, conditionals (`ifeq` ...
-`endif`) and special targets such as `.PHONY: target` or `.ONESHELL:`. Any other line discards the
-doc: `include`, `vpath`, `define`, an `export` without an assignment, a function call such as
-`$(info ...)`, or a comment banner (a line of three or more `#` only, e.g., `###`). A line such as
-`### text` is not a banner: it is a doc whose text starts with `#`.
+`endif`) and the [special
+targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html) of GNU Make such
+as `.PHONY: target` or `.ONESHELL:` (other targets whose names start with a dot, e.g., `.ENV:`, are
+regular targets). Any other line discards the doc: `include`, `vpath`, `define`, an `export`
+without an assignment, a function call such as `$(info ...)`, or a comment banner (a line of three
+or more `#` only, e.g., `###`). A line such as `### text` is not a banner: it is a doc whose text
+starts with `#`.
 
 The remaining details:
 

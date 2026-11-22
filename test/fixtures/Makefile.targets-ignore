@@ -32,3 +32,6 @@ t6: ## (t6)
 
 ## Create a python venv
 .venv/.sentinel:
+
+## A target named in upper case like a special target is a target
+.ENV:

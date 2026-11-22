@@ -1,4 +1,4 @@
-#: desc: Lines of special targets such as .PHONY are ignored; their docs go to the next target
+#: desc: Lines of the special targets of GNU Make (e.g., .PHONY) are skipped; their docs go to the next target
 -v COLOR=0 test/fixtures/Makefile.targets-ignore
 #: stdout
 -----------------------
@@ -13,4 +13,5 @@ t4                (t4) Ignore .INTERMEDIATE
 t5                (t5) Ignore .INTERMEDIATE and .PRECIOUS
 t6                (t6)
 .venv/.sentinel   Create a python venv
+.ENV              A target named in upper case like a special target is a target
 -----------------------
