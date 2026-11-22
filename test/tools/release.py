@@ -35,7 +35,9 @@ def read_version(name: str, pattern: re.Pattern) -> str:
 
     The pattern is AWK_SCRIPT_VERSION_PATTERN or README_VERSION_PATTERN (group 2 is the version).
     """
-    return pattern.search((ROOT / name).read_text())[2]
+    if m := pattern.search((ROOT / name).read_text()):
+        return m[2]
+    raise ReleaseError(f"no version line in {name}")
 
 
 def write_version(name: str, pattern: re.Pattern, version: str) -> None:
@@ -130,11 +132,11 @@ def check(tag: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description="Manage the version and the releases.")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("notes", help=notes.__doc__.splitlines()[0])
-    commands.add_parser("bump", help=bump.__doc__.splitlines()[0]).add_argument("version")
-    commands.add_parser("check", help=check.__doc__.splitlines()[0]).add_argument("tag")
+    commands.add_parser("notes", help="draft the release notes")
+    commands.add_parser("bump", help="set a new version").add_argument("version")
+    commands.add_parser("check", help="check the tag against the version").add_argument("tag")
     args = parser.parse_args()
 
     try:
