@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: check the version
-        run: python3 test/tools/release.py check "$GITHUB_REF_NAME"
+        run: python3 tools/release.py check "$GITHUB_REF_NAME"
 
       - name: compute the checksum
         run: sha256sum makefile-doc.awk > makefile-doc.awk.sha256

@@ -431,7 +431,7 @@ install: `uv run` sets up Python and the test dependencies on first use. `make h
 targets, e.g., `make check` lints the code and runs all the tests with the system's awk.
 
 See [test/README.md](test/README.md) for how the tests work, how to write new ones, and how known
-bugs are reported and fixed.
+bugs are reported and fixed, and [tools/README.md](tools/README.md) for how a release is made.
 
 ## License
 

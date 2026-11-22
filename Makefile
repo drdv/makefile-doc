@@ -9,7 +9,7 @@ UV_RUN := uv run
 PYTEST := $(UV_RUN) pytest
 RUFF := $(UV_RUN) ruff
 
-RELEASE_CMD := $(UV_RUN) python $(TEST_DIR)/tools/release.py
+RELEASE_CMD := $(UV_RUN) python tools/release.py
 
 ## The new version for `bump`, e.g., `v1.10`
 V :=
@@ -57,9 +57,9 @@ test:
 .PHONY: lint
 lint:
 	@$(PYTEST) $(TEST_DIR)/test_lint.py $(PYTEST_FLAGS)
-	@$(RUFF) check $(TEST_DIR)
-	@$(RUFF) format --check $(TEST_DIR)
-	@$(UV_RUN) mypy $(TEST_DIR)
+	@$(RUFF) check $(TEST_DIR) tools
+	@$(RUFF) format --check $(TEST_DIR) tools
+	@$(UV_RUN) mypy $(TEST_DIR) tools
 
 ## Run `lint` and `test`
 .PHONY: check
@@ -99,10 +99,10 @@ bump:
 ##@------ Clean ------
 ##@
 
-## Remove caches and coverage reports
+## Remove caches, coverage reports and the demo files
 .PHONY: clean
 clean:
-	@rm -rf $(COVER_DIR) .ruff_cache .mypy_cache .pytest_cache
+	@rm -rf $(COVER_DIR) $(OUT_DIR)/demo .ruff_cache .mypy_cache .pytest_cache
 	@find $(TEST_DIR) -type d -name __pycache__ -prune -exec rm -rf {} +
 
 ## Remove the binaries of the host platforms (built again when needed)

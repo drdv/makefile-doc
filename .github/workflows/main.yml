@@ -37,10 +37,10 @@ jobs:
       - name: lint the awk code while running the tests (and check its global variables)
         run: uv run pytest test/test_lint.py
 
-      - name: lint the Python test tools
+      - name: lint the Python test tools and the release tool
         run: |
-          uv run ruff check test
-          uv run ruff format --check test
+          uv run ruff check test tools
+          uv run ruff format --check test tools
 
   # the platforms of test/containers.toml with `ci = true`: the matrix of the next job
   platforms:
