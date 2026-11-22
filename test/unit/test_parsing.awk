@@ -149,27 +149,40 @@ function test_has_unclosed_reference() {
   check("has_unclosed_reference: empty text", has_unclosed_reference(""), 0)
 }
 
-function test_detect_ignored_targets() {
+function test_is_special_target() {
   init_globals()
-  check("detect_ignored_targets: .PHONY", detect_ignored_targets(".PHONY: t"), 1)
-  check("detect_ignored_targets: .SILENT", detect_ignored_targets(".SILENT: t"), 1)
-  check("detect_ignored_targets: .IGNORE", detect_ignored_targets(".IGNORE: t"), 1)
-  check("detect_ignored_targets: .SECONDARY", detect_ignored_targets(".SECONDARY: t"), 1)
-  check("detect_ignored_targets: .INTERMEDIATE", detect_ignored_targets(".INTERMEDIATE: t"), 1)
-  check("detect_ignored_targets: .PRECIOUS", detect_ignored_targets(".PRECIOUS: t"), 1)
-  check("detect_ignored_targets: leading whitespace and spaces before :",
-        detect_ignored_targets(" \t.PHONY  : t"), 1)
-  check("detect_ignored_targets: tab before :",
-        detect_ignored_targets(".PHONY\t: t"), 1)
-  check("detect_ignored_targets: .SECONDEXPANSION without prerequisites",
-        detect_ignored_targets(".SECONDEXPANSION:"), 1)
-  check("detect_ignored_targets: .DELETE_ON_ERROR", detect_ignored_targets(".DELETE_ON_ERROR:"), 1)
-  check("detect_ignored_targets: a suffix rule is a target", detect_ignored_targets(".c.o:"), 0)
-  check("detect_ignored_targets: a hidden file is a target",
-        detect_ignored_targets(".venv/.sentinel:"), 0)
-  check("detect_ignored_targets: a name with lower-case letters is a target",
-        detect_ignored_targets(".PHONYx: t"), 0)
-  check("detect_ignored_targets: .PHONY as a prerequisite", detect_ignored_targets("t: .PHONY"), 0)
+  check("is_special_target: .PHONY", is_special_target(".PHONY: t"), 1)
+  check("is_special_target: .SILENT", is_special_target(".SILENT: t"), 1)
+  check("is_special_target: .IGNORE", is_special_target(".IGNORE: t"), 1)
+  check("is_special_target: .SECONDARY", is_special_target(".SECONDARY: t"), 1)
+  check("is_special_target: .INTERMEDIATE", is_special_target(".INTERMEDIATE: t"), 1)
+  check("is_special_target: .PRECIOUS", is_special_target(".PRECIOUS: t"), 1)
+  check("is_special_target: leading whitespace and spaces before :",
+        is_special_target(" \t.PHONY  : t"), 1)
+  check("is_special_target: tab before :",
+        is_special_target(".PHONY\t: t"), 1)
+  check("is_special_target: .SECONDEXPANSION without prerequisites",
+        is_special_target(".SECONDEXPANSION:"), 1)
+  check("is_special_target: .DELETE_ON_ERROR", is_special_target(".DELETE_ON_ERROR:"), 1)
+  check("is_special_target: a suffix rule is a target", is_special_target(".c.o:"), 0)
+  check("is_special_target: a hidden file is a target",
+        is_special_target(".venv/.sentinel:"), 0)
+  check("is_special_target: a name with lower-case letters is a target",
+        is_special_target(".PHONYx: t"), 0)
+  check("is_special_target: .SUFFIXES", is_special_target(".SUFFIXES:"), 1)
+  check("is_special_target: .DEFAULT", is_special_target(".DEFAULT:"), 1)
+  check("is_special_target: .NOTINTERMEDIATE", is_special_target(".NOTINTERMEDIATE: t"), 1)
+  check("is_special_target: .LOW_RESOLUTION_TIME",
+        is_special_target(".LOW_RESOLUTION_TIME: t"), 1)
+  check("is_special_target: .EXPORT_ALL_VARIABLES", is_special_target(".EXPORT_ALL_VARIABLES:"), 1)
+  check("is_special_target: .NOTPARALLEL", is_special_target(".NOTPARALLEL:"), 1)
+  check("is_special_target: .ONESHELL", is_special_target(".ONESHELL:"), 1)
+  check("is_special_target: .POSIX", is_special_target(".POSIX:"), 1)
+  check("is_special_target: an upper-case name that is not special is a target",
+        is_special_target(".ENV:"), 0)
+  check("is_special_target: a special name with a suffix is a target",
+        is_special_target(".PHONY_ALL:"), 0)
+  check("is_special_target: .PHONY as a prerequisite", is_special_target("t: .PHONY"), 0)
 }
 
 BEGIN {
@@ -181,6 +194,6 @@ BEGIN {
   test_has_odd_terminal_backslashes()
   test_is_double_colon_rule()
   test_has_unclosed_reference()
-  test_detect_ignored_targets()
+  test_is_special_target()
   done()
 }
