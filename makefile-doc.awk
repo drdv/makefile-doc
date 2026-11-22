@@ -1048,16 +1048,6 @@ function forget_section_data() {
   SECTION_DATA_INDEX = 1
 }
 
-function assemble_description_section_data(array, #locals
-                                           docs, k, n_elements) {
-  docs = array_get(array, 1) # "" for an empty array
-  n_elements = length_array_posix(array)
-  for (k = 2; k <= n_elements; k++) {
-    docs = docs "\n" array[k]
-  }
-  return docs
-}
-
 # Save the inline doc of a target or variable line. As for Make, the comment starts at the
 # first # that is not escaped (\#), and it is an inline doc only if it starts with ##: a ##
 # later in an ordinary comment is not a doc. On a target line, a ## after a ; is part of an
@@ -1153,13 +1143,13 @@ function associate_data_with_anchor(anchor_name,
     sub(TAG_REGEX, "", DESCRIPTION_DATA[k])
   }
   anchors_tags[anchor_name] = tag
-  anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
+  anchors_description_data[anchor_name] = join(DESCRIPTION_DATA, "\n")
   forget_descriptions_data()
 
   # the file order, with the pending section (placed by place_sections, when rendering)
   ANCHOR_ORDER[ANCHOR_ORDER_INDEX] = anchor_type SUBSEP anchor_name
   if (length_array_posix(SECTION_DATA) > 0) {
-    SECTION_BEFORE[ANCHOR_ORDER_INDEX] = assemble_description_section_data(SECTION_DATA)
+    SECTION_BEFORE[ANCHOR_ORDER_INDEX] = join(SECTION_DATA, "\n")
     forget_section_data()
   }
   ANCHOR_ORDER_INDEX++

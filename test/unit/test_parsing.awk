@@ -95,24 +95,6 @@ function test_form_dc_target_name() {
   check("form_dc_target_name: second rule", form_dc_target_name("t"), "t~2")
 }
 
-function test_assemble_description_section_data(    arr) {
-  arr[1] = "first line"
-  check("assemble_description_section_data: one line",
-        assemble_description_section_data(arr),
-        "first line")
-
-  arr[2] = "   second line"
-  arr[3] = "\t last line  "
-  check("assemble_description_section_data: lines are joined with newlines (spaces kept)",
-        assemble_description_section_data(arr),
-        "first line\n   second line\n\t last line  ")
-
-  split("", arr)
-  check("assemble_description_section_data: empty array",
-        assemble_description_section_data(arr),
-        "")
-}
-
 function test_has_odd_terminal_backslashes() {
   check("has_odd_terminal_backslashes: none", has_odd_terminal_backslashes("abc"), 0)
   check("has_odd_terminal_backslashes: empty string", has_odd_terminal_backslashes(""), 0)
@@ -194,7 +176,6 @@ BEGIN {
   test_parse_variable_name()
   test_parse_inline_descriptions()
   test_form_dc_target_name()
-  test_assemble_description_section_data()
   test_has_odd_terminal_backslashes()
   test_is_double_colon_rule()
   test_has_unclosed_reference()
