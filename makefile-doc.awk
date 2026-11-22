@@ -1270,10 +1270,6 @@ substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX)
   next
 }
 
-{
-  PATTERN_RULE_MATCHED = 0
-}
-
 # A line of three or more # is a comment banner: it is not a doc, and it discards the docs
 # above it (they belong to another part of the Makefile)
 /^[ \t]*###+[ \t]*$/ {
@@ -1355,7 +1351,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
   }
 
   IN_RULE = g_target_name_nominal
-  PATTERN_RULE_MATCHED = 1
+  next
 }
 
 $0 ~ VARIABLES_REGEX {
@@ -1374,14 +1370,14 @@ $0 ~ VARIABLES_REGEX {
   }
 
   IN_RULE = ""
-  PATTERN_RULE_MATCHED = 1
+  next
 }
 
 # Docs are discarded when they are followed by an unrelated line (e.g., a function call,
 # define), so that they do not end up on the next anchor. Comments are not unrelated: the
 # docs above them are kept. (Blank lines, sections, directives, anchors and special
 # targets have been handled above.)
-!PATTERN_RULE_MATCHED && $0 !~ /^[ \t]*#/ {
+$0 !~ /^[ \t]*#/ {
   forget_descriptions_data()
 }
 
