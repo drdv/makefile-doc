@@ -1,3 +1,4 @@
+* text eol=lf
 test/fixtures/Makefile.crlf -text
 test/fixtures/Makefile.docs-blank-lines whitespace=-blank-at-eol
 test/fixtures/Makefile.backslash-comments whitespace=-space-before-tab
