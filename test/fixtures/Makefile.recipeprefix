@@ -1,7 +1,5 @@
 .RECIPEPREFIX := >
 
-## comment\
-but not a description
 t: ## A target
 > @echo 1
 > @echo 2
