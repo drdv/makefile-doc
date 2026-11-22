@@ -7,5 +7,9 @@ b2: ## `All in backticks`
 
 b3: ## No backticks
 
+## Text in backticks `that spans
+## two lines` (each line is colored on its own)
+b4:
+
 ## `a variable`
 B :=

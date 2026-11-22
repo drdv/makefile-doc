@@ -28,26 +28,25 @@
 \begin{document}
 
 \begin{varwidth}{\linewidth}
-\color{makefile-doc-fg}
 \pagecolor{makefile-doc-bg}
 
 \begin{alltt}
------------------------
-Available targets:
------------------------
-\emph{
- Section with \sout{backticks} and \{braces\}
-}
-\textcolor{color-default}{t-default   }   A default target with \sout{backticks} and \{braces\}
-               on two lines
-\textbf{t-attention }   An attention target
-\uline{t-deprecated}   A deprecated target
+\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{Available targets:}
+\textcolor{makefile-doc-fg}{-----------------------}
 
------------------------
-Command-line arguments:
------------------------
-\textcolor{color-default}{VAR         }   A variable
------------------------
+\textcolor{makefile-doc-fg}{\emph{ Section with \sout{backticks} and \{braces\}}}
+
+\textcolor{makefile-doc-fg}{\textcolor{color-default}{t-default   }   A default target with \sout{backticks} and \{braces\}}
+\textcolor{makefile-doc-fg}{               on two lines}
+\textcolor{makefile-doc-fg}{\textbf{t-attention }   An attention target}
+\textcolor{makefile-doc-fg}{\uline{t-deprecated}   A deprecated target}
+
+\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{Command-line arguments:}
+\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{\textcolor{color-default}{VAR         }   A variable}
+\textcolor{makefile-doc-fg}{-----------------------}
 \end{alltt}
 \end{varwidth}
 \end{document}

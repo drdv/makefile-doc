@@ -31,9 +31,9 @@
 -----------------------
 Available targets:
 -----------------------
-\textcolor{color-section}{
- Section with \bgcolor{color-backticks}{backticks} and \{braces\}
-}
+
+\textcolor{color-section}{ Section with \bgcolor{color-backticks}{backticks} and \{braces\}}
+
 \textcolor{color-default}{t-default   }   A default target with \bgcolor{color-backticks}{backticks} and \{braces\}
                on two lines
 \textcolor{color-attention}{t-attention }   An attention target
