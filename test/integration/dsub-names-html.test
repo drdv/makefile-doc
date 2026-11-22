@@ -7,6 +7,7 @@
   .makefile-doc-deprecated { color: #b58900; }
   .makefile-doc-default { color: #268bd2; }
   .makefile-doc-backticks { color: #b58900; }
+  .makefile-doc { display: inline-block; }
 </style>
 <div class="makefile-doc">
 <pre>
