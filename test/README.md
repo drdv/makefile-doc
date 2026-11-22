@@ -192,6 +192,10 @@ Registering a bug goes through three steps:
    (`XPASS(strict)` for a case, `FIXED` for a check) until it is turned into a regular test:
    `#: bug: N` becomes `#: issue: N`, and `check_bug` becomes `check`.
 
+Bugs of awk implementations that the script works around are not part of this process: each one has
+a reproducer in `misc/`, referenced by the comment at the workaround (e.g.,
+`misc/busybox_awk_bug_20251107.awk`).
+
 ## Lint
 
 `gawk --lint` only warns about code that actually runs, and without input almost none of
