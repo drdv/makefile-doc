@@ -255,12 +255,29 @@ function option_error(message) {
   OPTION_ERRORS++
 }
 
+# Record a warning about the Makefiles (printed by print_warnings, before the docs). kind is
+# what it is about: "target", "variable" or "file".
+function add_warning(kind, message) {
+  WARNINGS[++WARNING_COUNT] = message
+  WARNING_KINDS[WARNING_COUNT] = kind
+}
+
+# Print the warnings recorded while parsing, except those about variables with VARS=0 (they
+# are not displayed)
+function print_warnings(    k) {
+  for (k = 1; k <= WARNING_COUNT; k++) {
+    if (!(WARNING_KINDS[k] == "variable" && !VARS)) {
+      printf("WARNING: %s\n", WARNINGS[k]) > STDERR
+    }
+  }
+}
+
 # A file whose last line ends with a backslash: the line cannot be joined with a next one,
 # so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
 # the next file and in END).
 function warn_about_continued_last_line() {
   if (IN_CONTINUED_LINE) {
-    printf("WARNING: [%s] the last line ends with a backslash\n", CURRENT_FILE) > STDERR
+    add_warning("file", sprintf("[%s] the last line ends with a backslash", CURRENT_FILE))
   }
 }
 
@@ -276,6 +293,9 @@ function init_globals() {
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
+  split("", WARNINGS) # the warnings about the Makefiles (see add_warning)
+  split("", WARNING_KINDS)
+  WARNING_COUNT = 0
   OPTION_ERRORS = 0 # number of invalid options (see option_error)
   DSUB_COUNT = 0 # number of DSUB substitutions (set by process_options)
 
@@ -1133,20 +1153,14 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_tags,
                                     anchors_section_data,
                                     anchor_type, #locals
-                                    warn, tag, shown, k) {
-  warn = !(anchor_type == "variable" && !VARS) # no warnings about hidden variables
+                                    tag, shown, k) {
   tag = get_tag_from_description(DESCRIPTION_DATA[1]) # the tag of the first line decides
   # a hidden anchor (a variable with VARS=0, a deprecated one with DEPRECATED=0) does not
   # take the pending section: it is kept for the next displayed anchor
-  shown = warn && !(!DEPRECATED && tag == "##%")
+  shown = !(anchor_type == "variable" && !VARS) && !(!DEPRECATED && tag == "##%")
   if (anchor_name in anchors_description_data) {
-    if (warn) {
-      printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
-             CURRENT_FILE,
-             FNR,
-             anchor_type,
-             anchor_name) > STDERR
-    }
+    add_warning(anchor_type, sprintf("[%s:%s] redefined docs of %s: %s",
+                                     CURRENT_FILE, FNR, anchor_type, anchor_name))
   } else {
     anchors[anchors_index] = anchor_name
     anchors_index++
@@ -1162,11 +1176,9 @@ function associate_data_with_anchor(anchor_name,
 
   # note that section data is associated only with documented anchors that are displayed
   if (shown && length_array_posix(SECTION_DATA) > 0) {
-    if (warn && anchor_name in anchors_section_data) {
-      printf("WARNING: [%s:%s] redefined associated section data: %s\n",
-             CURRENT_FILE,
-             FNR,
-             anchor_name) > STDERR
+    if (anchor_name in anchors_section_data) {
+      add_warning(anchor_type, sprintf("[%s:%s] redefined associated section data: %s",
+                                       CURRENT_FILE, FNR, anchor_name))
     }
 
     anchors_section_data[anchor_name] = assemble_description_section_data(SECTION_DATA)
@@ -1648,6 +1660,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   max_anchor_length = max(max_target_length, max_variable_length)
   separator = get_separator("-", max_anchor_length)
   OUTPUT_BODY = ""
+  print_warnings() # (on stderr, before the docs)
 
   # process targets
   if (max_target_length > 0) {
