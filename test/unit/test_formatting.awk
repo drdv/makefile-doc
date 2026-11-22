@@ -74,8 +74,10 @@ function test_get_max_anchor_length(    anchors, docs) {
   DEPRECATED = ""
 }
 
-# initialize the colors as process_options() does (with the default color options)
+# initialize the colors as init_globals() and process_options() do (with the default color
+# options)
 function setup_colors(output_format, export_theme) {
+  define_ansi_to_html_colors() # the default colors, without the theme of a previous call
   OUTPUT_FORMAT = output_format
   EXPORT_THEME = export_theme
   COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = ""
