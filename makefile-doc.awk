@@ -294,6 +294,10 @@ function init_globals() {
                           "IGNORE|LOW_RESOLUTION_TIME|SILENT|EXPORT_ALL_VARIABLES|" \
                           "NOTPARALLEL|ONESHELL|POSIX)[ \t]*:"
 
+  # the tag at the start of a doc line (the order of the alternatives matters for goawk
+  # v1.29.1 and below, fixed in v1.30.0)
+  TAG_REGEX = "^(##!|##%|##)"
+
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
 
@@ -307,6 +311,9 @@ function init_globals() {
 
   # map target name to description
   split("", TARGETS_DESCRIPTION_DATA)
+
+  # map target name to the tag of its doc (##, ##! or ##%)
+  split("", TARGETS_TAG)
 
   # map target name to section data
   # a section uses a target / variable as an anchor
@@ -329,6 +336,9 @@ function init_globals() {
 
   # map variable name to description
   split("", VARIABLES_DESCRIPTION_DATA)
+
+  # map variable name to the tag of its doc
+  split("", VARIABLES_TAG)
 
   # map variable name to section
   split("", VARIABLES_SECTION_DATA)
@@ -1012,15 +1022,9 @@ function apply_output_specific_formatting(text) {
 # Parsing helpers
 # ------------------------------------------------------------------------------------------
 
-function get_tag_from_description(string, #locals
-                                  tag) {
-  if (match(string, /^ *(##!|##%|##)/)) {
-    tag = substr(string, RSTART, RLENGTH)
-    sub(/ */, "", tag)
-    return tag
-  }
-
-  return "" # if we end-up here it probably means that we are using a wrong regex
+# the tag of a doc line (##, ##! or ##%), or "" if it does not start with one
+function get_tag_from_description(string) {
+  return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
 }
 
 function save_description_data(string) {
@@ -1126,13 +1130,15 @@ function associate_data_with_anchor(anchor_name,
                                     anchors,
                                     anchors_index,
                                     anchors_description_data,
+                                    anchors_tags,
                                     anchors_section_data,
                                     anchor_type, #locals
-                                    warn, shown) {
+                                    warn, tag, shown, k) {
   warn = !(anchor_type == "variable" && !VARS) # no warnings about hidden variables
+  tag = get_tag_from_description(DESCRIPTION_DATA[1]) # the tag of the first line decides
   # a hidden anchor (a variable with VARS=0, a deprecated one with DEPRECATED=0) does not
   # take the pending section: it is kept for the next displayed anchor
-  shown = warn && !(!DEPRECATED && get_tag_from_description(DESCRIPTION_DATA[1]) == "##%")
+  shown = warn && !(!DEPRECATED && tag == "##%")
   if (anchor_name in anchors_description_data) {
     if (warn) {
       printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
@@ -1146,6 +1152,11 @@ function associate_data_with_anchor(anchor_name,
     anchors_index++
   }
 
+  # the doc is stored without its tags (the tag of the first line is stored separately)
+  for (k = 1; k < DESCRIPTION_DATA_INDEX; k++) {
+    sub(TAG_REGEX, "", DESCRIPTION_DATA[k])
+  }
+  anchors_tags[anchor_name] = tag
   anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
   forget_descriptions_data()
 
@@ -1334,6 +1345,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
+                                               TARGETS_TAG,
                                                TARGETS_SECTION_DATA,
                                                "target")
   }
@@ -1353,6 +1365,7 @@ $0 ~ VARIABLES_REGEX {
                                                  VARIABLES,
                                                  VARIABLES_INDEX,
                                                  VARIABLES_DESCRIPTION_DATA,
+                                                 VARIABLES_TAG,
                                                  VARIABLES_SECTION_DATA,
                                                  "variable")
   }
@@ -1374,8 +1387,8 @@ $0 !~ /^[ \t]*#/ {
 # ------------------------------------------------------------------------------------------
 
 # true for an anchor documented with ##% when deprecated anchors are not displayed
-function is_hidden_anchor(anchor, anchors_description_data) {
-  return !DEPRECATED && get_tag_from_description(anchors_description_data[anchor]) == "##%"
+function is_hidden_anchor(anchor, anchors_tags) {
+  return !DEPRECATED && anchors_tags[anchor] == "##%"
 }
 
 # The name that is displayed for an anchor: its SUB label if it has one, otherwise its name
@@ -1397,12 +1410,12 @@ function display_name(anchor, #locals
 }
 
 # the length of the longest displayed anchor (0 if no anchor is displayed)
-function get_max_anchor_length(anchors, anchors_description_data, #locals
+function get_max_anchor_length(anchors, anchors_tags, #locals
                                max_len, key, anchor, n) {
   max_len = 0
   for (key in anchors) { # order is not important
     anchor = anchors[key]
-    if (is_hidden_anchor(anchor, anchors_description_data)) {
+    if (is_hidden_anchor(anchor, anchors_tags)) {
       continue
     }
     n = length(display_name(anchor))
@@ -1454,9 +1467,9 @@ function colorize_description_backticks(description) {
 }
 
 # the color code of an anchor, given by the tag of its doc
-function anchor_color(anchor_name, anchors_description_data, #locals
+function anchor_color(anchor_name, anchors_tags, #locals
                       tag) {
-  tag = get_tag_from_description(anchors_description_data[anchor_name])
+  tag = anchors_tags[anchor_name]
   if (tag == "##!") {
     return COLOR_ATTENTION_CODE
   } else if (tag == "##%") {
@@ -1465,19 +1478,15 @@ function anchor_color(anchor_name, anchors_description_data, #locals
   return COLOR_DEFAULT_CODE # ## (a doc starts with one of the three tags)
 }
 
-# The doc of an anchor, ready to display: without its tags (##, ##! or ##%), the first line
-# offset from the anchor and the next lines aligned with it, with the DSUB substitutions,
-# the escapes of the output format and the colors of the text in backticks
+# The doc of an anchor (stored without its tags), ready to display: the first line offset
+# from the anchor and the next lines aligned with it, with the DSUB substitutions, the
+# escapes of the output format and the colors of the text in backticks
 function format_description_data(anchor_name,
                                  anchors_description_data,
                                  len_anchor_names,
                                  #locals
-                                 lines, n, k, indentation, description) {
-  n = split(anchors_description_data[anchor_name], lines, "\n")
-  for (k = 1; k <= n; k++) {
-    # (the order of the alternatives matters for goawk v1.29.1 and below, fixed in v1.30.0)
-    sub(/^(##!|##%|##)/, "", lines[k]) # strip the tag (keep the space after it)
-  }
+                                 lines, indentation, description) {
+  split(anchors_description_data[anchor_name], lines, "\n")
   indentation = repeated_string("", OFFSET + len_anchor_names) # aligned with the first line
   description = repeated_string("", OFFSET) join(lines, "\n" indentation)
 
@@ -1609,7 +1618,8 @@ function display_anchor_with_data(anchor, description, section, len_anchors, col
 }
 
 # Display the anchors of one kind (TARGETS or VARIABLES) with their docs and sections.
-function print_anchors(anchors, description_data, section_data, max_anchor_length, #locals
+function print_anchors(anchors, description_data, tags, section_data, max_anchor_length,
+                       #locals
                        n_elements, indx, anchor, description, section) {
   n_elements = length_array_posix(anchors)
   for (indx = 1; indx <= n_elements; indx++) {
@@ -1619,8 +1629,8 @@ function print_anchors(anchors, description_data, section_data, max_anchor_lengt
                                           max_anchor_length)
     section = get_associated_section_data(anchor, section_data)
     display_anchor_with_data(anchor, description, section, max_anchor_length,
-                             anchor_color(anchor, description_data),
-                             !is_hidden_anchor(anchor, description_data))
+                             anchor_color(anchor, tags),
+                             !is_hidden_anchor(anchor, tags))
   }
 }
 
@@ -1632,9 +1642,9 @@ function append_output(text) {
 # Display the documentation (all its output is printed from here).
 function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
                              separator) {
-  max_target_length = get_max_anchor_length(TARGETS, TARGETS_DESCRIPTION_DATA)
+  max_target_length = get_max_anchor_length(TARGETS, TARGETS_TAG)
   # 0 when the variables are not shown (VARS=0)
-  max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
+  max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_TAG) : 0
   max_anchor_length = max(max_target_length, max_variable_length)
   separator = get_separator("-", max_anchor_length)
   OUTPUT_BODY = ""
@@ -1642,7 +1652,8 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   # process targets
   if (max_target_length > 0) {
     append_output(separator "\n" HEADER_TARGETS "\n" separator "\n")
-    print_anchors(TARGETS, TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA, max_anchor_length)
+    print_anchors(TARGETS, TARGETS_DESCRIPTION_DATA, TARGETS_TAG, TARGETS_SECTION_DATA,
+                  max_anchor_length)
   }
 
   # process variables
@@ -1651,7 +1662,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
       append_output("\n") # a blank line after the targets
     }
     append_output(separator "\n" HEADER_VARIABLES "\n" separator "\n")
-    print_anchors(VARIABLES, VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA,
+    print_anchors(VARIABLES, VARIABLES_DESCRIPTION_DATA, VARIABLES_TAG, VARIABLES_SECTION_DATA,
                   max_anchor_length)
   }
 
