@@ -7,11 +7,6 @@ t1:
 $(info hello)
 t2:
 
-## Docs above a define block
-define FOO
-BAR := value
-endef
-
 ## Docs above an export without an assignment
 export PATH
 V := 1

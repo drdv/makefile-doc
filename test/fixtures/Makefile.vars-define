@@ -1,0 +1,36 @@
+## Usage text shown by `make usage`
+define USAGE
+Usage: make [target]
+endef
+
+## With an operator
+define WITH_OPERATOR :=
+x
+endef
+
+## With an operator without a space
+define NO_SPACE+=
+x
+endef
+
+## With qualifiers
+override  export define	QUALIFIED ?=
+x
+endef
+
+##! With a comment on the define line
+define COMMENTED # a comment
+x
+endef
+
+define INLINE ## an inline doc is not used
+x
+endef
+
+define UNDOCUMENTED
+## a doc in the body, discarded by endef
+endef
+AFTER_ENDEF := 1
+
+## A variable named define
+define := 1

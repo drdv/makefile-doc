@@ -356,6 +356,12 @@ function initialize_variables_regex() {
   VARIABLES_REGEX = sprintf("^[ \t]*((%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
                             join(VARIABLE_QUALIFIERS, "|"),
                             ASSIGNMENT_OPERATORS_PATTERN)
+
+  # the first line of a multi-line variable: [qualifiers] define NAME [operator] [# comment]
+  DEFINE_PREFIX_REGEX = sprintf("^[ \t]*((%s)[ \t]+)*define[ \t]+",
+                                join(VARIABLE_QUALIFIERS, "|"))
+  DEFINE_REGEX = sprintf("%s[^ \t#:=]+([ \t]*%s)?[ \t]*(#.*)?$",
+                         DEFINE_PREFIX_REGEX, ASSIGNMENT_OPERATORS_PATTERN)
 }
 
 function initialize_substitution_parameter_defaults() {
@@ -1077,6 +1083,16 @@ function form_dc_target_name(target_name_nominal) {
 
 # return `FOO`, given `override private export FOO := 1`
 # return `export`, given `override private export := 1` even though `export` is a qualifier
+# return `FOO`, given `override define FOO :=` (see DEFINE_REGEX)
+function parse_define_name(whole_line, #locals
+                           name, parts) {
+  name = whole_line
+  sub(/[ \t]*#.*$/, "", name)
+  sub(DEFINE_PREFIX_REGEX, "", name)
+  split(name, parts, ASSIGNMENT_OPERATORS_PATTERN)
+  return strip_start_end_spaces_tabs(parts[1])
+}
+
 function parse_variable_name(whole_line, #locals
                              whole_line_split, variable_name, qualifiers_pattern) {
   split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
@@ -1141,6 +1157,7 @@ function associate_data_with_anchor(anchor_name,
 #   doc (## not followed by @)                  extended           added to the pending docs
 #   blank line                                  kept               skipped
 #   section (##@)                               kept               saved (pending section)
+#   define line (define NAME ...)               given to it        recorded if documented
 #   conditional (ifeq, ..., endif)              kept               skipped
 #   other directive (include, vpath, ...)       discarded          skipped
 #   special target (.PHONY: ...)                kept               skipped
@@ -1238,6 +1255,17 @@ is_recipe_line() || IN_MULTILINE_BACKSLASH_RECIPE {
   next
 }
 
+# A multi-line variable (define ... endef) is documented by the docs above its first line
+# (not inline). The lines of its body go through the rules as any other line.
+$0 ~ DEFINE_REGEX {
+  if (DESCRIPTION_DATA_INDEX > 1) {
+    associate_data_with_anchor(parse_define_name($0), VARIABLES_DESCRIPTION_DATA,
+                               VARIABLES_TAG, "variable")
+  }
+  IN_RULE = ""
+  next
+}
+
 # A directive is not a rule, even with a colon (e.g., `ifeq "$(OS)" "a:b"`, `vpath %.c a:b`),
 # unless it is an assignment to a variable named as a directive (e.g., `include := x`).
 # Docs are kept above conditionals and discarded by the other directives.
@@ -1300,7 +1328,7 @@ $0 ~ VARIABLES_REGEX {
 }
 
 # Docs are discarded when they are followed by an unrelated line (e.g., a function call,
-# define), so that they do not end up on the next anchor. Comments are not unrelated: the
+# endef), so that they do not end up on the next anchor. Comments are not unrelated: the
 # docs above them are kept. (Blank lines, sections, directives, anchors and special
 # targets have been handled above.)
 $0 !~ /^[ \t]*#/ {

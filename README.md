@@ -126,7 +126,7 @@ Some lines can appear between a doc and its anchor: blank lines, comments, condi
 `endif`) and the [special
 targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html) of GNU Make such
 as `.PHONY: target` or `.ONESHELL:` (other targets whose names start with a dot, e.g., `.ENV:`, are
-regular targets). Any other line discards the doc: `include`, `vpath`, `define`, an `export`
+regular targets). Any other line discards the doc: `include`, `vpath`, `endef`, an `export`
 without an assignment, a function call such as `$(info ...)`, or a comment banner (a line of three
 or more `#` only, e.g., `###`). A line such as `### text` is not a banner: it is a doc whose text
 starts with `#`.
@@ -143,6 +143,8 @@ The remaining details:
   recipe, not a doc.
 - Docs and sections can be indented with spaces or tabs. In a rule, a line that starts with the
   recipe prefix (a tab by default) is a recipe line, not a doc.
+- A multi-line variable (`define NAME` ... `endef`) is documented above its `define` line, not
+  inline.
 
 ### Sections
 
@@ -420,9 +422,6 @@ the target is invoked (`make foo\ bar`).
   Use [`SUB`](#sub-rename-an-anchor-and-list-its-values) to display one name differently, e.g., `-v
   SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`, or [`DSUB`](#dsub-replace-text-in-docs-and-names) with `A:1` to
   replace the reference in every name at once, e.g., `-v DSUB='<A:1>$$(PREFIX):MY'`.
-
-- Multi-line variables (`define NAME` ... `endef`) cannot be documented: `define` discards
-  the doc above it.
 
 ## Development
 
