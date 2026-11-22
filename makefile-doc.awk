@@ -132,10 +132,9 @@ function min(x, y) {
 }
 
 # 1. An empty string means a space.
-# 2. I used to have a gsub-based version, but it needs tricks to handle
-#    special characters like &, \ (and 0, because of `if (string)`).
-# 3. For the strings we manipulate here, the drop in speed is negligible.
-# 4. n must be a non-negative integer (a non-numeric n loops forever). The only n that comes
+# 2. A loop rather than gsub, which would need & and \ in string to be escaped. The strings
+#    here are short, so the loop costs nothing noticeable.
+# 3. n must be a non-negative integer (a non-numeric n loops forever). The only n that comes
 #    from the user is OFFSET, which process_options() validates before any output.
 function repeated_string(string, n, #locals
                          s, k) {
@@ -166,10 +165,10 @@ function length_array_posix(array, #locals
 
 # join the elements of an array produced by split()
 function join(array, delimiter, #locals
-                       string, k, n_elements) {
+              string, k, n_elements) {
   string = ""
   n_elements = length_array_posix(array)
-  for (k=1; k<=n_elements; k++) {
+  for (k = 1; k <= n_elements; k++) {
     if (k == 1) {
       string = array[k]
     } else {
@@ -437,14 +436,6 @@ function process_options(    sub_names, dummy_array_labels) {
   }
 }
 
-# It would be nice to extract the options from the docstring of this script (there could
-# be some sort of prefix before each option). Unfortunately, I can get the script passed
-# with the -f flag only using gawk (so, names of options are hard-coded in print_help):
-# for (key in PROCINFO["argv"]) {
-#   if (PROCINFO["argv"][key] == "-f") {
-#     printf PROCINFO["argv"][key + 1]
-#   }
-# }
 function print_help() {
   print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]"
   print "Description: Generate docs for Makefile variables and targets"
@@ -498,7 +489,7 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
   option = no_labels ? "DSUB" : "SUB"
   n = 0
   n_substitutions = split(sub_array, split_substitutions, ";")
-  for (k=1; k<=n_substitutions; k++) {
+  for (k = 1; k <= n_substitutions; k++) {
     string = split_substitutions[k]
     if (string ~ /^[ \t]*$/) {
       continue
@@ -562,7 +553,7 @@ function parse_substitution_params(string, params, keys, #locals
                                    temp_placeholder, k, n, n_pairs, key_values, pair, key) {
   split("", params)
   split("", keys)
-  temp_placeholder = "\034" # the “file separator” ASCII control character
+  temp_placeholder = "\034" # the "file separator" ASCII control character
 
   # temporarily replace escaped commas
   gsub(/\\,/, temp_placeholder, string)
@@ -762,8 +753,8 @@ function define_ansi_to_html_colors(    k) {
   ANSI_TO_HTML_COLOR[96] = "93a1a1" # brcyan
   ANSI_TO_HTML_COLOR[97] = "fdf6e3" # brwhite
 
-  for (k=30; k<=37; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
-  for (k=90; k<=97; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
+  for (k = 30; k <= 37; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
+  for (k = 90; k <= 97; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
 
   set_user_defined_color_theme()
 }
@@ -802,10 +793,10 @@ function define_ansi_to_html_attributes(    k) {
   ANSI_TO_HTML_ATTR[4] = "text-decoration"
   ANSI_TO_HTML_ATTR[9] = "text-decoration"
 
-  for (k=30; k<=37; k++) { ANSI_TO_HTML_ATTR[k] = "color" }
-  for (k=40; k<=47; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
-  for (k=90; k<=97; k++) { ANSI_TO_HTML_ATTR[k] = "color" }
-  for (k=100; k<=107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
+  for (k = 30; k <= 37; k++) { ANSI_TO_HTML_ATTR[k] = "color" }
+  for (k = 40; k <= 47; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
+  for (k = 90; k <= 97; k++) { ANSI_TO_HTML_ATTR[k] = "color" }
+  for (k = 100; k <= 107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
 function define_ansi_to_latex_function(    k) {
@@ -815,10 +806,10 @@ function define_ansi_to_latex_function(    k) {
   ANSI_TO_LATEX_FUN[4] = "\\uline"
   ANSI_TO_LATEX_FUN[9] = "\\sout"
 
-  for (k=30; k<=37; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
-  for (k=40; k<=47; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
-  for (k=90; k<=97; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
-  for (k=100; k<=107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+  for (k = 30; k <= 37; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
+  for (k = 40; k <= 47; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+  for (k = 90; k <= 97; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
+  for (k = 100; k <= 107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
 }
 
 function define_color_labels() {
@@ -1032,7 +1023,7 @@ function assemble_description_section_data(array, #locals
                                            docs, k, n_elements) {
   docs = array_get(array, 1) # "" for an empty array
   n_elements = length_array_posix(array)
-  for (k=2; k<=n_elements; k++) {
+  for (k = 2; k <= n_elements; k++) {
     docs = docs "\n" array[k]
   }
   return docs
@@ -1465,7 +1456,7 @@ function format_description_data(anchor_name,
   description = repeated_string("", OFFSET) array_of_lines[1]
 
   n_elements = length_array_posix(array_of_lines)
-  for (k=2; k<=n_elements; k++) {
+  for (k = 2; k <= n_elements; k++) {
     line = array_of_lines[k]
     sub(/^(##!|##%|##)/, "", line) # strip the tag (for the order, see the note below)
     description = sprintf("%s\n%s%s",
@@ -1519,7 +1510,7 @@ function display_substitutions(anchor, len_anchors, #locals
     n = min(SUB_PARAMS_CURRENT["N"], length_array_posix(value_parts))
   }
 
-  for (k=1; k<=n; k++) {
+  for (k = 1; k <= n; k++) {
     L = SUB_PARAMS_CURRENT["L"]
     M = SUB_PARAMS_CURRENT["M"]
     I = SUB_PARAMS_CURRENT["I"]
@@ -1536,7 +1527,7 @@ function display_substitutions(anchor, len_anchors, #locals
     # line up with the text of the doc
     indentation = len_anchors + OFFSET + 1  + (M && k > 1 ? length(I) : 0)
     cond_indent = (!M && L && k == 1) || (M && !L && k > 1) || (M && L)
-    text = sprintf(repeated_string("%s", 7),
+    text = sprintf("%s%s%s%s%s%s%s",
                    repeated_string("", cond_indent ? indentation : 1),
                    k == 1 ? I : "",
                    SUB_PARAMS_CURRENT["P"],
