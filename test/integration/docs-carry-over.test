@@ -1,4 +1,4 @@
-#: desc: Docs followed by an unrelated line (include, function call, define, ...) are discarded
+#: desc: Docs followed by an unrelated line (include, function call, ...) are discarded
 #: issue: 130
 -v COLOR=0 test/fixtures/Makefile.docs-carry-over
 #: stdout
