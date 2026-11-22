@@ -685,10 +685,12 @@ function initialize_colors() {
   COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
   COLOR_RESET_CODE = define_color(-1)
 
+  # printed before and after the documentation (each ends with a newline; empty for ANSI)
+  OUTPUT_HEADER = OUTPUT_FOOTER = ""
   if (OUTPUT_FORMAT == "HTML") {
-    HTML_FOOTER = "</pre>\n</div>"
+    OUTPUT_FOOTER = "</pre>\n</div>\n"
     # an HTML fragment (to paste into a page): the styles, then the documentation
-    HTML_HEADER = "<style>\n" \
+    OUTPUT_HEADER = "<style>\n" \
         ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
         ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
         ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
@@ -696,10 +698,10 @@ function initialize_colors() {
         ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
         ansi_color_param_to_html_style("FG", "FG") \
         ansi_color_param_to_html_style("BG", "BG") \
-        "</style>\n<div class=\"makefile-doc\">\n<pre>"
+        "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
   } else if (OUTPUT_FORMAT == "LATEX") {
-    LATEX_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}"
-    LATEX_HEADER = latex_header()
+    OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
+    OUTPUT_HEADER = latex_header() "\n"
   }
 }
 
@@ -1615,11 +1617,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   max_anchor_length = max(max_target_length, max_variable_length)
   separator = get_separator("-", max_anchor_length)
 
-  if (OUTPUT_FORMAT == "HTML") {
-    print(HTML_HEADER)
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    print(LATEX_HEADER)
-  }
+  printf("%s", OUTPUT_HEADER)
 
   # process targets
   if (max_target_length > 0) {
@@ -1651,11 +1649,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
     }
   }
 
-  if (OUTPUT_FORMAT == "HTML") {
-    print(HTML_FOOTER)
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    print(LATEX_FOOTER)
-  }
+  printf("%s", OUTPUT_FOOTER)
 }
 
 END {
