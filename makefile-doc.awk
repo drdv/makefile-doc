@@ -1317,7 +1317,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
       TARGETS_DC_COUNTER[g_target_name_nominal]++
     }
 
-    TARGETS_INDEX = associate_data_with_anchor(strip_start_end_spaces_tabs(g_target_name),
+    TARGETS_INDEX = associate_data_with_anchor(g_target_name,
                                                TARGETS,
                                                TARGETS_INDEX,
                                                TARGETS_DESCRIPTION_DATA,
@@ -1335,7 +1335,7 @@ $0 ~ VARIABLES_REGEX {
   }
 
   if (DESCRIPTION_DATA_INDEX > 1) {
-    g_variable_name = strip_start_end_spaces_tabs(parse_variable_name($0))
+    g_variable_name = parse_variable_name($0)
     VARIABLES_INDEX = associate_data_with_anchor(g_variable_name,
                                                  VARIABLES,
                                                  VARIABLES_INDEX,
