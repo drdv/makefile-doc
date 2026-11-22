@@ -28,6 +28,10 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"] # later: "PT", "SIM", "RUF"
 
+[[tool.mypy.overrides]]
+module = ["tap.*"]
+ignore_missing_imports = true
+
 # gawk --lint warnings that are expected (regexes, matched against "<file>: <message>")
 [tool.makefile-doc.lint]
 ignore = [
