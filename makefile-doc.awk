@@ -308,12 +308,6 @@ function init_globals() {
   # print_documentation). An *_INDEX is the next free index of its array.
   # ---------------------------------------------------------------------------------------
 
-  # the documented anchors, in the order of their first definition: index -> name
-  split("", TARGETS)
-  TARGETS_INDEX = 1
-  split("", VARIABLES)
-  VARIABLES_INDEX = 1
-
   # name -> doc (its lines without their tags, joined by \n; the last definition wins)
   split("", TARGETS_DESCRIPTION_DATA)
   split("", VARIABLES_DESCRIPTION_DATA)
@@ -363,6 +357,13 @@ function init_globals() {
   split("", DSUB_IN_ANCHORS)
   split("", DSUB_IN_DOCS)
   DSUB_COUNT = 0 # number of DSUB substitutions
+
+  # the documented anchors, once each, in file order: index -> name (set by
+  # build_anchor_lists)
+  split("", TARGETS)
+  TARGETS_INDEX = 1
+  split("", VARIABLES)
+  VARIABLES_INDEX = 1
 
   # name -> section (set by place_sections)
   split("", TARGETS_SECTION_DATA)
@@ -1128,9 +1129,9 @@ function parse_variable_name(whole_line, #locals
   return strip_start_end_spaces_tabs(variable_name)
 }
 
+# Attach the pending doc to an anchor (target or variable), and record the anchor and the
+# pending section in ANCHOR_ORDER and SECTION_BEFORE
 function associate_data_with_anchor(anchor_name,
-                                    anchors,
-                                    anchors_index,
                                     anchors_description_data,
                                     anchors_tags,
                                     anchor_type, #locals
@@ -1139,9 +1140,6 @@ function associate_data_with_anchor(anchor_name,
   if (anchor_name in anchors_description_data) {
     add_warning(anchor_type, sprintf("[%s:%s] redefined docs of %s: %s",
                                      CURRENT_FILE, FNR, anchor_type, anchor_name))
-  } else {
-    anchors[anchors_index] = anchor_name
-    anchors_index++
   }
 
   # the doc is stored without its tags (the tag of the first line is stored separately)
@@ -1159,8 +1157,6 @@ function associate_data_with_anchor(anchor_name,
     forget_section_data()
   }
   ANCHOR_ORDER_INDEX++
-
-  return anchors_index
 }
 
 # Each input line goes through the rules below, in this order, until a rule that fully
@@ -1315,12 +1311,7 @@ $0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
       TARGETS_DC_COUNTER[g_target_name_nominal]++
     }
 
-    TARGETS_INDEX = associate_data_with_anchor(g_target_name,
-                                               TARGETS,
-                                               TARGETS_INDEX,
-                                               TARGETS_DESCRIPTION_DATA,
-                                               TARGETS_TAG,
-                                               "target")
+    associate_data_with_anchor(g_target_name, TARGETS_DESCRIPTION_DATA, TARGETS_TAG, "target")
   }
 
   IN_RULE = g_target_name_nominal
@@ -1334,12 +1325,8 @@ $0 ~ VARIABLES_REGEX {
 
   if (DESCRIPTION_DATA_INDEX > 1) {
     g_variable_name = parse_variable_name($0)
-    VARIABLES_INDEX = associate_data_with_anchor(g_variable_name,
-                                                 VARIABLES,
-                                                 VARIABLES_INDEX,
-                                                 VARIABLES_DESCRIPTION_DATA,
-                                                 VARIABLES_TAG,
-                                                 "variable")
+    associate_data_with_anchor(g_variable_name, VARIABLES_DESCRIPTION_DATA, VARIABLES_TAG,
+                               "variable")
   }
 
   IN_RULE = ""
@@ -1363,6 +1350,24 @@ function print_warnings(    k) {
   for (k = 1; k <= WARNING_COUNT; k++) {
     if (!(WARNING_KINDS[k] == "variable" && !VARS)) {
       printf("WARNING: %s\n", WARNINGS[k]) > STDERR
+    }
+  }
+}
+
+# Build TARGETS and VARIABLES from ANCHOR_ORDER: the documented anchors of each kind, once
+# each, in file order (at their first definition)
+function build_anchor_lists(    k, parts, seen) {
+  split("", seen)
+  for (k = 1; k < ANCHOR_ORDER_INDEX; k++) {
+    if (ANCHOR_ORDER[k] in seen) {
+      continue
+    }
+    seen[ANCHOR_ORDER[k]] = 1
+    split(ANCHOR_ORDER[k], parts, SUBSEP)
+    if (parts[1] == "target") {
+      TARGETS[TARGETS_INDEX++] = parts[2]
+    } else {
+      VARIABLES[VARIABLES_INDEX++] = parts[2]
     }
   }
 }
@@ -1665,6 +1670,7 @@ function append_output(text) {
 # Display the documentation (all its output is printed from here).
 function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
                              separator) {
+  build_anchor_lists()
   max_target_length = get_max_anchor_length(TARGETS, TARGETS_TAG)
   # 0 when the variables are not shown (VARS=0)
   max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_TAG) : 0
