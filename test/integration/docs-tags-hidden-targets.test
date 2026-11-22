@@ -1,9 +1,10 @@
-#: desc: With DEPRECATED=0, no targets header (nor their sections) if all targets are hidden
+#: desc: With DEPRECATED=0, no targets header if all targets are hidden (their section goes to the next displayed anchor)
 #: issue: 124
 -v COLOR=0 -v DEPRECATED=0 test/fixtures/Makefile.docs-tags-hidden-targets
 #: stdout
 -----------------------
 Command-line arguments:
 -----------------------
+ Old stuff
 V   A variable
 -----------------------
