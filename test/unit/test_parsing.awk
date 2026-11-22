@@ -70,6 +70,14 @@ function test_parse_inline_descriptions() {
         saved_inline_description("X := 1 ##@ some text", 1), "<none>")
   check("parse_inline_descriptions: variable with a ; in its value",
         saved_inline_description("X := a;b ## doc", 1), "## doc")
+  check("parse_inline_descriptions: none in an ordinary comment",
+        saved_inline_description("target: deps # a comment ## text", 0), "<none>")
+  check("parse_inline_descriptions: none in an ordinary comment on a variable",
+        saved_inline_description("X := 1 # a comment ## text", 1), "<none>")
+  check("parse_inline_descriptions: after an escaped # in a value",
+        saved_inline_description("X := a\\#b ## doc", 1), "## doc")
+  check("parse_inline_descriptions: a ## in the doc is kept",
+        saved_inline_description("target: ## a ## b", 0), "## a ## b")
 
   saved_inline_description("target: ## doc", 0)
   check("parse_inline_descriptions: the index advances", DESCRIPTION_DATA_INDEX, 2)

@@ -19,3 +19,10 @@ t7:; echo 1
 t8: t0; echo 1
 
 t-no-docs-section: ##@ An inline section token is not a doc
+
+# for Make, the comment starts at the first #: a ## later in it is not a doc
+t-no-docs-comment: t0 # an ordinary comment ## is not a doc
+V_NO_DOCS := 1 # an ordinary comment ## is not a doc
+
+t9: ## A ## in the doc is kept
+V := a\#b ## Inline docs after an escaped \# in the value

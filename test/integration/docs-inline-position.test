@@ -1,4 +1,4 @@
-#: desc: Inline docs after prerequisites and target variables, but not after an inline recipe
+#: desc: Inline docs after prerequisites and target variables, but not after an inline recipe or in an ordinary comment
 -v COLOR=0 test/fixtures/Makefile.docs-inline-position
 #: stdout
 -----------------------
@@ -12,4 +12,10 @@ t5   No space needed after a target-specific variable
 t6   No space needed after prerequisites
 t7   Top docs can be used when there is an inline recipe
 t8   Also with prerequisites before the inline recipe
+t9   A ## in the doc is kept
+
+-----------------------
+Command-line arguments:
+-----------------------
+V    Inline docs after an escaped \# in the value
 -----------------------
