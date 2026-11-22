@@ -155,8 +155,10 @@ The remaining details:
 
 ### Special kinds of targets
 
+- Several targets in one rule (`t1 t2: deps`) are displayed as one anchor, `t1 t2`.
 - [Double-colon](https://www.gnu.org/software/make/manual/html_node/Double_002dColon.html)
-  targets are displayed as `target-name~index`, and each rule can have its own doc.
+  targets are displayed as `target-name~index`, and each rule can have its own doc. The index
+  counts only the rules that have a doc.
 - [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&` (also in double-colon
   form).
@@ -256,7 +258,9 @@ open-   Notes:
 -----------------------
 ```
 
-Variables can be substituted in the same way.
+Variables can be substituted in the same way. `NAME` is the name of the anchor as it is displayed
+without substitutions, e.g., `t~1` for the first documented rule of a double-colon target `t`, or
+`t1 t2&` for grouped targets.
 
 Only the first two colons are separators, so values can contain colons (e.g., URLs). With
 two or more colons, the text between the first two is always the label:
