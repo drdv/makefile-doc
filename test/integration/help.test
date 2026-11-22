@@ -4,20 +4,20 @@
 Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)
 Description: Generate docs for Makefile variables and targets
 Version: @VERSION@
-Options:
-  OUTPUT_FORMAT: ANSI
-  EXPORT_THEME (theme for HTML/LATEX output):
-  SUB (substitutions):
-  DSUB (substitutions in docs and names):
-  VARS ([bool] show documented variables): 1
-  PADDING (a padding character between anchors and docs): " "
-  DEPRECATED ([bool] show deprecated anchors): 1
-  OFFSET (offset of docs from anchors): 2
-  COLOR ([bool] use colors): 1
-  RECIPEPREFIX: |	|
-  COLOR_DEFAULT: 34
-  COLOR_ATTENTION: 31
-  COLOR_DEPRECATED: 33
-  COLOR_SECTION: 32
-  COLOR_BACKTICKS: 33
+Options (current values):
+  VARS              show documented variables (0 or 1)   "1"
+  DEPRECATED        show deprecated anchors (0 or 1)     "1"
+  PADDING           character between anchors and docs   " "
+  OFFSET            spaces between anchors and docs      "2"
+  COLOR             use colors (0 or 1)                  "1"
+  OUTPUT_FORMAT     ANSI, HTML or LATEX                  "ANSI"
+  EXPORT_THEME      colors of the HTML and LaTeX output  ""
+  SUB               rename anchors and list values       ""
+  DSUB              replace text in docs and names       ""
+  RECIPEPREFIX      the .RECIPEPREFIX of the Makefile    "\t"
+  COLOR_DEFAULT     anchors documented with ##           "34"
+  COLOR_ATTENTION   anchors documented with ##!          "31"
+  COLOR_DEPRECATED  anchors documented with ##%          "33"
+  COLOR_SECTION     sections                             "32"
+  COLOR_BACKTICKS   text in backticks                    "33"
 #: exit: 1
