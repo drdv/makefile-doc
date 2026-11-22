@@ -430,8 +430,9 @@ function process_options(    sub_names, dummy_array_labels) {
     option_error("OFFSET should be a non-negative integer")
   }
 
-  form_substitutions(SUB, SUB_PARAMS, SUB_LABELS, SUB_VALUES, sub_names, 0)
-  form_substitutions(DSUB, DSUB_PARAMS, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
+  # (with "", gawk --lint does not warn when the option is not set)
+  form_substitutions(SUB "", SUB_PARAMS, SUB_LABELS, SUB_VALUES, sub_names, 0)
+  form_substitutions(DSUB "", DSUB_PARAMS, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
   set_dsub_scopes()
 
@@ -491,6 +492,7 @@ function print_option(name, description, value) {
 # Substitutions (the options SUB and DSUB)
 # ------------------------------------------------------------------------------------------
 
+# Parse spec, the value of the option SUB or DSUB (substitutions separated by ;):
 # SUB:  NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (the first two colons are
 #       separators; an empty label is no label)
 # DSUB: NAME:VALUE (only the first colon is a separator, no_labels is set)
@@ -504,7 +506,7 @@ function print_option(name, description, value) {
 # Empty items (e.g., after a trailing ;) are skipped. Invalid items are reported (see
 # option_error) and skipped: no colon, an empty name, invalid parameters, a name that is
 # already given.
-function form_substitutions(sub_array, sub_params_array, sub_labels_array,
+function form_substitutions(spec, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
@@ -516,7 +518,7 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
 
   option = no_labels ? "DSUB" : "SUB"
   n = 0
-  n_substitutions = split(sub_array, split_substitutions, ";")
+  n_substitutions = split(spec, split_substitutions, ";")
   for (k = 1; k <= n_substitutions; k++) {
     string = split_substitutions[k]
     if (string ~ /^[ \t]*$/) {
