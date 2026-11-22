@@ -297,6 +297,12 @@ function init_globals() {
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
 
+  # the tables of the colors and output formats (EXPORT_THEME is applied by process_options)
+  define_ansi_to_html_colors()
+  define_ansi_to_html_attributes()
+  define_ansi_to_latex_function()
+  define_color_labels()
+
   # initialize global arrays (i.e., hash tables) for clarity
   # index variables start from 1 because this is the standard in awk
 
@@ -341,6 +347,7 @@ function init_globals() {
   split("", DSUB_NAMES)
   split("", DSUB_IN_ANCHORS)
   split("", DSUB_IN_DOCS)
+  split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
 
   split("", DISPLAY_PARAMS)
 
@@ -684,11 +691,7 @@ function initialize_colors() {
     COLOR = 1
   }
 
-  define_ansi_to_html_colors()
-  set_user_defined_color_theme() # EXPORT_THEME overrides colors of that table
-  define_ansi_to_html_attributes()
-  define_ansi_to_latex_function()
-  define_color_labels()
+  set_user_defined_color_theme() # EXPORT_THEME overrides colors of ANSI_PARAM_COLOR
 
   COLOR_DEFAULT = validate_ansi_param("COLOR_DEFAULT",
                                       COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
