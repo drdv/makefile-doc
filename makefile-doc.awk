@@ -935,30 +935,14 @@ function html_box_style(    style) {
   return "  .makefile-doc { " style " }\n"
 }
 
-function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
-  if (ansi_color_param == "FG" || ansi_color_param == "BG") {
-    if (EXPORT_FG_BG[ansi_color_param] == "") {
-      return "" # indicates to not set any style
-    }
-    if (is_fgbg_definition) {
-      return sprintf("\\definecolor{%s}{HTML}{%s}\n",
-                     COLOR_LABELS[ansi_color_param],
-                     EXPORT_FG_BG[ansi_color_param])
-    } else if (ansi_color_param == "BG") {
-      return sprintf("\\pagecolor{%s}\n", COLOR_LABELS["BG"])
-    } # (FG is given to each line, see print_documentation)
-  }
-
-  if (ansi_color_param in EXPORT_PALETTE) {
-    return EXPORT_PALETTE[ansi_color_param]
-  }
-  return "000000"
+# a \definecolor line: label (a key of COLOR_LABELS) is the color hex_color
+function latex_definecolor(label, hex_color) {
+  return sprintf("\\definecolor{%s}{HTML}{%s}\n", COLOR_LABELS[label], hex_color)
 }
 
-function latex_definecolor(label, ansi_color_param) {
-  return sprintf("\\definecolor{%s}{HTML}{%s}\n",
-                 COLOR_LABELS[label],
-                 ansi_color_param_to_latex_color(ansi_color_param, 0))
+# the hex color of an ANSI parameter (black for an attribute, e.g., bold, or for no color)
+function latex_hex_color(ansi_color_param) {
+  return (ansi_color_param in EXPORT_PALETTE) ? EXPORT_PALETTE[ansi_color_param] : "000000"
 }
 
 # the preamble of the LaTeX output, up to the start of the documentation
@@ -978,19 +962,26 @@ function latex_header(    header) {
   header = header "\n"
   header = header "\\PreviewEnvironment{varwidth}\n"
   header = header "\n"
-  header = header ansi_color_param_to_latex_color("FG", 1)
-  header = header ansi_color_param_to_latex_color("BG", 1)
-  header = header latex_definecolor("ATTENTION", COLOR_ATTENTION)
-  header = header latex_definecolor("SECTION", COLOR_SECTION)
-  header = header latex_definecolor("DEPRECATED", COLOR_DEPRECATED)
-  header = header latex_definecolor("DEFAULT", COLOR_DEFAULT)
-  header = header latex_definecolor("BACKTICKS", COLOR_BACKTICKS)
+  # FG and BG only if they are set (FG is given to each line, see print_documentation)
+  if (EXPORT_FG_BG["FG"] != "") {
+    header = header latex_definecolor("FG", EXPORT_FG_BG["FG"])
+  }
+  if (EXPORT_FG_BG["BG"] != "") {
+    header = header latex_definecolor("BG", EXPORT_FG_BG["BG"])
+  }
+  header = header latex_definecolor("ATTENTION", latex_hex_color(COLOR_ATTENTION))
+  header = header latex_definecolor("SECTION", latex_hex_color(COLOR_SECTION))
+  header = header latex_definecolor("DEPRECATED", latex_hex_color(COLOR_DEPRECATED))
+  header = header latex_definecolor("DEFAULT", latex_hex_color(COLOR_DEFAULT))
+  header = header latex_definecolor("BACKTICKS", latex_hex_color(COLOR_BACKTICKS))
   header = header "\n"
   header = header "\\pagestyle{empty}\n"
   header = header "\\begin{document}\n"
   header = header "\n"
   header = header "\\begin{varwidth}{\\linewidth}\n"
-  header = header ansi_color_param_to_latex_color("BG", 0)
+  if (EXPORT_FG_BG["BG"] != "") {
+    header = header "\\pagecolor{" COLOR_LABELS["BG"] "}\n"
+  }
   header = header "\n"
   header = header "\\begin{alltt}"
   return header
