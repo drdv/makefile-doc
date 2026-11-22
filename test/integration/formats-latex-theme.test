@@ -18,11 +18,11 @@
 
 \definecolor{makefile-doc-fg}{HTML}{000000}
 \definecolor{makefile-doc-bg}{HTML}{AAAAAA}
-\definecolor{color-attention}{HTML}{000000}
-\definecolor{color-section}{HTML}{000000}
-\definecolor{color-deprecated}{HTML}{000000}
-\definecolor{color-default}{HTML}{7c3f00}
-\definecolor{color-backticks}{HTML}{000000}
+\definecolor{makefile-doc-attention}{HTML}{000000}
+\definecolor{makefile-doc-section}{HTML}{000000}
+\definecolor{makefile-doc-deprecated}{HTML}{000000}
+\definecolor{makefile-doc-default}{HTML}{7c3f00}
+\definecolor{makefile-doc-backticks}{HTML}{000000}
 
 \pagestyle{empty}
 \begin{document}
@@ -37,7 +37,7 @@
 
 \textcolor{makefile-doc-fg}{\emph{ Section with \sout{backticks} and \{braces\}}}
 
-\textcolor{makefile-doc-fg}{\textcolor{color-default}{t-default   }   A default target with \sout{backticks} and \{braces\}}
+\textcolor{makefile-doc-fg}{\textcolor{makefile-doc-default}{t-default   }   A default target with \sout{backticks} and \{braces\}}
 \textcolor{makefile-doc-fg}{               on two lines}
 \textcolor{makefile-doc-fg}{\textbf{t-attention }   An attention target}
 \textcolor{makefile-doc-fg}{\uline{t-deprecated}   A deprecated target}
@@ -45,7 +45,7 @@
 \textcolor{makefile-doc-fg}{-----------------------}
 \textcolor{makefile-doc-fg}{Command-line arguments:}
 \textcolor{makefile-doc-fg}{-----------------------}
-\textcolor{makefile-doc-fg}{\textcolor{color-default}{VAR         }   A variable}
+\textcolor{makefile-doc-fg}{\textcolor{makefile-doc-default}{VAR         }   A variable}
 \textcolor{makefile-doc-fg}{-----------------------}
 \end{alltt}
 \end{varwidth}

@@ -146,9 +146,9 @@ function test_define_color() {
 
   setup_colors("LATEX", "")
   check("define_color (LATEX): color", define_color(34, "DEFAULT"),
-        "\\textcolor{color-default}{")
+        "\\textcolor{makefile-doc-default}{")
   check("define_color (LATEX): background", define_color(44, "BACKTICKS"),
-        "\\bgcolor{color-backticks}{")
+        "\\bgcolor{makefile-doc-backticks}{")
   check("define_color (LATEX): attribute", define_color(1, "BACKTICKS"), "\\textbf{")
   check("define_color (LATEX): reset", define_color(-1), "}")
 

@@ -16,11 +16,11 @@
 
 \PreviewEnvironment{varwidth}
 
-\definecolor{color-attention}{HTML}{000000}
-\definecolor{color-section}{HTML}{000000}
-\definecolor{color-deprecated}{HTML}{000000}
-\definecolor{color-default}{HTML}{000000}
-\definecolor{color-backticks}{HTML}{000000}
+\definecolor{makefile-doc-attention}{HTML}{000000}
+\definecolor{makefile-doc-section}{HTML}{000000}
+\definecolor{makefile-doc-deprecated}{HTML}{000000}
+\definecolor{makefile-doc-default}{HTML}{000000}
+\definecolor{makefile-doc-backticks}{HTML}{000000}
 
 \pagestyle{empty}
 \begin{document}
