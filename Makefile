@@ -38,7 +38,6 @@ EXPORT_THEME :=
 ## Show this help
 help: VFLAGS := \
 	-v EXPORT_THEME=$(EXPORT_THEME) \
-	-v COLOR_BACKTICKS=33 \
 	-v OUTPUT_FORMAT=$(OUTPUT_FORMAT)
 help:
 	@$(AWK) $(VFLAGS) -f $(MAKEFILE_DOC) $(MAKEFILE_LIST)
@@ -114,7 +113,7 @@ clean-bin:
 # Internal stuff
 # --------------------------------------------------------------------------
 DEMO := misc/Makefile.demo
-DEMO_FLAGS := -v EXPORT_THEME=BG:000000,FG:F7F7F7 -v COLOR_BACKTICKS=33
+DEMO_FLAGS := -v EXPORT_THEME=BG:000000,FG:F7F7F7
 
 demo.html: $(DEMO) $(MAKEFILE_DOC)
 	@$(AWK) $(DEMO_FLAGS) -v OUTPUT_FORMAT=html -f $(MAKEFILE_DOC) $(DEMO) > $@

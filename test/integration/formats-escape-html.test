@@ -5,6 +5,7 @@
 <style>
   .makefile-doc-attention { color: #dc322f; }
   .makefile-doc-deprecated { color: #b58900; }
+  .makefile-doc-backticks { color: #b58900; }
 </style>
 <div class="makefile-doc">
 <pre>
