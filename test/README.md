@@ -295,4 +295,116 @@ The version is defined in `makefile-doc.awk` (e.g., `VERSION = "v1.9"`). The rel
    and its checksum as assets.
 5. Review the draft release on GitHub and publish it.
 
+# Architecture
+
+`makefile-doc.awk` runs in three steps, which follow how awk runs a script: `BEGIN` initializes the
+global variables and processes the options, the parsing reads the Makefiles one line at a time, and
+`END` renders the documentation.
+
+```mermaid
+---
+config:
+  layout: dagre
+  flowchart:
+    curve: basis
+---
+flowchart TD
+    options["Options (-v)"] --> begin["BEGIN<br/>init_globals, process_options"]
+    makefiles["Makefiles (or stdin)"] --> parsing["Parsing"]
+    begin -- "constants" --> parsing
+    begin --> settings[("Options and settings")]
+    begin -- "constants" --> end_["END<br/>print_documentation"]
+
+    settings -. "RECIPEPREFIX" .-> parsing
+    parsing --> interface[("Interface variables")]
+
+    interface --> end_
+    settings --> end_
+    end_ --> stdout["Documentation (stdout)"]
+    end_ --> stderr["Warnings (stderr)"]
+```
+
+Parsing reads no option except `RECIPEPREFIX`, which tells it what a recipe line looks like. A
+Makefile is therefore always parsed the same way, whatever the display options, and gives the same
+interface variables. Everything that depends on the other options is decided when rendering: which
+anchors are displayed, where the sections go, which warnings are printed, and how the output is
+formatted.
+
+The interface variables are the only data that parsing hands over to rendering:
+
+| Variables                                                      | Meaning                                                                                                                                                                                                                                         |
+|----------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `TARGETS`, `VARIABLES`<br>(`TARGETS_INDEX`, `VARIABLES_INDEX`) | The documented targets and variables, in file order. An anchor is listed once, at its first definition, even if it is documented again later. `*_INDEX` is the next free index. Undocumented anchors are not recorded.                          |
+| `TARGETS_DESCRIPTION_DATA`<br>`VARIABLES_DESCRIPTION_DATA`     | The doc of each anchor, keyed by its name: its lines without their tokens, joined by `\n` (each line keeps the space that followed its token). If an anchor is documented again, the last doc replaces the previous one.                        |
+| `TARGETS_TAG`, `VARIABLES_TAG`                                 | The token of the doc of each anchor, keyed by its name: `##`, `##!` (needs attention) or `##%` (deprecated). It decides the color of the anchor and whether it is hidden with `DEPRECATED=0`. Like the doc, it comes from the last definition.  |
+| `ANCHOR_ORDER`<br>(`ANCHOR_ORDER_INDEX`)                       | Every definition of a documented anchor, targets and variables together, in file order, as `kind SUBSEP name` (`kind` is `target` or `variable`). An anchor documented twice appears twice. It is used to place the sections when rendering.    |
+| `SECTION_BEFORE`                                               | The section that comes just before an entry of `ANCHOR_ORDER`, keyed by the index of that entry (only where there is one): its lines joined by `\n`. When rendering, a section is displayed above the next displayed anchor from that entry on. |
+| `WARNINGS`, `WARNING_KINDS`<br>(`WARNING_COUNT`)               | The warnings about the Makefiles, in the order they were found: the message (with the file and line) and what it is about (`target`, `variable` or `file`). They are printed before the docs, except those about variables when `VARS=0`.       |
+| `FILES_PROCESSED`                                              | The names of the files read, separated by spaces (`-` for stdin). It is used in the messages when nothing is documented.                                                                                                                        |
+
+For example, with this `Makefile`:
+
+```makefile
+##@ Configuration
+## Number of parallel jobs
+JOBS := 4
+
+##@ Build
+## Compile the project
+## (uses JOBS)
+build:
+
+## Remove the build files
+clean:
+
+##@ Tests
+## Run the tests
+test: build
+
+##% Use `test` instead
+check: test
+
+##! Remove all generated files, including the caches
+clean:
+```
+
+the variables hold:
+
+| Index | `TARGETS` | `VARIABLES` |
+|-------|-----------|-------------|
+| 1     | `"build"` | `"JOBS"`    |
+| 2     | `"clean"` |             |
+| 3     | `"test"`  |             |
+| 4     | `"check"` |             |
+
+with `TARGETS_INDEX = 5` and `VARIABLES_INDEX = 2`;
+
+| Name    | `TARGETS_DESCRIPTION_DATA`                            | `TARGETS_TAG` |
+|---------|-------------------------------------------------------|---------------|
+| `build` | `" Compile the project\n (uses JOBS)"`                | `"##"`        |
+| `clean` | `" Remove all generated files, including the caches"` | `"##!"`       |
+| `test`  | `" Run the tests"`                                    | `"##"`        |
+| `check` | ``" Use `test` instead"``                             | `"##%"`       |
+
+| Name   | `VARIABLES_DESCRIPTION_DATA` | `VARIABLES_TAG` |
+|--------|------------------------------|-----------------|
+| `JOBS` | `" Number of parallel jobs"` | `"##"`          |
+
+| Index | `ANCHOR_ORDER`             | `SECTION_BEFORE`   |
+|-------|----------------------------|--------------------|
+| 1     | `"variable" SUBSEP "JOBS"` | `" Configuration"` |
+| 2     | `"target" SUBSEP "build"`  | `" Build"`         |
+| 3     | `"target" SUBSEP "clean"`  |                    |
+| 4     | `"target" SUBSEP "test"`   | `" Tests"`         |
+| 5     | `"target" SUBSEP "check"`  |                    |
+| 6     | `"target" SUBSEP "clean"`  |                    |
+
+with `ANCHOR_ORDER_INDEX = 7`;
+
+| Index | `WARNINGS`                                        | `WARNING_KINDS` |
+|-------|---------------------------------------------------|-----------------|
+| 1     | `"[Makefile:21] redefined docs of target: clean"` | `"target"`      |
+
+with `WARNING_COUNT = 1`, and `FILES_PROCESSED = "Makefile"`.
+
 [^1]: `--update` takes one platform only and never rewrites a known-bug case.
