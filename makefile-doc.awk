@@ -1131,8 +1131,11 @@ function associate_data_with_anchor(anchor_name,
                                     anchors_description_data,
                                     anchors_section_data,
                                     anchor_type, #locals
-                                    warn) {
+                                    warn, shown) {
   warn = !(anchor_type == "variable" && !VARS) # no warnings about hidden variables
+  # a hidden anchor (a variable with VARS=0, a deprecated one with DEPRECATED=0) does not
+  # take the pending section: it is kept for the next displayed anchor
+  shown = warn && !(!DEPRECATED && get_tag_from_description(DESCRIPTION_DATA[1]) == "##%")
   if (anchor_name in anchors_description_data) {
     if (warn) {
       printf("WARNING: [%s:%s] redefined docs of %s: %s\n",
@@ -1149,8 +1152,8 @@ function associate_data_with_anchor(anchor_name,
   anchors_description_data[anchor_name] = assemble_description_section_data(DESCRIPTION_DATA)
   forget_descriptions_data()
 
-  # note that section data is associated only with documented anchors
-  if (length_array_posix(SECTION_DATA) > 0) {
+  # note that section data is associated only with documented anchors that are displayed
+  if (shown && length_array_posix(SECTION_DATA) > 0) {
     if (warn && anchor_name in anchors_section_data) {
       printf("WARNING: [%s:%s] redefined associated section data: %s\n",
              CURRENT_FILE,
@@ -1564,25 +1567,24 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
                                   renamed_anchor, formatted_anchor, padding, output) {
   extract_substitution_params(array_get(SUB_PARAMS, anchor))
 
-  # Display the section (if there is one) even if it is anchored to a deprecated anchor
-  # that is not to be displayed (unless no anchor of its kind is displayed: then this
-  # function is not called for it).
-  if (section) {
-    if (COLOR_SECTION_CODE) {
-      # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
-      # the section color has to be restored after each reset.
-      if (OUTPUT_FORMAT == "ANSI") {
-        section = string_replace(COLOR_RESET_CODE,
-                                 COLOR_RESET_CODE COLOR_SECTION_CODE,
-                                 section)
-      }
-      printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
-    } else {
-      printf("%s\n", section)
-    }
-  }
-
+  # a section is displayed only with its anchor (a hidden anchor has a section only if it
+  # was redefined with a deprecated doc, see associate_data_with_anchor)
   if (DISPLAY_PARAMS["show"]) {
+    if (section) {
+      if (COLOR_SECTION_CODE) {
+        # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
+        # the section color has to be restored after each reset.
+        if (OUTPUT_FORMAT == "ANSI") {
+          section = string_replace(COLOR_RESET_CODE,
+                                   COLOR_RESET_CODE COLOR_SECTION_CODE,
+                                   section)
+        }
+        printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
+      } else {
+        printf("%s\n", section)
+      }
+    }
+
     renamed_anchor = display_name(anchor)
     formatted_anchor = apply_output_specific_formatting(renamed_anchor)
 
