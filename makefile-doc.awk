@@ -5,12 +5,15 @@
 #  Author: Dimitar Dimitrov
 # License: Apache-2.0
 # Project: https://github.com/drdv/makefile-doc
-#
-# Usage (the README.md of the project has the details and examples):
+
+### Commentary
+
+#### Usage
+# (the README.md of the project has the details and examples)
 #   awk [-v OPTION=value ...] -f makefile-doc.awk [Makefile ...]
 #   (without a Makefile, it is read from stdin; if stdin is empty, the help is printed)
-#
-# Docs:
+
+#### Docs
 #   * Targets and variables are called anchors.
 #   * The docs of an anchor are comments placed above it or inline (the inline docs are
 #     ignored if there are docs above). They start with one of the tokens:
@@ -19,8 +22,9 @@
 #       ##%  a deprecated anchor (displayed in COLOR_DEPRECATED)
 #   * Lines that start with ##@ form a section (displayed in COLOR_SECTION, above the next
 #     documented anchor).
-#
-# Options (possible values are given in {...}, (.) denotes the default):
+
+#### Options
+# (possible values are given in {...}, (.) denotes the default)
 #   VARS              {0, (1)} show documented variables
 #   DEPRECATED        {0, (1)} show deprecated anchors
 #   PADDING           {(" "), ".", ...} a single padding character between anchors and docs
@@ -52,8 +56,8 @@
 #   else is printed and the exit status is 1.
 #
 #   SUB, DSUB and EXPORT_THEME are described, with examples, in the README.md.
-#
-# Code conventions:
+
+#### Code conventions
 #   * All local variables of a function are declared in its signature (awk has no other way
 #     to make a variable local). There are two cases (also in the unit tests):
 #       * a function with parameters: the locals are on the next line, after a `#locals`
@@ -75,18 +79,20 @@
 #   * Order is important only to the arrays DESCRIPTION_DATA, SECTION_DATA, TARGETS,
 #     VARIABLES and ANCHOR_ORDER, each with an associated *_INDEX integer variable (the next
 #     free index), and to DSUB_NAMES, whose number of elements is DSUB_COUNT.
-#
-# Structure of this file (each part starts with a banner):
-#   1. General helpers
-#   2. Errors and warnings
-#   3. Initialization and options
-#   4. Substitutions (the options SUB and DSUB)
-#   5. Colors and output formats (ANSI, HTML, LATEX)
-#   6. Parsing helpers
-#   7. The parser: BEGIN, then one pattern rule per kind of line
-#   8. Display of the documentation (and END)
-#
-# Terminology and definitions:
+
+#### Structure of the code
+#   Helpers                pure functions (no global variables)
+#   Global initialization  the global state that does not depend on the options
+#   Options                the options: defaults, checks and derived settings
+#   Output formats         everything that depends on OUTPUT_FORMAT
+#   Parsing                the rules that read the Makefiles, and their helpers
+#   Rendering              the display of the documentation
+#   Flow                   BEGIN and END
+# A function is in the section that owns the variables it writes: Options writes the
+# settings, Parsing writes the interface variables (see init_globals), which Rendering
+# reads. Output formats is the exception: it groups a feature, across these steps.
+
+#### Terminology and definitions
 #   * A Makefile rule (without patterns) can take one of the following forms:
 #     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
 #         [recipe]
@@ -120,9 +126,11 @@
 #   * The last rule with a description defines the description of a normal target, while
 #     every double-colon rule with a description defines a new description.
 
-# ------------------------------------------------------------------------------------------
-# General helpers
-# ------------------------------------------------------------------------------------------
+
+### Code
+
+#### Helpers
+# Pure functions: they use no global variables.
 
 function max(x, y) {
   return (x >= y) ? x : y
@@ -244,46 +252,14 @@ function is_hex_color(value) {
   return length(value) == 6 && value ~ /^[0-9A-Fa-f]+$/
 }
 
-# ------------------------------------------------------------------------------------------
-# Errors and warnings
-# ------------------------------------------------------------------------------------------
-
-# Report an invalid value of an option. The script goes on, so that all the invalid options
-# are reported, and stops at the end of process_options().
-function option_error(message) {
-  printf("ERROR: %s\n", message) > STDERR
-  OPTION_ERRORS++
+# the name of the color of label in the HTML and LaTeX output (an HTML class, a LaTeX color),
+# e.g., makefile-doc-default
+function color_name(label) {
+  return "makefile-doc-" tolower(label)
 }
 
-# Record a warning about the Makefiles (printed by print_warnings, before the docs). kind is
-# what it is about: "target", "variable" or "file".
-function add_warning(kind, message) {
-  WARNINGS[++WARNING_COUNT] = message
-  WARNING_KINDS[WARNING_COUNT] = kind
-}
-
-# Print the warnings recorded while parsing, except those about variables with VARS=0 (they
-# are not displayed)
-function print_warnings(    k) {
-  for (k = 1; k <= WARNING_COUNT; k++) {
-    if (!(WARNING_KINDS[k] == "variable" && !VARS)) {
-      printf("WARNING: %s\n", WARNINGS[k]) > STDERR
-    }
-  }
-}
-
-# A file whose last line ends with a backslash: the line cannot be joined with a next one,
-# so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
-# the next file and in END).
-function warn_about_continued_last_line() {
-  if (IN_CONTINUED_LINE) {
-    add_warning("file", sprintf("[%s] the last line ends with a backslash", CURRENT_FILE))
-  }
-}
-
-# ------------------------------------------------------------------------------------------
-# Initialization and options
-# ------------------------------------------------------------------------------------------
+#### Global initialization
+# The global state that does not depend on the options: constants and empty arrays.
 
 # Set the global state that does not depend on user options. It is called from BEGIN and
 # can be called from unit tests (also to reset the state between tests).
@@ -395,18 +371,6 @@ function init_globals() {
   reset_file_state()
 }
 
-# The parser state that must not be carried over from one Makefile to the next: a doc, a
-# rule, a continued line or recipe at the end of a file ends with that file.
-# Pending section data is kept on purpose (a section is anchored to the next documented
-# anchor, which can be in the next file).
-function reset_file_state() {
-  forget_descriptions_data()
-  IN_MULTILINE_BACKSLASH_RECIPE = 0
-  IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
-  CONTINUED_LINE = ""
-  IN_RULE = ""
-}
-
 function initialize_variables_regex() {
   ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
   split("override unexport export private", VARIABLE_QUALIFIERS, " ")
@@ -429,6 +393,10 @@ function initialize_substitution_parameter_defaults() {
   SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
   SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., )
 }
+
+#### Options
+# The options given with -v: their defaults, their checks and the settings derived from them
+# (those of the output formats are in Output formats).
 
 # Process the user options (called from BEGIN, but not in unit-test mode: it exits on an
 # invalid option, and an exit in BEGIN would end the unit test before its checks run).
@@ -477,6 +445,13 @@ function process_options(    sub_names, dummy_array_labels) {
   }
 }
 
+# Report an invalid value of an option. The script goes on, so that all the invalid options
+# are reported, and stops at the end of process_options().
+function option_error(message) {
+  printf("ERROR: %s\n", message) > STDERR
+  OPTION_ERRORS++
+}
+
 # Report the operands that awk takes for assignments, e.g., VARS=0 (see option_error). awk
 # makes such an assignment only when it reaches the operand, i.e., after BEGIN, where the
 # options are validated and used: options must be given with -v. Assignments to other
@@ -489,41 +464,6 @@ function report_assignment_operands(    k) {
     }
   }
 }
-
-# the help: the usage, then the options with their current values (shown in double quotes,
-# so that empty values and blanks are visible)
-function print_help() {
-  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)"
-  print "Description: Generate docs for Makefile variables and targets"
-  print "Version: " VERSION
-  print "Options (current values):"
-  print_option("VARS", "show documented variables (0 or 1)", VARS)
-  print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
-  print_option("PADDING", "character between anchors and docs", PADDING)
-  print_option("OFFSET", "spaces between anchors and docs", OFFSET)
-  print_option("COLOR", "use colors (0 or 1)", COLOR)
-  print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
-  # (EXPORT_THEME, SUB and DSUB have no default: with "", gawk --lint does not warn about them)
-  print_option("EXPORT_THEME", "colors of the HTML and LaTeX output", EXPORT_THEME "")
-  print_option("SUB", "rename anchors and list values", SUB "")
-  print_option("DSUB", "replace text in docs and names", DSUB "")
-  print_option("RECIPEPREFIX", "the .RECIPEPREFIX of the Makefile",
-               RECIPEPREFIX == "\t" ? "\\t" : RECIPEPREFIX)
-  print_option("COLOR_DEFAULT", "anchors documented with ##", COLOR_DEFAULT)
-  print_option("COLOR_ATTENTION", "anchors documented with ##!", COLOR_ATTENTION)
-  print_option("COLOR_DEPRECATED", "anchors documented with ##%", COLOR_DEPRECATED)
-  print_option("COLOR_SECTION", "sections", COLOR_SECTION)
-  print_option("COLOR_BACKTICKS", "text in backticks", COLOR_BACKTICKS)
-}
-
-# one line of the help: an option, its description and its value
-function print_option(name, description, value) {
-  printf("  %-16s  %-35s  \"%s\"\n", name, description, value)
-}
-
-# ------------------------------------------------------------------------------------------
-# Substitutions (the options SUB and DSUB)
-# ------------------------------------------------------------------------------------------
 
 # Parse spec, the value of the option SUB or DSUB (substitutions separated by ;):
 # SUB:  NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (the first two colons are
@@ -706,26 +646,40 @@ function set_dsub_scopes(    k, name, params, keys) {
   }
 }
 
-# Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
-# that are not given)
-function extract_substitution_params(string_with_parameters, #locals
-                                     keys, key) {
-  parse_substitution_params(string_with_parameters, SUB_PARAMS_CURRENT, keys)
-
-  for (key in SUB_PARAMS_DEFAULTS) {
-    if (!(key in SUB_PARAMS_CURRENT)) {
-      SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
-    }
-  }
-  # L, M and N are used as numbers (the value above is a string, e.g., "0" would be true)
-  SUB_PARAMS_CURRENT["L"] += 0
-  SUB_PARAMS_CURRENT["M"] += 0
-  SUB_PARAMS_CURRENT["N"] += 0
+# the help: the usage, then the options with their current values (shown in double quotes,
+# so that empty values and blanks are visible)
+function print_help() {
+  print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)"
+  print "Description: Generate docs for Makefile variables and targets"
+  print "Version: " VERSION
+  print "Options (current values):"
+  print_option("VARS", "show documented variables (0 or 1)", VARS)
+  print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
+  print_option("PADDING", "character between anchors and docs", PADDING)
+  print_option("OFFSET", "spaces between anchors and docs", OFFSET)
+  print_option("COLOR", "use colors (0 or 1)", COLOR)
+  print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
+  # (EXPORT_THEME, SUB and DSUB have no default: with "", gawk --lint does not warn about them)
+  print_option("EXPORT_THEME", "colors of the HTML and LaTeX output", EXPORT_THEME "")
+  print_option("SUB", "rename anchors and list values", SUB "")
+  print_option("DSUB", "replace text in docs and names", DSUB "")
+  print_option("RECIPEPREFIX", "the .RECIPEPREFIX of the Makefile",
+               RECIPEPREFIX == "\t" ? "\\t" : RECIPEPREFIX)
+  print_option("COLOR_DEFAULT", "anchors documented with ##", COLOR_DEFAULT)
+  print_option("COLOR_ATTENTION", "anchors documented with ##!", COLOR_ATTENTION)
+  print_option("COLOR_DEPRECATED", "anchors documented with ##%", COLOR_DEPRECATED)
+  print_option("COLOR_SECTION", "sections", COLOR_SECTION)
+  print_option("COLOR_BACKTICKS", "text in backticks", COLOR_BACKTICKS)
 }
 
-# ------------------------------------------------------------------------------------------
-# Colors and output formats (ANSI, HTML, LATEX)
-# ------------------------------------------------------------------------------------------
+# one line of the help: an option, its description and its value
+function print_option(name, description, value) {
+  printf("  %-16s  %-35s  \"%s\"\n", name, description, value)
+}
+
+#### Output formats
+# Everything that depends on OUTPUT_FORMAT (ANSI, HTML, LATEX): colors, themes, escapes,
+# header and footer.
 
 function initialize_colors() {
   COLOR = COLOR == "" ? default_color_option() : COLOR
@@ -756,28 +710,6 @@ function initialize_colors() {
   COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
   COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
   COLOR_RESET_CODE = define_color(-1)
-}
-
-# Set what is printed before and after the documentation: OUTPUT_HEADER and OUTPUT_FOOTER
-# (each ends with a newline; both are empty for ANSI). It uses the colors, so it is called
-# after initialize_colors.
-function initialize_output_format() {
-  OUTPUT_HEADER = OUTPUT_FOOTER = ""
-  if (OUTPUT_FORMAT == "HTML") {
-    OUTPUT_FOOTER = "</pre>\n</div>\n"
-    # an HTML fragment (to paste into a page): the styles, then the documentation
-    OUTPUT_HEADER = "<style>\n" \
-        ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
-        ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
-        ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
-        ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
-        ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
-        html_box_style() \
-        "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
-    OUTPUT_HEADER = latex_header() "\n"
-  }
 }
 
 # the default of the COLOR option: 0 if NO_COLOR is set to a non-empty value (no-color.org)
@@ -925,12 +857,6 @@ function define_color(ansi_color_param, color_label_key) {
   }
 }
 
-# the name of the color of label in the HTML and LaTeX output (an HTML class, a LaTeX color),
-# e.g., makefile-doc-default
-function color_name(label) {
-  return "makefile-doc-" tolower(label)
-}
-
 # Return the CSS rule (one line) for a color option, or "" if there is nothing to style
 function ansi_color_param_to_html_style(ansi_color_param, label, #locals
                                         value) {
@@ -958,6 +884,28 @@ function html_box_style(    style) {
     style = style " background-color: #" EXPORT_FG_BG["BG"] ";"
   }
   return "  .makefile-doc { " style " }\n"
+}
+
+# Set what is printed before and after the documentation: OUTPUT_HEADER and OUTPUT_FOOTER
+# (each ends with a newline; both are empty for ANSI). It uses the colors, so it is called
+# after initialize_colors.
+function initialize_output_format() {
+  OUTPUT_HEADER = OUTPUT_FOOTER = ""
+  if (OUTPUT_FORMAT == "HTML") {
+    OUTPUT_FOOTER = "</pre>\n</div>\n"
+    # an HTML fragment (to paste into a page): the styles, then the documentation
+    OUTPUT_HEADER = "<style>\n" \
+        ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
+        ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
+        ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
+        ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
+        ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
+        html_box_style() \
+        "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
+    OUTPUT_HEADER = latex_header() "\n"
+  }
 }
 
 # a \definecolor line: the color of label (see color_name) is hex_color
@@ -1043,9 +991,37 @@ function apply_output_specific_formatting(text) {
   return escape_for_latex_output(escape_for_html_output(text))
 }
 
-# ------------------------------------------------------------------------------------------
-# Parsing helpers
-# ------------------------------------------------------------------------------------------
+#### Parsing
+# The rules that read the Makefiles, one line at a time, and their helpers. Parsing fills
+# the interface variables (see init_globals) and reads no option but RECIPEPREFIX.
+
+# The parser state that must not be carried over from one Makefile to the next: a doc, a
+# rule, a continued line or recipe at the end of a file ends with that file.
+# Pending section data is kept on purpose (a section is anchored to the next documented
+# anchor, which can be in the next file).
+function reset_file_state() {
+  forget_descriptions_data()
+  IN_MULTILINE_BACKSLASH_RECIPE = 0
+  IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
+  CONTINUED_LINE = ""
+  IN_RULE = ""
+}
+
+# Record a warning about the Makefiles (printed by print_warnings, before the docs). kind is
+# what it is about: "target", "variable" or "file".
+function add_warning(kind, message) {
+  WARNINGS[++WARNING_COUNT] = message
+  WARNING_KINDS[WARNING_COUNT] = kind
+}
+
+# A file whose last line ends with a backslash: the line cannot be joined with a next one,
+# so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
+# the next file and in END).
+function warn_about_continued_last_line() {
+  if (IN_CONTINUED_LINE) {
+    add_warning("file", sprintf("[%s] the last line ends with a backslash", CURRENT_FILE))
+  }
+}
 
 # the tag of a doc line (##, ##! or ##%), or "" if it does not start with one
 function get_tag_from_description(string) {
@@ -1184,19 +1160,6 @@ function associate_data_with_anchor(anchor_name,
   ANCHOR_ORDER_INDEX++
 
   return anchors_index
-}
-
-# ------------------------------------------------------------------------------------------
-# The parser: BEGIN, then one pattern rule per kind of line
-# ------------------------------------------------------------------------------------------
-
-# Initialize the global variables and process the options (the script exits here if an
-# option is invalid).
-BEGIN {
-  init_globals()
-  if (!UNIT_TEST) {
-    process_options()
-  }
 }
 
 # Each input line goes through the rules below, in this order, until a rule that fully
@@ -1390,9 +1353,44 @@ $0 !~ /^[ \t]*#/ {
   forget_descriptions_data()
 }
 
-# ------------------------------------------------------------------------------------------
-# Display of the documentation (and END)
-# ------------------------------------------------------------------------------------------
+#### Rendering
+# The display of the documentation, from the interface variables and the settings.
+
+# Print the warnings recorded while parsing, except those about variables with VARS=0 (they
+# are not displayed)
+function print_warnings(    k) {
+  for (k = 1; k <= WARNING_COUNT; k++) {
+    if (!(WARNING_KINDS[k] == "variable" && !VARS)) {
+      printf("WARNING: %s\n", WARNINGS[k]) > STDERR
+    }
+  }
+}
+
+# Give each section to the next displayed anchor after it in the Makefiles (TARGETS_SECTION_DATA
+# and VARIABLES_SECTION_DATA). Hidden anchors (variables with VARS=0, deprecated anchors with
+# DEPRECATED=0) are skipped, sections with no displayed anchor after them are dropped, and
+# consecutive sections are merged. A later section of the same anchor replaces an earlier one.
+function place_sections(    k, parts, name, has_section, section) {
+  has_section = 0
+  for (k = 1; k < ANCHOR_ORDER_INDEX; k++) {
+    if (k in SECTION_BEFORE) {
+      section = has_section ? section "\n" SECTION_BEFORE[k] : SECTION_BEFORE[k]
+      has_section = 1
+    }
+    split(ANCHOR_ORDER[k], parts, SUBSEP)
+    name = parts[2]
+    if (!has_section) {
+      continue
+    }
+    if (parts[1] == "target" && !is_hidden_anchor(name, TARGETS_TAG)) {
+      TARGETS_SECTION_DATA[name] = section
+      has_section = 0
+    } else if (parts[1] == "variable" && VARS && !is_hidden_anchor(name, VARIABLES_TAG)) {
+      VARIABLES_SECTION_DATA[name] = section
+      has_section = 0
+    }
+  }
+}
 
 # true for an anchor documented with ##% when deprecated anchors are not displayed
 function is_hidden_anchor(anchor, anchors_tags) {
@@ -1525,6 +1523,23 @@ function get_associated_section_data(anchor_name,
   return "" # means that there is no section data associated with this anchor
 }
 
+# Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
+# that are not given)
+function extract_substitution_params(string_with_parameters, #locals
+                                     keys, key) {
+  parse_substitution_params(string_with_parameters, SUB_PARAMS_CURRENT, keys)
+
+  for (key in SUB_PARAMS_DEFAULTS) {
+    if (!(key in SUB_PARAMS_CURRENT)) {
+      SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
+    }
+  }
+  # L, M and N are used as numbers (the value above is a string, e.g., "0" would be true)
+  SUB_PARAMS_CURRENT["L"] += 0
+  SUB_PARAMS_CURRENT["M"] += 0
+  SUB_PARAMS_CURRENT["N"] += 0
+}
+
 # Return the text that follows the doc of an anchor: the values of its SUB substitution
 # (with the parameters in SUB_PARAMS_CURRENT), then a newline. Each value is made into an
 # item (P before it, S after it, I before the first one, T after the last one instead of S);
@@ -1641,32 +1656,6 @@ function print_anchors(anchors, description_data, tags, section_data, max_anchor
   }
 }
 
-# Give each section to the next displayed anchor after it in the Makefiles (TARGETS_SECTION_DATA
-# and VARIABLES_SECTION_DATA). Hidden anchors (variables with VARS=0, deprecated anchors with
-# DEPRECATED=0) are skipped, sections with no displayed anchor after them are dropped, and
-# consecutive sections are merged. A later section of the same anchor replaces an earlier one.
-function place_sections(    k, parts, name, has_section, section) {
-  has_section = 0
-  for (k = 1; k < ANCHOR_ORDER_INDEX; k++) {
-    if (k in SECTION_BEFORE) {
-      section = has_section ? section "\n" SECTION_BEFORE[k] : SECTION_BEFORE[k]
-      has_section = 1
-    }
-    split(ANCHOR_ORDER[k], parts, SUBSEP)
-    name = parts[2]
-    if (!has_section) {
-      continue
-    }
-    if (parts[1] == "target" && !is_hidden_anchor(name, TARGETS_TAG)) {
-      TARGETS_SECTION_DATA[name] = section
-      has_section = 0
-    } else if (parts[1] == "variable" && VARS && !is_hidden_anchor(name, VARIABLES_TAG)) {
-      VARIABLES_SECTION_DATA[name] = section
-      has_section = 0
-    }
-  }
-}
-
 # add text to the documentation (OUTPUT_BODY, printed by print_documentation)
 function append_output(text) {
   OUTPUT_BODY = OUTPUT_BODY text
@@ -1723,6 +1712,19 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   printf("%s%s%s", OUTPUT_HEADER, OUTPUT_BODY, OUTPUT_FOOTER)
 }
 
+#### Flow
+# BEGIN: the initialization and the options; END: the rendering (or the help).
+
+# Initialize the global variables and process the options (the script exits here if an
+# option is invalid).
+BEGIN {
+  init_globals()
+  if (!UNIT_TEST) {
+    process_options()
+  }
+}
+
+# Display the documentation (or print the help); nothing if BEGIN exited on an error
 END {
   if (ABORT) {
     exit ABORT
@@ -1738,3 +1740,5 @@ END {
     print_documentation()
   }
 }
+
+### makefile-doc.awk ends here
