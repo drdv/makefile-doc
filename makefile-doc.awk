@@ -456,27 +456,35 @@ function report_assignment_operands(    k) {
   }
 }
 
+# the help: the usage, then the options with their current values (shown in double quotes,
+# so that empty values and blanks are visible)
 function print_help() {
   print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)"
   print "Description: Generate docs for Makefile variables and targets"
   print "Version: " VERSION
-  print "Options:"
-  printf "  OUTPUT_FORMAT: %s\n", OUTPUT_FORMAT
-  printf "  EXPORT_THEME (theme for HTML/LATEX output):%s\n",
-         (EXPORT_THEME == "" ? "" : " " EXPORT_THEME)
-  printf "  SUB (substitutions):%s\n", (SUB == "" ? "" : " " SUB)
-  printf "  DSUB (substitutions in docs and names):%s\n", (DSUB == "" ? "" : " " DSUB)
-  printf "  VARS ([bool] show documented variables): %s\n", VARS
-  printf "  PADDING (a padding character between anchors and docs): \"%s\"\n", PADDING
-  printf "  DEPRECATED ([bool] show deprecated anchors): %s\n", DEPRECATED
-  printf "  OFFSET (offset of docs from anchors): %s\n", OFFSET
-  printf "  COLOR ([bool] use colors): %s\n", COLOR
-  printf "  RECIPEPREFIX: |%s|\n", RECIPEPREFIX
-  printf "  COLOR_DEFAULT: %s\n", COLOR_DEFAULT
-  printf "  COLOR_ATTENTION: %s\n", COLOR_ATTENTION
-  printf "  COLOR_DEPRECATED: %s\n", COLOR_DEPRECATED
-  printf "  COLOR_SECTION: %s\n", COLOR_SECTION
-  printf "  COLOR_BACKTICKS: %s\n", COLOR_BACKTICKS
+  print "Options (current values):"
+  print_option("VARS", "show documented variables (0 or 1)", VARS)
+  print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
+  print_option("PADDING", "character between anchors and docs", PADDING)
+  print_option("OFFSET", "spaces between anchors and docs", OFFSET)
+  print_option("COLOR", "use colors (0 or 1)", COLOR)
+  print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
+  # (EXPORT_THEME, SUB and DSUB have no default: with "", gawk --lint does not warn about them)
+  print_option("EXPORT_THEME", "colors of the HTML and LaTeX output", EXPORT_THEME "")
+  print_option("SUB", "rename anchors and list values", SUB "")
+  print_option("DSUB", "replace text in docs and names", DSUB "")
+  print_option("RECIPEPREFIX", "the .RECIPEPREFIX of the Makefile",
+               RECIPEPREFIX == "\t" ? "\\t" : RECIPEPREFIX)
+  print_option("COLOR_DEFAULT", "anchors documented with ##", COLOR_DEFAULT)
+  print_option("COLOR_ATTENTION", "anchors documented with ##!", COLOR_ATTENTION)
+  print_option("COLOR_DEPRECATED", "anchors documented with ##%", COLOR_DEPRECATED)
+  print_option("COLOR_SECTION", "sections", COLOR_SECTION)
+  print_option("COLOR_BACKTICKS", "text in backticks", COLOR_BACKTICKS)
+}
+
+# one line of the help: an option, its description and its value
+function print_option(name, description, value) {
+  printf("  %-16s  %-35s  \"%s\"\n", name, description, value)
 }
 
 # ------------------------------------------------------------------------------------------
