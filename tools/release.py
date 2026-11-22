@@ -15,7 +15,7 @@ import re
 import subprocess
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 AWK_SCRIPT = "makefile-doc.awk"
 README = "README.md"
 RELEASE_MESSAGE = "release-message.md"  # the release notes: the message of the tag
@@ -47,7 +47,10 @@ def write_version(name: str, pattern: re.Pattern, version: str) -> None:
     (before, version, after).
     """
     path = ROOT / name
-    path.write_text(pattern.sub(lambda m: m[1] + version + m[3], path.read_text(), count=1))
+    text, n = pattern.subn(lambda m: m[1] + version + m[3], path.read_text(), count=1)
+    if n == 0:
+        raise ReleaseError(f"no version line in {name}")
+    path.write_text(text)
 
 
 def git(*args: str) -> str:
@@ -88,10 +91,13 @@ def bump(version: str) -> None:
     """
     if not VALID_VERSION_PATTERN.match(version):
         raise ReleaseError(f"invalid version {version!r} (expected e.g. v1.10)")
+    if (ROOT / RELEASE_MESSAGE).exists() and git("tag", "--list", version):
+        raise ReleaseError(f"tag {version} exists (nothing is changed or committed)")
 
     old = read_version(AWK_SCRIPT, AWK_SCRIPT_VERSION_PATTERN)
-    write_version(AWK_SCRIPT, AWK_SCRIPT_VERSION_PATTERN, version)
+    # the README first: its version line is not checked before (the line of the script is)
     write_version(README, README_VERSION_PATTERN, version)
+    write_version(AWK_SCRIPT, AWK_SCRIPT_VERSION_PATTERN, version)
 
     message = ROOT / RELEASE_MESSAGE
     current_branch = git("branch", "--show-current").strip()
