@@ -348,7 +348,6 @@ function init_globals() {
   split("", DSUB_IN_DOCS)
   split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
 
-  split("", DISPLAY_PARAMS)
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
@@ -1454,17 +1453,16 @@ function colorize_description_backticks(description) {
   return description
 }
 
-function update_display_parameters(anchor_name, anchors_description_data, #locals
-                                   tag) {
+# the color code of an anchor, given by the tag of its doc
+function anchor_color(anchor_name, anchors_description_data, #locals
+                      tag) {
   tag = get_tag_from_description(anchors_description_data[anchor_name])
   if (tag == "##!") {
-    DISPLAY_PARAMS["color"] = COLOR_ATTENTION_CODE
+    return COLOR_ATTENTION_CODE
   } else if (tag == "##%") {
-    DISPLAY_PARAMS["color"] = COLOR_DEPRECATED_CODE
-  } else { # ## (a doc starts with one of the three tags)
-    DISPLAY_PARAMS["color"] = COLOR_DEFAULT_CODE
+    return COLOR_DEPRECATED_CODE
   }
-  DISPLAY_PARAMS["show"] = !is_hidden_anchor(anchor_name, anchors_description_data)
+  return COLOR_DEFAULT_CODE # ## (a doc starts with one of the three tags)
 }
 
 # The input contains the (\n separated) description lines associated with one anchor.
@@ -1491,7 +1489,6 @@ function format_description_data(anchor_name,
                           line)
   }
 
-  update_display_parameters(anchor_name, anchors_description_data)
   # The order of alternatives is important when using goawk v1.29.1 and below.
   # Starting from goawk v1.30.0 this problem has been fixed.
   sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
@@ -1570,13 +1567,16 @@ function display_substitutions(anchor, len_anchors, #locals
   return output
 }
 
-function display_anchor_with_data(anchor, description, section, len_anchors, #locals
+# Display an anchor (if show is true) with its doc, its section and the values of its SUB
+# substitution; color is the color code of the anchor
+function display_anchor_with_data(anchor, description, section, len_anchors, color,
+                                  show, #locals
                                   renamed_anchor, formatted_anchor, padding, output) {
   extract_substitution_params(array_get(SUB_PARAMS, anchor))
 
   # a section is displayed only with its anchor (a hidden anchor has a section only if it
   # was redefined with a deprecated doc, see associate_data_with_anchor)
-  if (DISPLAY_PARAMS["show"]) {
+  if (show) {
     if (section) {
       if (COLOR_SECTION_CODE) {
         # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
@@ -1599,9 +1599,9 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
     # is then escaped too, since PADDING can be any character.
     padding = repeated_string(PADDING, len_anchors - length(renamed_anchor))
     padding = apply_output_specific_formatting(padding)
-    if (DISPLAY_PARAMS["color"]) {
+    if (color) {
       formatted_anchor = sprintf("%s%s%s%s",
-                                 DISPLAY_PARAMS["color"],
+                                 color,
                                  formatted_anchor,
                                  padding,
                                  COLOR_RESET_CODE)
@@ -1628,7 +1628,9 @@ function print_anchors(anchors, description_data, section_data, max_anchor_lengt
                                           description_data,
                                           max_anchor_length)
     section = get_associated_section_data(anchor, section_data)
-    display_anchor_with_data(anchor, description, section, max_anchor_length)
+    display_anchor_with_data(anchor, description, section, max_anchor_length,
+                             anchor_color(anchor, description_data),
+                             !is_hidden_anchor(anchor, description_data))
   }
 }
 
