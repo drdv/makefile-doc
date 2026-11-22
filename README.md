@@ -294,6 +294,7 @@ For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, 
 - A comma in a parameter value is written `\,`; on the command line the backslash has to
   be doubled (`\\,`).
 - A parameter value cannot contain `>`, which ends the parameters.
+- A parameter can be given only once.
 - A `NAME` that starts with `<...>` would be read as parameters: put parameters before it, empty
   ones if needed, e.g., `<><t>:label:`.
 
@@ -327,6 +328,8 @@ text is replaced:
 |-----------|-------------------------------------------------------------------|---------|
 | `A`       | `1`: also replace in the displayed names of targets and variables | `0`     |
 | `D`       | `0`: do not replace in the docs and section titles                | `1`     |
+
+As with `SUB`, a parameter can be given only once.
 
 For example, with `-v DSUB='<A:1>$$(OUT_DIR):$(OUT_DIR)'`,
 

@@ -1,5 +1,5 @@
-#: desc: Invalid items and parameters of SUB and DSUB are reported
--v COLOR=0 -v SUB='t;:v;<Z:1,L:2,M:x,N:-2,S:x>t:v;<L:0,M:1,N:-1>V:v' -v DSUB='no-colon;:v;<Z:1,A:2>x:v;<D:0>y:v;<A:1,D:0>z:v' test/fixtures/Makefile.options
+#: desc: Invalid items and parameters (also repeated ones) of SUB and DSUB are reported
+-v COLOR=0 -v SUB='t;:v;<Z:1,L:2,M:x,N:-2,S:x>t:v;<L:0,M:1,N:-1>V:v;<L:0,L:1>W:v' -v DSUB='no-colon;:v;<Z:1,A:2>x:v;<D:0>y:v;<A:1,D:0>z:v;<A:1,A:1>w:v' test/fixtures/Makefile.options
 #: stderr
 ERROR: SUB: 't' should be NAME:[[LABEL]:][VALUES]
 ERROR: SUB: ':v' has an empty NAME
@@ -7,9 +7,11 @@ ERROR: SUB: unknown parameter Z of t (use L, M, N, S, P, I or T)
 ERROR: SUB: parameter L of t should be 0 or 1
 ERROR: SUB: parameter M of t should be 0 or 1
 ERROR: SUB: parameter N of t should be -1 or a non-negative integer
+ERROR: SUB: parameter L of W is given more than once
 ERROR: DSUB: 'no-colon' should be NAME:VALUE
 ERROR: DSUB: ':v' has an empty NAME
 ERROR: DSUB: unknown parameter Z of x (use A or D)
 ERROR: DSUB: parameter A of x should be 0 or 1
 ERROR: DSUB: y is replaced nowhere (A and D are both 0)
+ERROR: DSUB: parameter A of w is given more than once
 #: exit: 1

@@ -587,11 +587,17 @@ function parse_substitution_params(string, params, keys, #locals
 
 # Report the invalid parameters of the substitution of name (see option_error)
 function validate_substitution_params(name, string_with_parameters, #locals
-                                      params, keys, k, n, key, value) {
+                                      params, keys, k, n, key, value, seen) {
+  split("", seen)
   n = parse_substitution_params(string_with_parameters, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
+    if (key in seen) {
+      option_error(sprintf("SUB: parameter %s of %s is given more than once", key, name))
+      continue
+    }
+    seen[key] = 1
     if (!(key in SUB_PARAMS_DEFAULTS)) {
       option_error(sprintf("SUB: unknown parameter %s of %s (use L, M, N, S, P, I or T)",
                            key, name))
@@ -608,13 +614,19 @@ function validate_substitution_params(name, string_with_parameters, #locals
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
 #   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
 function validate_dsub_params(name, string_with_parameters, #locals
-                              params, keys, k, n, key, value, a, d) {
+                              params, keys, k, n, key, value, a, d, seen) {
   a = 0
   d = 1
+  split("", seen)
   n = parse_substitution_params(string_with_parameters, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
+    if (key in seen) {
+      option_error(sprintf("DSUB: parameter %s of %s is given more than once", key, name))
+      continue
+    }
+    seen[key] = 1
     if (key != "A" && key != "D") {
       option_error(sprintf("DSUB: unknown parameter %s of %s (use A or D)", key, name))
     } else if (!is_bool(value)) {
