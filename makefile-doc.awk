@@ -932,13 +932,9 @@ function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
       return sprintf("\\definecolor{%s}{HTML}{%s}\n",
                      COLOR_LABELS[ansi_color_param],
                      ANSI_PARAM_COLOR[ansi_color_param])
-    } else {
-      if (ansi_color_param == "FG") {
-        return sprintf("\\color{%s}\n", COLOR_LABELS["FG"])
-      } else if (ansi_color_param == "BG") {
-        return sprintf("\\pagecolor{%s}\n", COLOR_LABELS["BG"])
-      }
-    }
+    } else if (ansi_color_param == "BG") {
+      return sprintf("\\pagecolor{%s}\n", COLOR_LABELS["BG"])
+    } # (FG is given to each line, see print_documentation)
   }
 
   if (ansi_color_param &&
@@ -984,7 +980,6 @@ function latex_header(    header) {
   header = header "\\begin{document}\n"
   header = header "\n"
   header = header "\\begin{varwidth}{\\linewidth}\n"
-  header = header ansi_color_param_to_latex_color("FG", 0)
   header = header ansi_color_param_to_latex_color("BG", 0)
   header = header "\n"
   header = header "\\begin{alltt}"
@@ -1438,6 +1433,20 @@ function get_separator(character, len_anchors) {
                                             length(HEADER_VARIABLES))))
 }
 
+# Color each line of text on its own (color_code ... COLOR_RESET_CODE), so that no color
+# group crosses a line break: in LaTeX, varwidth cannot crop the page to the text of such a
+# group. Empty lines are not colored.
+function color_lines(text, color_code, #locals
+                     n, lines, k, result) {
+  n = split(text, lines, "\n")
+  result = ""
+  for (k = 1; k <= n; k++) {
+    result = result (k > 1 ? "\n" : "") \
+             (lines[k] == "" ? "" : color_code lines[k] COLOR_RESET_CODE)
+  }
+  return result
+}
+
 function substitute_backticks_patterns(string, #locals
                                        before_match, inside_match, after_match) {
   # (gensub with a back-reference would do this in one call, but it is only in gawk)
@@ -1446,7 +1455,7 @@ function substitute_backticks_patterns(string, #locals
     inside_match = substr(string, RSTART + 1, RLENGTH - 2)
     after_match = substr(string, RSTART + RLENGTH)
 
-    string = before_match COLOR_BACKTICKS_CODE inside_match COLOR_RESET_CODE after_match
+    string = before_match color_lines(inside_match, COLOR_BACKTICKS_CODE) after_match
   }
   return string
 }
@@ -1590,10 +1599,9 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
                                    COLOR_RESET_CODE COLOR_SECTION_CODE,
                                    section)
         }
-        printf("%s%s%s\n", COLOR_SECTION_CODE, section, COLOR_RESET_CODE)
-      } else {
-        printf("%s\n", section)
+        section = color_lines(section, COLOR_SECTION_CODE)
       }
+      append_output(section "\n")
     }
 
     renamed_anchor = display_name(anchor)
@@ -1619,7 +1627,7 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
                      description,
                      SUB_PARAMS_CURRENT["L"] ? "\n" : "",
                      display_substitutions(anchor, len_anchors))
-    printf("%s", strip_trailing_blanks(output))
+    append_output(strip_trailing_blanks(output))
   }
 }
 
@@ -1637,6 +1645,11 @@ function print_anchors(anchors, description_data, section_data, max_anchor_lengt
   }
 }
 
+# add text to the documentation (OUTPUT_BODY, printed by print_documentation)
+function append_output(text) {
+  OUTPUT_BODY = OUTPUT_BODY text
+}
+
 # Display the documentation (all its output is printed from here).
 function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
                              separator) {
@@ -1645,27 +1658,26 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_DESCRIPTION_DATA) : 0
   max_anchor_length = max(max_target_length, max_variable_length)
   separator = get_separator("-", max_anchor_length)
-
-  printf("%s", OUTPUT_HEADER)
+  OUTPUT_BODY = ""
 
   # process targets
   if (max_target_length > 0) {
-    printf("%s\n%s\n%s\n", separator, HEADER_TARGETS, separator)
+    append_output(separator "\n" HEADER_TARGETS "\n" separator "\n")
     print_anchors(TARGETS, TARGETS_DESCRIPTION_DATA, TARGETS_SECTION_DATA, max_anchor_length)
   }
 
   # process variables
   if (max_variable_length > 0) {
     if (max_target_length > 0) {
-      printf("\n") # a blank line after the targets
+      append_output("\n") # a blank line after the targets
     }
-    printf("%s\n%s\n%s\n", separator, HEADER_VARIABLES, separator)
+    append_output(separator "\n" HEADER_VARIABLES "\n" separator "\n")
     print_anchors(VARIABLES, VARIABLES_DESCRIPTION_DATA, VARIABLES_SECTION_DATA,
                   max_anchor_length)
   }
 
   if (max_target_length > 0 || max_variable_length > 0) {
-    printf("%s\n", separator)
+    append_output(separator "\n")
   } else {
     if (NUMBER_OF_FILES_PROCESSED > 0) {
       if (TARGETS_INDEX > 1 || VARIABLES_INDEX > 1) { # documented, but hidden
@@ -1678,7 +1690,12 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
     }
   }
 
-  printf("%s", OUTPUT_FOOTER)
+  # In LaTeX, the default text color (FG) is given to each line: with one \color for the
+  # whole documentation, varwidth would not crop the page to the text
+  if (OUTPUT_FORMAT == "LATEX" && ANSI_PARAM_COLOR["FG"] != -1) {
+    OUTPUT_BODY = color_lines(OUTPUT_BODY, "\\textcolor{" COLOR_LABELS["FG"] "}{")
+  }
+  printf("%s%s%s", OUTPUT_HEADER, OUTPUT_BODY, OUTPUT_FOOTER)
 }
 
 END {

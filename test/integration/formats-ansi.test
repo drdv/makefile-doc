@@ -4,9 +4,9 @@
 -----------------------
 Available targets:
 -----------------------
-[32m
- Section with [44mbackticks[0m[32m and {braces}
-[0m
+
+[32m Section with [44mbackticks[0m[32m and {braces}[0m
+
 [34mt-default   [0m   A default target with [44mbackticks[0m and {braces}
                on two lines
 [31mt-attention [0m   An attention target

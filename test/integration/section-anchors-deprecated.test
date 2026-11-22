@@ -4,8 +4,8 @@
 -----------------------
 Available targets:
 -----------------------
-[32m
------- Section 1 -----
-[0m
+
+[32m------ Section 1 -----[0m
+
 [34mt1[0m   The section is anchored to the next documented target
 -----------------------
