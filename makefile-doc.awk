@@ -427,6 +427,8 @@ function process_options(    sub_names, dummy_array_labels) {
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
   set_dsub_scopes()
 
+  report_assignment_operands()
+
   if (OPTION_ERRORS > 0) {
     ABORT = 1
     exit 1
@@ -438,6 +440,19 @@ function process_options(    sub_names, dummy_array_labels) {
     print_help()
     ABORT = 1
     exit 1
+  }
+}
+
+# Report the operands that awk takes for assignments, e.g., VARS=0 (see option_error). awk
+# makes such an assignment only when it reaches the operand, i.e., after BEGIN, where the
+# options are validated and used: options must be given with -v. Assignments to other
+# variables are reported too (they could only change the internal state of the script).
+function report_assignment_operands(    k) {
+  for (k = 1; k < ARGC; k++) {
+    if (ARGV[k] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
+      option_error(sprintf("'%s' is an assignment: give options with -v (-v %s)",
+                           ARGV[k], ARGV[k]))
+    }
   }
 }
 

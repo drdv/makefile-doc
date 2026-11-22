@@ -189,9 +189,11 @@ help: ## Show this help
 
 `COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty value (see
 [no-color.org](https://no-color.org)). An invalid value is an error: all the invalid options are
-reported, nothing else is printed and the exit status is 1. As in GNU Make, only the first
-character of `RECIPEPREFIX` is used. Running `awk -f makefile-doc.awk` without a Makefile prints
-the options with their current values.
+reported, nothing else is printed and the exit status is 1. An option given as an operand, without
+`-v` (e.g., `awk -f makefile-doc.awk VARS=0 Makefile`), is an error too: awk would set it only
+after the options are checked and used. As in GNU Make, only the first character of `RECIPEPREFIX`
+is used. Running `awk -f makefile-doc.awk` without a Makefile prints the options with their current
+values.
 
 ### Colors
 
