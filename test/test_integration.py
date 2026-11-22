@@ -9,7 +9,8 @@ import pytest
 from platforms import ROOT, SCRIPT, VERSION, Awk
 from pydantic import BaseModel, ConfigDict, model_validator
 
-META_KEYS = {"desc", "issue", "bug", "env"}  # the keys of the `#:` lines (see test/README.md)
+# the keys of the `#:` lines (see test/README.md)
+META_KEYS = {"desc", "issue", "bug", "env", "stdin"}
 
 
 class Case(BaseModel):
@@ -63,6 +64,11 @@ class Case(BaseModel):
         """The environment variables of the `#: env: NAME=value` lines."""
         return dict(item.split("=", 1) for item in self.meta.get("env", []))
 
+    @property
+    def stdin(self) -> bytes:
+        """The stdin of awk: the content of the file of the `#: stdin: PATH` line (or empty)."""
+        return (ROOT / self.meta["stdin"][0]).read_bytes() if "stdin" in self.meta else b""
+
     def update(self, actual: str) -> None:
         """Replace the expected output in the file."""
         self.path.write_bytes((self.head + actual).encode(errors="surrogateescape"))
@@ -98,7 +104,7 @@ def params() -> list[pytest.ParameterSet]:
 
 @pytest.mark.parametrize("case", params())
 def test_case(awk: Awk, case: Case, request: pytest.FixtureRequest) -> None:
-    actual = render(awk("-f", SCRIPT, *case.args, env=case.env))
+    actual = render(awk("-f", SCRIPT, *case.args, env=case.env, stdin=case.stdin))
 
     # the expected output of a known bug is written by hand: it is never updated
     if request.config.getoption("update") and not case.bug and actual != case.expected:

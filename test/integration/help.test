@@ -1,7 +1,7 @@
-#: desc: Without arguments the help is printed (the awk args line below is intentionally empty)
+#: desc: Without a Makefile and with an empty stdin, the help is printed (the awk args line below is intentionally empty)
 
 #: stdout
-Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...]
+Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)
 Description: Generate docs for Makefile variables and targets
 Version: @VERSION@
 Options:

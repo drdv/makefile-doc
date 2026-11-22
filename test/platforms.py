@@ -75,6 +75,7 @@ class Awk(BaseModel):
         command = [
             self.engine,
             "exec",
+            "--interactive",  # pass stdin to awk
             f"--workdir={ROOT}",
             self.container_name,
             "env",
@@ -97,14 +98,16 @@ class Awk(BaseModel):
         self,
         *args: str,
         env: dict[str, str] | None = None,
+        stdin: bytes = b"",
         timeout: float = 30,
     ) -> subprocess.CompletedProcess[bytes]:
+        """Run awk with args, with `stdin` as its stdin (empty by default)."""
         command, env = self.command(*args, env=env)
         return subprocess.run(
             command,
             cwd=ROOT,
             env=env,
-            stdin=subprocess.DEVNULL,
+            input=stdin,
             capture_output=True,
             timeout=timeout,
             check=False,

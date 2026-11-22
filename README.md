@@ -192,8 +192,12 @@ help: ## Show this help
 reported, nothing else is printed and the exit status is 1. An option given as an operand, without
 `-v` (e.g., `awk -f makefile-doc.awk VARS=0 Makefile`), is an error too: awk would set it only
 after the options are checked and used. As in GNU Make, only the first character of `RECIPEPREFIX`
-is used. Running `awk -f makefile-doc.awk` without a Makefile prints the options with their current
-values.
+is used.
+
+Without a Makefile, the script reads one from stdin, e.g., `cat Makefile | awk -f makefile-doc.awk`
+(in messages, stdin is named `-`). If stdin is empty, e.g., `awk -f makefile-doc.awk < /dev/null`
+or Ctrl-D in a terminal, the script prints the options with their current values and exits with
+status 1.
 
 ### Colors
 

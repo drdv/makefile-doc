@@ -40,8 +40,9 @@ each case is a file `test/integration/<name>.test` with the following format:
 ```
 
 - The `#:` lines at the top are metadata. `desc` is required. `issue` links the case to an issue,
-  `bug` marks a known bug (see [Known bugs](#known-bugs)), and `env` sets an environment variable
-  for the run.
+  `bug` marks a known bug (see [Known bugs](#known-bugs)), `env` sets an environment variable
+  for the run, and `stdin` gives a file whose content is the stdin of awk (otherwise, stdin is
+  empty).
 - The next line holds the awk arguments, in shell syntax.
 - The rest is the expected output: stderr after `#: stderr`, stdout after `#: stdout`, and `#: exit:
   N` when the exit status is not zero.
