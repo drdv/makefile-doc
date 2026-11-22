@@ -1451,7 +1451,7 @@ function format_description_data(anchor_name,
   # the automatically-assigned indexes during the split are: 1, ..., #lines
   split(anchors_description_data[anchor_name], array_of_lines, "\n")
 
-  # the tag for the first line is stripped below (after the parameter update)
+  # the tag for the first line is stripped below
   description = repeated_string("", OFFSET) array_of_lines[1]
 
   n_elements = length_array_posix(array_of_lines)
