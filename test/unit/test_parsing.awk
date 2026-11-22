@@ -76,6 +76,10 @@ function test_parse_inline_descriptions() {
         saved_inline_description("X := 1 # a comment ## text", 1), "<none>")
   check("parse_inline_descriptions: after an escaped # in a value",
         saved_inline_description("X := a\\#b ## doc", 1), "## doc")
+  check("parse_inline_descriptions: none after an escaped backslash (\\\\ then a comment)",
+        saved_inline_description("X := a\\\\# note ## text", 1), "<none>")
+  check("parse_inline_descriptions: after an escaped backslash and an escaped #",
+        saved_inline_description("X := a\\\\\\#b ## doc", 1), "## doc")
   check("parse_inline_descriptions: a ## in the doc is kept",
         saved_inline_description("target: ## a ## b", 0), "## a ## b")
 
