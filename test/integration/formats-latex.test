@@ -16,11 +16,11 @@
 
 \PreviewEnvironment{varwidth}
 
-\definecolor{color-attention}{HTML}{dc322f}
-\definecolor{color-section}{HTML}{859900}
-\definecolor{color-deprecated}{HTML}{000000}
-\definecolor{color-default}{HTML}{268bd2}
-\definecolor{color-backticks}{HTML}{268bd2}
+\definecolor{makefile-doc-attention}{HTML}{dc322f}
+\definecolor{makefile-doc-section}{HTML}{859900}
+\definecolor{makefile-doc-deprecated}{HTML}{000000}
+\definecolor{makefile-doc-default}{HTML}{268bd2}
+\definecolor{makefile-doc-backticks}{HTML}{268bd2}
 
 \pagestyle{empty}
 \begin{document}
@@ -32,17 +32,17 @@
 Available targets:
 -----------------------
 
-\textcolor{color-section}{ Section with \bgcolor{color-backticks}{backticks} and \{braces\}}
+\textcolor{makefile-doc-section}{ Section with \bgcolor{makefile-doc-backticks}{backticks} and \{braces\}}
 
-\textcolor{color-default}{t-default   }   A default target with \bgcolor{color-backticks}{backticks} and \{braces\}
+\textcolor{makefile-doc-default}{t-default   }   A default target with \bgcolor{makefile-doc-backticks}{backticks} and \{braces\}
                on two lines
-\textcolor{color-attention}{t-attention }   An attention target
+\textcolor{makefile-doc-attention}{t-attention }   An attention target
 t-deprecated   A deprecated target
 
 -----------------------
 Command-line arguments:
 -----------------------
-\textcolor{color-default}{VAR         }   A variable
+\textcolor{makefile-doc-default}{VAR         }   A variable
 -----------------------
 \end{alltt}
 \end{varwidth}

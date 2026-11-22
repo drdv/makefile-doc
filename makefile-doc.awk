@@ -301,7 +301,6 @@ function init_globals() {
   define_ansi_to_html_colors()
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
-  define_color_labels()
 
   # initialize global arrays (i.e., hash tables) for clarity
   # index variables start from 1 because this is the standard in awk
@@ -857,16 +856,6 @@ function define_ansi_to_latex_function(    k) {
   for (k = 100; k <= 107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
 }
 
-function define_color_labels() {
-  COLOR_LABELS["DEFAULT"] = "color-default"
-  COLOR_LABELS["ATTENTION"] = "color-attention"
-  COLOR_LABELS["DEPRECATED"] = "color-deprecated"
-  COLOR_LABELS["SECTION"] = "color-section"
-  COLOR_LABELS["BACKTICKS"] = "color-backticks"
-  COLOR_LABELS["FG"] = "makefile-doc-fg"
-  COLOR_LABELS["BG"] = "makefile-doc-bg"
-}
-
 # ansi_color_param:
 # == 0: no color
 #  > 0: some color
@@ -886,14 +875,14 @@ function define_color(ansi_color_param, color_label_key) {
     if (ansi_color_param == -1) {
       return "</span>"
     } else {
-      return "<span class=\"" html_class(color_label_key) "\">"
+      return "<span class=\"" color_name(color_label_key) "\">"
     }
   } else if (OUTPUT_FORMAT == "LATEX") {
     if (ansi_color_param == -1) {
       return "}"
     } else {
       if (ansi_color_param > 9) {
-        return ANSI_TO_LATEX_FUN[ansi_color_param] "{" COLOR_LABELS[color_label_key] "}{"
+        return ANSI_TO_LATEX_FUN[ansi_color_param] "{" color_name(color_label_key) "}{"
       } else {
         return ANSI_TO_LATEX_FUN[ansi_color_param] "{"
       }
@@ -901,8 +890,9 @@ function define_color(ansi_color_param, color_label_key) {
   }
 }
 
-# the class of the HTML elements with the color of label (e.g., makefile-doc-default)
-function html_class(label) {
+# the name of the color of label in the HTML and LaTeX output (an HTML class, a LaTeX color),
+# e.g., makefile-doc-default
+function color_name(label) {
   return "makefile-doc-" tolower(label)
 }
 
@@ -918,7 +908,7 @@ function ansi_color_param_to_html_style(ansi_color_param, label, #locals
     value = ANSI_TO_HTML_VALUE[ansi_color_param]
   }
   return sprintf("  .%s { %s: %s; }\n",
-                 html_class(label), ANSI_TO_HTML_ATTR[ansi_color_param], value)
+                 color_name(label), ANSI_TO_HTML_ATTR[ansi_color_param], value)
 }
 
 # Return the CSS rule (one line) of the whole output (the element with the class
@@ -935,9 +925,9 @@ function html_box_style(    style) {
   return "  .makefile-doc { " style " }\n"
 }
 
-# a \definecolor line: label (a key of COLOR_LABELS) is the color hex_color
+# a \definecolor line: the color of label (see color_name) is hex_color
 function latex_definecolor(label, hex_color) {
-  return sprintf("\\definecolor{%s}{HTML}{%s}\n", COLOR_LABELS[label], hex_color)
+  return sprintf("\\definecolor{%s}{HTML}{%s}\n", color_name(label), hex_color)
 }
 
 # the hex color of an ANSI parameter (black for an attribute, e.g., bold, or for no color)
@@ -980,7 +970,7 @@ function latex_header(    header) {
   header = header "\n"
   header = header "\\begin{varwidth}{\\linewidth}\n"
   if (EXPORT_FG_BG["BG"] != "") {
-    header = header "\\pagecolor{" COLOR_LABELS["BG"] "}\n"
+    header = header "\\pagecolor{" color_name("BG") "}\n"
   }
   header = header "\n"
   header = header "\\begin{alltt}"
@@ -1690,7 +1680,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   # In LaTeX, the default text color (FG) is given to each line: with one \color for the
   # whole documentation, varwidth would not crop the page to the text
   if (OUTPUT_FORMAT == "LATEX" && EXPORT_FG_BG["FG"] != "") {
-    OUTPUT_BODY = color_lines(OUTPUT_BODY, "\\textcolor{" COLOR_LABELS["FG"] "}{")
+    OUTPUT_BODY = color_lines(OUTPUT_BODY, "\\textcolor{" color_name("FG") "}{")
   }
   printf("%s%s%s", OUTPUT_HEADER, OUTPUT_BODY, OUTPUT_FOOTER)
 }
