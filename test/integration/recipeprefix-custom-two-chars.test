@@ -1,6 +1,6 @@
-#: desc: A RECIPEPREFIX that is a regex metacharacter (+) is matched literally
-#: issue: 84
--v COLOR=0 -v 'RECIPEPREFIX=+' test/fixtures/Makefile.recipeprefix-misc
+#: desc: Only the first character of RECIPEPREFIX is used, as in GNU Make
+#: issue: 92
+-v COLOR=0 -v 'RECIPEPREFIX=++' test/fixtures/Makefile.recipeprefix-custom
 #: stdout
 -----------------------
 Available targets:
