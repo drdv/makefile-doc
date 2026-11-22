@@ -99,10 +99,10 @@ bump:
 ##@------ Clean ------
 ##@
 
-## Remove caches and coverage reports
+## Remove caches, coverage reports and the demo files
 .PHONY: clean
 clean:
-	@rm -rf $(COVER_DIR) .ruff_cache .mypy_cache .pytest_cache
+	@rm -rf $(COVER_DIR) $(OUT_DIR)/demo .ruff_cache .mypy_cache .pytest_cache
 	@find $(TEST_DIR) -type d -name __pycache__ -prune -exec rm -rf {} +
 
 ## Remove the binaries of the host platforms (built again when needed)
