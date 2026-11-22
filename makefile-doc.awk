@@ -480,10 +480,10 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
                             split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
                             has_label, n_substitutions, option) {
-  delete sub_params_array
-  delete sub_labels_array
-  delete sub_values_array
-  delete sub_names_array # names in the order they are given
+  split("", sub_params_array)
+  split("", sub_labels_array)
+  split("", sub_values_array)
+  split("", sub_names_array) # names in the order they are given
 
   option = no_labels ? "DSUB" : "SUB"
   n = 0
@@ -1005,7 +1005,7 @@ function save_description_data(string) {
 }
 
 function forget_descriptions_data() {
-  delete DESCRIPTION_DATA
+  split("", DESCRIPTION_DATA)
   DESCRIPTION_DATA_INDEX = 1
 }
 
@@ -1014,7 +1014,7 @@ function save_section_data(string) {
 }
 
 function forget_section_data() {
-  delete SECTION_DATA
+  split("", SECTION_DATA)
   SECTION_DATA_INDEX = 1
 }
 

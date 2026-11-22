@@ -95,7 +95,7 @@ function test_assemble_description_section_data(    arr) {
         assemble_description_section_data(arr),
         "first line\n   second line\n\t last line  ")
 
-  delete arr
+  split("", arr)
   check("assemble_description_section_data: empty array",
         assemble_description_section_data(arr),
         "")
