@@ -51,25 +51,25 @@ function test_escape_for_latex_output() {
   OUTPUT_FORMAT = ""
 }
 
-function test_get_max_anchor_length(    anchors, docs) {
+function test_get_max_anchor_length(    anchors, tags) {
   init_globals()
-  anchors[1] = "t"; docs["t"] = "## doc"
-  anchors[2] = "long-deprecated"; docs["long-deprecated"] = "##% doc"
-  anchors[3] = "attention"; docs["attention"] = "##! doc"
+  anchors[1] = "t"; tags["t"] = "##"
+  anchors[2] = "long-deprecated"; tags["long-deprecated"] = "##%"
+  anchors[3] = "attention"; tags["attention"] = "##!"
 
   DEPRECATED = 1
   check("get_max_anchor_length: all anchors displayed",
-        get_max_anchor_length(anchors, docs), 15)
+        get_max_anchor_length(anchors, tags), 15)
   DEPRECATED = 0
   check("get_max_anchor_length: hidden deprecated anchors are skipped",
-        get_max_anchor_length(anchors, docs), 9)
+        get_max_anchor_length(anchors, tags), 9)
   SUB_LABELS["t"] = "a-longer-label"
-  check("get_max_anchor_length: SUB labels are used", get_max_anchor_length(anchors, docs), 14)
+  check("get_max_anchor_length: SUB labels are used", get_max_anchor_length(anchors, tags), 14)
 
   delete anchors[1]
   delete anchors[3]
   check("get_max_anchor_length: 0 when no anchor is displayed",
-        get_max_anchor_length(anchors, docs), 0)
+        get_max_anchor_length(anchors, tags), 0)
   init_globals()
   DEPRECATED = ""
 }

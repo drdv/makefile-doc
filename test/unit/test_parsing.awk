@@ -1,9 +1,9 @@
 function test_get_tag_from_description() {
-  check("get_tag_from_description: ##", get_tag_from_description("   ##   doc"), "##")
-  check("get_tag_from_description: ##!", get_tag_from_description("   ##!   doc"), "##!")
-  check("get_tag_from_description: ##%", get_tag_from_description("   ##%   doc"), "##%")
-  check("get_tag_from_description: ##Z is ##", get_tag_from_description("   ##Z   doc"), "##")
-  check("get_tag_from_description: no tag", get_tag_from_description("   !#   doc"), "")
+  check("get_tag_from_description: ##", get_tag_from_description("##   doc"), "##")
+  check("get_tag_from_description: ##!", get_tag_from_description("##!   doc"), "##!")
+  check("get_tag_from_description: ##%", get_tag_from_description("##%   doc"), "##%")
+  check("get_tag_from_description: ##Z is ##", get_tag_from_description("##Z   doc"), "##")
+  check("get_tag_from_description: no tag", get_tag_from_description("!#   doc"), "")
 }
 
 function test_parse_variable_name() {
