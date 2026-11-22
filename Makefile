@@ -124,6 +124,10 @@ DEMO_PDFS := $(DEMO_DIR)/tectonic/demo.pdf $(DEMO_DIR)/pdflatex/demo.pdf
 DEMO_SVGS := $(DEMO_PDFS:.pdf=.svg)
 DEMO_PNGS := $(DEMO_PDFS:.pdf=.png)
 
+.PHONY: demo-interface-variables
+demo-interface-variables:
+	@$(AWK) -f tools/dump-interface.awk -f $(MAKEFILE_DOC) $(DEMO)
+
 .PHONY: demo-all
 demo-all: $(DEMO_DIR)/demo.html $(DEMO_SVGS) $(DEMO_PNGS)
 
