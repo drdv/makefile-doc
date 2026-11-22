@@ -270,7 +270,7 @@ function warn_about_continued_last_line() {
 # Set the global state that does not depend on user options. It is called from BEGIN and
 # can be called from unit tests (also to reset the state between tests).
 function init_globals() {
-  VERSION = "v1.9" # the only place where the version is defined
+  VERSION = "v2.0" # the only place where the version is defined
 
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR

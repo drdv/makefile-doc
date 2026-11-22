@@ -62,7 +62,7 @@ one-liner](https://gist.github.com/prwhite/8168133).
 Define the first target of your `Makefile` (or set `.DEFAULT_GOAL := help`) as:
 
 ```Makefile
-help: VER := v1.9
+help: VER := v2.0
 help: URL := https://github.com/drdv/makefile-doc/releases/download/$(VER)/makefile-doc.awk
 help: SCR := $(HOME)/.local/share/makefile-doc/makefile-doc-$(VER).awk
 help: ## Show this help
