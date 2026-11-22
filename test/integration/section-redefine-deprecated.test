@@ -1,0 +1,11 @@
+#: desc: With DEPRECATED=0, the section of a target redefined as deprecated goes to the next displayed target
+-v COLOR=0 -v DEPRECATED=0 test/fixtures/Makefile.section-redefine-deprecated
+#: stderr
+WARNING: [test/fixtures/Makefile.section-redefine-deprecated:6] redefined docs of target: build
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+ Build
+test   Run the tests
+-----------------------
