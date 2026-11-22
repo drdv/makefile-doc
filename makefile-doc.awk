@@ -45,7 +45,7 @@
 #
 #   A color is the parameter of an ANSI escape code, e.g., the 34 in `\033[34m` for blue
 #   (https://en.wikipedia.org/wiki/ANSI_escape_code). The supported parameters are: 0, 1, 3,
-#   4, 9, 30-37, 40-47, 90-97, 100-107 (see the array ANSI_TO_HTML_COLOR).
+#   4, 9, 30-37, 40-47, 90-97, 100-107 (see the array ANSI_PARAM_COLOR).
 #
 #   An invalid value is an error: all the invalid options are reported (on stderr), nothing
 #   else is printed and the exit status is 1.
@@ -711,7 +711,7 @@ function default_color_option() {
 # Return the ANSI color parameter given for a COLOR_* option (0 means no color). An
 # unsupported value is reported (see option_error).
 function validate_ansi_param(option, ansi_param) {
-  if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_TO_HTML_COLOR) {
+  if (ansi_param ~ /^[0-9]+$/ && ansi_param in ANSI_PARAM_COLOR) {
     # The explicit cast to int here is needed only because of a busybox awk bug,
     # see misc/busybox_awk_bug_20251107.awk
     return int(ansi_param)
@@ -725,35 +725,35 @@ function validate_ansi_param(option, ansi_param) {
 # https://github.com/altercation/solarized?tab=readme-ov-file#the-values
 function define_ansi_to_html_colors(    k) {
   # no foreground/background by default
-  ANSI_TO_HTML_COLOR["BG"] = -1
-  ANSI_TO_HTML_COLOR["FG"] = -1
+  ANSI_PARAM_COLOR["BG"] = -1
+  ANSI_PARAM_COLOR["FG"] = -1
 
-  ANSI_TO_HTML_COLOR[0] = ""
-  ANSI_TO_HTML_COLOR[1] = "bold"
-  ANSI_TO_HTML_COLOR[3] = "italic"
-  ANSI_TO_HTML_COLOR[4] = "underline"
-  ANSI_TO_HTML_COLOR[9] = "line-through"
+  ANSI_PARAM_COLOR[0] = ""
+  ANSI_PARAM_COLOR[1] = "bold"
+  ANSI_PARAM_COLOR[3] = "italic"
+  ANSI_PARAM_COLOR[4] = "underline"
+  ANSI_PARAM_COLOR[9] = "line-through"
 
-  ANSI_TO_HTML_COLOR[30] = "073642" # black
-  ANSI_TO_HTML_COLOR[31] = "dc322f" # red
-  ANSI_TO_HTML_COLOR[32] = "859900" # green
-  ANSI_TO_HTML_COLOR[33] = "b58900" # yellow
-  ANSI_TO_HTML_COLOR[34] = "268bd2" # blue
-  ANSI_TO_HTML_COLOR[35] = "d33682" # magenta
-  ANSI_TO_HTML_COLOR[36] = "2aa198" # cyan
-  ANSI_TO_HTML_COLOR[37] = "eee8d5" # white
+  ANSI_PARAM_COLOR[30] = "073642" # black
+  ANSI_PARAM_COLOR[31] = "dc322f" # red
+  ANSI_PARAM_COLOR[32] = "859900" # green
+  ANSI_PARAM_COLOR[33] = "b58900" # yellow
+  ANSI_PARAM_COLOR[34] = "268bd2" # blue
+  ANSI_PARAM_COLOR[35] = "d33682" # magenta
+  ANSI_PARAM_COLOR[36] = "2aa198" # cyan
+  ANSI_PARAM_COLOR[37] = "eee8d5" # white
 
-  ANSI_TO_HTML_COLOR[90] = "002b36" # brblack
-  ANSI_TO_HTML_COLOR[91] = "cb4b16" # brred
-  ANSI_TO_HTML_COLOR[92] = "586e75" # brgreen
-  ANSI_TO_HTML_COLOR[93] = "657b83" # bryellow
-  ANSI_TO_HTML_COLOR[94] = "839496" # brblue
-  ANSI_TO_HTML_COLOR[95] = "6c71c4" # brmagenta
-  ANSI_TO_HTML_COLOR[96] = "93a1a1" # brcyan
-  ANSI_TO_HTML_COLOR[97] = "fdf6e3" # brwhite
+  ANSI_PARAM_COLOR[90] = "002b36" # brblack
+  ANSI_PARAM_COLOR[91] = "cb4b16" # brred
+  ANSI_PARAM_COLOR[92] = "586e75" # brgreen
+  ANSI_PARAM_COLOR[93] = "657b83" # bryellow
+  ANSI_PARAM_COLOR[94] = "839496" # brblue
+  ANSI_PARAM_COLOR[95] = "6c71c4" # brmagenta
+  ANSI_PARAM_COLOR[96] = "93a1a1" # brcyan
+  ANSI_PARAM_COLOR[97] = "fdf6e3" # brwhite
 
-  for (k = 30; k <= 37; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
-  for (k = 90; k <= 97; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
+  for (k = 30; k <= 37; k++) { ANSI_PARAM_COLOR[k+10] = ANSI_PARAM_COLOR[k] }
+  for (k = 90; k <= 97; k++) { ANSI_PARAM_COLOR[k+10] = ANSI_PARAM_COLOR[k] }
 }
 
 # The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
@@ -771,14 +771,14 @@ function set_user_defined_color_theme(    html_colors_split, k, n, ansi_html_map
     html_color_code = array_get(ansi_html_map, 2) # "" if there is no colon
     # the parameters in the range 0-9 are attributes (e.g., bold): they have no color
     if (ansi_param != "FG" && ansi_param != "BG" &&
-        !(ansi_param ~ /^[0-9]+$/ && ansi_param > 9 && ansi_param in ANSI_TO_HTML_COLOR)) {
+        !(ansi_param ~ /^[0-9]+$/ && ansi_param > 9 && ansi_param in ANSI_PARAM_COLOR)) {
       option_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
                            html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
     } else if (!is_hex_color(html_color_code)) {
       option_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
                            html_colors_split[k]))
     } else {
-      ANSI_TO_HTML_COLOR[ansi_param] = html_color_code
+      ANSI_PARAM_COLOR[ansi_param] = html_color_code
     }
   }
 }
@@ -864,21 +864,21 @@ function html_class(label) {
 function ansi_color_param_to_html_style(ansi_color_param, label, #locals
                                         attr) {
   if (ansi_color_param == "FG" || ansi_color_param == "BG") {
-    if (ANSI_TO_HTML_COLOR[ansi_color_param] == -1) {
+    if (ANSI_PARAM_COLOR[ansi_color_param] == -1) {
       return ""
     }
     return sprintf("  .makefile-doc { %s: #%s; }\n",
                    ansi_color_param == "FG" ? "color" : "background-color",
-                   ANSI_TO_HTML_COLOR[ansi_color_param])
+                   ANSI_PARAM_COLOR[ansi_color_param])
   }
 
-  if (ansi_color_param && ansi_color_param in ANSI_TO_HTML_COLOR) {
+  if (ansi_color_param && ansi_color_param in ANSI_PARAM_COLOR) {
     attr = ANSI_TO_HTML_ATTR[ansi_color_param]
     return sprintf("  .%s { %s: %s%s; }\n",
                    html_class(label),
                    attr,
                    (attr == "color" || attr == "background-color")? "#" : "",
-                   ANSI_TO_HTML_COLOR[ansi_color_param])
+                   ANSI_PARAM_COLOR[ansi_color_param])
   }
 
   return ""
@@ -886,13 +886,13 @@ function ansi_color_param_to_html_style(ansi_color_param, label, #locals
 
 function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
   if (ansi_color_param == "FG" || ansi_color_param == "BG") {
-    if (ANSI_TO_HTML_COLOR[ansi_color_param] == -1) {
+    if (ANSI_PARAM_COLOR[ansi_color_param] == -1) {
       return "" # indicates to not set any style
     }
     if (is_fgbg_definition) {
       return sprintf("\\definecolor{%s}{HTML}{%s}\n",
                      COLOR_LABELS[ansi_color_param],
-                     ANSI_TO_HTML_COLOR[ansi_color_param])
+                     ANSI_PARAM_COLOR[ansi_color_param])
     } else {
       if (ansi_color_param == "FG") {
         return sprintf("\\color{%s}\n", COLOR_LABELS["FG"])
@@ -903,9 +903,9 @@ function ansi_color_param_to_latex_color(ansi_color_param, is_fgbg_definition) {
   }
 
   if (ansi_color_param &&
-      ansi_color_param in ANSI_TO_HTML_COLOR &&
+      ansi_color_param in ANSI_PARAM_COLOR &&
       ansi_color_param > 9) {
-    return ANSI_TO_HTML_COLOR[ansi_color_param]
+    return ANSI_PARAM_COLOR[ansi_color_param]
   }
   return "000000"
 }
