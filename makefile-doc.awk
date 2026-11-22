@@ -1423,14 +1423,14 @@ function get_separator(character, len_anchors) {
 # group crosses a line break: in LaTeX, varwidth cannot crop the page to the text of such a
 # group. Empty lines are not colored.
 function color_lines(text, color_code, #locals
-                     n, lines, k, result) {
+                     n, lines, k) {
   n = split(text, lines, "\n")
-  result = ""
   for (k = 1; k <= n; k++) {
-    result = result (k > 1 ? "\n" : "") \
-             (lines[k] == "" ? "" : color_code lines[k] COLOR_RESET_CODE)
+    if (lines[k] != "") {
+      lines[k] = color_code lines[k] COLOR_RESET_CODE
+    }
   }
-  return result
+  return join(lines, "\n")
 }
 
 function substitute_backticks_patterns(string, #locals
@@ -1472,14 +1472,14 @@ function format_description_data(anchor_name,
                                  anchors_description_data,
                                  len_anchor_names,
                                  #locals
-                                 lines, n, k, description) {
+                                 lines, n, k, indentation, description) {
   n = split(anchors_description_data[anchor_name], lines, "\n")
   for (k = 1; k <= n; k++) {
     # (the order of the alternatives matters for goawk v1.29.1 and below, fixed in v1.30.0)
     sub(/^(##!|##%|##)/, "", lines[k]) # strip the tag (keep the space after it)
   }
-  description = repeated_string("", OFFSET) \
-                join(lines, "\n" repeated_string("", OFFSET + len_anchor_names))
+  indentation = repeated_string("", OFFSET + len_anchor_names) # aligned with the first line
+  description = repeated_string("", OFFSET) join(lines, "\n" indentation)
 
   description = apply_doc_substitutions(description)
 
@@ -1514,7 +1514,9 @@ function get_associated_section_data(anchor_name,
 # the items are on one line (M=0) or on one line each (M=1). The first line follows the doc
 # (L=0) or starts on the next line (L=1).
 function display_substitutions(anchor, len_anchors, #locals
-                               values, n, k, item, lines, n_lines, indentation, output) {
+                               values, n, k, item, lines, n_lines, initial, prefix,
+                               separator, termination, indentation, next_indentation,
+                               output) {
   n = split(array_get(SUB_VALUES, anchor), values, " ")
   if (SUB_PARAMS_CURRENT["N"] >= 0) {
     n = min(n, SUB_PARAMS_CURRENT["N"])
@@ -1523,10 +1525,22 @@ function display_substitutions(anchor, len_anchors, #locals
     return "\n"
   }
 
+  initial = SUB_PARAMS_CURRENT["I"]
+  prefix = SUB_PARAMS_CURRENT["P"]
+  separator = SUB_PARAMS_CURRENT["S"]
+  termination = SUB_PARAMS_CURRENT["T"]
+
   n_lines = 0
   for (k = 1; k <= n; k++) {
-    item = (k == 1 ? SUB_PARAMS_CURRENT["I"] : "") SUB_PARAMS_CURRENT["P"] values[k] \
-           (k < n ? SUB_PARAMS_CURRENT["S"] : SUB_PARAMS_CURRENT["T"])
+    item = prefix values[k]
+    if (k == 1) {
+      item = initial item
+    }
+    if (k < n) {
+      item = item separator
+    } else {
+      item = item termination
+    }
     item = colorize_description_backticks(apply_output_specific_formatting(item))
     if (SUB_PARAMS_CURRENT["M"] || k == 1) {
       lines[++n_lines] = item
@@ -1539,9 +1553,10 @@ function display_substitutions(anchor, len_anchors, #locals
   # line up with the text of the doc
   indentation = repeated_string("", len_anchors + OFFSET + 1)
   output = (SUB_PARAMS_CURRENT["L"] ? "\n" indentation : " ") lines[1]
-  for (k = 2; k <= n_lines; k++) { # (aligned with the first value, after I)
-    output = output "\n" indentation repeated_string("", length(SUB_PARAMS_CURRENT["I"])) \
-             lines[k]
+  # the lines after the first are aligned with the first value (after I)
+  next_indentation = indentation repeated_string("", length(initial))
+  for (k = 2; k <= n_lines; k++) {
+    output = output "\n" next_indentation lines[k]
   }
   return output "\n"
 }
