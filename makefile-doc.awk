@@ -333,7 +333,6 @@ function init_globals() {
   NUMBER_OF_FILES_PROCESSED = 0
   CURRENT_FILE = "" # the FILENAME of the file being read (see warn_about_continued_last_line)
   FILES_PROCESSED = ""
-  SPACES_TABS_REGEX = "^[ \t]+|[ \t]+$"
 
   # used to decorate double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
@@ -516,11 +515,11 @@ function form_substitutions(sub_array, sub_params_array, sub_labels_array,
     colon = no_labels ? 0 : index(values, ":")
     if (colon > 0) {
       label = substr(values, 1, colon - 1)
-      gsub(SPACES_TABS_REGEX, "", label)
+      label = strip_start_end_spaces_tabs(label)
       values = substr(values, colon + 1)
       has_label = (label != "") # NAME::VALUES (or a blank label) has no label
     }
-    gsub(SPACES_TABS_REGEX, "", name)
+    name = strip_start_end_spaces_tabs(name)
 
     if (name == "") {
       option_error(sprintf("%s: '%s' has an empty NAME", option, string))
@@ -565,8 +564,7 @@ function parse_substitution_params(string, params, keys, #locals
     }
     gsub(temp_placeholder, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
-    key = pair[1]
-    gsub(SPACES_TABS_REGEX, "", key)
+    key = strip_start_end_spaces_tabs(pair[1])
     params[key] = substr(key_values[k], length(pair[1]) + 2) # after the first colon
     keys[++n] = key
   }
