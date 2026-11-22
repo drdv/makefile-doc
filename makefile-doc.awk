@@ -24,38 +24,8 @@
 #     documented anchor).
 
 #### Options
-# (possible values are given in {...}, (.) denotes the default)
-#   VARS              {0, (1)} show documented variables
-#   DEPRECATED        {0, (1)} show deprecated anchors
-#   PADDING           {(" "), ".", ...} a single padding character between anchors and docs
-#   OFFSET            {0, 1, (2), ...} number of spaces to offset docs from anchors
-#   COLOR             {0, (1)} 0 turns off all colors (the default is 0 if the environment
-#                     variable NO_COLOR is set to a non-empty value, see https://no-color.org)
-#   OUTPUT_FORMAT     {(ANSI), HTML, LATEX}
-#   EXPORT_THEME      colors of the HTML and LATEX output: ANSI_PARAMETER:HEX_COLOR[,...],
-#                     with FG and BG for the foreground and the background, e.g.,
-#                     32:d33682,35:859900,BG:000000 (no effect on ANSI output)
-#   SUB               rename anchors and list values in their docs:
-#                     [<p1:v1,...>]NAME:[[LABEL]:][VALUES][;...]
-#                     (the parameters are L, M, N, S, P, I and T)
-#   DSUB              replace text in the docs and section titles and, with the parameter
-#                     A:1, in the names of anchors: [<p1:v1,...>]NAME:VALUE[;...]
-#                     (the parameters are A and D)
-#   RECIPEPREFIX      the .RECIPEPREFIX of your Makefile (the default is a tab)
-#   COLOR_DEFAULT     (34) blue
-#   COLOR_ATTENTION   (31) red
-#   COLOR_DEPRECATED  (33) yellow
-#   COLOR_SECTION     (32) green
-#   COLOR_BACKTICKS   (33) used for text in backticks in docs
-#
-#   A color is the parameter of an ANSI escape code, e.g., the 34 in `\033[34m` for blue
-#   (https://en.wikipedia.org/wiki/ANSI_escape_code). The supported parameters are: 0, 1, 3,
-#   4, 9, 30-37, 40-47, 90-97, 100-107 (see validate_ansi_param).
-#
-#   An invalid value is an error: all the invalid options are reported (on stderr), nothing
-#   else is printed and the exit status is 1.
-#
-#   SUB, DSUB and EXPORT_THEME are described, with examples, in the README.md.
+#   Passed with -v OPTION=value. print_help() lists them (run the script with an empty
+#   stdin), and README.md describes them, with examples. The checks are in process_options().
 
 #### Code conventions
 #   * All local variables of a function are declared in its signature (awk has no other way
