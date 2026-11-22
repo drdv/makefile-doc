@@ -1565,12 +1565,11 @@ function display_anchor_with_data(anchor, description, section, len_anchors, #lo
     renamed_anchor = display_name(anchor)
     formatted_anchor = apply_output_specific_formatting(renamed_anchor)
 
-    # handle padding manually because there is a difference between the actual text and
-    # the visible text (for latex)
-    padding = repeated_string("", len_anchors - length(renamed_anchor))
-    if (PADDING != " ") {
-      padding = string_replace(" ", PADDING, padding)
-    }
+    # The length of the padding is computed from the displayed name, not from the formatted
+    # one (an HTML or LaTeX escape is longer than the character it stands for). The padding
+    # is then escaped too, since PADDING can be any character.
+    padding = repeated_string(PADDING, len_anchors - length(renamed_anchor))
+    padding = apply_output_specific_formatting(padding)
     if (DISPLAY_PARAMS["color"]) {
       formatted_anchor = sprintf("%s%s%s%s",
                                  DISPLAY_PARAMS["color"],
