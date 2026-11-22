@@ -1027,15 +1027,17 @@ function assemble_description_section_data(array, #locals
   return docs
 }
 
-# Save the inline doc of a target or variable line. On a target line, a ## after a ; is part
-# of an inline recipe (not a doc); in a variable assignment, a ; is part of the value. An
-# inline ##@ is not a doc either (a section is written on its own lines).
+# Save the inline doc of a target or variable line. As for Make, the comment starts at the
+# first # that is not escaped (\#), and it is an inline doc only if it starts with ##: a ##
+# later in an ordinary comment is not a doc. On a target line, a ## after a ; is part of an
+# inline recipe (not a doc); in a variable assignment, a ; is part of the value. An inline
+# ##@ is not a doc either (a section is written on its own lines).
 function parse_inline_descriptions(whole_line, is_variable, #locals
                                    inline_description) {
+  # ([^#\\]|\\.)* skips the text before the comment, including escaped characters
   if ((is_variable || !match(whole_line, /^[^#]*;/)) &&
-      match(whole_line, / *(##!|##%|##)/)) {
-    inline_description = substr(whole_line, RSTART)
-    sub(/^ */, "", inline_description)
+      match(whole_line, /^([^#\\]|\\.)*##/)) {
+    inline_description = substr(whole_line, RLENGTH - 1) # from the ## at the end of the match
     if (inline_description !~ /^##@/) {
       save_description_data(inline_description)
     }
