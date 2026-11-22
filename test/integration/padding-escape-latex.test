@@ -1,0 +1,44 @@
+#: desc: In LaTeX output, PADDING is escaped like the rest of the text
+-v COLOR=0 -v PADDING='{' -v OUTPUT_FORMAT=latex test/fixtures/Makefile.padding
+#: stdout
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{alltt}
+\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
+\usepackage{varwidth}
+\usepackage[active,tightpage]{preview}
+\usepackage[normalem]{ulem}
+
+\setlength{\fboxsep}{0pt}
+
+\newcommand{\bgcolor}[2]{\colorbox{#1}{\vphantom{Ay}#2}}
+
+\PreviewEnvironment{varwidth}
+
+\definecolor{color-attention}{HTML}{000000}
+\definecolor{color-section}{HTML}{000000}
+\definecolor{color-deprecated}{HTML}{000000}
+\definecolor{color-default}{HTML}{000000}
+\definecolor{color-backticks}{HTML}{000000}
+
+\pagestyle{empty}
+\begin{document}
+
+\begin{varwidth}{\linewidth}
+
+\begin{alltt}
+------------------------
+Available targets:
+------------------------
+t\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{\{   A target with a short name
+longer-target-name\{\{\{\{\{\{   More characters
+
+------------------------
+Command-line arguments:
+------------------------
+A_______________________   And the winner is ...
+------------------------
+\end{alltt}
+\end{varwidth}
+\end{document}
