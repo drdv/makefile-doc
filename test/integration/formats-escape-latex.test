@@ -21,7 +21,7 @@
 \definecolor{color-section}{HTML}{000000}
 \definecolor{color-deprecated}{HTML}{b58900}
 \definecolor{color-default}{HTML}{000000}
-\definecolor{color-backticks}{HTML}{000000}
+\definecolor{color-backticks}{HTML}{b58900}
 
 \pagestyle{empty}
 \begin{document}

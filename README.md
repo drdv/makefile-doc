@@ -197,7 +197,7 @@ The colors are options too, e.g., `-v COLOR_SECTION=35` for magenta sections:
 | `COLOR_ATTENTION`  | `31` (red)    | anchors whose docs start with `##!` |
 | `COLOR_DEPRECATED` | `33` (yellow) | anchors whose docs start with `##%` |
 | `COLOR_SECTION`    | `32` (green)  | sections                            |
-| `COLOR_BACKTICKS`  | `0` (off)     | text in backticks in docs           |
+| `COLOR_BACKTICKS`  | `33`          | text in backticks in docs           |
 
 A color is the parameter of an [ANSI escape
 code](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters), e.g., the

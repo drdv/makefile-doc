@@ -41,7 +41,7 @@
 #   COLOR_ATTENTION   (31) red
 #   COLOR_DEPRECATED  (33) yellow
 #   COLOR_SECTION     (32) green
-#   COLOR_BACKTICKS   (0) disabled -- used for text in backticks in docs
+#   COLOR_BACKTICKS   (33) used for text in backticks in docs
 #
 #   A color is the parameter of an ANSI escape code, e.g., the 34 in `\033[34m` for blue
 #   (https://en.wikipedia.org/wiki/ANSI_escape_code). The supported parameters are: 0, 1, 3,
@@ -673,7 +673,7 @@ function initialize_colors() {
   COLOR_SECTION = validate_ansi_param("COLOR_SECTION",
                                       COLOR_SECTION == "" ? 32 : COLOR_SECTION)
   COLOR_BACKTICKS = validate_ansi_param("COLOR_BACKTICKS",
-                                        COLOR_BACKTICKS == "" ? 0 : COLOR_BACKTICKS)
+                                        COLOR_BACKTICKS == "" ? 33 : COLOR_BACKTICKS)
   if (!COLOR) {
     COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
   }
