@@ -1465,33 +1465,21 @@ function anchor_color(anchor_name, anchors_description_data, #locals
   return COLOR_DEFAULT_CODE # ## (a doc starts with one of the three tags)
 }
 
-# The input contains the (\n separated) description lines associated with one anchor.
-# Each line starts with a tag (##, ##! or ##%). Here we have to strip them and to
-# introduce indentation for lines below the first one.
+# The doc of an anchor, ready to display: without its tags (##, ##! or ##%), the first line
+# offset from the anchor and the next lines aligned with it, with the DSUB substitutions,
+# the escapes of the output format and the colors of the text in backticks
 function format_description_data(anchor_name,
                                  anchors_description_data,
                                  len_anchor_names,
                                  #locals
-                                 k, array_of_lines, line, description, n_elements) {
-  # the automatically-assigned indexes during the split are: 1, ..., #lines
-  split(anchors_description_data[anchor_name], array_of_lines, "\n")
-
-  # the tag for the first line is stripped below
-  description = repeated_string("", OFFSET) array_of_lines[1]
-
-  n_elements = length_array_posix(array_of_lines)
-  for (k = 2; k <= n_elements; k++) {
-    line = array_of_lines[k]
-    sub(/^(##!|##%|##)/, "", line) # strip the tag (for the order, see the note below)
-    description = sprintf("%s\n%s%s",
-                          description,
-                          repeated_string("", OFFSET + len_anchor_names),
-                          line)
+                                 lines, n, k, description) {
+  n = split(anchors_description_data[anchor_name], lines, "\n")
+  for (k = 1; k <= n; k++) {
+    # (the order of the alternatives matters for goawk v1.29.1 and below, fixed in v1.30.0)
+    sub(/^(##!|##%|##)/, "", lines[k]) # strip the tag (keep the space after it)
   }
-
-  # The order of alternatives is important when using goawk v1.29.1 and below.
-  # Starting from goawk v1.30.0 this problem has been fixed.
-  sub(/(##!|##%|##)/, "", description) # strip the tag (keep the leading space)
+  description = repeated_string("", OFFSET) \
+                join(lines, "\n" repeated_string("", OFFSET + len_anchor_names))
 
   description = apply_doc_substitutions(description)
 
