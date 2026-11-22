@@ -18,7 +18,7 @@ V :=
 ## a name or a pattern (e.g., `host-*`; see `make platforms`)
 PLATFORM := host-awk
 
-## Container engine of the container platforms (e.g., podman)
+## Container engine of the container platforms (default: podman)
 ENGINE := podman
 
 ## Flags for pytest in `test` and `lint`, e.g.:
@@ -53,12 +53,13 @@ test:
 	@$(PYTEST) $(TEST_DIR)/test_integration.py $(TEST_DIR)/test_unit.py \
 		--platform '$(PLATFORM)' --engine $(ENGINE) $(PYTEST_FLAGS)
 
-## Lint the awk code with `gawk --lint`
+## Lint the awk code (`gawk --lint`) and the Python code (ruff, mypy)
 .PHONY: lint
 lint:
 	@$(PYTEST) $(TEST_DIR)/test_lint.py $(PYTEST_FLAGS)
 	@$(RUFF) check $(TEST_DIR)
 	@$(RUFF) format --check $(TEST_DIR)
+	@$(UV_RUN) mypy $(TEST_DIR)
 
 ## Run `lint` and `test`
 .PHONY: check
@@ -98,7 +99,7 @@ bump:
 ##@------ Clean ------
 ##@
 
-## Remove
+## Remove caches and coverage reports
 .PHONY: clean
 clean:
 	@rm -rf $(COVER_DIR) .ruff_cache .mypy_cache .pytest_cache
