@@ -1129,6 +1129,12 @@ function parse_variable_name(whole_line, #locals
   return strip_start_end_spaces_tabs(variable_name)
 }
 
+# True for a line of a recipe: in a rule, a line that starts with the recipe prefix
+# (RECIPEPREFIX is a single character)
+function is_recipe_line() {
+  return IN_RULE && substr($0, 1, 1) == RECIPEPREFIX
+}
+
 # Attach the pending doc to an anchor (target or variable), and record the anchor and the
 # pending section in ANCHOR_ORDER and SECTION_BEFORE
 function associate_data_with_anchor(anchor_name,
@@ -1214,17 +1220,15 @@ IN_CONTINUED_LINE {
   IN_CONTINUED_LINE = 0
 }
 
-# (RECIPEPREFIX is a single character)
-# lint: ignore[substr: start index] (the last character of an empty line is "")
-substr($0, length($0)) == "\\" && !(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX) &&
-    !IN_MULTILINE_BACKSLASH_RECIPE && has_odd_terminal_backslashes($0) {
+# a line that ends with a backslash (not a recipe line) is kept, to be joined with the next one
+!IN_MULTILINE_BACKSLASH_RECIPE && !is_recipe_line() && has_odd_terminal_backslashes($0) {
   CONTINUED_LINE = substr($0, 1, length($0) - 1)
   sub(/[ \t]+$/, "", CONTINUED_LINE)
   IN_CONTINUED_LINE = 1
   next
 }
 
-(IN_RULE && substr($0, 1, 1) == RECIPEPREFIX) || IN_MULTILINE_BACKSLASH_RECIPE {
+is_recipe_line() || IN_MULTILINE_BACKSLASH_RECIPE {
   # an empty recipe line is a blank line: it keeps the docs
   if (DESCRIPTION_DATA_INDEX > 1 && $0 !~ /^[ \t]*$/) {
     forget_descriptions_data()
