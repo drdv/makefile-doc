@@ -410,6 +410,7 @@ function process_options(    sub_names, dummy_array_labels) {
   }
 
   initialize_colors()
+  initialize_output_format()
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
 
@@ -721,8 +722,12 @@ function initialize_colors() {
   COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
   COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
   COLOR_RESET_CODE = define_color(-1)
+}
 
-  # printed before and after the documentation (each ends with a newline; empty for ANSI)
+# Set what is printed before and after the documentation: OUTPUT_HEADER and OUTPUT_FOOTER
+# (each ends with a newline; both are empty for ANSI). It uses the colors, so it is called
+# after initialize_colors.
+function initialize_output_format() {
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
   if (OUTPUT_FORMAT == "HTML") {
     OUTPUT_FOOTER = "</pre>\n</div>\n"
