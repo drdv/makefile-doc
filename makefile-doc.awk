@@ -352,9 +352,8 @@ function init_globals() {
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
-  NUMBER_OF_FILES_PROCESSED = 0
   CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
-  FILES_PROCESSED = ""
+  FILES_PROCESSED = "" # the names of the files read, separated by spaces
 
   # used to decorate double-colon targets in the documentation
   DOUBLE_COLON_SEPARATOR = "~"
@@ -1217,7 +1216,6 @@ FNR == 1 {
   reset_file_state()
   # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
   CURRENT_FILE = FILENAME == "" ? "-" : FILENAME
-  NUMBER_OF_FILES_PROCESSED++
   if (FILES_PROCESSED != "") {
     FILES_PROCESSED = FILES_PROCESSED " " CURRENT_FILE
   } else {
@@ -1668,7 +1666,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   if (max_target_length > 0 || max_variable_length > 0) {
     append_output(separator "\n")
   } else {
-    if (NUMBER_OF_FILES_PROCESSED > 0) {
+    if (FILES_PROCESSED != "") {
       if (TARGETS_INDEX > 1 || VARIABLES_INDEX > 1) { # documented, but hidden
         printf("WARNING: all documented targets/variables are hidden in %s\n",
                FILES_PROCESSED) > STDERR
