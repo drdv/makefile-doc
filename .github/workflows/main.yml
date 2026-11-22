@@ -105,3 +105,21 @@ jobs:
 
       - name: integration and unit tests
         run: uv run pytest test/test_integration.py test/test_unit.py --platform host-awk
+
+  # the awk that comes with Git for Windows (gawk on the MSYS runtime)
+  windows:
+    name: host-awk (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash # Git Bash: its awk is on the PATH
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: integration and unit tests
+        run: uv run pytest test/test_integration.py test/test_unit.py --platform host-awk
