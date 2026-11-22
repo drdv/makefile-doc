@@ -278,6 +278,14 @@ function init_globals() {
   OPTION_ERRORS = 0 # number of invalid options (see option_error)
   DSUB_COUNT = 0 # number of DSUB substitutions (set by process_options)
 
+  FS = ":" # set the field separator
+
+  # Target matching is heuristic (this is not a GNU Make parser; see "Limitations" in the
+  # README). Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that the rule
+  # separator is not followed by `:` or `=`, so that assignment operators such as `:=` and
+  # `::=` are not taken for rule separators.
+  TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
+
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
 
@@ -387,17 +395,9 @@ function process_options(    sub_names, dummy_array_labels) {
     OUTPUT_FORMAT = "ANSI"
   }
 
-  FS = ":" # set the field separator
-
   initialize_colors()
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
-
-  # Target matching is heuristic (this is not a GNU Make parser; see "Limitations" in the
-  # README). Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that the rule
-  # separator is not followed by `:` or `=`, so that assignment operators such as `:=` and
-  # `::=` are not taken for rule separators.
-  TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
 
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
@@ -659,6 +659,7 @@ function initialize_colors() {
   }
 
   define_ansi_to_html_colors()
+  set_user_defined_color_theme() # EXPORT_THEME overrides colors of that table
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
   define_color_labels()
@@ -753,8 +754,6 @@ function define_ansi_to_html_colors(    k) {
 
   for (k = 30; k <= 37; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
   for (k = 90; k <= 97; k++) { ANSI_TO_HTML_COLOR[k+10] = ANSI_TO_HTML_COLOR[k] }
-
-  set_user_defined_color_theme()
 }
 
 # The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
