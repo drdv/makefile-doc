@@ -28,27 +28,16 @@
 #   stdin), and README.md describes them, with examples. The checks are in process_options().
 
 #### Code conventions
-#   * All local variables of a function are declared in its signature (awk has no other way
-#     to make a variable local). There are two cases (also in the unit tests):
-#       * a function with parameters: the locals are on the next line, after a `#locals`
-#         comment
-#             function f(x, y, #locals
+#   * Locals are declared as extra parameters (awk has no other way): after a `#locals`
+#     comment on the next line, or after four spaces when there are no parameters (awk
+#     accepts no comment right after the parenthesis):
+#             function f(x, y, #locals          function g(    k, n) {
 #                        k, n) {
-#       * a function without parameters: the locals are on the same line, after four spaces
-#         (awk does not accept a comment right after the parenthesis)
-#             function f(    k, n) {
-#   * Global variables are written in upper case (a global in lower case is a local variable
-#     that was not declared).
-#   * The code is meant to run with most major awk implementations, and as a result we
-#     need to stick to basic syntax. For example, we cannot use a match function with
-#     a third argument (an array that stores the groups) and have to fall-back to using
-#     RSTART and RLENGTH. We cannot use arrays of arrays (as in gnu awk). We cannot use
-#     %* patterns, some regex features etc.
-#   * awk arrays are associative: `for (key in array)` visits the keys in no defined order.
-#     To store elements in a desired order, we use the keys 1, 2, 3, ... and keep an
-#     additional variable that marks the end of the array: *_INDEX, the next free key (e.g.,
-#     ANCHOR_ORDER_INDEX), or *_COUNT, the number of elements (e.g., WARNING_COUNT). The
-#     elements are then read in order with a loop from 1 to that end.
+#   * Globals are upper case (a global in lower case is a local that was not declared).
+#   * Only POSIX awk, for all the major awks: no match() with an array, no arrays of arrays,
+#     no gensub. Groups are read with RSTART and RLENGTH.
+#   * `for (key in array)` has no order: an ordered array uses the keys 1, 2, ... up to its
+#     *_INDEX (the next free key) or *_COUNT.
 
 #### Structure of the code
 #   Helpers                pure functions (no global variables)
@@ -59,41 +48,15 @@
 #   Rendering              the display of the documentation
 #   Flow                   BEGIN and END
 # A function is in the section that owns the variables it writes: Options writes the
-# settings, Parsing writes the interface variables (see init_globals), which Rendering
-# reads. Output formats is the exception: it groups a feature, across these steps.
+# settings, Parsing the interface (see init_globals), which Rendering reads. Output formats
+# is the exception: it groups a feature across these steps.
 
-#### Terminology and definitions
-#   * A Makefile rule (without patterns) can take one of the following forms:
-#     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
-#         [recipe]
-#
-#     target-name [...] [&]:[:] [variable assignment]
-#         [recipe]
-#
-#     where:
-#       variable assignment: a single variable can be assigned per rule
-#       prerequisites := normal-prerequisites | order-only-prerequisites
-#       inline recipe := [command] [; command ...]
-#       recipe := [command]
-#                 [...]
-#
-#     with normal-prerequisites and order-only-prerequisites being space separated lists
-#     of target names.
-#   * Recipe: a sequence of commands executed in the shell. Here, a line that starts with
-#     the recipe prefix is a recipe line if it comes after a rule and before a line that
-#     closes it (see parser_step).
-#   * Target: an abstraction representing a task/goal to achieve which is defined in
-#     terms of, potentially, many rules.
-#     * Normal (single-colon) targets can have only one recipe and to mirror this we
-#       allow for them to have only one doc.
-#     * double-colon targets (i.e., targets defined by double-colon rules) can have
-#       multiple docs (as they can have multiple recipes).
-#   * Target line: the top-line (the header) of a Makefile rule
-#   * Target name: a (string) label for a target
-#   * Doc of a rule: comments starting with ##, ##! or ##% placed above the target line of
-#     a rule or inline. An inline doc placed after an inline recipe is ignored.
-#   * The last rule with a doc defines the doc of a normal target, while every documented
-#     double-colon rule defines a new doc.
+#### Terminology
+#   * Rule: `targets [&]:[:] [prerequisites] [; inline recipe]` or
+#     `targets [&]:[:] variable assignment`, then its recipe lines. The parser and its terms
+#     are described in misc/docs/parser-model.tex.
+#   * A single-colon target has one recipe, so one doc (the last one wins); a double-colon
+#     target has a recipe per rule, so a doc per documented rule (t~1, t~2, ...).
 
 
 ### Code
@@ -109,11 +72,9 @@ function min(x, y) {
   return (x <= y) ? x : y
 }
 
-# 1. An empty string means a space.
-# 2. A loop rather than gsub, which would need & and \ in string to be escaped. The strings
-#    here are short, so the loop costs nothing noticeable.
-# 3. n must be a non-negative integer (a non-numeric n loops forever). The only n that comes
-#    from the user is OFFSET, which process_options() validates before any output.
+# string repeated n times ("" means a space). n must be a non-negative integer: the only one
+# from the user, OFFSET, is checked by process_options. (A loop, not gsub, which would need
+# & and \ escaped.)
 function repeated_string(string, n, #locals
                          s, k) {
   if (string == "") {
@@ -367,10 +328,8 @@ function initialize_substitution_parameter_defaults() {
 # The options given with -v: their defaults, their checks and the settings derived from them
 # (those of the output formats are in Output formats).
 
-# Process the user options (called from BEGIN, but not in unit-test mode: it exits on an
-# invalid option, and an exit in BEGIN would end the unit test before its checks run).
-# Every invalid option is reported, then the script exits with status 1 without any other
-# output.
+# Check the options and derive the settings. All the invalid options are reported, then the
+# script exits with status 1. (Not called by the unit tests: an exit in BEGIN would end them.)
 function process_options(    sub_names, dummy_array_labels) {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
@@ -421,10 +380,8 @@ function option_error(message) {
   OPTION_ERRORS++
 }
 
-# Report the operands that awk takes for assignments, e.g., VARS=0 (see option_error). awk
-# makes such an assignment only when it reaches the operand, i.e., after BEGIN, where the
-# options are validated and used: options must be given with -v. Assignments to other
-# variables are reported too (they could only change the internal state of the script).
+# Report the operands that are assignments, e.g., VARS=0: awk makes them after BEGIN, too
+# late for the options, which must be given with -v (see option_error)
 function report_assignment_operands(    k) {
   for (k = 1; k < ARGC; k++) {
     if (ARGV[k] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
@@ -434,20 +391,14 @@ function report_assignment_operands(    k) {
   }
 }
 
-# Parse spec, the value of the option SUB or DSUB (substitutions separated by ;):
-# SUB:  NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (the first two colons are
-#       separators; an empty label is no label)
-# DSUB: NAME:VALUE (only the first colon is a separator, no_labels is set)
-# Both can start with parameters, <p1:v1,...> (see the validate_*_params functions).
-# Everything after the last separator is the value, so it can contain colons.
-#
-# Caveat: for SUB, NAME:A:B is always read as NAME:LABEL:VALUES, so A is the label.
-# To give a value that contains a colon without renaming, leave the label empty:
+# Parse spec, the value of SUB or DSUB (items separated by ;), each with optional
+# parameters <p1:v1,...> (see the validate_*_params functions):
+#   SUB   NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (an empty label is no label)
+#   DSUB  NAME:VALUE (no_labels is set)
+# The value is everything after the last separator, so it can hold colons; for SUB,
 # t::/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
-#
-# Empty items (e.g., after a trailing ;) are skipped. Invalid items are reported (see
-# option_error) and skipped: no colon, an empty name, invalid parameters, a name that is
-# already given.
+# Empty items are skipped; invalid ones (no colon, no name, invalid parameters, a name
+# given twice) are reported (see option_error) and skipped.
 function form_substitutions(spec, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
@@ -602,8 +553,7 @@ function validate_dsub_params(name, string_with_parameters, #locals
 }
 
 # Set where each name of DSUB is replaced: DSUB_IN_ANCHORS[name] (parameter A, default 0)
-# and DSUB_IN_DOCS[name] (parameter D, default 1). The parameters have already been
-# checked by validate_dsub_params.
+# and DSUB_IN_DOCS[name] (parameter D, default 1), checked by validate_dsub_params
 function set_dsub_scopes(    k, name, params, keys) {
   split("", DSUB_IN_ANCHORS)
   split("", DSUB_IN_DOCS)
@@ -731,9 +681,8 @@ function define_ansi_to_html_colors(    k) {
   for (k = 90; k <= 97; k++) { EXPORT_PALETTE[k+10] = EXPORT_PALETTE[k] }
 }
 
-# The user can change the colors of the parameters 30-37, 40-47, 90-97 and 100-107 and set
-# FG and BG. Format: ANSI_PARAM:HEX_COLOR[,...] (invalid entries are reported, see
-# option_error).
+# Apply EXPORT_THEME, ANSI_PARAM:HEX_COLOR[,...]: the colors of the parameters 30-37, 40-47,
+# 90-97 and 100-107, and FG and BG (invalid entries are reported, see option_error)
 function set_user_defined_color_theme(    html_colors_split, k, n, ansi_html_map,
                                           ansi_param, html_color_code) {
   n = split(EXPORT_THEME, html_colors_split, ",")
@@ -841,9 +790,8 @@ function ansi_color_param_to_html_style(ansi_color_param, label, #locals
                  color_name(label), ANSI_TO_HTML_ATTR[ansi_color_param], value)
 }
 
-# Return the CSS rule (one line) of the whole output (the element with the class
-# makefile-doc): as wide as its text (a div is as wide as the page by default, which shows
-# with a background color), with the colors FG and BG of EXPORT_THEME if they are set
+# the CSS rule (one line) of the element with the class makefile-doc: as wide as its text (a
+# div is as wide as the page, which a background shows), with FG and BG if they are set
 function html_box_style(    style) {
   style = "display: inline-block;"
   if (EXPORT_FG_BG["FG"] != "") {
@@ -855,9 +803,8 @@ function html_box_style(    style) {
   return "  .makefile-doc { " style " }\n"
 }
 
-# Set what is printed before and after the documentation: OUTPUT_HEADER and OUTPUT_FOOTER
-# (each ends with a newline; both are empty for ANSI). It uses the colors, so it is called
-# after initialize_colors.
+# Set OUTPUT_HEADER and OUTPUT_FOOTER, printed around the documentation (each ends with a
+# newline; empty for ANSI). Called after initialize_colors, whose colors it uses.
 function initialize_output_format() {
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
   if (OUTPUT_FORMAT == "HTML") {
@@ -1497,10 +1444,9 @@ function is_hidden_anchor(anchor, anchors_tags) {
   return !DEPRECATED && anchors_tags[anchor] == "##%"
 }
 
-# The name that is displayed for an anchor: its SUB label if it has one, otherwise its name
-# after the DSUB substitutions with the parameter A:1 (in the order given).
-# SUB is looked up with the name as written in the Makefile, so DSUB never affects which
-# SUB applies.
+# The displayed name of an anchor: its SUB label if it has one, otherwise its name after the
+# DSUB substitutions with A:1, in order. SUB is looked up with the name as written, so DSUB
+# never changes which SUB applies.
 function display_name(anchor, #locals
                       k, name) {
   if (anchor in SUB_LABELS) {
@@ -1716,9 +1662,8 @@ function display_anchor_with_data(anchor, doc, section, len_anchors, color,
     renamed_anchor = display_name(anchor)
     formatted_anchor = apply_output_specific_formatting(renamed_anchor)
 
-    # The length of the padding is computed from the displayed name, not from the formatted
-    # one (an HTML or LaTeX escape is longer than the character it stands for). The padding
-    # is then escaped too, since PADDING can be any character.
+    # the padding is measured on the displayed name (an HTML or LaTeX escape is longer than
+    # its character), then escaped too (PADDING can be any character)
     padding = repeated_string(PADDING, len_anchors - length(renamed_anchor))
     padding = apply_output_specific_formatting(padding)
     if (color) {
