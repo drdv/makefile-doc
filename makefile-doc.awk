@@ -54,7 +54,7 @@
 
 #### Structure of the code
 #   Helpers                pure functions (no global variables)
-#   Global initialization  the global state that does not depend on the options
+#   Global initialization  init_globals: the global variables, grouped by who writes them
 #   Options                the options: defaults, checks and derived settings
 #   Output formats         everything that depends on OUTPUT_FORMAT
 #   Parsing                the rules that read the Makefiles, and their helpers
@@ -236,13 +236,23 @@ function color_name(label) {
 # Set the global state that does not depend on user options. It is called from BEGIN and
 # can be called from unit tests (also to reset the state between tests).
 function init_globals() {
-  VERSION = "v2.0" # the only place where the version is defined
+  # The options (COLOR, VARS, SUB, ...) are not initialized here: -v sets them before BEGIN,
+  # and process_options gives them their defaults (print_help lists them).
+
+  # ---------------------------------------------------------------------------------------
+  # The control of the run
+  # ---------------------------------------------------------------------------------------
 
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
   OPTION_ERRORS = 0 # number of invalid options (see option_error)
 
+  # ---------------------------------------------------------------------------------------
+  # Constants (never changed after init_globals)
+  # ---------------------------------------------------------------------------------------
+
+  VERSION = "v2.0" # the only place where the version is defined
   FS = ":" # set the field separator
 
   # Target matching is heuristic (this is not a GNU Make parser; see "Limitations" in the
@@ -265,14 +275,38 @@ function init_globals() {
   initialize_variables_regex()
   initialize_substitution_parameter_defaults()
 
-  # the tables of the colors and output formats (EXPORT_THEME is applied by process_options)
-  define_ansi_to_html_colors()
+  # the tables of the HTML and LaTeX output formats
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Command-line arguments:"
   DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
+
+  # ---------------------------------------------------------------------------------------
+  # Settings: derived from the options by process_options, read when rendering
+  # ---------------------------------------------------------------------------------------
+
+  # the colors of the HTML and LaTeX output (process_options applies EXPORT_THEME)
+  define_ansi_to_html_colors()
+
+  # the color codes of each kind of text (see initialize_colors)
+  COLOR_DEFAULT_CODE = COLOR_ATTENTION_CODE = COLOR_DEPRECATED_CODE = ""
+  COLOR_SECTION_CODE = COLOR_BACKTICKS_CODE = COLOR_RESET_CODE = ""
+
+  # the text before and after the documentation (see initialize_output_format)
+  OUTPUT_HEADER = OUTPUT_FOOTER = ""
+
+  # SUB and DSUB (see form_substitutions and set_dsub_scopes)
+  split("", SUB_PARAMS)
+  split("", SUB_LABELS)
+  split("", SUB_VALUES)
+  split("", DSUB_PARAMS)
+  split("", DSUB_VALUES)
+  split("", DSUB_NAMES)
+  split("", DSUB_IN_ANCHORS)
+  split("", DSUB_IN_DOCS)
+  DSUB_COUNT = 0 # number of DSUB substitutions
 
   # ---------------------------------------------------------------------------------------
   # The interface between parsing and rendering: written while parsing (see
@@ -317,18 +351,9 @@ function init_globals() {
   CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
 
   # ---------------------------------------------------------------------------------------
-  # The settings of SUB and DSUB (set by process_options) and the state of the rendering
+  # The state of the rendering: written by prepare_rendering (the anchors to display and
+  # their sections), and while printing
   # ---------------------------------------------------------------------------------------
-
-  split("", SUB_PARAMS)
-  split("", SUB_LABELS)
-  split("", SUB_VALUES)
-  split("", DSUB_PARAMS)
-  split("", DSUB_VALUES)
-  split("", DSUB_NAMES)
-  split("", DSUB_IN_ANCHORS)
-  split("", DSUB_IN_DOCS)
-  DSUB_COUNT = 0 # number of DSUB substitutions
 
   # the documented anchors, once each, in file order: index -> name (set by
   # build_anchor_lists)
@@ -340,7 +365,9 @@ function init_globals() {
   # name -> section (set by place_sections)
   split("", TARGETS_SECTION_DATA)
   split("", VARIABLES_SECTION_DATA)
+
   split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
+  OUTPUT_BODY = "" # the documentation being printed (see append_output)
 
   reset_file_state()
 }
