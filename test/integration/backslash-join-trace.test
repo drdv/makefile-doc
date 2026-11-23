@@ -1,0 +1,17 @@
+#: desc: The parser state after each line of continued lines (joined at their last line)
+#: trace
+test/fixtures/Makefile.backslash-join
+#: stdout
+== test/fixtures/Makefile.backslash-join
+   1 . -   1  0 | ## Two targets on a continued line
+   2 \ -   1  0 | t1 \
+   3 . R   0  0 |   t2:
+   3 ========== => target:t1 t2
+   4 . R   0  0 |
+   5 \ R   0  0 | t3 \
+   6 . R   0  0 | \tt4: ## Inline doc at the end of a continued rule (tab before t4)
+   6 ========== => target:t3 t4
+   7 . R   0  0 |
+   8 \ R   0  0 | X := a \
+   9 . -   0  0 |   b ## Inline doc at the end of a continued assignment
+   9 ========== => variable:X

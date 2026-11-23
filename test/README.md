@@ -42,7 +42,8 @@ each case is a file `test/integration/<name>.test` with the following format:
 - The `#:` lines at the top are metadata. `desc` is required. `issue` links the case to an issue,
   `bug` marks a known bug (see [Known bugs](#known-bugs)), `env` sets an environment variable
   for the run, and `stdin` gives a file whose content is the stdin of awk (otherwise, stdin is
-  empty).
+  empty). `trace` loads `tools/trace-state.awk` before the script: the expected stdout is then
+  the state of the parser after each line of the fixture (see the tool) instead of the help.
 - The next line holds the awk arguments, in shell syntax.
 - The rest is the expected output: stderr after `#: stderr`, stdout after `#: stdout`, and `#: exit:
   N` when the exit status is not zero.
@@ -51,8 +52,8 @@ In `help.test`, the version of the script is written `@VERSION@`, so that a rele
 the expected output.
 
 By convention, a fixture covers one small topic, its cases are named `<topic>.test` or
-`<topic>-<variation>.test` after `Makefile.<topic>`, and colors are off (`-v COLOR=0`) unless the
-case is about colors or output formats.
+`<topic>-<variation>.test` after `Makefile.<topic>` (`<topic>-trace.test` for its trace), and
+colors are off (`-v COLOR=0`) unless the case is about colors or output formats.
 
 Integration tests are run with `uv run pytest test/test_integration.py --platform <name>` (the
 default platform is `host-awk`). `test_case` (in `test/test_integration.py`) is parametrized with
