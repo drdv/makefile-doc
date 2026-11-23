@@ -312,7 +312,7 @@ flowchart TD
     end_ --> stderr["Warnings (stderr)"]
 ```
 
-Parsing reads no option except `RECIPEPREFIX`, which tells it what a recipe line looks like. A
+Parsing reads no option except `RECIPEPREFIX`, the recipe prefix at the start. A
 Makefile is therefore always parsed the same way, whatever the display options, and gives the same
 interface variables. Everything that depends on the other options is decided when rendering: which
 anchors are displayed, where the sections go, which warnings are printed, and how the output is
