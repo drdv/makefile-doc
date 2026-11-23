@@ -85,16 +85,15 @@
 #   * Target: an abstraction representing a task/goal to achieve which is defined in
 #     terms of, potentially, many rules.
 #     * Normal (single-colon) targets can have only one recipe and to mirror this we
-#       allow for them to have only one description.
+#       allow for them to have only one doc.
 #     * double-colon targets (i.e., targets defined by double-colon rules) can have
-#       multiple descriptions (as they can have multiple recipes).
+#       multiple docs (as they can have multiple recipes).
 #   * Target line: the top-line (the header) of a Makefile rule
 #   * Target name: a (string) label for a target
-#   * Description of a rule: comments starting with ##, ##! or ##% placed above the
-#     target line of a rule or inline. Inline descriptions placed after an inline recipe
-#     are ignored.
-#   * The last rule with a description defines the description of a normal target, while
-#     every double-colon rule with a description defines a new description.
+#   * Doc of a rule: comments starting with ##, ##! or ##% placed above the target line of
+#     a rule or inline. An inline doc placed after an inline recipe is ignored.
+#   * The last rule with a doc defines the doc of a normal target, while every documented
+#     double-colon rule defines a new doc.
 
 
 ### Code
@@ -183,7 +182,7 @@ function strip_start_end_spaces_tabs(string) {
 }
 
 # Remove spaces and tabs at the end of each line (e.g., the padding and the offset of an
-# empty description). No regex: on the long runs of spaces of the padding, a regex such
+# empty doc). No regex: on the long runs of spaces of the padding, a regex such
 # as /[ \t]+\n/ takes time quadratic in their length.
 function strip_trailing_blanks(text, #locals
                                n, lines, k, line, last) {
@@ -305,8 +304,8 @@ function init_globals() {
   # ---------------------------------------------------------------------------------------
 
   # name -> doc (its lines without their tags, joined by \n; the last definition wins)
-  split("", TARGETS_DESCRIPTION_DATA)
-  split("", VARIABLES_DESCRIPTION_DATA)
+  split("", TARGETS_DOC)
+  split("", VARIABLES_DOC)
 
   # name -> tag of the doc (##, ##! or ##%)
   split("", TARGETS_TAG)
@@ -986,7 +985,7 @@ function warn_about_continued_last_line() {
 }
 
 # the tag of a doc line (##, ##! or ##%), or "" if it does not start with one
-function get_tag_from_description(string) {
+function get_doc_tag(string) {
   return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
 }
 
@@ -1354,20 +1353,20 @@ function record_anchor(state, obs, #locals
   kind = obs["anchor"]
   name = kind == "target" ? form_target_name(state, obs) : obs["name"]
   if (obs["dn"]) {
-    tag = get_tag_from_description(state["doc", 1])
+    tag = get_doc_tag(state["doc", 1])
     doc = state_lines(state, "doc", obs["dn"], 1)
   } else {
-    tag = get_tag_from_description(obs["comment"])
+    tag = get_doc_tag(obs["comment"])
     doc = obs["comment"]
     sub(TAG_REGEX, "", doc)
   }
   if (kind == "target") {
-    redefined = name in TARGETS_DESCRIPTION_DATA
-    TARGETS_DESCRIPTION_DATA[name] = doc
+    redefined = name in TARGETS_DOC
+    TARGETS_DOC[name] = doc
     TARGETS_TAG[name] = tag
   } else {
-    redefined = name in VARIABLES_DESCRIPTION_DATA
-    VARIABLES_DESCRIPTION_DATA[name] = doc
+    redefined = name in VARIABLES_DOC
+    VARIABLES_DOC[name] = doc
     VARIABLES_TAG[name] = tag
   }
   if (redefined) {
@@ -1565,11 +1564,11 @@ function substitute_backticks_patterns(string, #locals
   return string
 }
 
-function colorize_description_backticks(description) {
+function colorize_doc_backticks(doc) {
   if (COLOR_BACKTICKS) {
-    return substitute_backticks_patterns(description)
+    return substitute_backticks_patterns(doc)
   }
-  return description
+  return doc
 }
 
 # the color code of an anchor, given by the tag of its doc
@@ -1587,18 +1586,15 @@ function anchor_color(anchor_name, anchors_tags, #locals
 # The doc of an anchor (stored without its tags), ready to display: the first line offset
 # from the anchor and the next lines aligned with it, with the DSUB substitutions, the
 # escapes of the output format and the colors of the text in backticks
-function format_description_data(anchor_name,
-                                 anchors_description_data,
-                                 len_anchor_names,
-                                 #locals
-                                 lines, indentation, description) {
-  split(anchors_description_data[anchor_name], lines, "\n")
+function format_doc(anchor_name, anchors_docs, len_anchor_names, #locals
+                    lines, indentation, doc) {
+  split(anchors_docs[anchor_name], lines, "\n")
   indentation = repeated_string("", OFFSET + len_anchor_names) # aligned with the first line
-  description = repeated_string("", OFFSET) join(lines, "\n" indentation)
+  doc = repeated_string("", OFFSET) join(lines, "\n" indentation)
 
-  description = apply_doc_substitutions(description)
+  doc = apply_doc_substitutions(doc)
 
-  return colorize_description_backticks(apply_output_specific_formatting(description))
+  return colorize_doc_backticks(apply_output_specific_formatting(doc))
 }
 
 # Apply the DSUB substitutions to the text of docs or section titles (those with D:1), in
@@ -1618,7 +1614,7 @@ function get_associated_section_data(anchor_name,
                                      section) {
   if (anchor_name in anchor_section_data) {
     section = strip_trailing_blanks(apply_doc_substitutions(anchor_section_data[anchor_name]))
-    return colorize_description_backticks(apply_output_specific_formatting(section))
+    return colorize_doc_backticks(apply_output_specific_formatting(section))
   }
   return "" # means that there is no section data associated with this anchor
 }
@@ -1673,7 +1669,7 @@ function display_substitutions(anchor, len_anchors, #locals
     } else {
       item = item termination
     }
-    item = colorize_description_backticks(apply_output_specific_formatting(item))
+    item = colorize_doc_backticks(apply_output_specific_formatting(item))
     if (SUB_PARAMS_CURRENT["M"] || k == 1) {
       lines[++n_lines] = item
     } else {
@@ -1695,7 +1691,7 @@ function display_substitutions(anchor, len_anchors, #locals
 
 # Display an anchor (if show is true) with its doc, its section and the values of its SUB
 # substitution; color is the color code of the anchor
-function display_anchor_with_data(anchor, description, section, len_anchors, color,
+function display_anchor_with_data(anchor, doc, section, len_anchors, color,
                                   show, #locals
                                   renamed_anchor, formatted_anchor, padding, output) {
   extract_substitution_params(array_get(SUB_PARAMS, anchor))
@@ -1734,23 +1730,21 @@ function display_anchor_with_data(anchor, description, section, len_anchors, col
       formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
     }
 
-    output = formatted_anchor description display_substitutions(anchor, len_anchors)
+    output = formatted_anchor doc display_substitutions(anchor, len_anchors)
     append_output(strip_trailing_blanks(output))
   }
 }
 
 # Display the anchors of one kind (TARGETS or VARIABLES) with their docs and sections.
-function print_anchors(anchors, description_data, tags, section_data, max_anchor_length,
+function print_anchors(anchors, docs, tags, section_data, max_anchor_length,
                        #locals
-                       n_elements, indx, anchor, description, section) {
+                       n_elements, indx, anchor, doc, section) {
   n_elements = length_array_posix(anchors)
   for (indx = 1; indx <= n_elements; indx++) {
     anchor = anchors[indx]
-    description = format_description_data(anchor,
-                                          description_data,
-                                          max_anchor_length)
+    doc = format_doc(anchor, docs, max_anchor_length)
     section = get_associated_section_data(anchor, section_data)
-    display_anchor_with_data(anchor, description, section, max_anchor_length,
+    display_anchor_with_data(anchor, doc, section, max_anchor_length,
                              anchor_color(anchor, tags),
                              !is_hidden_anchor(anchor, tags))
   }
@@ -1776,7 +1770,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   # process targets
   if (max_target_length > 0) {
     append_output(separator "\n" HEADER_TARGETS "\n" separator "\n")
-    print_anchors(TARGETS, TARGETS_DESCRIPTION_DATA, TARGETS_TAG, TARGETS_SECTION_DATA,
+    print_anchors(TARGETS, TARGETS_DOC, TARGETS_TAG, TARGETS_SECTION_DATA,
                   max_anchor_length)
   }
 
@@ -1786,7 +1780,7 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
       append_output("\n") # a blank line after the targets
     }
     append_output(separator "\n" HEADER_VARIABLES "\n" separator "\n")
-    print_anchors(VARIABLES, VARIABLES_DESCRIPTION_DATA, VARIABLES_TAG, VARIABLES_SECTION_DATA,
+    print_anchors(VARIABLES, VARIABLES_DOC, VARIABLES_TAG, VARIABLES_SECTION_DATA,
                   max_anchor_length)
   }
 

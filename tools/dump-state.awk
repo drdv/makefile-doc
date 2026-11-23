@@ -37,8 +37,8 @@ END {
   print "DSUB_COUNT = " DSUB_COUNT
 
   banner("The interface: written while parsing")
-  dump_array("TARGETS_DESCRIPTION_DATA", TARGETS_DESCRIPTION_DATA)
-  dump_array("VARIABLES_DESCRIPTION_DATA", VARIABLES_DESCRIPTION_DATA)
+  dump_array("TARGETS_DOC", TARGETS_DOC)
+  dump_array("VARIABLES_DOC", VARIABLES_DOC)
   dump_array("TARGETS_TAG", TARGETS_TAG)
   dump_array("VARIABLES_TAG", VARIABLES_TAG)
   dump_array("ANCHOR_ORDER", ANCHOR_ORDER)

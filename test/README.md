@@ -320,14 +320,14 @@ formatted.
 
 The interface variables are the only data that parsing hands over to rendering:
 
-| Variables                                                  | Meaning                                                                                                                                                                                                                                                                                                      |
-|------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `TARGETS_DESCRIPTION_DATA`<br>`VARIABLES_DESCRIPTION_DATA` | The doc of each anchor, keyed by its name: its lines without their tokens, joined by `\n` (each line keeps the space that followed its token). If an anchor is documented again, the last doc replaces the previous one.                                                                                     |
-| `TARGETS_TAG`, `VARIABLES_TAG`                             | The token of the doc of each anchor, keyed by its name: `##`, `##!` (needs attention) or `##%` (deprecated). It decides the color of the anchor and whether it is hidden with `DEPRECATED=0`. Like the doc, it comes from the last definition.                                                               |
-| `ANCHOR_ORDER`<br>(`ANCHOR_ORDER_INDEX`)                   | Every definition of a documented anchor, targets and variables together, in file order, as `kind SUBSEP name` (`kind` is `target` or `variable`). An anchor documented twice appears twice. When rendering, it gives the documented anchors of each kind (once each, in file order) and places the sections. |
-| `SECTION_BEFORE`                                           | The section that comes just before an entry of `ANCHOR_ORDER`, keyed by the index of that entry (only where there is one): its lines joined by `\n`. When rendering, a section is displayed above the next displayed anchor from that entry on.                                                              |
-| `WARNINGS`, `WARNING_KINDS`<br>(`WARNING_COUNT`)           | The warnings about the Makefiles, in the order they were found: the message (with the file and line) and what it is about (`target`, `variable` or `file`). They are printed before the docs, except those about variables when `VARS=0`.                                                                    |
-| `FILES_PROCESSED`                                          | The names of the files read, separated by spaces (`-` for stdin). It is used in the messages when nothing is documented.                                                                                                                                                                                     |
+| Variables                                        | Meaning                                                                                                                                                                                                                                                                                                      |
+|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `TARGETS_DOC`<br>`VARIABLES_DOC`                 | The doc of each anchor, keyed by its name: its lines without their tokens, joined by `\n` (each line keeps the space that followed its token). If an anchor is documented again, the last doc replaces the previous one.                                                                                     |
+| `TARGETS_TAG`, `VARIABLES_TAG`                   | The token of the doc of each anchor, keyed by its name: `##`, `##!` (needs attention) or `##%` (deprecated). It decides the color of the anchor and whether it is hidden with `DEPRECATED=0`. Like the doc, it comes from the last definition.                                                               |
+| `ANCHOR_ORDER`<br>(`ANCHOR_ORDER_INDEX`)         | Every definition of a documented anchor, targets and variables together, in file order, as `kind SUBSEP name` (`kind` is `target` or `variable`). An anchor documented twice appears twice. When rendering, it gives the documented anchors of each kind (once each, in file order) and places the sections. |
+| `SECTION_BEFORE`                                 | The section that comes just before an entry of `ANCHOR_ORDER`, keyed by the index of that entry (only where there is one): its lines joined by `\n`. When rendering, a section is displayed above the next displayed anchor from that entry on.                                                              |
+| `WARNINGS`, `WARNING_KINDS`<br>(`WARNING_COUNT`) | The warnings about the Makefiles, in the order they were found: the message (with the file and line) and what it is about (`target`, `variable` or `file`). They are printed before the docs, except those about variables when `VARS=0`.                                                                    |
+| `FILES_PROCESSED`                                | The names of the files read, separated by spaces (`-` for stdin). It is used in the messages when nothing is documented.                                                                                                                                                                                     |
 
 For example, with this `Makefile`:
 
@@ -357,14 +357,14 @@ clean:
 
 the variables hold:
 
-| Name    | `TARGETS_DESCRIPTION_DATA`                            | `TARGETS_TAG` |
+| Name    | `TARGETS_DOC`                                         | `TARGETS_TAG` |
 |---------|-------------------------------------------------------|---------------|
 | `build` | `" Compile the project\n (uses JOBS)"`                | `"##"`        |
 | `clean` | `" Remove all generated files, including the caches"` | `"##!"`       |
 | `test`  | `" Run the tests"`                                    | `"##"`        |
 | `check` | ``" Use `test` instead"``                             | `"##%"`       |
 
-| Name   | `VARIABLES_DESCRIPTION_DATA` | `VARIABLES_TAG` |
+| Name   | `VARIABLES_DOC`              | `VARIABLES_TAG` |
 |--------|------------------------------|-----------------|
 | `JOBS` | `" Number of parallel jobs"` | `"##"`          |
 
