@@ -19,6 +19,8 @@
 #   ci       optional: true to also run the platform in CI
 #   explicit optional: true to run the platform only when named explicitly (a pattern such as `*`
 #            does not select it)
+#   crlf     optional: true if the awk writes \r\n (e.g., a native Windows awk); the tests then
+#            compare its output with \n
 
 # ------------------------------------------------------------------------------------------
 # awk variants on the host platform. The binaries are built in a container, statically
@@ -35,6 +37,14 @@ awk = "awk"
 host = true
 ci = true
 awk = "gawk"
+
+# a native Windows gawk (not the MSYS one of Git for Windows), installed by `choco install gawk`
+# in the windows job of CI
+[windows-host-gawk]
+host = true
+explicit = true
+crlf = true
+awk = "C:/ProgramData/chocolatey/bin/gawk.exe"
 
 [host-gawk-posix]
 extends = "host-gawk"
