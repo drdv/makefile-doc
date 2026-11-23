@@ -1,0 +1,8 @@
+#: desc: An escaped ; in a substitution value is part of the value (\\; on the command line)
+-v COLOR=0 -v DSUB='$(SETUP):cd build\\; cmake ..;$(X):x' test/fixtures/Makefile.dsub-semicolon
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+configure   Configure (runs: cd build; cmake ..)
+-----------------------

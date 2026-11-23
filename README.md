@@ -335,7 +335,9 @@ t   Prerequisites: x y
 ```
 
 Several substitutions are separated by `;` and applied in the order given, and a name can appear
-only once. Values cannot contain newlines.
+only once. Values cannot contain newlines. A `;` in a value (of `SUB` too) is written `\;`, and
+`\\;` on the command line, as for `\,`. For a value that comes from Make, e.g.,
+`SETUP := cd build; cmake ..`, use `-v DSUB='$$(SETUP):$(subst ;,\\;,$(SETUP))'`.
 
 A substitution can start with parameters, `<p1:v1,...>NAME:VALUE`, that say where the
 text is replaced:
