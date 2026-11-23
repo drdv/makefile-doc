@@ -5,8 +5,8 @@
 #   a tab-indented doc
 #   a target, next-N: documented only if the line under test leaves the parser outside
 #   a rule (as in GNU Make)
-# Only the lines where makefile-doc.awk agrees with GNU Make are here (the others are in
-# the fixtures of known bugs).
+# More lines that start or end the recipe context are in Makefile.state-recipe-start and
+# Makefile.state-recipe-end.
 
 SRCS := s.c
 

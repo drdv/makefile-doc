@@ -1,7 +1,6 @@
 # Directives, function calls and target-specific assignments end the recipe context, as in
-# GNU Make: the tab-indented ## line after them is a comment, so a doc of next-N. Known
-# bug #182: the parser keeps the recipe context (and starts one at a target-specific
-# assignment), so the doc is lost.
+# GNU Make: the tab-indented ## line after them is a comment, so a doc of next-N (issue
+# #182).
 
 ## Doc of rule-1
 rule-1:

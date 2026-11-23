@@ -11,9 +11,8 @@ test/fixtures/Makefile.docs-blank-lines
    5 ============ => target:[t1]
    6 0 1  0  0 \t |
    7 0 1  1  0 \t | ## Docs above a line with a tab (an empty recipe line of t1)
-   8 0 1  1  0 \t | \t
+   8 0 1  0  0 \t | \t
    9 0 1  0  0 \t | t2:
-   9 ============ => target:[t2]
   10 0 1  0  0 \t |
   11 0 0  0  0 \t | V := 1
   12 0 0  1  0 \t | ## Docs above a line with a tab (not in a rule)

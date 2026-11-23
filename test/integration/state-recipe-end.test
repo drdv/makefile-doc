@@ -1,5 +1,5 @@
 #: desc: Directives, function calls and target-specific assignments end the recipe context, as in GNU Make
-#: bug: 182
+#: issue: 182
 -v COLOR=0 test/fixtures/Makefile.state-recipe-end
 #: stdout
 -----------------------

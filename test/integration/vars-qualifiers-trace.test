@@ -17,19 +17,15 @@ test/fixtures/Makefile.vars-qualifiers
    9 0 0  0  0 \t |
   10 0 0  1  0 \t | ## test all four (even though it makes no sense)
   11 0 0  0  0 \t | unexport  override     private  export     more_LETTERS:=1
-  11 ============ => variable:[more_LETTERS]
   12 0 0  0  0 \t |
   13 0 0  1  0 \t | ## test repeated qualifiers
   14 0 0  0  0 \t |    override  unexport private  override     private  export     qsub:=1
-  14 ============ => variable:[qsub]
   15 0 0  0  0 \t |
   16 0 0  1  0 \t | ## test qualifiers in variable name
   17 0 0  0  0 \t |    override  unexport private  override     private  export     override1:=1
-  17 ============ => variable:[override1]
   18 0 0  0  0 \t |
   19 0 0  1  0 \t | ## test qualifiers in variable name
   20 0 0  0  0 \t |    override  unexport private  override     private  export     override_private := 1
-  20 ============ => variable:[override_private]
   21 0 0  0  0 \t |
   22 0 0  1  0 \t | ## test variable name that coincides with a qualifier
   23 0 0  0  0 \t | unexport := 1
@@ -37,7 +33,6 @@ test/fixtures/Makefile.vars-qualifiers
   24 0 0  0  0 \t |
   25 0 0  1  0 \t | ## test variable name that coincides with a qualifier and has qualifiers
   26 0 0  0  0 \t |  override  unexport private  override       export   private  := 1
-  26 ============ => variable:[private]
   27 0 0  0  0 \t |
   28 0 0  1  0 \t | ## Start with a leading tab
   29 0 0  0  0 \t | \texport := 1

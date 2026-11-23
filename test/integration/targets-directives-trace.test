@@ -17,19 +17,19 @@ test/fixtures/Makefile.targets-directives
   10 0 1  0  0 \t | endif
   11 0 1  0  0 \t |
   12 0 1  1  0 \t | ## These docs are discarded by vpath
-  13 0 1  0  0 \t | vpath %.c src:lib
+  13 0 0  0  0 \t | vpath %.c src:lib
   14 0 1  0  0 \t | t3: ## vpath with a colon is not a target
   14 ============ => target:[t3]
   15 0 1  0  0 \t |
   16 0 1  1  0 \t | ## These docs are discarded by include
-  17 0 1  0  0 \t | include a:b
-  18 0 1  0  0 \t | -include c:d
-  19 0 1  0  0 \t | sinclude e:f
+  17 0 0  0  0 \t | include a:b
+  18 0 0  0  0 \t | -include c:d
+  19 0 0  0  0 \t | sinclude e:f
   20 0 1  0  0 \t | t4: ## include with a colon is not a target
   20 ============ => target:[t4]
   21 0 1  0  0 \t |
   22 0 1  1  0 \t | ## These docs are discarded by export
-  23 0 1  0  0 \t | export A:B
+  23 0 0  0  0 \t | export A:B
   24 0 1  0  0 \t | t5: ## export without an assignment is not a target
   24 ============ => target:[t5]
   25 0 1  0  0 \t |

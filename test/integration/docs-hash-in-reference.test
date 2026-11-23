@@ -1,5 +1,5 @@
 #: desc: A ## inside a variable reference or function call does not start an inline doc, as in GNU Make
-#: bug: 183
+#: issue: 183
 -v COLOR=0 test/fixtures/Makefile.docs-hash-in-reference
 #: stdout
 -----------------------

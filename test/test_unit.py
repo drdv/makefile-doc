@@ -10,8 +10,6 @@ from tap.parser import Parser
 
 UNIT_FILES = sorted((ROOT / "test/unit").glob("test_*.awk"))
 
-# the new parser, loaded next to the script by its unit test (until it is merged into the script)
-NEW_PARSER = "parser.awk"
 
 
 def unit_args(path: Path, stderr: Path) -> list[str]:
@@ -26,7 +24,6 @@ def unit_args(path: Path, stderr: Path) -> list[str]:
         "test/unit/harness.awk",
         "-f",
         SCRIPT,
-        *(["-f", NEW_PARSER] if path.name == "test_lexical.awk" else []),
         "-f",
         str(path.relative_to(ROOT)),
         "/dev/null",

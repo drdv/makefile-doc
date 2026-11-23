@@ -1,36 +1,35 @@
 #: desc: The parser state after each line of Makefile.state-recipe-start
-#: bug: 181
+#: issue: 181
 #: trace
 test/fixtures/Makefile.state-recipe-start
 #: stdout
 == test/fixtures/Makefile.state-recipe-start
    1 0 0  0  0 \t | # Rules that are not documented (special targets, targets that the parser cannot name)
    2 0 0  0  0 \t | # start a recipe context, as in GNU Make: the tab-indented ## line after them is a recipe
-   3 0 0  0  0 \t | # line, so next-N keeps its inline doc. Known bug #181: after an assignment, the ## line
-   4 0 0  0  0 \t | # is read as a doc, which replaces the inline doc of next-N.
-   5 0 0  0  0 \t |
-   6 0 0  0  0 \t | SRCS := s.c
-   7 0 0  0  0 \t |
-   8 0 0  0  0 \t | A := 1
-   9 0 1  0  0 \t | .PHONY: next-1
-  10 0 1  0  0 \t | \t## a special target (.PHONY), after an assignment
-  11 0 1  0  0 \t | next-1: ## Doc of next-1
-  11 ============ => target:[next-1]
-  12 0 1  0  0 \t |
-  13 0 0  0  0 \t | A := 1
-  14 0 1  0  0 \t | .DEFAULT:
-  15 0 1  0  0 \t | \t## a special target (.DEFAULT), after an assignment
-  16 0 1  0  0 \t | next-2: ## Doc of next-2
-  16 ============ => target:[next-2]
-  17 0 1  0  0 \t |
-  18 0 0  0  0 \t | A := 1
-  19 0 1  0  0 \t | $(SRCS:.c=.o): dep
-  20 0 1  0  0 \t | \t## a substitution reference target, after an assignment
-  21 0 1  0  0 \t | next-3: ## Doc of next-3
-  21 ============ => target:[next-3]
-  22 0 1  0  0 \t |
-  23 0 0  0  0 \t | A := 1
-  24 0 1  0  0 \t | $(subst :,_,x-4): dep
-  25 0 1  0  0 \t | \t## a colon in a reference, after an assignment
-  26 0 1  0  0 \t | next-4: ## Doc of next-4
-  26 ============ => target:[next-4]
+   3 0 0  0  0 \t | # line, so next-N keeps its inline doc (issue #181).
+   4 0 0  0  0 \t |
+   5 0 0  0  0 \t | SRCS := s.c
+   6 0 0  0  0 \t |
+   7 0 0  0  0 \t | A := 1
+   8 0 1  0  0 \t | .PHONY: next-1
+   9 0 1  0  0 \t | \t## a special target (.PHONY), after an assignment
+  10 0 1  0  0 \t | next-1: ## Doc of next-1
+  10 ============ => target:[next-1]
+  11 0 1  0  0 \t |
+  12 0 0  0  0 \t | A := 1
+  13 0 1  0  0 \t | .DEFAULT:
+  14 0 1  0  0 \t | \t## a special target (.DEFAULT), after an assignment
+  15 0 1  0  0 \t | next-2: ## Doc of next-2
+  15 ============ => target:[next-2]
+  16 0 1  0  0 \t |
+  17 0 0  0  0 \t | A := 1
+  18 0 1  0  0 \t | $(SRCS:.c=.o): dep
+  19 0 1  0  0 \t | \t## a substitution reference target, after an assignment
+  20 0 1  0  0 \t | next-3: ## Doc of next-3
+  20 ============ => target:[next-3]
+  21 0 1  0  0 \t |
+  22 0 0  0  0 \t | A := 1
+  23 0 1  0  0 \t | $(subst :,_,x-4): dep
+  24 0 1  0  0 \t | \t## a colon in a reference, after an assignment
+  25 0 1  0  0 \t | next-4: ## Doc of next-4
+  25 ============ => target:[next-4]

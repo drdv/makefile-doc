@@ -3,8 +3,8 @@
 test/fixtures/Makefile.sub-expression
 #: stdout
 == test/fixtures/Makefile.sub-expression
-   1 0 1  0  0 \t | help: SCR := makefile-doc.awk
-   2 0 1  0  0 \t | help: VFLAG := -v SUB='$$(I)target:target:immediate immediate immediate immediate deferred deferred'
+   1 0 0  0  0 \t | help: SCR := makefile-doc.awk
+   2 0 0  0  0 \t | help: VFLAG := -v SUB='$$(I)target:target:immediate immediate immediate immediate deferred deferred'
    3 0 1  0  0 \t | help: ## Show this help
    3 ============ => target:[help]
    4 0 1  0  0 \t | \t@awk $(VFLAG) -f $(SCR) $(MAKEFILE_LIST)

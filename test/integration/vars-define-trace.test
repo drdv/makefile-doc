@@ -7,9 +7,9 @@ test/fixtures/Makefile.vars-define
    2 0 0  0  0 \t | define USAGE
    2 ============ => variable:[USAGE]
    3 0 1  0  0 \t | Usage: make [target]
-   4 0 1  0  0 \t | endef
-   5 0 1  0  0 \t |
-   6 0 1  1  0 \t | ## With an operator
+   4 0 0  0  0 \t | endef
+   5 0 0  0  0 \t |
+   6 0 0  1  0 \t | ## With an operator
    7 0 0  0  0 \t | define WITH_OPERATOR :=
    7 ============ => variable:[WITH_OPERATOR]
    8 0 0  0  0 \t | x

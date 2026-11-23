@@ -10,8 +10,8 @@ test/fixtures/Makefile.state-recipe-context
    5 0 0  0  0 \t | #   a tab-indented doc
    6 0 0  0  0 \t | #   a target, next-N: documented only if the line under test leaves the parser outside
    7 0 0  0  0 \t | #   a rule (as in GNU Make)
-   8 0 0  0  0 \t | # Only the lines where makefile-doc.awk agrees with GNU Make are here (the others are in
-   9 0 0  0  0 \t | # the fixtures of known bugs).
+   8 0 0  0  0 \t | # More lines that start or end the recipe context are in Makefile.state-recipe-start and
+   9 0 0  0  0 \t | # Makefile.state-recipe-end.
   10 0 0  0  0 \t |
   11 0 0  0  0 \t | SRCS := s.c
   12 0 0  0  0 \t |
