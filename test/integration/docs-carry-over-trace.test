@@ -1,0 +1,59 @@
+#: desc: The parser state after each line of Makefile.docs-carry-over
+#: trace
+test/fixtures/Makefile.docs-carry-over
+#: stdout
+== test/fixtures/Makefile.docs-carry-over
+   1 . -   1  0 | ## Docs above an include
+   2 . -   0  0 | include other.mk
+   3 . -   0  0 |
+   4 . R   0  0 | t1:
+   5 . R   0  0 |
+   6 . R   1  0 | ## Docs above a function call
+   7 . R   0  0 | $(info hello)
+   8 . R   0  0 | t2:
+   9 . R   0  0 |
+  10 . R   1  0 | ## Docs above an export without an assignment
+  11 . R   0  0 | export PATH
+  12 . -   0  0 | V := 1
+  13 . -   0  0 |
+  14 . -   1  0 | ## Docs above a .PHONY line and a conditional
+  15 . -   1  0 | .PHONY: t3
+  16 . -   1  0 | ifeq ($(OS),Linux)
+  17 . R   0  0 | t3:
+  17 ========== => target:t3
+  18 . R   0  0 | endif
+  19 . R   0  0 |
+  20 . R   1  0 | ## Docs above ifdef and else
+  21 . R   1  0 | ifdef X
+  22 . R   1  0 | else
+  23 . R   0  0 | t4:
+  23 ========== => target:t4
+  24 . R   0  0 | endif
+  25 . R   0  0 |
+  26 . R   1  0 | ## Docs above ifneq, then a variable
+  27 . R   1  0 | ifneq ($(X),)
+  28 . -   0  0 | V2 := 1
+  28 ========== => variable:V2
+  29 . -   0  0 | endif
+  30 . -   0  0 |
+  31 . -   1  0 | ## Docs above ifndef
+  32 . -   1  0 | ifndef X
+  33 . R   0  0 | t5:
+  33 ========== => target:t5
+  34 . R   0  0 | endif
+  35 . R   0  0 |
+  36 . R   1  0 | ## Docs above an optional include
+  37 . R   0  0 | -include other.mk
+  38 . R   0  0 | t6:
+  39 . R   0  0 |
+  40 . R   1  0 | ## Docs above an eval
+  41 . R   0  0 | $(eval $(call FOO))
+  42 . R   0  0 | t7:
+  43 . R   0  0 |
+  44 . R   1  0 | ## Docs above a vpath directive
+  45 . R   0  0 | vpath %.c src
+  46 . R   0  0 | t8:
+  47 . R   0  0 |
+  48 . R   1  0 | ## Docs above an unexport without an assignment
+  49 . R   0  0 | unexport PATH
+  50 . -   0  0 | V3 := 1

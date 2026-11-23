@@ -1,0 +1,48 @@
+#: desc: The parser state after each line of Makefile.targets-double-colon
+#: trace
+test/fixtures/Makefile.targets-double-colon
+#: stdout
+== test/fixtures/Makefile.targets-double-colon
+   1 . -   1  0 | ## This is the first double-colon target from group A
+   2 . -   2  0 | ## It has two lines of description
+   3 . R   0  0 | double-colon-A::
+   3 ========== => target:double-colon-A~1
+   4 . R   0  0 |
+   5 . R   0  0 | double-colon-B:: ##! group B first documented
+   5 ========== => target:double-colon-B~1
+   6 . R   0  0 |
+   7 . R   0  0 | double-colon-B:: # not documented
+   8 . R   0  0 |
+   9 . R   0  0 | double-colon-B:: ## group B second documented
+   9 ========== => target:double-colon-B~2
+  10 . R   0  0 |
+  11 . R   0  0 | double-colon-A:: ## This is the second double-colon target from group A
+  11 ========== => target:double-colon-A~2
+  12 . R   0  0 |
+  13 . R   0  0 | double-colon-B:: ##% group B third documented (deprecated)
+  13 ========== => target:double-colon-B~3
+  14 . R   0  0 |
+  15 . R   1  0 | ## This is a top doc for dc~1
+  16 . R   0  0 | dc:: ## this is inline (not shown) still dc~1
+  16 ========== => target:dc~1
+  17 . R   0  0 | dc:: A:=2 ## dc~2 even if there is no recipe
+  17 ========== => target:dc~2
+  18 . R   0  0 | dc::; @echo $(A)
+  19 . R   0  0 | \t@echo $(A)
+  20 . R   0  0 | \t@echo $(A)
+  21 . R   0  0 | dc:: A:=2 ## dc~3 if the user says so
+  21 ========== => target:dc~3
+  22 . R   0  0 | dc::; @echo $(A)
+  23 . R   0  0 | dc::
+  24 . R   0  0 | dc:: A:=3
+  25 . R   0  0 | dc::
+  26 . R   0  0 | dc::
+  27 . R   0  0 | \t@echo $(A)
+  28 . R   0  0 | \t@echo $(A)
+  29 . R   0  0 | \t@echo $(A)
+  30 . R   0  0 | \t@echo $(A)
+  31 . R   0  0 | \t@echo $(A)
+  32 . R   0  0 | dc:: A:=3
+  33 . R   0  0 | dc:: ## dc~4
+  33 ========== => target:dc~4
+  34 . R   0  0 | dc::; @echo $(A)

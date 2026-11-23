@@ -1,0 +1,13 @@
+#: desc: The parser state after each line of Makefile.crlf
+#: trace
+test/fixtures/Makefile.crlf
+#: stdout
+== test/fixtures/Makefile.crlf
+   1 . -   1  0 | ## d
+   2 \ -   1  0 | t: \
+   3 . R   0  0 | BOGUS := 1 ## x
+   3 ========== => target:t
+   4 . R   0  0 |
+   5 . R   1  0 | ## v
+   6 . -   0  0 | X := 1
+   6 ========== => variable:X

@@ -1,0 +1,78 @@
+#: desc: The parser state after each line of Makefile.targets-whitespace
+#: trace
+test/fixtures/Makefile.targets-whitespace
+#: stdout
+== test/fixtures/Makefile.targets-whitespace
+   1 . -   0  0 | # Single-colon targets: whitespace before :
+   2 . -   1  0 | ## Single-colon with spaces
+   3 . R   0  0 | single-space   :
+   3 ========== => target:single-space
+   4 . R   0  0 |
+   5 . R   1  0 | ## Single-colon with a tab
+   6 . R   0  0 | single-tab\t:
+   6 ========== => target:single-tab
+   7 . R   0  0 |
+   8 . R   0  0 | # Double-colon targets: whitespace normalization and numbering
+   9 . R   1  0 | ## First definition
+  10 . R   0  0 | double-colon::
+  10 ========== => target:double-colon~1
+  11 . R   0  0 |
+  12 . R   1  0 | ## Second definition, spaces before ::
+  13 . R   0  0 | double-colon   ::
+  13 ========== => target:double-colon~2
+  14 . R   0  0 |
+  15 . R   1  0 | ## Third definition, tab before ::
+  16 . R   0  0 | double-colon\t::
+  16 ========== => target:double-colon~3
+  17 . R   0  0 |
+  18 . R   0  0 | # Multiple independent targets
+  19 . R   1  0 | ## Targets separated by spaces
+  20 . R   0  0 | multi-space-a multi-space-b:
+  20 ========== => target:multi-space-a multi-space-b
+  21 . R   0  0 |
+  22 . R   1  0 | ## Targets separated by a tab
+  23 . R   0  0 | multi-tab-a\tmulti-tab-b:
+  23 ========== => target:multi-tab-a multi-tab-b
+  24 . R   0  0 |
+  25 . R   1  0 | ## Targets separated by several spaces
+  26 . R   0  0 | spaces-a    spaces-b   spaces-c:
+  26 ========== => target:spaces-a spaces-b spaces-c
+  27 . R   0  0 |
+  28 . R   0  0 | # Grouped single-colon targets
+  29 . R   1  0 | ## Grouped targets with spaces between names
+  30 . R   0  0 | group-space-a group-space-b&:
+  30 ========== => target:group-space-a group-space-b&
+  31 . R   0  0 |
+  32 . R   1  0 | ## Grouped targets with tabs between names
+  33 . R   0  0 | group-tab-a\tgroup-tab-b&:
+  33 ========== => target:group-tab-a group-tab-b&
+  34 . R   0  0 |
+  35 . R   1  0 | ## Grouped targets with tabs between names and before &
+  36 . R   0  0 | group-tab-c\tgroup-tab-d\t&:
+  36 ========== => target:group-tab-c group-tab-d&
+  37 . R   0  0 |
+  38 . R   0  0 | # Grouped double-colon targets: whitespace normalization and numbering
+  39 . R   1  0 | ## First definition
+  40 . R   0  0 | group-dc-a group-dc-b&::
+  40 ========== => target:group-dc-a group-dc-b&~1
+  41 . R   0  0 |
+  42 . R   1  0 | ## Second definition, spaces before &
+  43 . R   0  0 | group-dc-a group-dc-b   &::
+  43 ========== => target:group-dc-a group-dc-b&~2
+  44 . R   0  0 |
+  45 . R   1  0 | ## Third definition, tab before &
+  46 . R   0  0 | group-dc-a group-dc-b\t&::
+  46 ========== => target:group-dc-a group-dc-b&~3
+  47 . R   0  0 |
+  48 . R   0  0 | # Grouped double-colon targets with tabs between names
+  49 . R   1  0 | ## First definition
+  50 . R   0  0 | group-dc-tab-a\tgroup-dc-tab-b&::
+  50 ========== => target:group-dc-tab-a group-dc-tab-b&~1
+  51 . R   0  0 |
+  52 . R   1  0 | ## Second definition, spaces before &
+  53 . R   0  0 | group-dc-tab-a\tgroup-dc-tab-b   &::
+  53 ========== => target:group-dc-tab-a group-dc-tab-b&~2
+  54 . R   0  0 |
+  55 . R   1  0 | ## Third definition, tab before &
+  56 . R   0  0 | group-dc-tab-a\tgroup-dc-tab-b\t&::
+  56 ========== => target:group-dc-tab-a group-dc-tab-b&~3

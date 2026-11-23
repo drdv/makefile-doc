@@ -1,0 +1,25 @@
+#: desc: The parser state after each line of Makefile.docs-banner
+#: trace
+test/fixtures/Makefile.docs-banner
+#: stdout
+== test/fixtures/Makefile.docs-banner
+   1 . -   1  0 | ## Docs above a banner (discarded)
+   2 . -   0  0 | ###
+   3 . -   0  0 | # A comment below the banner
+   4 . R   0  0 | t1:
+   5 . R   0  0 |
+   6 . R   0  0 | #####
+   7 . R   1  0 | ## Docs below a banner
+   8 . R   0  0 | t2:
+   8 ========== => target:t2
+   9 . R   0  0 |
+  10 . R   0  0 |   ####  
+  11 . R   0  0 | t3:
+  12 . R   0  0 |
+  13 . R   1  0 | ### Docs starting with three # (kept)
+  14 . R   0  0 | t4:
+  14 ========== => target:t4
+  15 . R   0  0 |
+  16 . R   1  0 | ## Docs of a variable above a banner (discarded)
+  17 . R   0  0 | ###
+  18 . -   0  0 | V := 1

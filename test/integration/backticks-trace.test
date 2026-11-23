@@ -1,0 +1,25 @@
+#: desc: The parser state after each line of Makefile.backticks
+#: trace
+test/fixtures/Makefile.backticks
+#: stdout
+== test/fixtures/Makefile.backticks
+   1 . R   0  0 | b1: ## {`A`, `set`, `with`, `elements`}
+   1 ========== => target:b1
+   2 . R   0  0 | b2: ## `All in backticks`
+   2 ========== => target:b2
+   3 . R   0  0 |
+   4 . R   0  1 | ##@
+   5 . R   0  2 | ##@  Section `{first second} third` stuff
+   6 . R   0  3 | ##@
+   7 . R   0  3 |
+   8 . R   0  0 | b3: ## No backticks
+   8 ========== => target:b3 +section
+   9 . R   0  0 |
+  10 . R   1  0 | ## Text in backticks `that spans
+  11 . R   2  0 | ## two lines` (each line is colored on its own)
+  12 . R   0  0 | b4:
+  12 ========== => target:b4
+  13 . R   0  0 |
+  14 . R   1  0 | ## `a variable`
+  15 . -   0  0 | B :=
+  15 ========== => variable:B

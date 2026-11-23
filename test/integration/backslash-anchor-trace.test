@@ -1,0 +1,22 @@
+#: desc: The parser state after each line of Makefile.backslash-anchor
+#: trace
+test/fixtures/Makefile.backslash-anchor
+#: stdout
+== test/fixtures/Makefile.backslash-anchor
+   1 . -   1  0 | ## d
+   2 \ -   1  0 | t: \
+   3 . R   0  0 | BOGUS := 1 ## x
+   3 ========== => target:t
+   4 . R   0  0 |
+   5 . R   1  0 | ## v
+   6 \ R   1  0 | X := a \
+   7 . -   0  0 |   Y := b ## bogus
+   7 ========== => variable:X
+   8 . -   0  0 |
+   9 . -   1  0 | ## after a tab-indented continuation
+  10 \ -   1  0 | a: b \
+  11 . R   0  0 | \tc
+  11 ========== => target:a
+  12 . R   1  0 | ## documented
+  13 . R   0  0 | z:
+  13 ========== => target:z

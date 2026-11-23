@@ -1,0 +1,26 @@
+#: desc: The parser state after each line of Makefile.docs-multiline
+#: trace
+test/fixtures/Makefile.docs-multiline
+#: stdout
+== test/fixtures/Makefile.docs-multiline
+   1 . -   1  0 |   ## Spaces before the ## token are allowed and stripped
+   2 . -   2  0 | ## top docs can have multiple lines
+   3 . -   3  0 | ##   indentation can be used for emphasis
+   4 . R   0  0 | t1:
+   4 ========== => target:t1
+   5 . R   0  0 |
+   6 . R   1  0 | ## Blank lines
+   7 . R   1  0 |
+   8 . R   2  0 | ## between docs
+   9 . R   2  0 |
+  10 . R   3  0 | ## are ignored
+  11 . R   3  0 |
+  12 . R   0  0 | t2:
+  12 ========== => target:t2
+  13 . R   0  0 |
+  14 . R   1  0 | ## Comment lines between docs are skipped
+  15 . R   1  0 | # INVISIBLE COMMENT
+  16 . R   2  0 | ## and empty doc lines are kept
+  17 . R   3  0 | ##
+  18 . R   0  0 | t3:
+  18 ========== => target:t3

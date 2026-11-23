@@ -1,0 +1,20 @@
+#: desc: The parser state after each line of Makefile.dsub
+#: trace
+test/fixtures/Makefile.dsub
+#: stdout
+== test/fixtures/Makefile.dsub
+   1 . -   1  0 | ## Description with a dsub: $(VAR)
+   2 . R   0  0 | t1:
+   2 ========== => target:t1
+   3 . R   0  0 |
+   4 . R   0  0 | t2: ## This description refers to $(VAR) as well
+   4 ========== => target:t2
+   5 . R   0  0 |
+   6 . R   1  0 | ## $(VAR) and
+   7 . R   2  0 | ## $(Y) will both be replaced
+   8 . -   0  0 | X :=
+   8 ========== => variable:X
+   9 . -   0  0 |
+  10 . -   1  0 | ## SUB and DSUB $(complement) each other ($(Y)):
+  11 . R   0  0 | t3:
+  11 ========== => target:t3

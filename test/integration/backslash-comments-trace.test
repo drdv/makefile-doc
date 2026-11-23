@@ -1,0 +1,70 @@
+#: desc: The parser state after each line of Makefile.backslash-comments
+#: trace
+test/fixtures/Makefile.backslash-comments
+#: stdout
+== test/fixtures/Makefile.backslash-comments
+   1 \ -   0  0 | \t## A doc indented with a tab (outside a rule) \
+   2 . -   1  0 | continued
+   3 . R   0  0 | t-tab:
+   3 ========== => target:t-tab
+   4 . R   0  0 |
+   5 \ R   0  0 |  \t## A doc indented with a space and a tab \
+   6 . R   1  0 | continued
+   7 . R   0  0 | t-space-tab:
+   7 ========== => target:t-space-tab
+   8 . R   0  0 |
+   9 \ R   0  0 | ## A doc continued \
+  10 . R   1  0 | on the next line
+  11 . R   0  0 | t-joined:
+  11 ========== => target:t-joined
+  12 . R   0  0 |
+  13 \ R   0  0 | ## A doc continued   \
+  14 \ R   0  0 |    with blanks around the \
+  15 . R   1  0 | \tbackslash-newline
+  16 . R   0  0 | t-blanks:
+  16 ========== => target:t-blanks
+  17 . R   0  0 |
+  18 . R   1  0 | ## A doc that ends with two backslashes (not continued) \\
+  19 . R   0  0 | t-two-backslashes:
+  19 ========== => target:t-two-backslashes
+  20 . R   0  0 |
+  21 \ R   0  0 | ## A doc that ends with three backslashes (continued) \\\
+  22 . R   1  0 | on the next line
+  23 . R   0  0 | t-three-backslashes:
+  23 ========== => target:t-three-backslashes
+  24 . R   0  0 |
+  25 \ R   0  0 | ## A continued doc swallows the next line, a target \
+  26 . R   1  0 | t-swallowed:
+  27 . R   0  0 | t-after-target:
+  27 ========== => target:t-after-target
+  28 . R   0  0 |
+  29 \ R   0  0 | ## A continued doc swallows the next line, a variable \
+  30 . R   1  0 | V_SWALLOWED := 1 ## part of the doc above
+  31 . R   0  0 | t-after-variable:
+  31 ========== => target:t-after-variable
+  32 . R   0  0 |
+  33 . R   1  0 | ## A doc kept above a continued plain comment
+  34 \ R   1  0 | # a plain comment \
+  35 . R   1  0 | continued
+  36 . R   0  0 | t-plain-comment:
+  36 ========== => target:t-plain-comment
+  37 . R   0  0 |
+  38 \ R   0  0 | ##@ A section \
+  39 . R   0  1 | continued
+  40 . R   1  1 | ## A doc below the section
+  41 . R   0  0 | t-section:
+  41 ========== => target:t-section +section
+  42 . R   0  0 |
+  43 \ R   0  0 | ## A doc \
+  44 . R   1  0 | ## continued with a doc line
+  45 . R   0  0 | t-doc-doc:
+  45 ========== => target:t-doc-doc
+  46 . R   0  0 |
+  47 . R   0  0 | t-rule:
+  48 . R   0  0 | \t@echo 1
+  49 . R   0  0 |
+  50 . R   1  0 | ## In a rule, this is a recipe line, not a variable: the doc above is discarded
+  51 . R   0  0 | \tV_RECIPE := 1
+  52 . R   0  0 |
+  53 . R   1  0 | ## In a rule, this is a recipe line, not a target
+  54 . R   0  0 | \t@yes: ## not a doc

@@ -1,0 +1,8 @@
+#: desc: The parser state after each line of Makefile.dsub-order
+#: trace
+test/fixtures/Makefile.dsub-order
+#: stdout
+== test/fixtures/Makefile.dsub-order
+   1 . -   1  0 | ## v=$(X)Y
+   2 . R   0  0 | t:
+   2 ========== => target:t

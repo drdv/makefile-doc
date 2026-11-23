@@ -1,0 +1,31 @@
+#: desc: The parser state after each line of Makefile.targets-function-colon
+#: trace
+test/fixtures/Makefile.targets-function-colon
+#: stdout
+== test/fixtures/Makefile.targets-function-colon
+   1 . -   0  0 | OBJS := a.o
+   2 . -   0  0 | T := t
+   3 . -   0  0 |
+   4 . -   1  0 | ## Docs above a function call with a colon (discarded)
+   5 . -   0  0 | $(info a: b)
+   6 . R   0  0 | t1:
+   7 . R   0  0 |
+   8 . R   1  0 | ## Docs above a reference with braces (discarded)
+   9 . R   0  0 | ${info a: b}
+  10 . R   0  0 | t2:
+  11 . R   0  0 |
+  12 . R   1  0 | ## Docs above a nested call (discarded)
+  13 . R   0  0 | $(foreach x,a b,$(info $(x): y))
+  14 . R   0  0 | t3:
+  15 . R   0  0 |
+  16 . R   1  0 | ## Docs of a target with a reference
+  17 . R   0  0 | $(T)-a:
+  17 ========== => target:$(T)-a
+  18 . R   0  0 |
+  19 . R   1  0 | ## Docs of a target with braces and a prerequisite
+  20 . R   0  0 | ${T}-b: $(OBJS)
+  20 ========== => target:${T}-b
+  21 . R   0  0 |
+  22 . R   1  0 | ## Docs of a static pattern rule
+  23 . R   0  0 | $(OBJS): %.o: %.c
+  23 ========== => target:$(OBJS)

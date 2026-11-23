@@ -1,0 +1,18 @@
+#: desc: The parser state after each line of Makefile.targets-regex-limitations
+#: trace
+test/fixtures/Makefile.targets-regex-limitations
+#: stdout
+== test/fixtures/Makefile.targets-regex-limitations
+   1 . -   1  0 | ## Escaped #
+   2 . -   0  0 | foo\#bar:
+   3 . -   0  0 |
+   4 . -   1  0 | ## Escaped :
+   5 . R   0  0 | foo\:bar:
+   5 ========== => target:foo\
+   6 . R   0  0 |
+   7 . R   1  0 | ## Escaped space
+   8 . R   0  0 | foo\ bar:
+   8 ========== => target:foo\ bar
+   9 . R   0  0 |
+  10 . R   1  0 | ## Colon in a reference
+  11 . R   0  0 | $(SRCS:.c=.o):

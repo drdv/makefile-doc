@@ -1,0 +1,52 @@
+#: desc: The parser state after each line of Makefile.targets-ignore
+#: trace
+test/fixtures/Makefile.targets-ignore
+#: stdout
+== test/fixtures/Makefile.targets-ignore
+   1 . -   1  0 | ## (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
+   2 . -   1  0 | .SECONDEXPANSION:
+   3 . -   1  0 | .DELETE_ON_ERROR:
+   4 . R   0  0 | t0:
+   4 ========== => target:t0
+   5 . R   0  0 |
+   6 . R   1  0 | ## A suffix rule is a target
+   7 . R   0  0 | .c.o:
+   7 ========== => target:.c.o
+   8 . R   0  0 |
+   9 . R   1  0 | ## (t1) Ignore .PHONY
+  10 . R   1  0 | .PHONY: t1 ## BAD
+  11 . R   0  0 | t1:
+  11 ========== => target:t1
+  12 . R   0  0 |
+  13 . R   1  0 | ## (t2) Ignore .PHONY and .SILENT
+  14 . R   1  0 | .PHONY: t2 ## BAD
+  15 . R   1  0 | .SILENT: t2 ## BAD
+  16 . R   0  0 | t2:
+  16 ========== => target:t2
+  17 . R   0  0 |
+  18 . R   1  0 | ## (t3) Ignore .SECONDARY
+  19 . R   1  0 | .SECONDARY: t3 ## BAD
+  20 . R   0  0 | t3:
+  20 ========== => target:t3
+  21 . R   0  0 |
+  22 . R   1  0 | ## (t4) Ignore .INTERMEDIATE
+  23 . R   1  0 | .INTERMEDIATE: t4 ## BAD
+  24 . R   0  0 | t4:
+  24 ========== => target:t4
+  25 . R   0  0 |
+  26 . R   1  0 | ## (t5) Ignore .INTERMEDIATE and .PRECIOUS
+  27 . R   1  0 | .PRECIOUS: t5 ## BAD
+  28 . R   1  0 | .INTERMEDIATE: t5
+  29 . R   0  0 | t5:
+  29 ========== => target:t5
+  30 . R   0  0 |
+  31 . R   0  0 | t6: ## (t6)
+  31 ========== => target:t6
+  32 . R   0  0 |
+  33 . R   1  0 | ## Create a python venv
+  34 . R   0  0 | .venv/.sentinel:
+  34 ========== => target:.venv/.sentinel
+  35 . R   0  0 |
+  36 . R   1  0 | ## A target named in upper case like a special target is a target
+  37 . R   0  0 | .ENV:
+  37 ========== => target:.ENV

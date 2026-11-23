@@ -1,0 +1,22 @@
+#: desc: The parser state after each line of Makefile.dsub-names
+#: trace
+test/fixtures/Makefile.dsub-names
+#: stdout
+== test/fixtures/Makefile.dsub-names
+   1 . -   0  0 | OUT_DIR := out
+   2 . -   0  0 |
+   3 . -   1  0 | ## Write $(OUT_DIR)/a
+   4 . R   0  0 | $(OUT_DIR)/a:
+   4 ========== => target:$(OUT_DIR)/a
+   5 . R   0  0 |
+   6 . R   1  0 | ## Write b (after $(OUT_DIR)/a)
+   7 . R   0  0 | $(OUT_DIR)/b:
+   7 ========== => target:$(OUT_DIR)/b
+   8 . R   0  0 |
+   9 . R   1  0 | ## A target without the variable in its name
+  10 . R   0  0 | plain:
+  10 ========== => target:plain
+  11 . R   0  0 |
+  12 . R   1  0 | ## Flags used for the files in $(OUT_DIR)
+  13 . -   0  0 | $(OUT_DIR)_FLAGS :=
+  13 ========== => variable:$(OUT_DIR)_FLAGS

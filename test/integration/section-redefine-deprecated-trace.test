@@ -1,0 +1,17 @@
+#: desc: The parser state after each line of Makefile.section-redefine-deprecated
+#: trace
+test/fixtures/Makefile.section-redefine-deprecated
+#: stdout
+== test/fixtures/Makefile.section-redefine-deprecated
+   1 . -   0  1 | ##@ Build
+   2 . -   1  1 | ## Compile
+   3 . R   0  0 | build:
+   3 ========== => target:build +section
+   4 . R   0  0 |
+   5 . R   1  0 | ##% Use `make` instead (the section moves to the next displayed target)
+   6 . R   0  0 | build:
+   6 ========== => target:build
+   7 . R   0  0 |
+   8 . R   1  0 | ## Run the tests
+   9 . R   0  0 | test:
+   9 ========== => target:test

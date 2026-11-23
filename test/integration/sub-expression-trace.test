@@ -1,0 +1,28 @@
+#: desc: The parser state after each line of Makefile.sub-expression
+#: trace
+test/fixtures/Makefile.sub-expression
+#: stdout
+== test/fixtures/Makefile.sub-expression
+   1 . R   0  0 | help: SCR := makefile-doc.awk
+   2 . R   0  0 | help: VFLAG := -v SUB='$$(I)target:target:immediate immediate immediate immediate deferred deferred'
+   3 . R   0  0 | help: ## Show this help
+   3 ========== => target:help
+   4 . R   0  0 | \t@awk $(VFLAG) -f $(SCR) $(MAKEFILE_LIST)
+   5 . R   0  0 |
+   6 . R   1  0 | ## This is an instrumented variable (used for introspection)
+   7 . -   0  0 | I = $(info $(X))
+   7 ========== => variable:I
+   8 . -   0  0 |
+   9 . -   1  0 | ## Set value of X to be used during the first pass.
+  10 . -   0  0 | X = immediate
+  10 ========== => variable:X
+  11 . -   0  0 |
+  12 . -   1  0 | ## A target that demonstrates the two-phase approach. It would be nice
+  13 . -   2  0 | ## to optionally disable the newline in the $(info) function's output.
+  14 . -   3  0 | ## Execute `make target` to see the full output:
+  15 . R   0  0 | $(I)target: $(I)% : $(I) | $(I); $(I)
+  15 ========== => target:$(I)target
+  16 . R   0  0 | \t$(I)
+  17 . R   0  0 |
+  18 . R   0  0 | # Redefine X (to be used during the second pass).
+  19 . -   0  0 | X = deferred

@@ -1,0 +1,70 @@
+#: desc: The parser state after each line of Makefile.vars
+#: trace
+test/fixtures/Makefile.vars
+#: stdout
+== test/fixtures/Makefile.vars
+   1 . -   0  0 | # ======================================================================================
+   2 . -   0  0 | # WARNING
+   3 . -   0  0 | # ======================================================================================
+   4 . -   0  0 | # Using inline comments for variables is not a good idea because the variable value
+   5 . -   0  0 | # would contain any extra space(s) between the value and the comment. For example,
+   6 . -   0  0 | # consider the following Makefile:
+   7 . -   0  0 | #
+   8 . -   0  0 | # The formatting of comments in this file is only for testing purposes.
+   9 . -   0  0 | # ======================================================================================
+  10 . -   0  0 |
+  11 . -   0  0 | # all these should be aligned well in the docs
+  12 . -   0  0 |    VAR1_1    =1## First variable (with value)
+  12 ========== => variable:VAR1_1
+  13 . -   0  0 |    VAR1_0    =## First variable (without value)
+  13 ========== => variable:VAR1_0
+  14 . -   0  0 |  VAR2_1:=   1    ## Second variable (with value)
+  14 ========== => variable:VAR2_1
+  15 . -   0  0 |  VAR2_0:=        ## Second variable (without value)
+  15 ========== => variable:VAR2_0
+  16 . -   0  0 | VAR3_1 :=   1 ##     Third variable (with value)
+  16 ========== => variable:VAR3_1
+  17 . -   0  0 | VAR3_0 :=     ##     Third variable (without value)
+  17 ========== => variable:VAR3_0
+  18 . -   0  0 |
+  19 . -   1  0 | ## Top comment with value (to expand)
+  20 . -   0  0 | VAR4 = $(VAR1_1)
+  20 ========== => variable:VAR4
+  21 . -   0  0 |
+  22 . -   0  0 | VAR5 = $(VAR1_1) ## Inline comment with value (to expand)
+  22 ========== => variable:VAR5
+  23 . -   0  0 |
+  24 . -   0  1 | ##@
+  25 . -   0  2 | ##@ ----- Will be associated with the next anchor (which happens to be a variable) -----
+  26 . -   0  3 | ##@
+  27 . -   0  3 |
+  28 . -   1  3 | ##! Variable with top docs
+  29 . -   2  3 | ## line 2
+  30 . -   0  0 | VAR6 := 1 ## this will not be shown
+  30 ========== => variable:VAR6 +section
+  31 . -   0  0 |
+  32 . -   0  0 | # the leading space tests trimming of spaces in variable names
+  33 . -   0  0 |   VAR6 :=1 ##% Overwrites previous docs for this variable (change to deprecated)
+  33 ========== => variable:VAR6
+  34 . -   0  0 |
+  35 . -   0  0 | #VAR7:=1 ##% This shouldn't appear
+  36 . -   0  0 |
+  37 . -   0  0 | #commented-out-target: ## with some docs (but this should not appear)
+  38 . -   0  0 |
+  39 . -   0  1 | ##@
+  40 . -   0  2 | ##@ ----- This section in anchored on a target -----
+  41 . -   0  3 | ##@
+  42 . -   0  3 |
+  43 . R   0  0 | some-target: ##% some target (that will consume the above section)
+  43 ========== => target:some-target +section
+  44 . R   0  0 |
+  45 . R   1  0 | ## A one letter variable
+  46 . -   0  0 | x =
+  46 ========== => variable:x
+  47 . -   0  0 |
+  48 . -   0  0 | y = ## A one letter variable inline docs
+  48 ========== => variable:y
+  49 . -   0  0 |
+  50 . -   1  0 | ## Default goal
+  51 . -   0  0 | .DEFAULT_GOAL := z
+  51 ========== => variable:.DEFAULT_GOAL

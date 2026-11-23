@@ -1,0 +1,33 @@
+#: desc: The parser state after each line of the multi-file fixtures, read together (the state carried over between files)
+#: trace
+test/fixtures/Makefile.multi-file test/fixtures/Makefile.multi-file.2 test/fixtures/Makefile.multi-file.3 test/fixtures/Makefile.multi-file.4 test/fixtures/Makefile.multi-file.5 test/fixtures/Makefile.multi-file.6
+#: stdout
+== test/fixtures/Makefile.multi-file
+   1 . R   0  0 | first: ## the first target
+   1 ========== => target:first
+   2 . R   0  0 |
+   3 . R   1  0 | ## a doc at the end of a file is not carried over to the next file
+== test/fixtures/Makefile.multi-file.2
+   1 . R   0  0 | after-doc: ## not documented with the dangling doc of the previous file
+   1 ========== => target:after-doc
+   2 . R   0  0 |
+   3 . R   0  0 | ends-in-recipe:
+   4 . R\  0  0 | \t@echo a continued recipe line at the end of the file \
+== test/fixtures/Makefile.multi-file.3
+   1 . R   0  0 | after-recipe: ## not swallowed as a recipe continuation
+   1 ========== => target:after-recipe
+   2 . R   0  0 |
+   3 . R   0  0 | ends-in-rule:
+== test/fixtures/Makefile.multi-file.4
+   1 . R   0  0 | \tafter-rule: ## not a recipe line of the last rule of the previous file
+   1 ========== => target:after-rule
+   2 . R   0  0 |
+   3 \ R   0  0 | # a continued comment at the end of the file \
+== test/fixtures/Makefile.multi-file.5
+   1 . R   0  0 | after-comment: ## not swallowed as a comment continuation
+   1 ========== => target:after-comment
+   2 . R   0  0 |
+   3 \ R   0  0 | ends-in-continued-line: \
+== test/fixtures/Makefile.multi-file.6
+   1 . R   0  0 | after-continued-line: ## not joined with the last line of the previous file
+   1 ========== => target:after-continued-line
