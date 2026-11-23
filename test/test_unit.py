@@ -17,7 +17,8 @@ def unit_args(path: Path, stderr: Path) -> list[str]:
         "-v",
         "UNIT_TEST=1",
         "-v",
-        f"STDERR={stderr}",
+        # awk processes escapes in -v values: no backslashes (Windows paths)
+        f"STDERR={stderr.as_posix()}",
         "-f",
         "test/unit/harness.awk",
         "-f",
