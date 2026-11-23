@@ -167,6 +167,7 @@ The remaining details:
 - [Grouped](https://www.gnu.org/software/make/manual/html_node/Multiple-Targets.html)
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&` (also in double-colon
   form).
+- A target-specific assignment (`t: V := 1`) documents its target, `t`, like a rule.
 - Inside a `define` block, documented targets and variables are displayed too (e.g., in canned
   recipes).
 
@@ -191,7 +192,7 @@ help: ## Show this help
 | `OUTPUT_FORMAT`   | (`ANSI`), `HTML`, `LATEX`               | format of the output                      |
 | `EXPORT_THEME`    | see [export](#export-to-html-and-latex) | colors of the HTML and LaTeX output       |
 | `SUB`, `DSUB`     | see [Substitutions](#substitutions)     | substitutions in names and docs           |
-| `RECIPEPREFIX`    | one character (tab)                     | the `.RECIPEPREFIX` of your Makefile      |
+| `RECIPEPREFIX`    | one character (tab)                     | the recipe prefix at the start            |
 
 `COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty value (see
 [no-color.org](https://no-color.org)). An invalid value is an error: all the invalid options are
@@ -203,9 +204,9 @@ is used.
 The assignments to `.RECIPEPREFIX` in the Makefiles are followed: the prefix changes for the lines
 after them. `RECIPEPREFIX` is the prefix at the start, so it is needed only when the prefix is set
 where makefile-doc does not see it (on the command line of `make`, or in a file that is not passed
-to the script). A value computed when it is assigned (`:=` with a reference, as in
-`.RECIPEPREFIX := $(P)`, or `!=`) is not followed: the prefix keeps its previous value. With `=`,
-the value is used as written, as GNU Make does.
+to the script). A value that is not written on the line (`:=` with a reference, as in
+`.RECIPEPREFIX := $(P)`, `!=`, or a `define`) is not followed: the prefix keeps its previous value.
+With `=`, the value is used as written, as GNU Make does.
 
 Without a Makefile, the script reads one from stdin, e.g., `cat Makefile | awk -f makefile-doc.awk`
 (in messages, stdin is named `-`). If stdin is empty, e.g., `awk -f makefile-doc.awk < /dev/null`
@@ -408,18 +409,14 @@ makefile-doc reads the Makefiles line by line, following the syntax of GNU Make 
 - **Included files are not followed.** An `include` line does not read the file: pass the files
   to the script (e.g., `$(MAKEFILE_LIST)`), which reads them one after another.
 - **References are not expanded.** Names are displayed as written, e.g., `$(OBJS):` as `$(OBJS)`
-  and `$(SRCS:.c=.o):` as `$(SRCS:.c=.o)`, and an assignment to `.RECIPEPREFIX` whose value
-  is computed is not followed (see [Options](#options)).
+  and `$(PREFIX)_FLAGS := -O2` as `$(PREFIX)_FLAGS`, and an assignment to `.RECIPEPREFIX` whose
+  value is not written on the line is not followed (see [Options](#options)). To display a name
+  differently, use [`SUB`](#sub-rename-an-anchor-and-list-its-values) for one anchor, e.g., `-v
+  SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`, or [`DSUB`](#dsub-replace-text-in-docs-and-names) with `A:1`
+  for every name at once, e.g., `-v DSUB='<A:1>$$(PREFIX):MY'`.
 
 Escaped characters in target names are displayed as written: `foo\ bar:` is shown as `foo\ bar`,
 which is how the target is invoked (`make foo\ bar`), and `foo\#bar:` as `foo\#bar`.
-
-### Variables
-
-- Names are not expanded (by design): `$(PREFIX)_FLAGS := -O2` is displayed as `$(PREFIX)_FLAGS`.
-  Use [`SUB`](#sub-rename-an-anchor-and-list-its-values) to display one name differently, e.g., `-v
-  SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`, or [`DSUB`](#dsub-replace-text-in-docs-and-names) with `A:1` to
-  replace the reference in every name at once, e.g., `-v DSUB='<A:1>$$(PREFIX):MY'`.
 
 ## Development
 

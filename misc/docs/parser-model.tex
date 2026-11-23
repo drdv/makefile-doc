@@ -31,7 +31,7 @@ the model (section~\ref{sec:implementation}).
   \item \textbf{Logical lines.} A physical line that ends with an odd number of
         backslashes is joined with the next one, recipe lines included; as in GNU Make,
         the backslash, the newline and the blanks around them become one space. The model
-        reads the resulting logical lines $l_1, l_2, \dots$
+        reads the resulting logical lines $\ell_1, \ell_2, \dots$
   \item \textbf{Files in order.} The files are read whole, one after another (for
         \code{make help}, in the order of \code{\$(MAKEFILE\_LIST)}). A line continued at
         the end of a file is dropped.
@@ -42,17 +42,17 @@ the model (section~\ref{sec:implementation}).
 \begin{center}
 \begin{tabular}{@{}ll@{}}
   \toprule
-  $l_i$ & the $i$-th logical line, over all files \\
-  $b_i \in \{0,1\}$ & $l_i$ is the first line of a file (given with the line) \\
+  $\ell_i$ & the $i$-th logical line, over all files \\
+  $b_i \in \{0,1\}$ & $\ell_i$ is the first line of a file (given with the line) \\
   $r_i \in \{0,1\}$ & a rule is open: a line that starts with the recipe prefix is a recipe line \\
   $d_i \in \{0,1\}$ & a doc is pending \\
   $s_i \in \{0,1\}$ & a section is pending \\
   $c_i$ & the recipe prefix (a character) \\
   $x_i = (r_i, d_i, s_i, c_i)$ & the state \emph{after} line $i$: the state that line
                                  $i+1$ is read with \\
-  $k_i \in K$ & the kind of $l_i$ (section~\ref{sec:kinds}) \\
-  $a_i \in \{0,1\}$ & $l_i$ has an inline doc \\
-  $e_i \in \{0,1\}$ & $l_i$ is an anchor that gets documented \\
+  $k_i \in K$ & the kind of $\ell_i$ (section~\ref{sec:kinds}) \\
+  $a_i \in \{0,1\}$ & $\ell_i$ has an inline doc \\
+  $e_i \in \{0,1\}$ & $\ell_i$ is an anchor that gets documented \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -64,14 +64,14 @@ the model (section~\ref{sec:implementation}).
         && \text{$c_0$: the \code{RECIPEPREFIX} option (a tab by default)} \\
   \bar r_{i-1} &= r_{i-1} \land \lnot b_i, \quad \bar d_{i-1} = d_{i-1} \land \lnot b_i
         && \text{a new file closes the rule and drops the doc} \\
-  (k_i,\ a_i,\ c_i) &= \obs(l_i,\ \bar r_{i-1},\ c_{i-1}) \\
+  (k_i,\ a_i,\ c_i) &= \obs(\ell_i,\ \bar r_{i-1},\ c_{i-1}) \\
   (r_i,\ d_i,\ s_i,\ e_i) &= \step(\bar r_{i-1},\ \bar d_{i-1},\ s_{i-1},\ k_i,\ a_i)
 \end{align*}
 
 \begin{itemize}
   \item $\obs$ reads the line. It needs the state for one question only: a line is a
         recipe line if a rule is open and the line starts with the prefix. It returns the
-        new prefix $c_i$ if $l_i$ assigns \code{.RECIPEPREFIX}, $c_{i-1}$ otherwise.
+        new prefix $c_i$ if $\ell_i$ assigns \code{.RECIPEPREFIX}, $c_{i-1}$ otherwise.
   \item $\step$ never reads the line: it depends on the kind and the inline doc only.
   \item $s$ and $c$ carry over to the next file: a section goes to the next documented
         anchor, wherever it is, and GNU Make does not reset \code{.RECIPEPREFIX}.
