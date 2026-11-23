@@ -4,20 +4,20 @@ test/fixtures/Makefile.docs-inline-position
 #: stdout
 == test/fixtures/Makefile.docs-inline-position
    1 0 1  0  0 \t | t1: t0 ## Inline docs after prerequisites
-   1 ============ => target:t1
+   1 ============ => target:[t1]
    2 0 1  0  0 \t |
    3 0 1  0  0 \t | t2: t0 | t1 ## Inline docs after order-only prerequisites
-   3 ============ => target:t2
+   3 ============ => target:[t2]
    4 0 1  0  0 \t |
    5 0 1  0  0 \t | t3: A:=1 ## Inline docs after a target-specific variable
-   5 ============ => target:t3
+   5 ============ => target:[t3]
    6 0 1  0  0 \t |
    7 0 1  0  0 \t | t4:## No space needed
-   7 ============ => target:t4
+   7 ============ => target:[t4]
    8 0 1  0  0 \t | t5: A:=1## No space needed after a target-specific variable
-   8 ============ => target:t5
+   8 ============ => target:[t5]
    9 0 1  0  0 \t | t6: this that## No space needed after prerequisites
-   9 ============ => target:t6
+   9 ============ => target:[t6]
   10 0 1  0  0 \t |
   11 0 1  0  0 \t | # a comment after an inline recipe is not Makefile syntax
   12 0 1  0  0 \t | t-no-docs:; echo 1 ## Cannot have docs here
@@ -25,11 +25,11 @@ test/fixtures/Makefile.docs-inline-position
   14 0 1  0  0 \t |
   15 0 1  1  0 \t | ## Top docs can be used when there is an inline recipe
   16 0 1  0  0 \t | t7:; echo 1
-  16 ============ => target:t7
+  16 ============ => target:[t7]
   17 0 1  0  0 \t |
   18 0 1  1  0 \t | ## Also with prerequisites before the inline recipe
   19 0 1  0  0 \t | t8: t0; echo 1
-  19 ============ => target:t8
+  19 ============ => target:[t8]
   20 0 1  0  0 \t |
   21 0 1  0  0 \t | t-no-docs-section: ##@ An inline section token is not a doc
   22 0 1  0  0 \t |
@@ -38,6 +38,6 @@ test/fixtures/Makefile.docs-inline-position
   25 0 0  0  0 \t | V_NO_DOCS := 1 # an ordinary comment ## is not a doc
   26 0 0  0  0 \t |
   27 0 1  0  0 \t | t9: ## A ## in the doc is kept
-  27 ============ => target:t9
+  27 ============ => target:[t9]
   28 0 0  0  0 \t | V := a\#b ## Inline docs after an escaped \# in the value
-  28 ============ => variable:V
+  28 ============ => variable:[V]

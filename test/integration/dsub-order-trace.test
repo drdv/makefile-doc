@@ -5,4 +5,4 @@ test/fixtures/Makefile.dsub-order
 == test/fixtures/Makefile.dsub-order
    1 0 0  1  0 \t | ## v=$(X)Y
    2 0 1  0  0 \t | t:
-   2 ============ => target:t
+   2 ============ => target:[t]

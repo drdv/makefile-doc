@@ -12,21 +12,21 @@ test/fixtures/Makefile.docs-tab-indented
    7 0 0  0  3 \t |
    8 0 0  1  3 \t | \t## A doc indented with a tab
    9 0 0  0  0 \t | \tV1 := 1
-   9 ============ => variable:V1 +section
+   9 ============ => variable:[V1] +section
   10 0 0  0  0 \t | else
   11 0 0  1  0 \t |   ## A doc indented with spaces
   12 0 0  0  0 \t |   V2 := 2
-  12 ============ => variable:V2
+  12 ============ => variable:[V2]
   13 0 0  0  0 \t | endif
   14 0 0  0  0 \t |
   15 0 0  0  0 \t | ifdef Y
   16 0 0  1  0 \t |  \t ##! A doc indented with spaces and tabs
   17 0 0  0  0 \t | \tV3 := 1
-  17 ============ => variable:V3
+  17 ============ => variable:[V3]
   18 0 0  0  0 \t | endif
   19 0 0  0  0 \t |
   20 0 0  1  0 \t | ## A target
   21 0 1  0  0 \t | t1:
-  21 ============ => target:t1
+  21 ============ => target:[t1]
   22 0 1  0  0 \t | \t## In a rule, a line that starts with the recipe prefix (here a tab) is a recipe line
   23 0 1  0  0 \t | t2:

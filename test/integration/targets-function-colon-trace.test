@@ -20,12 +20,12 @@ test/fixtures/Makefile.targets-function-colon
   15 0 1  0  0 \t |
   16 0 1  1  0 \t | ## Docs of a target with a reference
   17 0 1  0  0 \t | $(T)-a:
-  17 ============ => target:$(T)-a
+  17 ============ => target:[$(T)-a]
   18 0 1  0  0 \t |
   19 0 1  1  0 \t | ## Docs of a target with braces and a prerequisite
   20 0 1  0  0 \t | ${T}-b: $(OBJS)
-  20 ============ => target:${T}-b
+  20 ============ => target:[${T}-b]
   21 0 1  0  0 \t |
   22 0 1  1  0 \t | ## Docs of a static pattern rule
   23 0 1  0  0 \t | $(OBJS): %.o: %.c
-  23 ============ => target:$(OBJS)
+  23 ============ => target:[$(OBJS)]

@@ -8,11 +8,11 @@ test/fixtures/Makefile.section-redefine
    3 0 0  0  3 \t | ##@
    4 0 0  0  3 \t |
    5 0 1  0  0 \t | t1: ## t1
-   5 ============ => target:t1 +section
+   5 ============ => target:[t1] +section
    6 0 1  0  0 \t |
    7 0 1  0  1 \t | ##@
    8 0 1  0  2 \t | ##@------ S2 ------
    9 0 1  0  3 \t | ##@
   10 0 1  0  3 \t |
   11 0 1  0  0 \t | t1: ## t2
-  11 ============ => target:t1 +section
+  11 ============ => target:[t1] +section

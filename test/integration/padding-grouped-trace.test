@@ -5,4 +5,4 @@ test/fixtures/Makefile.padding-grouped
 == test/fixtures/Makefile.padding-grouped
    1 0 0  1  0 \t | ## doc
    2 0 1  0  0 \t | a b c:
-   2 ============ => target:a b c
+   2 ============ => target:[a b c]

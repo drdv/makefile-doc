@@ -8,7 +8,7 @@ test/fixtures/Makefile.targets-define
    3 0 0  2  0 \t | ##  + $1: month {jan, ..., dec}
    4 0 0  3  0 \t | ##  + $2: country code {fr, bg, jp, ...}
    5 0 1  0  0 \t | result-$(1)-$2.html: data-$1.toml data_handler.py
-   5 ============ => target:result-$(1)-$2.html
+   5 ============ => target:[result-$(1)-$2.html]
    6 0 1  0  0 \t | \t@python data_handler.py --important-flag $2 data-$1.toml
    7 0 1  0  0 \t | \t@echo 1
    8 0 1  0  0 \t | endef

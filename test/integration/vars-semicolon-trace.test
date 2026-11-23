@@ -4,6 +4,6 @@ test/fixtures/Makefile.vars-semicolon
 #: stdout
 == test/fixtures/Makefile.vars-semicolon
    1 0 0  0  0 \t | X := a;b ## Variable with a semicolon in its value
-   1 ============ => variable:X
+   1 ============ => variable:[X]
    2 0 0  0  0 \t |
    3 0 1  0  0 \t | t: ; @echo 1 ## Not a doc (after an inline recipe)

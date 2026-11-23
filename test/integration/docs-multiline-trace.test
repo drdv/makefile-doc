@@ -7,7 +7,7 @@ test/fixtures/Makefile.docs-multiline
    2 0 0  2  0 \t | ## top docs can have multiple lines
    3 0 0  3  0 \t | ##   indentation can be used for emphasis
    4 0 1  0  0 \t | t1:
-   4 ============ => target:t1
+   4 ============ => target:[t1]
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## Blank lines
    7 0 1  1  0 \t |
@@ -16,11 +16,11 @@ test/fixtures/Makefile.docs-multiline
   10 0 1  3  0 \t | ## are ignored
   11 0 1  3  0 \t |
   12 0 1  0  0 \t | t2:
-  12 ============ => target:t2
+  12 ============ => target:[t2]
   13 0 1  0  0 \t |
   14 0 1  1  0 \t | ## Comment lines between docs are skipped
   15 0 1  1  0 \t | # INVISIBLE COMMENT
   16 0 1  2  0 \t | ## and empty doc lines are kept
   17 0 1  3  0 \t | ##
   18 0 1  0  0 \t | t3:
-  18 ============ => target:t3
+  18 ============ => target:[t3]

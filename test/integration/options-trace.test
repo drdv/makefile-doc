@@ -5,7 +5,7 @@ test/fixtures/Makefile.options
 == test/fixtures/Makefile.options
    1 0 0  1  0 \t | ## A variable
    2 0 0  0  0 \t | V := 1
-   2 ============ => variable:V
+   2 ============ => variable:[V]
    3 0 0  0  0 \t |
    4 0 1  0  0 \t | t: ## A target
-   4 ============ => target:t
+   4 ============ => target:[t]

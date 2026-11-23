@@ -5,4 +5,4 @@ test/fixtures/Makefile.targets-not-double-colon
 == test/fixtures/Makefile.targets-not-double-colon
    1 0 0  1  0 \t | ## A normal single-colon target
    2 0 1  0  0 \t | foo: ; @echo "a::b"
-   2 ============ => target:foo
+   2 ============ => target:[foo]

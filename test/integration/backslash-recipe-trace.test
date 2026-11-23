@@ -13,57 +13,57 @@ test/fixtures/Makefile.backslash-recipe
    8 0 0  0  0 \t |
    9 0 0  1  0 \t | ## t-t0
   10 0 1  0  0 \t | t0: ## i-t0
-  10 ============ => target:t0
+  10 ============ => target:[t0]
   11 0 1  0  0 \t | \t@echo maybe
   12 0 0  0  0 \t | T0 := 1 ## v-t0 (this is a variable)
-  12 ============ => variable:T0
+  12 ============ => variable:[T0]
   13 0 0  0  0 \t |
   14 0 0  1  0 \t | ## t-t1
   15 0 1  0  0 \t | t1: ## i-t1
-  15 ============ => target:t1
+  15 ============ => target:[t1]
   16 1 1  0  0 \t | \t@echo maybe\
   17 0 1  0  0 \t | T1 := 1 ## v-t1 (this is not a variable)
   18 0 1  0  0 \t |
   19 0 1  1  0 \t | ## t-t2
   20 0 1  0  0 \t | t2: ## i-t2
-  20 ============ => target:t2
+  20 ============ => target:[t2]
   21 0 1  0  0 \t | \t@echo maybe\\
   22 0 0  0  0 \t | T2 := 1 ## v-t2 (this is a variable)
-  22 ============ => variable:T2
+  22 ============ => variable:[T2]
   23 0 0  0  0 \t |
   24 0 0  1  0 \t | ## t-t3
   25 0 1  0  0 \t | t3: ## i-t3
-  25 ============ => target:t3
+  25 ============ => target:[t3]
   26 1 1  0  0 \t | \t@echo maybe\\\
   27 0 1  0  0 \t | T3 := 1 ## v-t3 (this is not a variable)
   28 0 1  0  0 \t |
   29 0 1  1  0 \t | ## t-t4
   30 0 1  0  0 \t | t4: ## i-t4
-  30 ============ => target:t4
+  30 ============ => target:[t4]
   31 0 1  0  0 \t | \t@echo maybe\\\\
   32 0 0  0  0 \t | T4 := 1 ## v-t4 (this is a variable)
-  32 ============ => variable:T4
+  32 ============ => variable:[T4]
   33 0 0  0  0 \t |
   34 0 0  1  0 \t | ## t-t5
   35 0 1  0  0 \t | t5: ## i-t5
-  35 ============ => target:t5
+  35 ============ => target:[t5]
   36 1 1  0  0 \t | \t@echo maybe\\\\\
   37 0 1  0  0 \t | T5 := 1 ## v-t5 (this is not a variable)
   38 0 1  0  0 \t |
   39 0 1  1  0 \t | ## spaces between backslashes
   40 0 1  0  0 \t | s2:
-  40 ============ => target:s2
+  40 ============ => target:[s2]
   41 1 1  0  0 \t | \t@echo maybe\ \
   42 0 1  0  0 \t | S2 := 1 ## v-s2 (this is not a variable)
   43 0 1  0  0 \t |
   44 0 1  1  0 \t | ## spaces between backslashes
   45 0 1  0  0 \t | s3:
-  45 ============ => target:s3
+  45 ============ => target:[s3]
   46 1 1  0  0 \t | \t@echo maybe\ \   \ \
   47 0 1  0  0 \t | S3 := 1 ## v-s3 (this is not a variable)
   48 0 1  0  0 \t |
   49 0 1  0  0 \t | t6: ## i-t6
-  49 ============ => target:t6
+  49 ============ => target:[t6]
   50 1 1  0  0 \t | \t@echo maybe\
   51 1 1  0  0 \t | T6_1 := 1 \
   52 1 1  0  0 \t | T6_2 := 2 \
@@ -74,17 +74,17 @@ test/fixtures/Makefile.backslash-recipe
   57 0 0  0  0 \t | T6_5 := 6
   58 0 0  0  0 \t |
   59 0 1  0  0 \t | t7: ## i-t7
-  59 ============ => target:t7
+  59 ============ => target:[t7]
   60 0 1  0  0 \t |
   61 1 1  0  0 \t | \t## This ia a shell command\
   62 1 1  0  0 \t | \tthis is a part of the same command as above\
   63 1 1  0  0 \t | \tso is this\
   64 0 1  0  0 \t | \tand this
   65 0 0  0  0 \t | T7 ?= 1## T7
-  65 ============ => variable:T7
+  65 ============ => variable:[T7]
   66 0 0  0  0 \t |
   67 0 1  0  0 \t | t8: ## i-t8
-  67 ============ => target:t8
+  67 ============ => target:[t8]
   68 0 1  0  0 \t | \t## BAD
   69 0 1  0  0 \t | \tT8_1 ?= 1
   70 0 1  0  0 \t |

@@ -6,12 +6,12 @@ test/fixtures/Makefile.backslash-join
    1 0 0  1  0 \t | ## Two targets on a continued line
    2 1 0  1  0 \t | t1 \
    3 0 1  0  0 \t |   t2:
-   3 ============ => target:t1 t2
+   3 ============ => target:[t1 t2]
    4 0 1  0  0 \t |
    5 1 1  0  0 \t | t3 \
    6 0 1  0  0 \t | \tt4: ## Inline doc at the end of a continued rule (tab before t4)
-   6 ============ => target:t3 t4
+   6 ============ => target:[t3 t4]
    7 0 1  0  0 \t |
    8 1 1  0  0 \t | X := a \
    9 0 0  0  0 \t |   b ## Inline doc at the end of a continued assignment
-   9 ============ => variable:X
+   9 ============ => variable:[X]

@@ -5,14 +5,14 @@
 == test/fixtures/Makefile.recipeprefix-custom
    1 0 0  1  0 0  | ## A target
    2 0 1  0  0 0  | t1:
-   2 ============ => target:t1
+   2 ============ => target:[t1]
    3 0 1  0  0 0  | + @echo hello
    4 0 1  0  0 0  |
    5 0 1  0  0 0  | t2:
    6 0 1  1  0 0  | ## Shell assignment in recipe (BAR=1) when RECIPEPREFIX=+
    7 0 1  2  0 0  | ## Makefile variable (+BAR=1) otherwise
    8 0 0  0  0 0  | +BAR=1
-   8 ============ => variable:+BAR
+   8 ============ => variable:[+BAR]
    9 0 0  0  0 0  |
   10 0 1  0  0 0  | t3:
   11 0 1  1  0 0  | ## Shell assignment in recipe (FOO=1) when RECIPEPREFIX=0

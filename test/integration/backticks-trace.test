@@ -4,22 +4,22 @@ test/fixtures/Makefile.backticks
 #: stdout
 == test/fixtures/Makefile.backticks
    1 0 1  0  0 \t | b1: ## {`A`, `set`, `with`, `elements`}
-   1 ============ => target:b1
+   1 ============ => target:[b1]
    2 0 1  0  0 \t | b2: ## `All in backticks`
-   2 ============ => target:b2
+   2 ============ => target:[b2]
    3 0 1  0  0 \t |
    4 0 1  0  1 \t | ##@
    5 0 1  0  2 \t | ##@  Section `{first second} third` stuff
    6 0 1  0  3 \t | ##@
    7 0 1  0  3 \t |
    8 0 1  0  0 \t | b3: ## No backticks
-   8 ============ => target:b3 +section
+   8 ============ => target:[b3] +section
    9 0 1  0  0 \t |
   10 0 1  1  0 \t | ## Text in backticks `that spans
   11 0 1  2  0 \t | ## two lines` (each line is colored on its own)
   12 0 1  0  0 \t | b4:
-  12 ============ => target:b4
+  12 ============ => target:[b4]
   13 0 1  0  0 \t |
   14 0 1  1  0 \t | ## `a variable`
   15 0 0  0  0 \t | B :=
-  15 ============ => variable:B
+  15 ============ => variable:[B]
