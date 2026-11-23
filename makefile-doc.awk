@@ -290,24 +290,21 @@ function init_globals() {
   split("", PARSER_OBS)
 
   # ---------------------------------------------------------------------------------------
-  # The state of the rendering: written by prepare_rendering (the anchors to display and
-  # their sections), and while printing
+  # The state of the rendering: written by prepare_rendering (what is displayed), and while
+  # printing
   # ---------------------------------------------------------------------------------------
 
-  # the documented anchors, once each, in file order: index -> name; and name -> doc and tag,
-  # of the last definition (set by build_anchor_lists)
-  split("", TARGETS)
-  TARGETS_INDEX = 1
-  split("", VARIABLES)
-  VARIABLES_INDEX = 1
-  split("", TARGETS_DOC)
-  split("", VARIABLES_DOC)
-  split("", TARGETS_TAG)
-  split("", VARIABLES_TAG)
-
-  # name -> section (set by place_sections)
-  split("", TARGETS_SECTION_DATA)
-  split("", VARIABLES_SECTION_DATA)
+  # the anchors to display, in order (the targets, then the variables): DISPLAY[k, field],
+  # k = 1..DISPLAY_COUNT, with the fields
+  #   kind, tag  as in ANCHORS (of the last definition)
+  #   name       the displayed name (see display_name)
+  #   doc        the doc after DSUB
+  #   section    the section above it after DSUB (only if there is one, see place_sections)
+  #   values     its SUB values, space-separated ("" if none)
+  #   params     its SUB parameters ("" if none)
+  split("", DISPLAY)
+  DISPLAY_COUNT = 0
+  DOCUMENTED_COUNT = 0 # the documented anchors, displayed or not
 
   split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
   OUTPUT_BODY = "" # the documentation being printed (see append_output)
@@ -1374,7 +1371,8 @@ FNR == 1 {
 }
 
 #### Rendering
-# The display of the documentation, from the interface variables and the settings.
+# The display of the documentation, in two stages: prepare_rendering decides what is
+# displayed (the DISPLAY records), then print_documentation lays it out in the output format.
 
 # Print the warnings recorded while parsing, except those about variables with VARS=0 (they
 # are not displayed)
@@ -1386,63 +1384,74 @@ function print_warnings(    k) {
   }
 }
 
-# The rendering state, derived from the interface: the anchors to display, in order, and
-# their sections. What follows (print_documentation) only formats and prints it.
-function prepare_rendering() {
-  build_anchor_lists()
-  place_sections()
-}
-
-# Build TARGETS and VARIABLES from ANCHORS: the documented anchors of each kind, once each,
-# in file order (at their first definition), with the doc and tag of their last definition
-function build_anchor_lists(    k, name) {
+# Fill DISPLAY from the interface and the settings: each displayed anchor once, at its first
+# definition, with the doc and tag of its last one; the targets, then the variables
+function prepare_rendering(    k, key, n, order, last, sections, kind) {
+  split("", order)
+  split("", last)
+  split("", sections)
+  n = 0
   for (k = 1; k <= ANCHOR_COUNT; k++) {
-    name = ANCHORS[k, "name"]
-    if (ANCHORS[k, "kind"] == "target") {
-      if (!(name in TARGETS_DOC)) {
-        TARGETS[TARGETS_INDEX++] = name
+    key = ANCHORS[k, "kind"] SUBSEP ANCHORS[k, "name"]
+    if (!(key in last)) {
+      order[++n] = key
+    }
+    last[key] = k
+  }
+  DOCUMENTED_COUNT = n
+  place_sections(last, sections)
+  for (kind = 1; kind <= 2; kind++) {
+    for (k = 1; k <= n; k++) {
+      key = order[k]
+      if ((ANCHORS[last[key], "kind"] == "target") == (kind == 1) && is_displayed(last[key])) {
+        add_display_record(last[key], key, sections)
       }
-      TARGETS_DOC[name] = ANCHORS[k, "doc"]
-      TARGETS_TAG[name] = ANCHORS[k, "tag"]
-    } else {
-      if (!(name in VARIABLES_DOC)) {
-        VARIABLES[VARIABLES_INDEX++] = name
-      }
-      VARIABLES_DOC[name] = ANCHORS[k, "doc"]
-      VARIABLES_TAG[name] = ANCHORS[k, "tag"]
     }
   }
 }
 
-# Give each section to the next displayed anchor after it in the Makefiles (TARGETS_SECTION_DATA
-# and VARIABLES_SECTION_DATA). Hidden anchors (variables with VARS=0, deprecated anchors with
-# DEPRECATED=0) are skipped, sections with no displayed anchor after them are dropped, and
-# consecutive sections are merged. A later section of the same anchor replaces an earlier one.
-function place_sections(    k, kind, name, has_section, section) {
+# true if the anchor whose last definition is ANCHORS[k] is displayed: not a variable with
+# VARS=0, nor a deprecated anchor with DEPRECATED=0
+function is_displayed(k) {
+  return (ANCHORS[k, "kind"] == "target" || VARS) && !(!DEPRECATED && ANCHORS[k, "tag"] == "##%")
+}
+
+# Give each section to the next displayed anchor after it in the Makefiles: sections[key],
+# with last[key] the last definition of each anchor. Sections with no displayed anchor after
+# them are dropped, consecutive ones are merged, and a later section of the same anchor
+# replaces an earlier one.
+function place_sections(last, sections, #locals
+                        k, key, has_section, section) {
   has_section = 0
   for (k = 1; k <= ANCHOR_COUNT; k++) {
     if ((k, "section") in ANCHORS) {
       section = has_section ? section "\n" ANCHORS[k, "section"] : ANCHORS[k, "section"]
       has_section = 1
     }
-    kind = ANCHORS[k, "kind"]
-    name = ANCHORS[k, "name"]
-    if (!has_section) {
-      continue
-    }
-    if (kind == "target" && !is_hidden_anchor(name, TARGETS_TAG)) {
-      TARGETS_SECTION_DATA[name] = section
-      has_section = 0
-    } else if (kind == "variable" && VARS && !is_hidden_anchor(name, VARIABLES_TAG)) {
-      VARIABLES_SECTION_DATA[name] = section
+    key = ANCHORS[k, "kind"] SUBSEP ANCHORS[k, "name"]
+    if (has_section && is_displayed(last[key])) {
+      sections[key] = section
       has_section = 0
     }
   }
 }
 
-# true for an anchor documented with ##% when deprecated anchors are not displayed
-function is_hidden_anchor(anchor, anchors_tags) {
-  return !DEPRECATED && anchors_tags[anchor] == "##%"
+# Add the record of an anchor to DISPLAY (k: its last definition in ANCHORS, key: its key in
+# sections), with what will be displayed: its displayed name, its doc and section after DSUB,
+# and its SUB values and parameters
+function add_display_record(k, key, sections, #locals
+                            name) {
+  name = ANCHORS[k, "name"]
+  DISPLAY_COUNT++
+  DISPLAY[DISPLAY_COUNT, "kind"] = ANCHORS[k, "kind"]
+  DISPLAY[DISPLAY_COUNT, "name"] = display_name(name)
+  DISPLAY[DISPLAY_COUNT, "tag"] = ANCHORS[k, "tag"]
+  DISPLAY[DISPLAY_COUNT, "doc"] = apply_doc_substitutions(ANCHORS[k, "doc"])
+  if (key in sections) {
+    DISPLAY[DISPLAY_COUNT, "section"] = apply_doc_substitutions(sections[key])
+  }
+  DISPLAY[DISPLAY_COUNT, "values"] = array_get(SUB_VALUES, name)
+  DISPLAY[DISPLAY_COUNT, "params"] = array_get(SUB_PARAMS, name)
 }
 
 # The displayed name of an anchor: its SUB label if it has one, otherwise its name after the
@@ -1460,23 +1469,6 @@ function display_name(anchor, #locals
     }
   }
   return anchor
-}
-
-# the length of the longest displayed anchor (0 if no anchor is displayed)
-function get_max_anchor_length(anchors, anchors_tags, #locals
-                               max_len, key, anchor, n) {
-  max_len = 0
-  for (key in anchors) { # order is not important
-    anchor = anchors[key]
-    if (is_hidden_anchor(anchor, anchors_tags)) {
-      continue
-    }
-    n = length(display_name(anchor))
-    if (n > max_len) {
-      max_len = n
-    }
-  }
-  return max_len
 }
 
 function get_separator(character, len_anchors) {
@@ -1520,9 +1512,7 @@ function colorize_doc_backticks(doc) {
 }
 
 # the color code of an anchor, given by the tag of its doc
-function anchor_color(anchor_name, anchors_tags, #locals
-                      tag) {
-  tag = anchors_tags[anchor_name]
+function anchor_color(tag) {
   if (tag == "##!") {
     return COLOR_ATTENTION_CODE
   } else if (tag == "##%") {
@@ -1531,17 +1521,14 @@ function anchor_color(anchor_name, anchors_tags, #locals
   return COLOR_DEFAULT_CODE # ## (a doc starts with one of the three tags)
 }
 
-# The doc of an anchor (stored without its tags), ready to display: the first line offset
-# from the anchor and the next lines aligned with it, with the DSUB substitutions, the
-# escapes of the output format and the colors of the text in backticks
-function format_doc(anchor_name, anchors_docs, len_anchor_names, #locals
-                    lines, indentation, doc) {
-  split(anchors_docs[anchor_name], lines, "\n")
-  indentation = repeated_string("", OFFSET + len_anchor_names) # aligned with the first line
+# A doc laid out after names of width len_anchors: the first line offset from the name, the
+# next lines aligned with it, with the escapes of the output format and the colors of the
+# text in backticks
+function format_doc(doc, len_anchors, #locals
+                    lines, indentation) {
+  split(doc, lines, "\n")
+  indentation = repeated_string("", OFFSET + len_anchors) # aligned with the first line
   doc = repeated_string("", OFFSET) join(lines, "\n" indentation)
-
-  doc = apply_doc_substitutions(doc)
-
   return colorize_doc_backticks(apply_output_specific_formatting(doc))
 }
 
@@ -1557,14 +1544,10 @@ function apply_doc_substitutions(text, #locals
   return text
 }
 
-function get_associated_section_data(anchor_name,
-                                     anchor_section_data, #locals
-                                     section) {
-  if (anchor_name in anchor_section_data) {
-    section = strip_trailing_blanks(apply_doc_substitutions(anchor_section_data[anchor_name]))
-    return colorize_doc_backticks(apply_output_specific_formatting(section))
-  }
-  return "" # means that there is no section data associated with this anchor
+# a section, with the escapes of the output format and the colors of the text in backticks
+function format_section(section) {
+  section = strip_trailing_blanks(section)
+  return colorize_doc_backticks(apply_output_specific_formatting(section))
 }
 
 # Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
@@ -1585,15 +1568,15 @@ function extract_substitution_params(string_with_parameters, #locals
 }
 
 # Return the text that follows the doc of an anchor: the values of its SUB substitution
-# (with the parameters in SUB_PARAMS_CURRENT), then a newline. Each value is made into an
-# item (P before it, S after it, I before the first one, T after the last one instead of S);
-# the items are on one line (M=0) or on one line each (M=1). The first line follows the doc
-# (L=0) or starts on the next line (L=1).
-function display_substitutions(anchor, len_anchors, #locals
+# (space-separated, with the parameters in SUB_PARAMS_CURRENT), then a newline. Each value is
+# made into an item (P before it, S after it, I before the first one, T after the last one
+# instead of S); the items are on one line (M=0) or on one line each (M=1). The first line
+# follows the doc (L=0) or starts on the next line (L=1).
+function display_substitutions(sub_values, len_anchors, #locals
                                values, n, k, item, lines, n_lines, initial, prefix,
                                separator, termination, indentation, next_indentation,
                                output) {
-  n = split(array_get(SUB_VALUES, anchor), values, " ")
+  n = split(sub_values, values, " ")
   if (SUB_PARAMS_CURRENT["N"] >= 0) {
     n = min(n, SUB_PARAMS_CURRENT["N"])
   }
@@ -1637,64 +1620,40 @@ function display_substitutions(anchor, len_anchors, #locals
   return output "\n"
 }
 
-# Display an anchor (if show is true) with its doc, its section and the values of its SUB
-# substitution; color is the color code of the anchor
-function display_anchor_with_data(anchor, doc, section, len_anchors, color,
-                                  show, #locals
-                                  renamed_anchor, formatted_anchor, padding, output) {
-  extract_substitution_params(array_get(SUB_PARAMS, anchor))
+# Lay out DISPLAY[k] after names of width len_anchors: its section, then its name (colored
+# by its tag, padded), its doc and its SUB values
+function print_anchor(k, len_anchors, #locals
+                      section, name, formatted_anchor, padding, color, output) {
+  extract_substitution_params(DISPLAY[k, "params"])
 
-  # (only displayed anchors have a section, see place_sections)
-  if (show) {
-    if (section) {
-      if (COLOR_SECTION_CODE) {
-        # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so
-        # the section color has to be restored after each reset.
-        if (OUTPUT_FORMAT == "ANSI") {
-          section = string_replace(COLOR_RESET_CODE,
-                                   COLOR_RESET_CODE COLOR_SECTION_CODE,
-                                   section)
-        }
-        section = color_lines(section, COLOR_SECTION_CODE)
+  section = ((k, "section") in DISPLAY) ? format_section(DISPLAY[k, "section"]) : ""
+  if (section) {
+    if (COLOR_SECTION_CODE) {
+      # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so the
+      # section color has to be restored after each reset.
+      if (OUTPUT_FORMAT == "ANSI") {
+        section = string_replace(COLOR_RESET_CODE, COLOR_RESET_CODE COLOR_SECTION_CODE, section)
       }
-      append_output(section "\n")
+      section = color_lines(section, COLOR_SECTION_CODE)
     }
-
-    renamed_anchor = display_name(anchor)
-    formatted_anchor = apply_output_specific_formatting(renamed_anchor)
-
-    # the padding is measured on the displayed name (an HTML or LaTeX escape is longer than
-    # its character), then escaped too (PADDING can be any character)
-    padding = repeated_string(PADDING, len_anchors - length(renamed_anchor))
-    padding = apply_output_specific_formatting(padding)
-    if (color) {
-      formatted_anchor = sprintf("%s%s%s%s",
-                                 color,
-                                 formatted_anchor,
-                                 padding,
-                                 COLOR_RESET_CODE)
-    } else {
-      formatted_anchor = sprintf("%s%s", formatted_anchor, padding)
-    }
-
-    output = formatted_anchor doc display_substitutions(anchor, len_anchors)
-    append_output(strip_trailing_blanks(output))
+    append_output(section "\n")
   }
-}
 
-# Display the anchors of one kind (TARGETS or VARIABLES) with their docs and sections.
-function print_anchors(anchors, docs, tags, section_data, max_anchor_length,
-                       #locals
-                       n_elements, indx, anchor, doc, section) {
-  n_elements = length_array_posix(anchors)
-  for (indx = 1; indx <= n_elements; indx++) {
-    anchor = anchors[indx]
-    doc = format_doc(anchor, docs, max_anchor_length)
-    section = get_associated_section_data(anchor, section_data)
-    display_anchor_with_data(anchor, doc, section, max_anchor_length,
-                             anchor_color(anchor, tags),
-                             !is_hidden_anchor(anchor, tags))
+  name = DISPLAY[k, "name"]
+  formatted_anchor = apply_output_specific_formatting(name)
+  # the padding is measured on the displayed name (an HTML or LaTeX escape is longer than
+  # its character), then escaped too (PADDING can be any character)
+  padding = apply_output_specific_formatting(repeated_string(PADDING, len_anchors - length(name)))
+  color = anchor_color(DISPLAY[k, "tag"])
+  if (color) {
+    formatted_anchor = color formatted_anchor padding COLOR_RESET_CODE
+  } else {
+    formatted_anchor = formatted_anchor padding
   }
+
+  output = formatted_anchor format_doc(DISPLAY[k, "doc"], len_anchors) \
+           display_substitutions(DISPLAY[k, "values"], len_anchors)
+  append_output(strip_trailing_blanks(output))
 }
 
 # add text to the documentation (OUTPUT_BODY, printed by print_documentation)
@@ -1702,46 +1661,38 @@ function append_output(text) {
   OUTPUT_BODY = OUTPUT_BODY text
 }
 
-# Display the documentation (all its output is printed from here).
-function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
-                             separator) {
+# Display the documentation (all its output is printed from here): the targets, then the
+# variables, each under a header, all names padded to the longest one.
+function print_documentation(    k, len_anchors, separator) {
   prepare_rendering()
-  max_target_length = get_max_anchor_length(TARGETS, TARGETS_TAG)
-  # 0 when the variables are not shown (VARS=0)
-  max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_TAG) : 0
-  max_anchor_length = max(max_target_length, max_variable_length)
-  separator = get_separator("-", max_anchor_length)
+  len_anchors = 0
+  for (k = 1; k <= DISPLAY_COUNT; k++) {
+    len_anchors = max(len_anchors, length(DISPLAY[k, "name"]))
+  }
+  separator = get_separator("-", len_anchors)
   OUTPUT_BODY = ""
   print_warnings() # (on stderr, before the docs)
 
-  # process targets
-  if (max_target_length > 0) {
-    append_output(separator "\n" HEADER_TARGETS "\n" separator "\n")
-    print_anchors(TARGETS, TARGETS_DOC, TARGETS_TAG, TARGETS_SECTION_DATA,
-                  max_anchor_length)
-  }
-
-  # process variables
-  if (max_variable_length > 0) {
-    if (max_target_length > 0) {
-      append_output("\n") # a blank line after the targets
-    }
-    append_output(separator "\n" HEADER_VARIABLES "\n" separator "\n")
-    print_anchors(VARIABLES, VARIABLES_DOC, VARIABLES_TAG, VARIABLES_SECTION_DATA,
-                  max_anchor_length)
-  }
-
-  if (max_target_length > 0 || max_variable_length > 0) {
-    append_output(separator "\n")
-  } else {
-    if (FILES_PROCESSED != "") {
-      if (TARGETS_INDEX > 1 || VARIABLES_INDEX > 1) { # documented, but hidden
-        printf("WARNING: all documented targets/variables are hidden in %s\n",
-               FILES_PROCESSED) > STDERR
-      } else {
-        printf("WARNING: no documented targets/variables in %s\n",
-               FILES_PROCESSED) > STDERR
+  for (k = 1; k <= DISPLAY_COUNT; k++) {
+    if (k == 1 || DISPLAY[k, "kind"] != DISPLAY[k - 1, "kind"]) {
+      if (k > 1) {
+        append_output("\n") # a blank line after the targets
       }
+      append_output(separator "\n" \
+                    (DISPLAY[k, "kind"] == "target" ? HEADER_TARGETS : HEADER_VARIABLES) "\n" \
+                    separator "\n")
+    }
+    print_anchor(k, len_anchors)
+  }
+
+  if (DISPLAY_COUNT > 0) {
+    append_output(separator "\n")
+  } else if (FILES_PROCESSED != "") {
+    if (DOCUMENTED_COUNT > 0) {
+      printf("WARNING: all documented targets/variables are hidden in %s\n",
+             FILES_PROCESSED) > STDERR
+    } else {
+      printf("WARNING: no documented targets/variables in %s\n", FILES_PROCESSED) > STDERR
     }
   }
 
