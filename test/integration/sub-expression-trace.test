@@ -6,22 +6,22 @@ test/fixtures/Makefile.sub-expression
    1 0 1  0  0 \t | help: SCR := makefile-doc.awk
    2 0 1  0  0 \t | help: VFLAG := -v SUB='$$(I)target:target:immediate immediate immediate immediate deferred deferred'
    3 0 1  0  0 \t | help: ## Show this help
-   3 ============ => target:help
+   3 ============ => target:[help]
    4 0 1  0  0 \t | \t@awk $(VFLAG) -f $(SCR) $(MAKEFILE_LIST)
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## This is an instrumented variable (used for introspection)
    7 0 0  0  0 \t | I = $(info $(X))
-   7 ============ => variable:I
+   7 ============ => variable:[I]
    8 0 0  0  0 \t |
    9 0 0  1  0 \t | ## Set value of X to be used during the first pass.
   10 0 0  0  0 \t | X = immediate
-  10 ============ => variable:X
+  10 ============ => variable:[X]
   11 0 0  0  0 \t |
   12 0 0  1  0 \t | ## A target that demonstrates the two-phase approach. It would be nice
   13 0 0  2  0 \t | ## to optionally disable the newline in the $(info) function's output.
   14 0 0  3  0 \t | ## Execute `make target` to see the full output:
   15 0 1  0  0 \t | $(I)target: $(I)% : $(I) | $(I); $(I)
-  15 ============ => target:$(I)target
+  15 ============ => target:[$(I)target]
   16 0 1  0  0 \t | \t$(I)
   17 0 1  0  0 \t |
   18 0 1  0  0 \t | # Redefine X (to be used during the second pass).

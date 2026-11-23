@@ -5,7 +5,7 @@ test/fixtures/Makefile.backslash-lone
 == test/fixtures/Makefile.backslash-lone
    1 0 0  1  0 \t | ## d
    2 0 1  0  0 \t | t:
-   2 ============ => target:t
+   2 ============ => target:[t]
    3 1 1  0  0 \t | \t\
    4 0 1  0  0 \t | BOGUS := 1 ## bogus
    5 0 1  0  0 \t |
@@ -13,4 +13,4 @@ test/fixtures/Makefile.backslash-lone
    7 1 1  1  0 \t | #\
    8 0 1  1  0 \t | ## swallowed
    9 0 0  0  0 \t | X := 1 ## v
-   9 ============ => variable:X
+   9 ============ => variable:[X]

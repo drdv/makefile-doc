@@ -11,9 +11,9 @@ test/fixtures/Makefile.docs-hash-in-reference
    5 0 0  0  0 \t | FOO := $(shell echo '##a')
    6 0 0  0  0 \t | BAR := ${shell echo '##b'}
    7 0 0  0  0 \t | BAZ := $(subst x,##,x) ## Doc of BAZ
-   7 ============ => variable:BAZ
+   7 ============ => variable:[BAZ]
    8 0 0  0  0 \t | QUX := $$(echo ## Doc of QUX
-   8 ============ => variable:QUX
+   8 ============ => variable:[QUX]
    9 0 1  0  0 \t | t: $(shell echo '##c') ## Doc of t
-   9 ============ => target:t
+   9 ============ => target:[t]
   10 0 1  0  0 \t | u: ${shell echo '##d'}

@@ -6,7 +6,7 @@ test/fixtures/Makefile.recipeprefix
    1 0 0  0  0 \t | .RECIPEPREFIX := >
    2 0 0  0  0 \t |
    3 0 1  0  0 \t | t: ## A target
-   3 ============ => target:t
+   3 ============ => target:[t]
    4 0 1  0  0 \t | > @echo 1
    5 0 1  0  0 \t | > @echo 2
    6 0 1  0  0 \t | > @echo 3
@@ -17,4 +17,4 @@ test/fixtures/Makefile.recipeprefix
   11 1 1  0  0 \t | > ## Not a variable\
   12 0 1  0  0 \t | N := 1 ##! Not a variable
   13 0 0  0  0 \t | V := 1 ##! A variable
-  13 ============ => variable:V
+  13 ============ => variable:[V]

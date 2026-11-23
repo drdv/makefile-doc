@@ -5,31 +5,31 @@ test/fixtures/Makefile.vars-define
 == test/fixtures/Makefile.vars-define
    1 0 0  1  0 \t | ## Usage text shown by `make usage`
    2 0 0  0  0 \t | define USAGE
-   2 ============ => variable:USAGE
+   2 ============ => variable:[USAGE]
    3 0 1  0  0 \t | Usage: make [target]
    4 0 1  0  0 \t | endef
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## With an operator
    7 0 0  0  0 \t | define WITH_OPERATOR :=
-   7 ============ => variable:WITH_OPERATOR
+   7 ============ => variable:[WITH_OPERATOR]
    8 0 0  0  0 \t | x
    9 0 0  0  0 \t | endef
   10 0 0  0  0 \t |
   11 0 0  1  0 \t | ## With an operator without a space
   12 0 0  0  0 \t | define NO_SPACE+=
-  12 ============ => variable:NO_SPACE
+  12 ============ => variable:[NO_SPACE]
   13 0 0  0  0 \t | x
   14 0 0  0  0 \t | endef
   15 0 0  0  0 \t |
   16 0 0  1  0 \t | ## With qualifiers
   17 0 0  0  0 \t | override  export define\tQUALIFIED ?=
-  17 ============ => variable:QUALIFIED
+  17 ============ => variable:[QUALIFIED]
   18 0 0  0  0 \t | x
   19 0 0  0  0 \t | endef
   20 0 0  0  0 \t |
   21 0 0  1  0 \t | ##! With a comment on the define line
   22 0 0  0  0 \t | define COMMENTED # a comment
-  22 ============ => variable:COMMENTED
+  22 ============ => variable:[COMMENTED]
   23 0 0  0  0 \t | x
   24 0 0  0  0 \t | endef
   25 0 0  0  0 \t |
@@ -44,4 +44,4 @@ test/fixtures/Makefile.vars-define
   34 0 0  0  0 \t |
   35 0 0  1  0 \t | ## A variable named define
   36 0 0  0  0 \t | define := 1
-  36 ============ => variable:define
+  36 ============ => variable:[define]

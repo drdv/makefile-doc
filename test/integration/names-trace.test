@@ -5,34 +5,34 @@ test/fixtures/Makefile.names
 == test/fixtures/Makefile.names
    1 0 0  1  0 \t | ## Variable containing .
    2 0 0  0  0 \t | FOO.BAR := 1
-   2 ============ => variable:FOO.BAR
+   2 ============ => variable:[FOO.BAR]
    3 0 0  0  0 \t |
    4 0 0  1  0 \t | ## Variable containing +
    5 0 0  0  0 \t | FOO+BAR := 1
-   5 ============ => variable:FOO+BAR
+   5 ============ => variable:[FOO+BAR]
    6 0 0  0  0 \t |
    7 0 0  1  0 \t | ## Variable containing /
    8 0 0  0  0 \t | FOO/BAR := 1
-   8 ============ => variable:FOO/BAR
+   8 ============ => variable:[FOO/BAR]
    9 0 0  0  0 \t |
   10 0 0  1  0 \t | ## Variable containing @
   11 0 0  0  0 \t | FOO@BAR := 1
-  11 ============ => variable:FOO@BAR
+  11 ============ => variable:[FOO@BAR]
   12 0 0  0  0 \t |
   13 0 0  1  0 \t | ## Target containing +
   14 0 1  0  0 \t | foo+bar:
-  14 ============ => target:foo+bar
+  14 ============ => target:[foo+bar]
   15 0 1  0  0 \t |
   16 0 1  1  0 \t | ## Target containing @
   17 0 1  0  0 \t | foo@bar:
-  17 ============ => target:foo@bar
+  17 ============ => target:[foo@bar]
   18 0 1  0  0 \t |
   19 0 1  1  0 \t | ## Target containing single quote
   20 0 1  2  0 \t | ## This is not correctly parsed even by makefile-mode in Emacs :)
   21 0 1  0  0 \t | foo'bar:
-  21 ============ => target:foo'bar
+  21 ============ => target:[foo'bar]
   22 0 1  0  0 \t |
   23 0 1  1  0 \t | ## Target containing double quote
   24 0 1  2  0 \t | ## ... same here
   25 0 1  0  0 \t | foo"bar:
-  25 ============ => target:foo"bar
+  25 ============ => target:[foo"bar]

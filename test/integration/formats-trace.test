@@ -10,16 +10,16 @@ test/fixtures/Makefile.formats
    5 0 0  1  3 \t | ## A default target with `backticks` and {braces}
    6 0 0  2  3 \t | ## on two lines
    7 0 1  0  0 \t | t-default:
-   7 ============ => target:t-default +section
+   7 ============ => target:[t-default] +section
    8 0 1  0  0 \t |
    9 0 1  1  0 \t | ##! An attention target
   10 0 1  0  0 \t | t-attention:
-  10 ============ => target:t-attention
+  10 ============ => target:[t-attention]
   11 0 1  0  0 \t |
   12 0 1  1  0 \t | ##% A deprecated target
   13 0 1  0  0 \t | t-deprecated:
-  13 ============ => target:t-deprecated
+  13 ============ => target:[t-deprecated]
   14 0 1  0  0 \t |
   15 0 1  1  0 \t | ## A variable
   16 0 0  0  0 \t | VAR := 1
-  16 ============ => variable:VAR
+  16 ============ => variable:[VAR]

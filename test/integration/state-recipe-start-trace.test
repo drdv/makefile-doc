@@ -15,22 +15,22 @@ test/fixtures/Makefile.state-recipe-start
    9 0 1  0  0 \t | .PHONY: next-1
   10 0 1  0  0 \t | \t## a special target (.PHONY), after an assignment
   11 0 1  0  0 \t | next-1: ## Doc of next-1
-  11 ============ => target:next-1
+  11 ============ => target:[next-1]
   12 0 1  0  0 \t |
   13 0 0  0  0 \t | A := 1
   14 0 1  0  0 \t | .DEFAULT:
   15 0 1  0  0 \t | \t## a special target (.DEFAULT), after an assignment
   16 0 1  0  0 \t | next-2: ## Doc of next-2
-  16 ============ => target:next-2
+  16 ============ => target:[next-2]
   17 0 1  0  0 \t |
   18 0 0  0  0 \t | A := 1
   19 0 1  0  0 \t | $(SRCS:.c=.o): dep
   20 0 1  0  0 \t | \t## a substitution reference target, after an assignment
   21 0 1  0  0 \t | next-3: ## Doc of next-3
-  21 ============ => target:next-3
+  21 ============ => target:[next-3]
   22 0 1  0  0 \t |
   23 0 0  0  0 \t | A := 1
   24 0 1  0  0 \t | $(subst :,_,x-4): dep
   25 0 1  0  0 \t | \t## a colon in a reference, after an assignment
   26 0 1  0  0 \t | next-4: ## Doc of next-4
-  26 ============ => target:next-4
+  26 ============ => target:[next-4]

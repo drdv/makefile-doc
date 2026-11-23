@@ -13,20 +13,20 @@ test/fixtures/Makefile.vars-assignment
    8 0 0  0  3 \t |
    9 0 0  1  3 \t | ## case 1
   10 0 0  0  0 \t | a1 = 1
-  10 ============ => variable:a1 +section
+  10 ============ => variable:[a1] +section
   11 0 0  0  0 \t |
   12 0 0  1  0 \t | ## case 2
   13 0 0  0  0 \t | a2=1
-  13 ============ => variable:a2
+  13 ============ => variable:[a2]
   14 0 0  0  0 \t |
   15 0 0  0  0 \t |    a3=1## case 3
-  15 ============ => variable:a3
+  15 ============ => variable:[a3]
   16 0 0  0  0 \t |
   17 0 0  0  0 \t | a4=1 ##case 4
-  17 ============ => variable:a4
+  17 ============ => variable:[a4]
   18 0 0  0  0 \t |
   19 0 0  0  0 \t |   a4  = $(a3) ##%    case 5
-  19 ============ => variable:a4
+  19 ============ => variable:[a4]
   20 0 0  0  0 \t |
   21 0 0  0  1 \t | ##@
   22 0 0  0  2 \t | ##@ ----- simply expanded variables with :=
@@ -34,20 +34,20 @@ test/fixtures/Makefile.vars-assignment
   24 0 0  0  3 \t |
   25 0 0  1  3 \t | ## case 1
   26 0 0  0  0 \t | b1 := 1
-  26 ============ => variable:b1 +section
+  26 ============ => variable:[b1] +section
   27 0 0  0  0 \t |
   28 0 0  1  0 \t | ## case 2
   29 0 0  0  0 \t | b2:=1
-  29 ============ => variable:b2
+  29 ============ => variable:[b2]
   30 0 0  0  0 \t |
   31 0 0  0  0 \t |    b3:=1## case 3
-  31 ============ => variable:b3
+  31 ============ => variable:[b3]
   32 0 0  0  0 \t |
   33 0 0  0  0 \t | b4:=1 ##case 4
-  33 ============ => variable:b4
+  33 ============ => variable:[b4]
   34 0 0  0  0 \t |
   35 0 0  0  0 \t |   b4  := $(b3) ##%    case 5
-  35 ============ => variable:b4
+  35 ============ => variable:[b4]
   36 0 0  0  0 \t |
   37 0 0  0  1 \t | ##@
   38 0 0  0  2 \t | ##@ ----- simply expanded variables with ::=
@@ -55,20 +55,20 @@ test/fixtures/Makefile.vars-assignment
   40 0 0  0  3 \t |
   41 0 0  1  3 \t | ## case 1
   42 0 0  0  0 \t | c1 ::= 1
-  42 ============ => variable:c1 +section
+  42 ============ => variable:[c1] +section
   43 0 0  0  0 \t |
   44 0 0  1  0 \t | ## case 2
   45 0 0  0  0 \t | c2::=1
-  45 ============ => variable:c2
+  45 ============ => variable:[c2]
   46 0 0  0  0 \t |
   47 0 0  0  0 \t |    c3::=1## case 3
-  47 ============ => variable:c3
+  47 ============ => variable:[c3]
   48 0 0  0  0 \t |
   49 0 0  0  0 \t | c4::=1 ##case 4
-  49 ============ => variable:c4
+  49 ============ => variable:[c4]
   50 0 0  0  0 \t |
   51 0 0  0  0 \t |   c4  ::= $(c3) ##%    case 5
-  51 ============ => variable:c4
+  51 ============ => variable:[c4]
   52 0 0  0  0 \t |
   53 0 0  0  1 \t | ##@
   54 0 0  0  2 \t | ##@ ----- immediately expanded variable
@@ -76,20 +76,20 @@ test/fixtures/Makefile.vars-assignment
   56 0 0  0  3 \t |
   57 0 0  1  3 \t | ## case 1
   58 0 0  0  0 \t | d1 :::= 1
-  58 ============ => variable:d1 +section
+  58 ============ => variable:[d1] +section
   59 0 0  0  0 \t |
   60 0 0  1  0 \t | ## case 2
   61 0 0  0  0 \t | d2:::=1
-  61 ============ => variable:d2
+  61 ============ => variable:[d2]
   62 0 0  0  0 \t |
   63 0 0  0  0 \t |    d3:::=1## case 3
-  63 ============ => variable:d3
+  63 ============ => variable:[d3]
   64 0 0  0  0 \t |
   65 0 0  0  0 \t | d4:::=1 ##case 4
-  65 ============ => variable:d4
+  65 ============ => variable:[d4]
   66 0 0  0  0 \t |
   67 0 0  0  0 \t |   d4  :::= $(d3) ##%    case 5
-  67 ============ => variable:d4
+  67 ============ => variable:[d4]
   68 0 0  0  0 \t |
   69 0 0  0  1 \t | ##@
   70 0 0  0  2 \t | ##@ ----- shell assignment
@@ -97,20 +97,20 @@ test/fixtures/Makefile.vars-assignment
   72 0 0  0  3 \t |
   73 0 0  1  3 \t | ## case 1
   74 0 0  0  0 \t | e1 != 1
-  74 ============ => variable:e1 +section
+  74 ============ => variable:[e1] +section
   75 0 0  0  0 \t |
   76 0 0  1  0 \t | ## case 2
   77 0 0  0  0 \t | e2!=1
-  77 ============ => variable:e2
+  77 ============ => variable:[e2]
   78 0 0  0  0 \t |
   79 0 0  0  0 \t |    e3!=1## case 3
-  79 ============ => variable:e3
+  79 ============ => variable:[e3]
   80 0 0  0  0 \t |
   81 0 0  0  0 \t | e4!=1 ##case 4
-  81 ============ => variable:e4
+  81 ============ => variable:[e4]
   82 0 0  0  0 \t |
   83 0 0  0  0 \t |   e4  != $(e3) ##%    case 5
-  83 ============ => variable:e4
+  83 ============ => variable:[e4]
   84 0 0  0  0 \t |
   85 0 0  0  1 \t | ##@
   86 0 0  0  2 \t | ##@ ----- conditional assignment
@@ -118,20 +118,20 @@ test/fixtures/Makefile.vars-assignment
   88 0 0  0  3 \t |
   89 0 0  1  3 \t | ## case 1
   90 0 0  0  0 \t | f1 ?= 1
-  90 ============ => variable:f1 +section
+  90 ============ => variable:[f1] +section
   91 0 0  0  0 \t |
   92 0 0  1  0 \t | ## case 2
   93 0 0  0  0 \t | f2?=1
-  93 ============ => variable:f2
+  93 ============ => variable:[f2]
   94 0 0  0  0 \t |
   95 0 0  0  0 \t |    f3?=1## case 3
-  95 ============ => variable:f3
+  95 ============ => variable:[f3]
   96 0 0  0  0 \t |
   97 0 0  0  0 \t | f4?=1 ##case 4
-  97 ============ => variable:f4
+  97 ============ => variable:[f4]
   98 0 0  0  0 \t |
   99 0 0  0  0 \t |   f4  ?= $(f3) ##%    case 5
-  99 ============ => variable:f4
+  99 ============ => variable:[f4]
  100 0 0  0  0 \t |
  101 0 0  0  1 \t | ##@
  102 0 0  0  2 \t | ##@ ----- append assignment
@@ -139,17 +139,17 @@ test/fixtures/Makefile.vars-assignment
  104 0 0  0  3 \t |
  105 0 0  1  3 \t | ## case 1
  106 0 0  0  0 \t | g1 += 1
- 106 ============ => variable:g1 +section
+ 106 ============ => variable:[g1] +section
  107 0 0  0  0 \t |
  108 0 0  1  0 \t | ## case 2
  109 0 0  0  0 \t | g2+=1
- 109 ============ => variable:g2
+ 109 ============ => variable:[g2]
  110 0 0  0  0 \t |
  111 0 0  0  0 \t |    g3+=1## case 3
- 111 ============ => variable:g3
+ 111 ============ => variable:[g3]
  112 0 0  0  0 \t |
  113 0 0  0  0 \t | g4+=1 ##case 4
- 113 ============ => variable:g4
+ 113 ============ => variable:[g4]
  114 0 0  0  0 \t |
  115 0 0  0  0 \t |   g4  += $(g3) ##%    case 5
- 115 ============ => variable:g4
+ 115 ============ => variable:[g4]

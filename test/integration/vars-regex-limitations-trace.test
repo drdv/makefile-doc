@@ -7,4 +7,4 @@ test/fixtures/Makefile.vars-regex-limitations
    2 0 0  0  0 \t |
    3 0 0  1  0 \t | ## Compiler flags
    4 0 0  0  0 \t | $(PREFIX)_FLAGS := -O2
-   4 ============ => variable:$(PREFIX)_FLAGS
+   4 ============ => variable:[$(PREFIX)_FLAGS]

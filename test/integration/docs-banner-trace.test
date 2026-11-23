@@ -11,14 +11,14 @@ test/fixtures/Makefile.docs-banner
    6 0 1  0  0 \t | #####
    7 0 1  1  0 \t | ## Docs below a banner
    8 0 1  0  0 \t | t2:
-   8 ============ => target:t2
+   8 ============ => target:[t2]
    9 0 1  0  0 \t |
   10 0 1  0  0 \t |   ####  
   11 0 1  0  0 \t | t3:
   12 0 1  0  0 \t |
   13 0 1  1  0 \t | ### Docs starting with three # (kept)
   14 0 1  0  0 \t | t4:
-  14 ============ => target:t4
+  14 ============ => target:[t4]
   15 0 1  0  0 \t |
   16 0 1  1  0 \t | ## Docs of a variable above a banner (discarded)
   17 0 1  0  0 \t | ###

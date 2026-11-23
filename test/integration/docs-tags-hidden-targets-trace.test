@@ -6,8 +6,8 @@ test/fixtures/Makefile.docs-tags-hidden-targets
    1 0 0  0  1 \t | ##@ Old stuff
    2 0 0  1  1 \t | ##% A deprecated target
    3 0 1  0  0 \t | old:
-   3 ============ => target:old +section
+   3 ============ => target:[old] +section
    4 0 1  0  0 \t |
    5 0 1  1  0 \t | ## A variable
    6 0 0  0  0 \t | V := 1
-   6 ============ => variable:V
+   6 ============ => variable:[V]

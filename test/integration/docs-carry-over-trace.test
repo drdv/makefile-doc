@@ -20,26 +20,26 @@ test/fixtures/Makefile.docs-carry-over
   15 0 0  1  0 \t | .PHONY: t3
   16 0 0  1  0 \t | ifeq ($(OS),Linux)
   17 0 1  0  0 \t | t3:
-  17 ============ => target:t3
+  17 ============ => target:[t3]
   18 0 1  0  0 \t | endif
   19 0 1  0  0 \t |
   20 0 1  1  0 \t | ## Docs above ifdef and else
   21 0 1  1  0 \t | ifdef X
   22 0 1  1  0 \t | else
   23 0 1  0  0 \t | t4:
-  23 ============ => target:t4
+  23 ============ => target:[t4]
   24 0 1  0  0 \t | endif
   25 0 1  0  0 \t |
   26 0 1  1  0 \t | ## Docs above ifneq, then a variable
   27 0 1  1  0 \t | ifneq ($(X),)
   28 0 0  0  0 \t | V2 := 1
-  28 ============ => variable:V2
+  28 ============ => variable:[V2]
   29 0 0  0  0 \t | endif
   30 0 0  0  0 \t |
   31 0 0  1  0 \t | ## Docs above ifndef
   32 0 0  1  0 \t | ifndef X
   33 0 1  0  0 \t | t5:
-  33 ============ => target:t5
+  33 ============ => target:[t5]
   34 0 1  0  0 \t | endif
   35 0 1  0  0 \t |
   36 0 1  1  0 \t | ## Docs above an optional include

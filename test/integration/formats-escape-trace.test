@@ -7,12 +7,12 @@ test/fixtures/Makefile.formats-escape
    2 0 0  0  1 \t |
    3 0 0  1  1 \t | ## Run the tests (use AWK=<variant> & co)
    4 0 1  0  0 \t | test:
-   4 ============ => target:test +section
+   4 ============ => target:[test] +section
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## Grouped targets (displayed with a &)
    7 0 1  0  0 \t | a b&:
-   7 ============ => target:a b&
+   7 ============ => target:[a b&]
    8 0 1  0  0 \t |
    9 0 1  1  0 \t | ## A variable with a \ backslash and {braces}
   10 0 0  0  0 \t | VAR := 1
-  10 ============ => variable:VAR
+  10 ============ => variable:[VAR]

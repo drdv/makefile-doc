@@ -5,12 +5,12 @@ test/fixtures/Makefile.docs-tags-hidden-width
 == test/fixtures/Makefile.docs-tags-hidden-width
    1 0 0  1  0 \t | ## A target
    2 0 1  0  0 \t | t:
-   2 ============ => target:t
+   2 ============ => target:[t]
    3 0 1  0  0 \t |
    4 0 1  1  0 \t | ##% A deprecated target with a long name
    5 0 1  0  0 \t | very-long-deprecated-name:
-   5 ============ => target:very-long-deprecated-name
+   5 ============ => target:[very-long-deprecated-name]
    6 0 1  0  0 \t |
    7 0 1  1  0 \t | ## A variable
    8 0 0  0  0 \t | V := 1
-   8 ============ => variable:V
+   8 ============ => variable:[V]

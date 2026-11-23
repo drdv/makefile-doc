@@ -6,12 +6,12 @@ test/fixtures/Makefile.section-redefine-deprecated
    1 0 0  0  1 \t | ##@ Build
    2 0 0  1  1 \t | ## Compile
    3 0 1  0  0 \t | build:
-   3 ============ => target:build +section
+   3 ============ => target:[build] +section
    4 0 1  0  0 \t |
    5 0 1  1  0 \t | ##% Use `make` instead (the section moves to the next displayed target)
    6 0 1  0  0 \t | build:
-   6 ============ => target:build
+   6 ============ => target:[build]
    7 0 1  0  0 \t |
    8 0 1  1  0 \t | ## Run the tests
    9 0 1  0  0 \t | test:
-   9 ============ => target:test
+   9 ============ => target:[test]

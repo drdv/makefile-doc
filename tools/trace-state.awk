@@ -24,7 +24,7 @@
 #   TEXT  the input line (a tab is shown as \t, a final \r is dropped); for an empty line,
 #         nothing follows the | (no trailing space)
 # Each anchor that the line documents follows it on a line of its own:
-#   LINE ============ => KIND:NAME
+#   LINE ============ => KIND:[NAME]
 # where KIND is target or variable, with " +section" when the pending section is placed
 # before the anchor. `grep -e '^==' -e '=>'` lists the documented anchors of each file.
 
@@ -49,7 +49,7 @@ function trace_print(    k, kind_name, join_flag, rule_flag, prefix) {
 
   for (k = TRACE_ANCHOR_INDEX; k < ANCHOR_ORDER_INDEX; k++) {
     split(ANCHOR_ORDER[k], kind_name, SUBSEP)
-    printf("%4d ============ => %s:%s%s\n", TRACE_LINE, kind_name[1], kind_name[2],
+    printf("%4d ============ => %s:[%s]%s\n", TRACE_LINE, kind_name[1], kind_name[2],
            (k in SECTION_BEFORE) ? " +section" : "")
   }
   TRACE_ANCHOR_INDEX = ANCHOR_ORDER_INDEX

@@ -6,59 +6,59 @@ test/fixtures/Makefile.backslash-comments
    1 1 0  0  0 \t | \t## A doc indented with a tab (outside a rule) \
    2 0 0  1  0 \t | continued
    3 0 1  0  0 \t | t-tab:
-   3 ============ => target:t-tab
+   3 ============ => target:[t-tab]
    4 0 1  0  0 \t |
    5 1 1  0  0 \t |  \t## A doc indented with a space and a tab \
    6 0 1  1  0 \t | continued
    7 0 1  0  0 \t | t-space-tab:
-   7 ============ => target:t-space-tab
+   7 ============ => target:[t-space-tab]
    8 0 1  0  0 \t |
    9 1 1  0  0 \t | ## A doc continued \
   10 0 1  1  0 \t | on the next line
   11 0 1  0  0 \t | t-joined:
-  11 ============ => target:t-joined
+  11 ============ => target:[t-joined]
   12 0 1  0  0 \t |
   13 1 1  0  0 \t | ## A doc continued   \
   14 1 1  0  0 \t |    with blanks around the \
   15 0 1  1  0 \t | \tbackslash-newline
   16 0 1  0  0 \t | t-blanks:
-  16 ============ => target:t-blanks
+  16 ============ => target:[t-blanks]
   17 0 1  0  0 \t |
   18 0 1  1  0 \t | ## A doc that ends with two backslashes (not continued) \\
   19 0 1  0  0 \t | t-two-backslashes:
-  19 ============ => target:t-two-backslashes
+  19 ============ => target:[t-two-backslashes]
   20 0 1  0  0 \t |
   21 1 1  0  0 \t | ## A doc that ends with three backslashes (continued) \\\
   22 0 1  1  0 \t | on the next line
   23 0 1  0  0 \t | t-three-backslashes:
-  23 ============ => target:t-three-backslashes
+  23 ============ => target:[t-three-backslashes]
   24 0 1  0  0 \t |
   25 1 1  0  0 \t | ## A continued doc swallows the next line, a target \
   26 0 1  1  0 \t | t-swallowed:
   27 0 1  0  0 \t | t-after-target:
-  27 ============ => target:t-after-target
+  27 ============ => target:[t-after-target]
   28 0 1  0  0 \t |
   29 1 1  0  0 \t | ## A continued doc swallows the next line, a variable \
   30 0 1  1  0 \t | V_SWALLOWED := 1 ## part of the doc above
   31 0 1  0  0 \t | t-after-variable:
-  31 ============ => target:t-after-variable
+  31 ============ => target:[t-after-variable]
   32 0 1  0  0 \t |
   33 0 1  1  0 \t | ## A doc kept above a continued plain comment
   34 1 1  1  0 \t | # a plain comment \
   35 0 1  1  0 \t | continued
   36 0 1  0  0 \t | t-plain-comment:
-  36 ============ => target:t-plain-comment
+  36 ============ => target:[t-plain-comment]
   37 0 1  0  0 \t |
   38 1 1  0  0 \t | ##@ A section \
   39 0 1  0  1 \t | continued
   40 0 1  1  1 \t | ## A doc below the section
   41 0 1  0  0 \t | t-section:
-  41 ============ => target:t-section +section
+  41 ============ => target:[t-section] +section
   42 0 1  0  0 \t |
   43 1 1  0  0 \t | ## A doc \
   44 0 1  1  0 \t | ## continued with a doc line
   45 0 1  0  0 \t | t-doc-doc:
-  45 ============ => target:t-doc-doc
+  45 ============ => target:[t-doc-doc]
   46 0 1  0  0 \t |
   47 0 1  0  0 \t | t-rule:
   48 0 1  0  0 \t | \t@echo 1

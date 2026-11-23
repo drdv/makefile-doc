@@ -6,19 +6,19 @@
 == -
    1 0 0  1  0 \t | ## Top doc (takes precedence over inline docs)
    2 0 1  0  0 \t | t1: ## Inline doc (not displayed)
-   2 ============ => target:t1
+   2 ============ => target:[t1]
    3 0 1  0  0 \t |
    4 0 1  0  0 \t | t2: ## Inline doc without top docs
-   4 ============ => target:t2
+   4 ============ => target:[t2]
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## Not displayed because t3 is redefined below
    7 0 1  0  0 \t | t3:
-   7 ============ => target:t3
+   7 ============ => target:[t3]
    8 0 1  0  0 \t | t3: ## A new rule with a doc replaces the docs of t3
-   8 ============ => target:t3
+   8 ============ => target:[t3]
    9 0 1  0  0 \t |
   10 0 1  1  0 \t | ##
   11 0 1  0  0 \t | t4: ## An empty top doc shadows this inline doc
-  11 ============ => target:t4
+  11 ============ => target:[t4]
   12 0 1  0  0 \t |
   13 0 1  0  0 \t | target-without-docs:

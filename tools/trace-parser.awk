@@ -24,7 +24,7 @@ BEGIN {
     lexical_step(TRACE_PARSER_STATE, TRACE_PARSER_OBS)
     trace_parser_print(0)
     if (TRACE_PARSER_OBS["attach"]) {
-      printf("%4d ============ => %s:%s%s\n", FNR, TRACE_PARSER_OBS["anchor"],
+      printf("%4d ============ => %s:[%s]%s\n", FNR, TRACE_PARSER_OBS["anchor"],
              trace_parser_name(TRACE_PARSER_OBS),
              TRACE_PARSER_OBS["with_section"] ? " +section" : "")
     }

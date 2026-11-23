@@ -5,16 +5,16 @@ test/fixtures/Makefile.dsub
 == test/fixtures/Makefile.dsub
    1 0 0  1  0 \t | ## Description with a dsub: $(VAR)
    2 0 1  0  0 \t | t1:
-   2 ============ => target:t1
+   2 ============ => target:[t1]
    3 0 1  0  0 \t |
    4 0 1  0  0 \t | t2: ## This description refers to $(VAR) as well
-   4 ============ => target:t2
+   4 ============ => target:[t2]
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## $(VAR) and
    7 0 1  2  0 \t | ## $(Y) will both be replaced
    8 0 0  0  0 \t | X :=
-   8 ============ => variable:X
+   8 ============ => variable:[X]
    9 0 0  0  0 \t |
   10 0 0  1  0 \t | ## SUB and DSUB $(complement) each other ($(Y)):
   11 0 1  0  0 \t | t3:
-  11 ============ => target:t3
+  11 ============ => target:[t3]

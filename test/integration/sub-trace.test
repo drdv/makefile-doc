@@ -5,8 +5,8 @@ test/fixtures/Makefile.sub
 == test/fixtures/Makefile.sub
    1 0 0  1  0 \t | ## Some target:
    2 0 1  0  0 \t | $(TARGET):
-   2 ============ => target:$(TARGET)
+   2 ============ => target:[$(TARGET)]
    3 0 1  0  0 \t |
    4 0 1  1  0 \t | ## Some variable:
    5 0 0  0  0 \t | AWK :=
-   5 ============ => variable:AWK
+   5 ============ => variable:[AWK]

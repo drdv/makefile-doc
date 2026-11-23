@@ -7,16 +7,16 @@ test/fixtures/Makefile.dsub-names
    2 0 0  0  0 \t |
    3 0 0  1  0 \t | ## Write $(OUT_DIR)/a
    4 0 1  0  0 \t | $(OUT_DIR)/a:
-   4 ============ => target:$(OUT_DIR)/a
+   4 ============ => target:[$(OUT_DIR)/a]
    5 0 1  0  0 \t |
    6 0 1  1  0 \t | ## Write b (after $(OUT_DIR)/a)
    7 0 1  0  0 \t | $(OUT_DIR)/b:
-   7 ============ => target:$(OUT_DIR)/b
+   7 ============ => target:[$(OUT_DIR)/b]
    8 0 1  0  0 \t |
    9 0 1  1  0 \t | ## A target without the variable in its name
   10 0 1  0  0 \t | plain:
-  10 ============ => target:plain
+  10 ============ => target:[plain]
   11 0 1  0  0 \t |
   12 0 1  1  0 \t | ## Flags used for the files in $(OUT_DIR)
   13 0 0  0  0 \t | $(OUT_DIR)_FLAGS :=
-  13 ============ => variable:$(OUT_DIR)_FLAGS
+  13 ============ => variable:[$(OUT_DIR)_FLAGS]

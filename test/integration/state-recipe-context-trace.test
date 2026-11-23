@@ -17,7 +17,7 @@ test/fixtures/Makefile.state-recipe-context
   12 0 0  0  0 \t |
   13 0 0  1  0 \t | ## Doc of rule-1
   14 0 1  0  0 \t | rule-1:
-  14 ============ => target:rule-1
+  14 ============ => target:[rule-1]
   15 0 1  0  0 \t | \t@echo rule-1
   16 0 1  0  0 \t | x-1: dep
   17 0 1  0  0 \t | \t## a plain rule, after a rule
@@ -25,7 +25,7 @@ test/fixtures/Makefile.state-recipe-context
   19 0 1  0  0 \t |
   20 0 1  1  0 \t | ## Doc of rule-2
   21 0 1  0  0 \t | rule-2:
-  21 ============ => target:rule-2
+  21 ============ => target:[rule-2]
   22 0 1  0  0 \t | \t@echo rule-2
   23 0 1  0  0 \t | x-2::
   24 0 1  0  0 \t | \t## a double-colon rule, after a rule
@@ -33,7 +33,7 @@ test/fixtures/Makefile.state-recipe-context
   26 0 1  0  0 \t |
   27 0 1  1  0 \t | ## Doc of rule-3
   28 0 1  0  0 \t | rule-3:
-  28 ============ => target:rule-3
+  28 ============ => target:[rule-3]
   29 0 1  0  0 \t | \t@echo rule-3
   30 0 1  0  0 \t | x1-3 x2-3 &: dep
   31 0 1  0  0 \t | \t## grouped targets, after a rule
@@ -41,7 +41,7 @@ test/fixtures/Makefile.state-recipe-context
   33 0 1  0  0 \t |
   34 0 1  1  0 \t | ## Doc of rule-4
   35 0 1  0  0 \t | rule-4:
-  35 ============ => target:rule-4
+  35 ============ => target:[rule-4]
   36 0 1  0  0 \t | \t@echo rule-4
   37 0 1  0  0 \t | x-4.o: %.o: %.c
   38 0 1  0  0 \t | \t## a static pattern rule, after a rule
@@ -49,7 +49,7 @@ test/fixtures/Makefile.state-recipe-context
   40 0 1  0  0 \t |
   41 0 1  1  0 \t | ## Doc of rule-5
   42 0 1  0  0 \t | rule-5:
-  42 ============ => target:rule-5
+  42 ============ => target:[rule-5]
   43 0 1  0  0 \t | \t@echo rule-5
   44 0 1  0  0 \t | %.x5: %.y5
   45 0 1  0  0 \t | \t## a pattern rule, after a rule
@@ -57,7 +57,7 @@ test/fixtures/Makefile.state-recipe-context
   47 0 1  0  0 \t |
   48 0 1  1  0 \t | ## Doc of rule-6
   49 0 1  0  0 \t | rule-6:
-  49 ============ => target:rule-6
+  49 ============ => target:[rule-6]
   50 0 1  0  0 \t | \t@echo rule-6
   51 0 1  0  0 \t | x\:6: dep
   52 0 1  0  0 \t | \t## a rule with an escaped colon, after a rule
@@ -65,7 +65,7 @@ test/fixtures/Makefile.state-recipe-context
   54 0 1  0  0 \t |
   55 0 1  1  0 \t | ## Doc of rule-7
   56 0 1  0  0 \t | rule-7:
-  56 ============ => target:rule-7
+  56 ============ => target:[rule-7]
   57 0 1  0  0 \t | \t@echo rule-7
   58 0 1  0  0 \t | .PHONY: next-7
   59 0 1  0  0 \t | \t## a special target, after a rule
@@ -73,7 +73,7 @@ test/fixtures/Makefile.state-recipe-context
   61 0 1  0  0 \t |
   62 0 1  1  0 \t | ## Doc of rule-8
   63 0 1  0  0 \t | rule-8:
-  63 ============ => target:rule-8
+  63 ============ => target:[rule-8]
   64 0 1  0  0 \t | \t@echo rule-8
   65 0 1  0  0 \t | $(SRCS:.c=.o): dep
   66 0 1  0  0 \t | \t## a substitution reference target, after a rule
@@ -81,7 +81,7 @@ test/fixtures/Makefile.state-recipe-context
   68 0 1  0  0 \t |
   69 0 1  1  0 \t | ## Doc of rule-9
   70 0 1  0  0 \t | rule-9:
-  70 ============ => target:rule-9
+  70 ============ => target:[rule-9]
   71 0 1  0  0 \t | \t@echo rule-9
   72 0 1  0  0 \t | $(subst :,_,x-9): dep
   73 0 1  0  0 \t | \t## a colon in a reference, after a rule
@@ -89,90 +89,90 @@ test/fixtures/Makefile.state-recipe-context
   75 0 1  0  0 \t |
   76 0 1  1  0 \t | ## Doc of rule-10
   77 0 1  0  0 \t | rule-10:
-  77 ============ => target:rule-10
+  77 ============ => target:[rule-10]
   78 0 1  0  0 \t | \t@echo rule-10
   79 0 0  0  0 \t | V = 1
   80 0 0  1  0 \t | \t## an assignment (=), after a rule
   81 0 1  0  0 \t | next-10:
-  81 ============ => target:next-10
+  81 ============ => target:[next-10]
   82 0 1  0  0 \t |
   83 0 1  1  0 \t | ## Doc of rule-11
   84 0 1  0  0 \t | rule-11:
-  84 ============ => target:rule-11
+  84 ============ => target:[rule-11]
   85 0 1  0  0 \t | \t@echo rule-11
   86 0 0  0  0 \t | V := 1
   87 0 0  1  0 \t | \t## an assignment (:=), after a rule
   88 0 1  0  0 \t | next-11:
-  88 ============ => target:next-11
+  88 ============ => target:[next-11]
   89 0 1  0  0 \t |
   90 0 1  1  0 \t | ## Doc of rule-12
   91 0 1  0  0 \t | rule-12:
-  91 ============ => target:rule-12
+  91 ============ => target:[rule-12]
   92 0 1  0  0 \t | \t@echo rule-12
   93 0 0  0  0 \t | V ::= 1
   94 0 0  1  0 \t | \t## an assignment (::=), after a rule
   95 0 1  0  0 \t | next-12:
-  95 ============ => target:next-12
+  95 ============ => target:[next-12]
   96 0 1  0  0 \t |
   97 0 1  1  0 \t | ## Doc of rule-13
   98 0 1  0  0 \t | rule-13:
-  98 ============ => target:rule-13
+  98 ============ => target:[rule-13]
   99 0 1  0  0 \t | \t@echo rule-13
  100 0 0  0  0 \t | V != echo 1
  101 0 0  1  0 \t | \t## an assignment (!=), after a rule
  102 0 1  0  0 \t | next-13:
- 102 ============ => target:next-13
+ 102 ============ => target:[next-13]
  103 0 1  0  0 \t |
  104 0 1  1  0 \t | ## Doc of rule-14
  105 0 1  0  0 \t | rule-14:
- 105 ============ => target:rule-14
+ 105 ============ => target:[rule-14]
  106 0 1  0  0 \t | \t@echo rule-14
  107 0 0  0  0 \t | V ?= 1
  108 0 0  1  0 \t | \t## an assignment (?=), after a rule
  109 0 1  0  0 \t | next-14:
- 109 ============ => target:next-14
+ 109 ============ => target:[next-14]
  110 0 1  0  0 \t |
  111 0 1  1  0 \t | ## Doc of rule-15
  112 0 1  0  0 \t | rule-15:
- 112 ============ => target:rule-15
+ 112 ============ => target:[rule-15]
  113 0 1  0  0 \t | \t@echo rule-15
  114 0 0  0  0 \t | V += 1
  115 0 0  1  0 \t | \t## an assignment (+=), after a rule
  116 0 1  0  0 \t | next-15:
- 116 ============ => target:next-15
+ 116 ============ => target:[next-15]
  117 0 1  0  0 \t |
  118 0 1  1  0 \t | ## Doc of rule-16
  119 0 1  0  0 \t | rule-16:
- 119 ============ => target:rule-16
+ 119 ============ => target:[rule-16]
  120 0 1  0  0 \t | \t@echo rule-16
  121 0 0  0  0 \t | export V = 1
  122 0 0  1  0 \t | \t## an exported assignment, after a rule
  123 0 1  0  0 \t | next-16:
- 123 ============ => target:next-16
+ 123 ============ => target:[next-16]
  124 0 1  0  0 \t |
  125 0 1  1  0 \t | ## Doc of rule-17
  126 0 1  0  0 \t | rule-17:
- 126 ============ => target:rule-17
+ 126 ============ => target:[rule-17]
  127 0 1  0  0 \t | \t@echo rule-17
  128 0 0  0  0 \t | override V := 1
  129 0 0  1  0 \t | \t## an overridden assignment, after a rule
  130 0 1  0  0 \t | next-17:
- 130 ============ => target:next-17
+ 130 ============ => target:[next-17]
  131 0 1  0  0 \t |
  132 0 1  1  0 \t | ## Doc of rule-18
  133 0 1  0  0 \t | rule-18:
- 133 ============ => target:rule-18
+ 133 ============ => target:[rule-18]
  134 0 1  0  0 \t | \t@echo rule-18
  135 0 0  0  0 \t | define D
  136 0 0  0  0 \t | body
  137 0 0  0  0 \t | endef
  138 0 0  1  0 \t | \t## define ... endef, after a rule
  139 0 1  0  0 \t | next-18:
- 139 ============ => target:next-18
+ 139 ============ => target:[next-18]
  140 0 1  0  0 \t |
  141 0 1  1  0 \t | ## Doc of rule-19
  142 0 1  0  0 \t | rule-19:
- 142 ============ => target:rule-19
+ 142 ============ => target:[rule-19]
  143 0 1  0  0 \t | \t@echo rule-19
  144 0 1  0  0 \t | ifeq (a,a)
  145 0 1  0  0 \t | endif
@@ -181,7 +181,7 @@ test/fixtures/Makefile.state-recipe-context
  148 0 1  0  0 \t |
  149 0 1  1  0 \t | ## Doc of rule-20
  150 0 1  0  0 \t | rule-20:
- 150 ============ => target:rule-20
+ 150 ============ => target:[rule-20]
  151 0 1  0  0 \t | \t@echo rule-20
  152 0 1  0  0 \t | ifdef V
  153 0 1  0  0 \t | endif
@@ -190,7 +190,7 @@ test/fixtures/Makefile.state-recipe-context
  156 0 1  0  0 \t |
  157 0 1  1  0 \t | ## Doc of rule-21
  158 0 1  0  0 \t | rule-21:
- 158 ============ => target:rule-21
+ 158 ============ => target:[rule-21]
  159 0 1  0  0 \t | \t@echo rule-21
  160 0 1  0  0 \t | ifeq (a,b)
  161 0 1  0  0 \t | else ifeq (a,a)
@@ -200,7 +200,7 @@ test/fixtures/Makefile.state-recipe-context
  165 0 1  0  0 \t |
  166 0 1  1  0 \t | ## Doc of rule-22
  167 0 1  0  0 \t | rule-22:
- 167 ============ => target:rule-22
+ 167 ============ => target:[rule-22]
  168 0 1  0  0 \t | \t@echo rule-22
  169 0 1  0  0 \t | # a comment
  170 0 1  0  0 \t | \t## a comment, after a rule
@@ -208,7 +208,7 @@ test/fixtures/Makefile.state-recipe-context
  172 0 1  0  0 \t |
  173 0 1  1  0 \t | ## Doc of rule-23
  174 0 1  0  0 \t | rule-23:
- 174 ============ => target:rule-23
+ 174 ============ => target:[rule-23]
  175 0 1  0  0 \t | \t@echo rule-23
  176 0 1  0  0 \t |
  177 0 1  0  0 \t | \t## a blank line, after a rule
@@ -216,7 +216,7 @@ test/fixtures/Makefile.state-recipe-context
  179 0 1  0  0 \t |
  180 0 1  1  0 \t | ## Doc of rule-24
  181 0 1  0  0 \t | rule-24:
- 181 ============ => target:rule-24
+ 181 ============ => target:[rule-24]
  182 0 1  0  0 \t | \t@echo rule-24
  183 0 1  1  0 \t | ## a doc
  184 0 1  0  0 \t | \t## a doc, after a rule
@@ -224,7 +224,7 @@ test/fixtures/Makefile.state-recipe-context
  186 0 1  0  0 \t |
  187 0 1  1  0 \t | ## Doc of rule-25
  188 0 1  0  0 \t | rule-25:
- 188 ============ => target:rule-25
+ 188 ============ => target:[rule-25]
  189 0 1  0  0 \t | \t@echo rule-25
  190 0 1  0  0 \t | ###
  191 0 1  0  0 \t | \t## a banner, after a rule
@@ -264,49 +264,49 @@ test/fixtures/Makefile.state-recipe-context
  225 0 0  0  0 \t | V = 1
  226 0 0  1  0 \t | \t## an assignment (=), after an assignment
  227 0 1  0  0 \t | next-32:
- 227 ============ => target:next-32
+ 227 ============ => target:[next-32]
  228 0 1  0  0 \t |
  229 0 0  0  0 \t | A := 1
  230 0 0  0  0 \t | V := 1
  231 0 0  1  0 \t | \t## an assignment (:=), after an assignment
  232 0 1  0  0 \t | next-33:
- 232 ============ => target:next-33
+ 232 ============ => target:[next-33]
  233 0 1  0  0 \t |
  234 0 0  0  0 \t | A := 1
  235 0 0  0  0 \t | V ::= 1
  236 0 0  1  0 \t | \t## an assignment (::=), after an assignment
  237 0 1  0  0 \t | next-34:
- 237 ============ => target:next-34
+ 237 ============ => target:[next-34]
  238 0 1  0  0 \t |
  239 0 0  0  0 \t | A := 1
  240 0 0  0  0 \t | V != echo 1
  241 0 0  1  0 \t | \t## an assignment (!=), after an assignment
  242 0 1  0  0 \t | next-35:
- 242 ============ => target:next-35
+ 242 ============ => target:[next-35]
  243 0 1  0  0 \t |
  244 0 0  0  0 \t | A := 1
  245 0 0  0  0 \t | V ?= 1
  246 0 0  1  0 \t | \t## an assignment (?=), after an assignment
  247 0 1  0  0 \t | next-36:
- 247 ============ => target:next-36
+ 247 ============ => target:[next-36]
  248 0 1  0  0 \t |
  249 0 0  0  0 \t | A := 1
  250 0 0  0  0 \t | V += 1
  251 0 0  1  0 \t | \t## an assignment (+=), after an assignment
  252 0 1  0  0 \t | next-37:
- 252 ============ => target:next-37
+ 252 ============ => target:[next-37]
  253 0 1  0  0 \t |
  254 0 0  0  0 \t | A := 1
  255 0 0  0  0 \t | export V = 1
  256 0 0  1  0 \t | \t## an exported assignment, after an assignment
  257 0 1  0  0 \t | next-38:
- 257 ============ => target:next-38
+ 257 ============ => target:[next-38]
  258 0 1  0  0 \t |
  259 0 0  0  0 \t | A := 1
  260 0 0  0  0 \t | override V := 1
  261 0 0  1  0 \t | \t## an overridden assignment, after an assignment
  262 0 1  0  0 \t | next-39:
- 262 ============ => target:next-39
+ 262 ============ => target:[next-39]
  263 0 1  0  0 \t |
  264 0 0  0  0 \t | A := 1
  265 0 0  0  0 \t | define D
@@ -314,21 +314,21 @@ test/fixtures/Makefile.state-recipe-context
  267 0 0  0  0 \t | endef
  268 0 0  1  0 \t | \t## define ... endef, after an assignment
  269 0 1  0  0 \t | next-40:
- 269 ============ => target:next-40
+ 269 ============ => target:[next-40]
  270 0 1  0  0 \t |
  271 0 0  0  0 \t | A := 1
  272 0 0  0  0 \t | ifeq (a,a)
  273 0 0  0  0 \t | endif
  274 0 0  1  0 \t | \t## ifeq ... endif, after an assignment
  275 0 1  0  0 \t | next-41:
- 275 ============ => target:next-41
+ 275 ============ => target:[next-41]
  276 0 1  0  0 \t |
  277 0 0  0  0 \t | A := 1
  278 0 0  0  0 \t | ifdef V
  279 0 0  0  0 \t | endif
  280 0 0  1  0 \t | \t## ifdef ... endif, after an assignment
  281 0 1  0  0 \t | next-42:
- 281 ============ => target:next-42
+ 281 ============ => target:[next-42]
  282 0 1  0  0 \t |
  283 0 0  0  0 \t | A := 1
  284 0 0  0  0 \t | ifeq (a,b)
@@ -336,76 +336,76 @@ test/fixtures/Makefile.state-recipe-context
  286 0 0  0  0 \t | endif
  287 0 0  1  0 \t | \t## else ifeq, after an assignment
  288 0 1  0  0 \t | next-43:
- 288 ============ => target:next-43
+ 288 ============ => target:[next-43]
  289 0 1  0  0 \t |
  290 0 0  0  0 \t | A := 1
  291 0 0  0  0 \t | # a comment
  292 0 0  1  0 \t | \t## a comment, after an assignment
  293 0 1  0  0 \t | next-44:
- 293 ============ => target:next-44
+ 293 ============ => target:[next-44]
  294 0 1  0  0 \t |
  295 0 0  0  0 \t | A := 1
  296 0 0  0  0 \t |
  297 0 0  1  0 \t | \t## a blank line, after an assignment
  298 0 1  0  0 \t | next-45:
- 298 ============ => target:next-45
+ 298 ============ => target:[next-45]
  299 0 1  0  0 \t |
  300 0 0  0  0 \t | A := 1
  301 0 0  1  0 \t | ## a doc
  302 0 0  2  0 \t | \t## a doc, after an assignment
  303 0 1  0  0 \t | next-46:
- 303 ============ => target:next-46
+ 303 ============ => target:[next-46]
  304 0 1  0  0 \t |
  305 0 0  0  0 \t | A := 1
  306 0 0  0  0 \t | ###
  307 0 0  1  0 \t | \t## a banner, after an assignment
  308 0 1  0  0 \t | next-47:
- 308 ============ => target:next-47
+ 308 ============ => target:[next-47]
  309 0 1  0  0 \t |
  310 0 0  0  0 \t | A := 1
  311 0 0  0  0 \t | include /dev/null
  312 0 0  1  0 \t | \t## include, after an assignment
  313 0 1  0  0 \t | next-48:
- 313 ============ => target:next-48
+ 313 ============ => target:[next-48]
  314 0 1  0  0 \t |
  315 0 0  0  0 \t | A := 1
  316 0 0  0  0 \t | -include /nonexistent-49
  317 0 0  1  0 \t | \t## -include, after an assignment
  318 0 1  0  0 \t | next-49:
- 318 ============ => target:next-49
+ 318 ============ => target:[next-49]
  319 0 1  0  0 \t |
  320 0 0  0  0 \t | A := 1
  321 0 0  0  0 \t | vpath %.c src
  322 0 0  1  0 \t | \t## vpath, after an assignment
  323 0 1  0  0 \t | next-50:
- 323 ============ => target:next-50
+ 323 ============ => target:[next-50]
  324 0 1  0  0 \t |
  325 0 0  0  0 \t | A := 1
  326 0 0  0  0 \t | export V
  327 0 0  1  0 \t | \t## export (no assignment), after an assignment
  328 0 1  0  0 \t | next-51:
- 328 ============ => target:next-51
+ 328 ============ => target:[next-51]
  329 0 1  0  0 \t |
  330 0 0  0  0 \t | A := 1
  331 0 0  0  0 \t | unexport V
  332 0 0  1  0 \t | \t## unexport, after an assignment
  333 0 1  0  0 \t | next-52:
- 333 ============ => target:next-52
+ 333 ============ => target:[next-52]
  334 0 1  0  0 \t |
  335 0 0  0  0 \t | A := 1
  336 0 0  0  0 \t | undefine V
  337 0 0  1  0 \t | \t## undefine, after an assignment
  338 0 1  0  0 \t | next-53:
- 338 ============ => target:next-53
+ 338 ============ => target:[next-53]
  339 0 1  0  0 \t |
  340 0 0  0  0 \t | A := 1
  341 0 0  0  0 \t | $(info x)
  342 0 0  1  0 \t | \t## a function call ($(info)), after an assignment
  343 0 1  0  0 \t | next-54:
- 343 ============ => target:next-54
+ 343 ============ => target:[next-54]
  344 0 1  0  0 \t |
  345 0 0  0  0 \t | A := 1
  346 0 0  0  0 \t | $(eval E := 1)
  347 0 0  1  0 \t | \t## a function call ($(eval)), after an assignment
  348 0 1  0  0 \t | next-55:
- 348 ============ => target:next-55
+ 348 ============ => target:[next-55]
