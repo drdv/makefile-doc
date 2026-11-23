@@ -1348,6 +1348,13 @@ function print_warnings(    k) {
   }
 }
 
+# The rendering state, derived from the interface: the anchors to display, in order, and
+# their sections. What follows (print_documentation) only formats and prints it.
+function prepare_rendering() {
+  build_anchor_lists()
+  place_sections()
+}
+
 # Build TARGETS and VARIABLES from ANCHOR_ORDER: the documented anchors of each kind, once
 # each, in file order (at their first definition)
 function build_anchor_lists(    k, parts, seen) {
@@ -1664,7 +1671,7 @@ function append_output(text) {
 # Display the documentation (all its output is printed from here).
 function print_documentation(    max_target_length, max_variable_length, max_anchor_length,
                              separator) {
-  build_anchor_lists()
+  prepare_rendering()
   max_target_length = get_max_anchor_length(TARGETS, TARGETS_TAG)
   # 0 when the variables are not shown (VARS=0)
   max_variable_length = VARS ? get_max_anchor_length(VARIABLES, VARIABLES_TAG) : 0
@@ -1672,7 +1679,6 @@ function print_documentation(    max_target_length, max_variable_length, max_anc
   separator = get_separator("-", max_anchor_length)
   OUTPUT_BODY = ""
   print_warnings() # (on stderr, before the docs)
-  place_sections()
 
   # process targets
   if (max_target_length > 0) {
