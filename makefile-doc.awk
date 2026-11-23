@@ -37,10 +37,8 @@
 #       * a function without parameters: the locals are on the same line, after four spaces
 #         (awk does not accept a comment right after the parenthesis)
 #             function f(    k, n) {
-#   * The naming convention for global variables is:
-#     * long-standing/important global variables are written in all upper case
-#     * temporary variables that end-up being global (simply because of where they are
-#       defined, e.g., in the pattern rules) have a prefix g_.
+#   * Global variables are written in upper case (a global in lower case is a local variable
+#     that was not declared).
 #   * The code is meant to run with most major awk implementations, and as a result we
 #     need to stick to basic syntax. For example, we cannot use a match function with
 #     a third argument (an array that stores the groups) and have to fall-back to using

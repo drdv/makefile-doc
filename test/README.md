@@ -225,8 +225,8 @@ therefore declared as an extra parameter (`function f(a,    local)`), and a forg
 declaration silently creates a global. Two tests in `test/test_lint.py` catch this, using
 the list of global variables that `gawk -d` dumps:
 
-- `test_global_names`: verifies that the global variables of `makefile-doc.awk` are named either
-  `UPPER_CASE` or `g_lower_case`;
+- `test_global_names`: verifies that the global variables of `makefile-doc.awk` are named in
+  `UPPER_CASE`;
 - `test_unit_file_defines_no_globals`: verifies that a unit test file defines no global variables of
   its own.
 

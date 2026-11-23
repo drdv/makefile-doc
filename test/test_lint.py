@@ -172,7 +172,7 @@ def globals_of(gawk: Awk, tmp_path: Path, *args: str) -> set[str]:
 
 def test_global_names(gawk: Awk, tmp_path: Path) -> None:
     names = globals_of(gawk, tmp_path, "-f", SCRIPT)
-    assert not sorted(n for n in names if not re.fullmatch(r"[A-Z_]+|g_[a-z_]+", n))
+    assert not sorted(n for n in names if not re.fullmatch(r"[A-Z_]+", n))
 
 
 @pytest.mark.parametrize("path", UNIT_FILES, ids=lambda p: p.stem)
