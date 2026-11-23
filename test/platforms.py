@@ -64,7 +64,12 @@ class Awk(BaseModel):
     def _get_host_args(
         self, awk_exec_cmd: list[str], env: dict[str, str]
     ) -> tuple[list[str], dict[str, str]]:
-        return awk_exec_cmd, {"LC_ALL": "C", "PATH": os.environ["PATH"]} | env
+        variables = {"LC_ALL": "C", "PATH": os.environ["PATH"]}
+        if os.name == "nt":
+            # MSYS programs (e.g., the awk of Git for Windows) glob the arguments they get
+            # from a Windows program: `{` and `\` would not reach awk unchanged
+            variables["MSYS"] = "noglob"
+        return awk_exec_cmd, variables | env
 
     def _get_container_args(
         self, awk_exec_cmd: list[str], env: dict[str, str]
