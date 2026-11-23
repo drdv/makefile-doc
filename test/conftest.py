@@ -30,7 +30,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption(
         "--new-parser",
         action="store_true",
-        help="trace cases: trace the new parser (parser.awk) instead of the current one",
+        help="use the new parser (parser.awk) instead of the current one",
     )
 
 
@@ -42,6 +42,8 @@ def pytest_configure(config: pytest.Config) -> None:
         raise pytest.UsageError(str(error)) from None
     if config.getoption("update") and len(loaded_platforms) != 1:
         raise pytest.UsageError("--update rewrites the expected outputs: give one platform")
+    if config.getoption("update") and config.getoption("new_parser"):
+        raise pytest.UsageError("--update rewrites the expected outputs: not with --new-parser")
     config.stash[PLATFORMS] = loaded_platforms
 
 
