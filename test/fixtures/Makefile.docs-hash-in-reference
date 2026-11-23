@@ -1,0 +1,10 @@
+# In GNU Make, # inside a variable reference or function call is literal: a ## there does
+# not start an inline doc. Known bug #183: the parser takes it for one. $$ is a literal $,
+# so $$( does not start a reference: the ## after it does start an inline doc.
+
+FOO := $(shell echo '##a')
+BAR := ${shell echo '##b'}
+BAZ := $(subst x,##,x) ## Doc of BAZ
+QUX := $$(echo ## Doc of QUX
+t: $(shell echo '##c') ## Doc of t
+u: ${shell echo '##d'}
