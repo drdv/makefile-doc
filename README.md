@@ -92,7 +92,8 @@ path.
 makefile-doc works with GNU Make 3.81 or later and with all the major awks (gawk, mawk, the one true
 awk, busybox awk, wak and goawk), in versions spanning 30 years: from mawk 1.3.3 (1996) and gawk
 3.1.7 to the latest releases. The tested versions are listed as platforms in
-[test/containers.toml](test/containers.toml).
+[test/containers.toml](test/containers.toml). It runs on Linux, macOS and Windows (with the awk of
+Git for Windows, e.g., in Git Bash, or a native gawk); all three are tested in CI.
 
 ## Writing docs
 
