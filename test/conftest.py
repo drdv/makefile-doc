@@ -27,6 +27,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help=f"container engine (default: {platforms.ENGINE})",
     )
     group.addoption("--update", action="store_true", help="rewrite the expected outputs")
+    group.addoption(
+        "--new-parser",
+        action="store_true",
+        help="trace cases: trace the new parser (parser.awk) instead of the current one",
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
