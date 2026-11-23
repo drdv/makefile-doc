@@ -1,0 +1,72 @@
+# Directives, function calls and target-specific assignments end the recipe context, as in
+# GNU Make: the tab-indented ## line after them is a comment, so a doc of next-N. Known
+# bug #182: the parser keeps the recipe context (and starts one at a target-specific
+# assignment), so the doc is lost.
+
+## Doc of rule-1
+rule-1:
+	@echo rule-1
+include /dev/null
+	## include, after a rule
+next-1:
+
+## Doc of rule-2
+rule-2:
+	@echo rule-2
+-include /nonexistent-2
+	## -include, after a rule
+next-2:
+
+## Doc of rule-3
+rule-3:
+	@echo rule-3
+vpath %.c src
+	## vpath, after a rule
+next-3:
+
+## Doc of rule-4
+rule-4:
+	@echo rule-4
+export V
+	## export (no assignment), after a rule
+next-4:
+
+## Doc of rule-5
+rule-5:
+	@echo rule-5
+unexport V
+	## unexport, after a rule
+next-5:
+
+## Doc of rule-6
+rule-6:
+	@echo rule-6
+undefine V
+	## undefine, after a rule
+next-6:
+
+## Doc of rule-7
+rule-7:
+	@echo rule-7
+$(info x)
+	## a function call ($(info)), after a rule
+next-7:
+
+## Doc of rule-8
+rule-8:
+	@echo rule-8
+$(eval E := 1)
+	## a function call ($(eval)), after a rule
+next-8:
+
+## Doc of rule-9
+rule-9:
+	@echo rule-9
+t-9: V := 1
+	## a target-specific assignment, after a rule
+next-9:
+
+A := 1
+t-10: V := 1
+	## a target-specific assignment, after an assignment
+next-10:

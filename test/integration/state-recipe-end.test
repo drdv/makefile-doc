@@ -1,0 +1,27 @@
+#: desc: Directives, function calls and target-specific assignments end the recipe context, as in GNU Make
+#: bug: 182
+-v COLOR=0 test/fixtures/Makefile.state-recipe-end
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+rule-1    Doc of rule-1
+next-1    include, after a rule
+rule-2    Doc of rule-2
+next-2    -include, after a rule
+rule-3    Doc of rule-3
+next-3    vpath, after a rule
+rule-4    Doc of rule-4
+next-4    export (no assignment), after a rule
+rule-5    Doc of rule-5
+next-5    unexport, after a rule
+rule-6    Doc of rule-6
+next-6    undefine, after a rule
+rule-7    Doc of rule-7
+next-7    a function call ($(info)), after a rule
+rule-8    Doc of rule-8
+next-8    a function call ($(eval)), after a rule
+rule-9    Doc of rule-9
+next-9    a target-specific assignment, after a rule
+next-10   a target-specific assignment, after an assignment
+-----------------------
