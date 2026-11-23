@@ -81,7 +81,7 @@
 #     of target names.
 #   * Recipe: a sequence of commands executed in the shell. Here, a line that starts with
 #     the recipe prefix is a recipe line if it comes after a rule and before a line that
-#     closes it (see lexical_step).
+#     closes it (see parser_step).
 #   * Target: an abstraction representing a task/goal to achieve which is defined in
 #     terms of, potentially, many rules.
 #     * Normal (single-colon) targets can have only one recipe and to mirror this we
@@ -252,7 +252,7 @@ function init_globals() {
 
   VERSION = "v2.1" # the only place where the version is defined
 
-  # The special built-in targets of GNU Make (see lexical_observe). Suffix rules, which
+  # The special built-in targets of GNU Make (see parser_observe). Suffix rules, which
   # GNU Make also counts as special targets, are not among them: they are displayed.
   SPECIAL_TARGETS_REGEX = "^[ \t]*\\.(PHONY|SUFFIXES|DEFAULT|PRECIOUS|INTERMEDIATE|" \
                           "NOTINTERMEDIATE|SECONDARY|SECONDEXPANSION|DELETE_ON_ERROR|" \
@@ -340,8 +340,8 @@ function init_globals() {
 
   CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
 
-  # the state of the parser (see lexical_init, called in BEGIN once RECIPEPREFIX is known) and
-  # the observation of the last logical line (see lexical_obs)
+  # the state of the parser (see parser_init, called in BEGIN once RECIPEPREFIX is known) and
+  # the observation of the last logical line (see parser_obs)
   split("", PARSER_STATE)
   split("", PARSER_OBS)
 
@@ -975,8 +975,8 @@ function apply_output_specific_formatting(text) {
 #### Parsing
 # The parser that reads the Makefiles, one line at a time, and its helpers. It follows the
 # model of misc/docs/parser-model.tex: each physical line is joined with the next ones if it
-# ends with a backslash (lexical_join), each logical line is observed (lexical_obs: what kind
-# of line it is, what it would document) and updates the state (lexical_step: inside a rule,
+# ends with a backslash (parser_join), each logical line is observed (parser_obs: what kind
+# of line it is, what it would document) and updates the state (parser_step: inside a rule,
 # a doc pending, a section pending, the recipe prefix). The rule at the end of this section
 # runs it, keeps the text of the pending doc and section, and gives the doc to the anchor
 # that takes it. Parsing fills the interface variables (see init_globals) and reads no
@@ -1070,9 +1070,9 @@ function associate_data_with_anchor(anchor_name,
 #   obs["anchor"]   target or variable (assignment and rule), "" otherwise
 #   obs["name"]     the name of the anchor, as written in the line
 #   obs["comment"]  the comment, from its # to the end of the line ("" if none)
-# The examples are in test/lexical.spec (see test/unit/test_lexical.awk).
-function lexical_observe(line, obs, #locals
-                         first_word) {
+# The examples are in test/parser.spec (see test/unit/test_parser.awk).
+function parser_observe(line, obs, #locals
+                        first_word) {
   split("", obs)
   obs["kind"] = ""
   obs["anchor"] = ""
@@ -1090,7 +1090,7 @@ function lexical_observe(line, obs, #locals
     return
   }
 
-  lexical_scan(line, obs) # kind: assignment, rule or ""
+  parser_scan(line, obs) # kind: assignment, rule or ""
   if (obs["kind"] == "assignment") {
     return
   }
@@ -1099,24 +1099,24 @@ function lexical_observe(line, obs, #locals
   sub(/^[ \t]+/, "", first_word)
   sub(/[ \t(].*$/, "", first_word)
   if (first_word ~ /^(ifeq|ifneq|ifdef|ifndef|else|endif)$/) {
-    lexical_clear(obs, "neutral")
+    parser_clear(obs, "neutral")
   } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
-    lexical_clear(obs, "other")
-  } else if (lexical_define_name(line) != "") {
-    lexical_clear(obs, "assignment")
+    parser_clear(obs, "other")
+  } else if (parser_define_name(line) != "") {
+    parser_clear(obs, "assignment")
     obs["anchor"] = "variable"
-    obs["name"] = lexical_define_name(line)
+    obs["name"] = parser_define_name(line)
   } else if (obs["kind"] == "rule") {
     if ((obs["name"] ":") ~ SPECIAL_TARGETS_REGEX) {
-      lexical_clear(obs, "special rule")
+      parser_clear(obs, "special rule")
     }
   } else {
-    lexical_clear(obs, "other")
+    parser_clear(obs, "other")
   }
 }
 
 # set the kind of obs, without anchor, name and comment
-function lexical_clear(obs, kind) {
+function parser_clear(obs, kind) {
   obs["kind"] = kind
   obs["anchor"] = ""
   obs["name"] = ""
@@ -1124,8 +1124,8 @@ function lexical_clear(obs, kind) {
 }
 
 # the name of the variable of a define line (e.g., `override define V :=`), "" if not one
-function lexical_define_name(line, #locals
-                             rest) {
+function parser_define_name(line, #locals
+                            rest) {
   rest = line
   sub(/^[ \t]*((export|override|private)[ \t]+)*/, "", rest)
   if (rest !~ /^define[ \t]+[^ \t]/) {
@@ -1142,9 +1142,9 @@ function lexical_define_name(line, #locals
 # an assignment to a variable, also obs["operator"] and obs["value"] (without its comment,
 # leading blanks removed). The searches run on the masked line; the texts are cut from the
 # line.
-function lexical_scan(line, obs, #locals
-                      masked, p, c, q, start, end, after, rest, hit, name) {
-  masked = lexical_mask(line)
+function parser_scan(line, obs, #locals
+                     masked, p, c, q, start, end, after, rest, hit, name) {
+  masked = parser_mask(line)
   p = match(masked, /[#=:]/)
   if (!p) {
     return
@@ -1160,13 +1160,13 @@ function lexical_scan(line, obs, #locals
   }
   if (c == "=" || substr(masked, q + 1, 1) == "=") { # an operator before any separating colon
     start = (c == "=" && p > 1 && substr(masked, p - 1, 1) ~ /[?+!]/) ? p - 1 : p
-    name = lexical_variable_name(substr(line, 1, start - 1), substr(masked, 1, start - 1))
+    name = parser_variable_name(substr(line, 1, start - 1), substr(masked, 1, start - 1))
     if (name != "") {
       end = c == "=" ? p : q + 1 # the = of the operator
       obs["kind"] = "assignment"
       obs["anchor"] = "variable"
       obs["name"] = name
-      obs["comment"] = lexical_rest_from(line, masked, end, "#")
+      obs["comment"] = parser_rest_from(line, masked, end, "#")
       obs["operator"] = substr(line, start, end - start + 1)
       obs["value"] = substr(line, end + 1, length(line) - end - length(obs["comment"]))
       sub(/^[ \t]+/, "", obs["value"])
@@ -1199,14 +1199,14 @@ function lexical_scan(line, obs, #locals
     obs["comment"] = substr(line, hit)
   } else if (c == "=") { # a target-specific assignment: after its operator, ; hides #
     obs["kind"] = "assignment"
-    obs["comment"] = lexical_rest_from(line, masked, hit, "#;")
+    obs["comment"] = parser_rest_from(line, masked, hit, "#;")
   }
 }
 
 # The comment of line after position p: from the first character of chars found in masked
 # after p, if it is a #; "" otherwise
-function lexical_rest_from(line, masked, p, chars, #locals
-                           k, c) {
+function parser_rest_from(line, masked, p, chars, #locals
+                          k, c) {
   for (k = p + 1; k <= length(masked); k++) {
     c = substr(masked, k, 1)
     if (index(chars, c) > 0) {
@@ -1219,8 +1219,8 @@ function lexical_rest_from(line, masked, p, chars, #locals
 # The variable of the left side of an assignment, with its qualifiers (export, override,
 # private): the single word after them, "" if there is not exactly one word. The words are
 # found in masked (a reference is part of a word), the name is cut from text.
-function lexical_variable_name(text, masked, #locals
-                               word_start, before, n, words, k) {
+function parser_variable_name(text, masked, #locals
+                              word_start, before, n, words, k) {
   if (!match(masked, /[^ \t]+[ \t]*$/)) {
     return ""
   }
@@ -1246,8 +1246,8 @@ function lexical_variable_name(text, masked, #locals
 #     $$ is a literal $)
 #   * the escape pairs \\, \#, \: and \; (read from left to right: in a run of backslashes,
 #     only an odd last one escapes the character that follows)
-function lexical_mask(line, #locals
-                      n, k, c, next_char, opening, closing, depth, start, out) {
+function parser_mask(line, #locals
+                     n, k, c, next_char, opening, closing, depth, start, out) {
   n = length(line)
   out = ""
   k = 1
@@ -1294,7 +1294,7 @@ function lexical_mask(line, #locals
 # line being joined (state["joining"], state["pending"]).
 # ---------------------------------------------------------------------------------------
 
-function lexical_init(state, prefix) {
+function parser_init(state, prefix) {
   split("", state)
   state["r"] = 0
   state["d"] = 0
@@ -1308,7 +1308,7 @@ function lexical_init(state, prefix) {
 
 # At the first line of a file: no open rule and no pending doc (a section and the recipe
 # prefix carry over). A line continued at the end of the previous file is dropped.
-function lexical_file_start(state) {
+function parser_file_start(state) {
   state["r"] = 0
   state["d"] = 0
   state["dn"] = 0
@@ -1319,8 +1319,8 @@ function lexical_file_start(state) {
 # Add a physical line: return 1 when a logical line is complete (in state["line"]), 0 when the
 # line continues on the next one (an odd number of final backslashes, recipe lines included).
 # As in GNU Make, the backslash, the newline and the blanks around them become one space.
-function lexical_join(state, physical, #locals
-                      stripped) {
+function parser_join(state, physical, #locals
+                     stripped) {
   sub(/\r$/, "", physical) # CRLF line endings
   if (state["joining"]) {
     sub(/^[ \t]+/, "", physical)
@@ -1341,28 +1341,28 @@ function lexical_join(state, physical, #locals
   return 1
 }
 
-# Observe a logical line with the state (all the questions of the model): lexical_observe,
+# Observe a logical line with the state (all the questions of the model): parser_observe,
 # plus question 1 (a recipe line: inside a rule, the line starts with the recipe prefix),
 # obs["inline"] (a_i: the comment is an inline doc) and question 9 (an assignment to
 # .RECIPEPREFIX changes state["c"], for the next lines).
-function lexical_obs(line, state, obs) {
+function parser_obs(line, state, obs) {
   if (state["r"] && substr(line, 1, 1) == state["c"]) {
     split("", obs)
-    lexical_clear(obs, "recipe")
+    parser_clear(obs, "recipe")
   } else {
-    lexical_observe(line, obs)
+    parser_observe(line, obs)
   }
   obs["inline"] = obs["anchor"] != "" && obs["comment"] ~ /^##/ && obs["comment"] !~ /^##@/
   if (obs["kind"] == "assignment" && obs["anchor"] == "variable" &&
       obs["name"] == ".RECIPEPREFIX") {
-    lexical_set_prefix(state, obs["operator"], obs["value"])
+    parser_set_prefix(state, obs["operator"], obs["value"])
   }
 }
 
 # The recipe prefix after an assignment to .RECIPEPREFIX: the first character of the value (a
 # tab if it is empty). With += the first character does not change; with != or an expanded
 # reference (:=, ::=), the value is not known: the prefix does not change either.
-function lexical_set_prefix(state, operator, value) {
+function parser_set_prefix(state, operator, value) {
   if (operator == "+=" || operator == "!=" || (operator ~ /^:+=$/ && index(value, "$") > 0)) {
     return
   }
@@ -1372,15 +1372,15 @@ function lexical_set_prefix(state, operator, value) {
 # Update the state with an observation (the step table of the model). obs["attach"] is 1 when
 # the line is an anchor that gets documented (by a pending doc or its inline doc), and
 # obs["with_section"] is 1 when the pending section goes with it.
-function lexical_step(state, obs, #locals
-                      kind, documented) {
+function parser_step(state, obs, #locals
+                     kind, documented) {
   kind = obs["kind"]
   documented = state["d"] || obs["inline"]
   obs["attach"] = 0
   obs["with_section"] = 0
   if (kind == "recipe") {
     state["r"] = 1
-    lexical_drop_doc(state)
+    parser_drop_doc(state)
   } else if (kind == "doc") {
     state["d"] = 1
     state["dn"]++
@@ -1388,7 +1388,7 @@ function lexical_step(state, obs, #locals
     state["s"] = 1
     state["sn"]++
   } else if (kind == "banner") {
-    lexical_drop_doc(state)
+    parser_drop_doc(state)
   } else if (kind == "rule" || kind == "assignment") {
     state["r"] = kind == "rule"
     if (documented) {
@@ -1397,16 +1397,16 @@ function lexical_step(state, obs, #locals
       state["s"] = 0
       state["sn"] = 0
     }
-    lexical_drop_doc(state)
+    parser_drop_doc(state)
   } else if (kind == "special rule") {
     state["r"] = 1
   } else if (kind == "other") {
     state["r"] = 0
-    lexical_drop_doc(state)
+    parser_drop_doc(state)
   } # neutral: no change
 }
 
-function lexical_drop_doc(state) {
+function parser_drop_doc(state) {
   state["d"] = 0
   state["dn"] = 0
 }
@@ -1415,9 +1415,9 @@ function lexical_drop_doc(state) {
 # At the first line of a file: the warning about the previous file, then a new file (the
 # pending doc is dropped, the pending section is kept: it goes to the next documented anchor,
 # which can be in this file)
-function parse_file_start() {
+function read_file_start() {
   warn_about_continued_last_line()
-  lexical_file_start(PARSER_STATE)
+  parser_file_start(PARSER_STATE)
   forget_descriptions_data()
   # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
   CURRENT_FILE = FILENAME == "" ? "-" : FILENAME
@@ -1427,9 +1427,9 @@ function parse_file_start() {
 # A logical line: observe it (in PARSER_OBS), keep the text of a doc or section line, update
 # the state, and give the doc to the anchor that takes it (without a pending doc, its inline
 # doc). The pending doc is dropped when the state says so.
-function parse_line(line, #locals
-                    kind, text) {
-  lexical_obs(line, PARSER_STATE, PARSER_OBS)
+function read_line(line, #locals
+                   kind, text) {
+  parser_obs(line, PARSER_STATE, PARSER_OBS)
   kind = PARSER_OBS["kind"]
   text = line
   sub(/^[ \t]+/, "", text)
@@ -1440,7 +1440,7 @@ function parse_line(line, #locals
     save_section_data(text)
   }
 
-  lexical_step(PARSER_STATE, PARSER_OBS)
+  parser_step(PARSER_STATE, PARSER_OBS)
   if (PARSER_OBS["attach"]) {
     if (DESCRIPTION_DATA_INDEX == 1) {
       save_description_data(PARSER_OBS["comment"])
@@ -1477,12 +1477,12 @@ function form_target_name(obs, #locals
 }
 
 FNR == 1 {
-  parse_file_start()
+  read_file_start()
 }
 
 {
-  if (lexical_join(PARSER_STATE, $0)) {
-    parse_line(PARSER_STATE["line"])
+  if (parser_join(PARSER_STATE, $0)) {
+    read_line(PARSER_STATE["line"])
   }
 }
 
@@ -1879,7 +1879,7 @@ BEGIN {
   init_globals()
   if (!UNIT_TEST) {
     process_options()
-    lexical_init(PARSER_STATE, RECIPEPREFIX)
+    parser_init(PARSER_STATE, RECIPEPREFIX)
   }
 }
 

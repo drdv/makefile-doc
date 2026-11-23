@@ -1,5 +1,5 @@
-# Check the functions of the parser (the lexical_* functions of the script): against the
-# examples of test/lexical.spec, and line by line.
+# Check the functions of the parser (the parser_* functions of the script): against the
+# examples of test/parser.spec, and line by line.
 
 # Read the blocks of a spec file into blocks[k, key] (k = 1..n) and return n. A value in
 # brackets keeps its spaces (the first [ and the last ] of the line delimit it); a line that
@@ -30,12 +30,12 @@ function read_spec(path, blocks, #locals
   return n
 }
 
-function test_lexical_observe(    spec, n, k, obs, id) {
-  n = read_spec("test/lexical.spec", spec)
-  check_true("read_spec: test/lexical.spec has blocks", n > 0)
+function test_parser_observe(    spec, n, k, obs, id) {
+  n = read_spec("test/parser.spec", spec)
+  check_true("read_spec: test/parser.spec has blocks", n > 0)
   for (k = 1; k <= n; k++) {
     id = spec[k, "id"]
-    lexical_observe(spec[k, "line"], obs)
+    parser_observe(spec[k, "line"], obs)
     check("kind: " id, obs["kind"], array_get(spec, k SUBSEP "kind"))
     check("anchor: " id, obs["anchor"], array_get(spec, k SUBSEP "anchor"))
     check("name: " id, obs["name"], array_get(spec, k SUBSEP "name"))
@@ -43,51 +43,51 @@ function test_lexical_observe(    spec, n, k, obs, id) {
   }
 }
 
-function test_lexical_mask() {
-  check("lexical_mask: a line without references or escapes is unchanged",
-        lexical_mask("t: dep ; x # c"), "t: dep ; x # c")
-  check("lexical_mask: a reference", lexical_mask("V := $(shell echo x#y) # c"),
+function test_parser_mask() {
+  check("parser_mask: a line without references or escapes is unchanged",
+        parser_mask("t: dep ; x # c"), "t: dep ; x # c")
+  check("parser_mask: a reference", parser_mask("V := $(shell echo x#y) # c"),
         "V := _________________ # c")
-  check("lexical_mask: a reference with braces", lexical_mask("V := ${x#y} # c"),
+  check("parser_mask: a reference with braces", parser_mask("V := ${x#y} # c"),
         "V := ______ # c")
-  check("lexical_mask: a nested reference", lexical_mask("V := $(a $(b #)) # c"),
+  check("parser_mask: a nested reference", parser_mask("V := $(a $(b #)) # c"),
         "V := ___________ # c")
-  check("lexical_mask: parentheses nest in $(...)", lexical_mask("V = $(a (b) #) # c"),
+  check("parser_mask: parentheses nest in $(...)", parser_mask("V = $(a (b) #) # c"),
         "V = __________ # c")
-  check("lexical_mask: braces do not nest in $(...)", lexical_mask("V = $(a {b) #} # c"),
+  check("parser_mask: braces do not nest in $(...)", parser_mask("V = $(a {b) #} # c"),
         "V = _______ #} # c")
-  check("lexical_mask: a reference that is not closed", lexical_mask("V := $(foo # c"),
+  check("parser_mask: a reference that is not closed", parser_mask("V := $(foo # c"),
         "V := _________")
-  check("lexical_mask: $$", lexical_mask("V := $$(echo #x)"), "V := __(echo #x)")
-  check("lexical_mask: $$ then a reference", lexical_mask("V = $$$(x #) # c"),
+  check("parser_mask: $$", parser_mask("V := $$(echo #x)"), "V := __(echo #x)")
+  check("parser_mask: $$ then a reference", parser_mask("V = $$$(x #) # c"),
         "V = ________ # c")
-  check("lexical_mask: a one-character reference", lexical_mask("V := a$#b # c"),
+  check("parser_mask: a one-character reference", parser_mask("V := a$#b # c"),
         "V := a__b # c")
-  check("lexical_mask: $; and $:", lexical_mask("t: a$;b X$:Y"), "t: a__b X__Y")
-  check("lexical_mask: \\#", lexical_mask("V := a\\#b # c"), "V := a__b # c")
-  check("lexical_mask: \\\\ then #", lexical_mask("V := a\\\\# c"), "V := a__# c")
-  check("lexical_mask: \\\\ then \\#", lexical_mask("V := a\\\\\\# c"), "V := a____ c")
-  check("lexical_mask: \\:", lexical_mask("foo\\:bar: dep"), "foo__bar: dep")
-  check("lexical_mask: \\;", lexical_mask("t: dep \\; x"), "t: dep __ x")
-  check("lexical_mask: \\= is not an escape", lexical_mask("t: x\\=y"), "t: x\\=y")
-  check("lexical_mask: a $ at the end", lexical_mask("V := a$"), "V := a$")
-  check("lexical_mask: a \\ at the end", lexical_mask("V := a\\"), "V := a\\")
-  check("lexical_mask: a$b", lexical_mask("a$b"), "a__")
-  check("lexical_mask: a$$b", lexical_mask("a$$b"), "a__b")
-  check("lexical_mask: a$$$b", lexical_mask("a$$$b"), "a____")
+  check("parser_mask: $; and $:", parser_mask("t: a$;b X$:Y"), "t: a__b X__Y")
+  check("parser_mask: \\#", parser_mask("V := a\\#b # c"), "V := a__b # c")
+  check("parser_mask: \\\\ then #", parser_mask("V := a\\\\# c"), "V := a__# c")
+  check("parser_mask: \\\\ then \\#", parser_mask("V := a\\\\\\# c"), "V := a____ c")
+  check("parser_mask: \\:", parser_mask("foo\\:bar: dep"), "foo__bar: dep")
+  check("parser_mask: \\;", parser_mask("t: dep \\; x"), "t: dep __ x")
+  check("parser_mask: \\= is not an escape", parser_mask("t: x\\=y"), "t: x\\=y")
+  check("parser_mask: a $ at the end", parser_mask("V := a$"), "V := a$")
+  check("parser_mask: a \\ at the end", parser_mask("V := a\\"), "V := a\\")
+  check("parser_mask: a$b", parser_mask("a$b"), "a__")
+  check("parser_mask: a$$b", parser_mask("a$$b"), "a__b")
+  check("parser_mask: a$$$b", parser_mask("a$$$b"), "a____")
 }
 
 # The states after each physical line of text (lines separated by |), as "rds" (1/0 for
 # r, d, s), or "+" for a line that continues on the next one
 function trace_lines(text, prefix, #locals
                      state, lines, n, k, obs, out) {
-  lexical_init(state, prefix)
+  parser_init(state, prefix)
   n = split(text, lines, "|")
   out = ""
   for (k = 1; k <= n; k++) {
-    if (lexical_join(state, lines[k])) {
-      lexical_obs(state["line"], state, obs)
-      lexical_step(state, obs)
+    if (parser_join(state, lines[k])) {
+      parser_obs(state["line"], state, obs)
+      parser_step(state, obs)
       out = out " " state["r"] state["d"] state["s"]
     } else {
       out = out " +"
@@ -96,7 +96,7 @@ function trace_lines(text, prefix, #locals
   return substr(out, 2)
 }
 
-function test_lexical_states(    state, obs) {
+function test_parser_states(    state, obs) {
   check("states: the example of the model",
         trace_lines("##@ Build|## Compile the app|build: main.c|\tcc -o app main.c||" \
                     "## The version|V := 1", ""), "001 011 100 100 100 110 000")
@@ -119,46 +119,46 @@ function test_lexical_states(    state, obs) {
   check("states: the RECIPEPREFIX option", trace_lines("t:|> echo|\t## doc|u:", ">"),
         "100 100 110 100")
 
-  lexical_observe("define NO_SPACE+=", obs)
+  parser_observe("define NO_SPACE+=", obs)
   check("define: an operator without a blank is not part of the name", obs["name"], "NO_SPACE")
 
-  lexical_init(state, "")
-  lexical_obs(".RECIPEPREFIX = $(P)", state, obs)
+  parser_init(state, "")
+  parser_obs(".RECIPEPREFIX = $(P)", state, obs)
   check("prefix: = keeps the text of a reference", state["c"], "$")
-  lexical_obs(".RECIPEPREFIX := $(P)", state, obs)
+  parser_obs(".RECIPEPREFIX := $(P)", state, obs)
   check("prefix: an expanded reference is not known", state["c"], "$")
-  lexical_obs(".RECIPEPREFIX :=", state, obs)
+  parser_obs(".RECIPEPREFIX :=", state, obs)
   check("prefix: an empty value is a tab", state["c"], "\t")
 
-  lexical_init(state, "")
-  lexical_join(state, "##@ s")
-  lexical_obs(state["line"], state, obs)
-  lexical_step(state, obs)
-  lexical_join(state, "## d")
-  lexical_obs(state["line"], state, obs)
-  lexical_step(state, obs)
-  lexical_join(state, "t: \\")
-  lexical_file_start(state)
+  parser_init(state, "")
+  parser_join(state, "##@ s")
+  parser_obs(state["line"], state, obs)
+  parser_step(state, obs)
+  parser_join(state, "## d")
+  parser_obs(state["line"], state, obs)
+  parser_step(state, obs)
+  parser_join(state, "t: \\")
+  parser_file_start(state)
   check("file start: the doc is dropped, the section carries over",
         state["d"] " " state["s"] " " state["joining"], "0 1 0")
 }
 
-# a field of the observation of a line without state (lexical_observe), "" if not set
+# a field of the observation of a line without state (parser_observe), "" if not set
 function observed(line, field, #locals
                   obs) {
-  lexical_observe(line, obs)
+  parser_observe(line, obs)
   return array_get(obs, field)
 }
 
-# the inline doc of a line outside a rule (lexical_obs), or "<none>"
+# the inline doc of a line outside a rule (parser_obs), or "<none>"
 function inline_doc(line, #locals
                     state, obs) {
-  lexical_init(state, "")
-  lexical_obs(line, state, obs)
+  parser_init(state, "")
+  parser_obs(line, state, obs)
   return obs["inline"] ? obs["comment"] : "<none>"
 }
 
-function test_lexical_special_rules() {
+function test_parser_special_rules() {
   check("special rule: .PHONY", observed(".PHONY: t", "kind"), "special rule")
   check("special rule: .SILENT", observed(".SILENT: t", "kind"), "special rule")
   check("special rule: .IGNORE", observed(".IGNORE: t", "kind"), "special rule")
@@ -193,7 +193,7 @@ function test_lexical_special_rules() {
   check("special rule: .PHONY as a prerequisite is a rule", observed("t: .PHONY", "kind"), "rule")
 }
 
-function test_lexical_variable_names() {
+function test_parser_variable_names() {
   check("variable name: := without spaces", observed("VAR2_1:=1##comment", "name"), "VAR2_1")
   check("variable name: ?= with spaces", observed("var2_1   ?=  1##comment", "name"), "var2_1")
   check("variable name: :::=", observed("x   :::=fsws", "name"), "x")
@@ -212,7 +212,7 @@ function test_lexical_variable_names() {
         observed("override unexport V := 1", "kind"), "other")
 }
 
-function test_lexical_inline_docs() {
+function test_parser_inline_docs() {
   check("inline doc: ## (a ; in the doc is kept)",
         inline_doc("target: ## some ;description"), "## some ;description")
   check("inline doc: ##! (a ; in the doc is kept)",
@@ -248,7 +248,7 @@ function test_lexical_inline_docs() {
   check("inline doc: a ## in the doc is kept", inline_doc("target: ## a ## b"), "## a ## b")
 }
 
-function test_lexical_double_colon() {
+function test_parser_double_colon() {
   check("double colon: ::", observed("t::", "double"), 1)
   check("double colon: :", observed("t:", "double"), 0)
   check("double colon: :: with a target variable", observed("t:: A:=1", "double"), 1)
@@ -258,12 +258,12 @@ function test_lexical_double_colon() {
 }
 
 BEGIN {
-  test_lexical_special_rules()
-  test_lexical_variable_names()
-  test_lexical_inline_docs()
-  test_lexical_double_colon()
-  test_lexical_mask()
-  test_lexical_observe()
-  test_lexical_states()
+  test_parser_special_rules()
+  test_parser_variable_names()
+  test_parser_inline_docs()
+  test_parser_double_colon()
+  test_parser_mask()
+  test_parser_observe()
+  test_parser_states()
   done()
 }
