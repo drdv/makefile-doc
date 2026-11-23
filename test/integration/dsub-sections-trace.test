@@ -3,10 +3,10 @@
 test/fixtures/Makefile.dsub-sections
 #: stdout
 == test/fixtures/Makefile.dsub-sections
-   1 . -   0  1 | ##@
-   2 . -   0  2 | ##@ --- Files in $(OUT_DIR) ---   
-   3 . -   0  3 | ##@
-   4 . -   0  3 |
-   5 . -   1  3 | ## Write $(OUT_DIR)/a
-   6 . R   0  0 | $(OUT_DIR)/a:
-   6 ========== => target:$(OUT_DIR)/a +section
+   1 0 0  0  1 \t | ##@
+   2 0 0  0  2 \t | ##@ --- Files in $(OUT_DIR) ---   
+   3 0 0  0  3 \t | ##@
+   4 0 0  0  3 \t |
+   5 0 0  1  3 \t | ## Write $(OUT_DIR)/a
+   6 0 1  0  0 \t | $(OUT_DIR)/a:
+   6 ============ => target:$(OUT_DIR)/a +section

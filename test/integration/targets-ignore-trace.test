@@ -3,50 +3,50 @@
 test/fixtures/Makefile.targets-ignore
 #: stdout
 == test/fixtures/Makefile.targets-ignore
-   1 . -   1  0 | ## (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
-   2 . -   1  0 | .SECONDEXPANSION:
-   3 . -   1  0 | .DELETE_ON_ERROR:
-   4 . R   0  0 | t0:
-   4 ========== => target:t0
-   5 . R   0  0 |
-   6 . R   1  0 | ## A suffix rule is a target
-   7 . R   0  0 | .c.o:
-   7 ========== => target:.c.o
-   8 . R   0  0 |
-   9 . R   1  0 | ## (t1) Ignore .PHONY
-  10 . R   1  0 | .PHONY: t1 ## BAD
-  11 . R   0  0 | t1:
-  11 ========== => target:t1
-  12 . R   0  0 |
-  13 . R   1  0 | ## (t2) Ignore .PHONY and .SILENT
-  14 . R   1  0 | .PHONY: t2 ## BAD
-  15 . R   1  0 | .SILENT: t2 ## BAD
-  16 . R   0  0 | t2:
-  16 ========== => target:t2
-  17 . R   0  0 |
-  18 . R   1  0 | ## (t3) Ignore .SECONDARY
-  19 . R   1  0 | .SECONDARY: t3 ## BAD
-  20 . R   0  0 | t3:
-  20 ========== => target:t3
-  21 . R   0  0 |
-  22 . R   1  0 | ## (t4) Ignore .INTERMEDIATE
-  23 . R   1  0 | .INTERMEDIATE: t4 ## BAD
-  24 . R   0  0 | t4:
-  24 ========== => target:t4
-  25 . R   0  0 |
-  26 . R   1  0 | ## (t5) Ignore .INTERMEDIATE and .PRECIOUS
-  27 . R   1  0 | .PRECIOUS: t5 ## BAD
-  28 . R   1  0 | .INTERMEDIATE: t5
-  29 . R   0  0 | t5:
-  29 ========== => target:t5
-  30 . R   0  0 |
-  31 . R   0  0 | t6: ## (t6)
-  31 ========== => target:t6
-  32 . R   0  0 |
-  33 . R   1  0 | ## Create a python venv
-  34 . R   0  0 | .venv/.sentinel:
-  34 ========== => target:.venv/.sentinel
-  35 . R   0  0 |
-  36 . R   1  0 | ## A target named in upper case like a special target is a target
-  37 . R   0  0 | .ENV:
-  37 ========== => target:.ENV
+   1 0 0  1  0 \t | ## (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
+   2 0 0  1  0 \t | .SECONDEXPANSION:
+   3 0 0  1  0 \t | .DELETE_ON_ERROR:
+   4 0 1  0  0 \t | t0:
+   4 ============ => target:t0
+   5 0 1  0  0 \t |
+   6 0 1  1  0 \t | ## A suffix rule is a target
+   7 0 1  0  0 \t | .c.o:
+   7 ============ => target:.c.o
+   8 0 1  0  0 \t |
+   9 0 1  1  0 \t | ## (t1) Ignore .PHONY
+  10 0 1  1  0 \t | .PHONY: t1 ## BAD
+  11 0 1  0  0 \t | t1:
+  11 ============ => target:t1
+  12 0 1  0  0 \t |
+  13 0 1  1  0 \t | ## (t2) Ignore .PHONY and .SILENT
+  14 0 1  1  0 \t | .PHONY: t2 ## BAD
+  15 0 1  1  0 \t | .SILENT: t2 ## BAD
+  16 0 1  0  0 \t | t2:
+  16 ============ => target:t2
+  17 0 1  0  0 \t |
+  18 0 1  1  0 \t | ## (t3) Ignore .SECONDARY
+  19 0 1  1  0 \t | .SECONDARY: t3 ## BAD
+  20 0 1  0  0 \t | t3:
+  20 ============ => target:t3
+  21 0 1  0  0 \t |
+  22 0 1  1  0 \t | ## (t4) Ignore .INTERMEDIATE
+  23 0 1  1  0 \t | .INTERMEDIATE: t4 ## BAD
+  24 0 1  0  0 \t | t4:
+  24 ============ => target:t4
+  25 0 1  0  0 \t |
+  26 0 1  1  0 \t | ## (t5) Ignore .INTERMEDIATE and .PRECIOUS
+  27 0 1  1  0 \t | .PRECIOUS: t5 ## BAD
+  28 0 1  1  0 \t | .INTERMEDIATE: t5
+  29 0 1  0  0 \t | t5:
+  29 ============ => target:t5
+  30 0 1  0  0 \t |
+  31 0 1  0  0 \t | t6: ## (t6)
+  31 ============ => target:t6
+  32 0 1  0  0 \t |
+  33 0 1  1  0 \t | ## Create a python venv
+  34 0 1  0  0 \t | .venv/.sentinel:
+  34 ============ => target:.venv/.sentinel
+  35 0 1  0  0 \t |
+  36 0 1  1  0 \t | ## A target named in upper case like a special target is a target
+  37 0 1  0  0 \t | .ENV:
+  37 ============ => target:.ENV

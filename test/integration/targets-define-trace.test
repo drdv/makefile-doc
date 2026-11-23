@@ -3,12 +3,12 @@
 test/fixtures/Makefile.targets-define
 #: stdout
 == test/fixtures/Makefile.targets-define
-   1 . -   0  0 | define canned-recipes
-   2 . -   1  0 | ## Documentation of a family of targets (with two parameters)
-   3 . -   2  0 | ##  + $1: month {jan, ..., dec}
-   4 . -   3  0 | ##  + $2: country code {fr, bg, jp, ...}
-   5 . R   0  0 | result-$(1)-$2.html: data-$1.toml data_handler.py
-   5 ========== => target:result-$(1)-$2.html
-   6 . R   0  0 | \t@python data_handler.py --important-flag $2 data-$1.toml
-   7 . R   0  0 | \t@echo 1
-   8 . R   0  0 | endef
+   1 0 0  0  0 \t | define canned-recipes
+   2 0 0  1  0 \t | ## Documentation of a family of targets (with two parameters)
+   3 0 0  2  0 \t | ##  + $1: month {jan, ..., dec}
+   4 0 0  3  0 \t | ##  + $2: country code {fr, bg, jp, ...}
+   5 0 1  0  0 \t | result-$(1)-$2.html: data-$1.toml data_handler.py
+   5 ============ => target:result-$(1)-$2.html
+   6 0 1  0  0 \t | \t@python data_handler.py --important-flag $2 data-$1.toml
+   7 0 1  0  0 \t | \t@echo 1
+   8 0 1  0  0 \t | endef

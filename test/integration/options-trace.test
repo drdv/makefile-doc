@@ -3,9 +3,9 @@
 test/fixtures/Makefile.options
 #: stdout
 == test/fixtures/Makefile.options
-   1 . -   1  0 | ## A variable
-   2 . -   0  0 | V := 1
-   2 ========== => variable:V
-   3 . -   0  0 |
-   4 . R   0  0 | t: ## A target
-   4 ========== => target:t
+   1 0 0  1  0 \t | ## A variable
+   2 0 0  0  0 \t | V := 1
+   2 ============ => variable:V
+   3 0 0  0  0 \t |
+   4 0 1  0  0 \t | t: ## A target
+   4 ============ => target:t

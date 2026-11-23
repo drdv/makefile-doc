@@ -3,8 +3,8 @@
 test/fixtures/Makefile.backslash-last-line
 #: stdout
 == test/fixtures/Makefile.backslash-last-line
-   1 . R   0  0 | t1: ## A target
-   1 ========== => target:t1
-   2 . R   0  0 |
-   3 . R   1  0 | ## The last line of the file ends with a backslash: it is not parsed
-   4 \ R   1  0 | t2: \
+   1 0 1  0  0 \t | t1: ## A target
+   1 ============ => target:t1
+   2 0 1  0  0 \t |
+   3 0 1  1  0 \t | ## The last line of the file ends with a backslash: it is not parsed
+   4 1 1  1  0 \t | t2: \

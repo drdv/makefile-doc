@@ -4,16 +4,16 @@
 test/fixtures/Makefile.docs-hash-in-reference
 #: stdout
 == test/fixtures/Makefile.docs-hash-in-reference
-   1 . -   0  0 | # In GNU Make, # inside a variable reference or function call is literal: a ## there does
-   2 . -   0  0 | # not start an inline doc. Known bug #183: the parser takes it for one. $$ is a literal $,
-   3 . -   0  0 | # so $$( does not start a reference: the ## after it does start an inline doc.
-   4 . -   0  0 |
-   5 . -   0  0 | FOO := $(shell echo '##a')
-   6 . -   0  0 | BAR := ${shell echo '##b'}
-   7 . -   0  0 | BAZ := $(subst x,##,x) ## Doc of BAZ
-   7 ========== => variable:BAZ
-   8 . -   0  0 | QUX := $$(echo ## Doc of QUX
-   8 ========== => variable:QUX
-   9 . R   0  0 | t: $(shell echo '##c') ## Doc of t
-   9 ========== => target:t
-  10 . R   0  0 | u: ${shell echo '##d'}
+   1 0 0  0  0 \t | # In GNU Make, # inside a variable reference or function call is literal: a ## there does
+   2 0 0  0  0 \t | # not start an inline doc. Known bug #183: the parser takes it for one. $$ is a literal $,
+   3 0 0  0  0 \t | # so $$( does not start a reference: the ## after it does start an inline doc.
+   4 0 0  0  0 \t |
+   5 0 0  0  0 \t | FOO := $(shell echo '##a')
+   6 0 0  0  0 \t | BAR := ${shell echo '##b'}
+   7 0 0  0  0 \t | BAZ := $(subst x,##,x) ## Doc of BAZ
+   7 ============ => variable:BAZ
+   8 0 0  0  0 \t | QUX := $$(echo ## Doc of QUX
+   8 ============ => variable:QUX
+   9 0 1  0  0 \t | t: $(shell echo '##c') ## Doc of t
+   9 ============ => target:t
+  10 0 1  0  0 \t | u: ${shell echo '##d'}

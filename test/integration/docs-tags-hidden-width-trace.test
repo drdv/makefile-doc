@@ -3,14 +3,14 @@
 test/fixtures/Makefile.docs-tags-hidden-width
 #: stdout
 == test/fixtures/Makefile.docs-tags-hidden-width
-   1 . -   1  0 | ## A target
-   2 . R   0  0 | t:
-   2 ========== => target:t
-   3 . R   0  0 |
-   4 . R   1  0 | ##% A deprecated target with a long name
-   5 . R   0  0 | very-long-deprecated-name:
-   5 ========== => target:very-long-deprecated-name
-   6 . R   0  0 |
-   7 . R   1  0 | ## A variable
-   8 . -   0  0 | V := 1
-   8 ========== => variable:V
+   1 0 0  1  0 \t | ## A target
+   2 0 1  0  0 \t | t:
+   2 ============ => target:t
+   3 0 1  0  0 \t |
+   4 0 1  1  0 \t | ##% A deprecated target with a long name
+   5 0 1  0  0 \t | very-long-deprecated-name:
+   5 ============ => target:very-long-deprecated-name
+   6 0 1  0  0 \t |
+   7 0 1  1  0 \t | ## A variable
+   8 0 0  0  0 \t | V := 1
+   8 ============ => variable:V

@@ -3,22 +3,22 @@
 test/fixtures/Makefile.docs-tags
 #: stdout
 == test/fixtures/Makefile.docs-tags
-   1 . -   1  0 | ##! Use ##! for targets that are significant in some way
-   2 . -   2  0 | ## (only the first line needs the exclamation mark)
-   3 . R   0  0 | t1:
-   3 ========== => target:t1
-   4 . R   0  0 |
-   5 . R   0  0 | t2: ##! Inline docs with ##!
-   5 ========== => target:t2
-   6 . R   0  0 |
-   7 . R   1  0 | ##% Use ##% for deprecated targets
-   8 . R   2  0 | ## (only the first line needs the percent sign)
-   9 . R   0  0 | t3:
-   9 ========== => target:t3
-  10 . R   0  0 |
-  11 . R   0  0 | t4: ##% Inline docs with ##%
-  11 ========== => target:t4
-  12 . R   0  0 |
-  13 . R   1  0 | ## A normal target
-  14 . R   0  0 | t5:
-  14 ========== => target:t5
+   1 0 0  1  0 \t | ##! Use ##! for targets that are significant in some way
+   2 0 0  2  0 \t | ## (only the first line needs the exclamation mark)
+   3 0 1  0  0 \t | t1:
+   3 ============ => target:t1
+   4 0 1  0  0 \t |
+   5 0 1  0  0 \t | t2: ##! Inline docs with ##!
+   5 ============ => target:t2
+   6 0 1  0  0 \t |
+   7 0 1  1  0 \t | ##% Use ##% for deprecated targets
+   8 0 1  2  0 \t | ## (only the first line needs the percent sign)
+   9 0 1  0  0 \t | t3:
+   9 ============ => target:t3
+  10 0 1  0  0 \t |
+  11 0 1  0  0 \t | t4: ##% Inline docs with ##%
+  11 ============ => target:t4
+  12 0 1  0  0 \t |
+  13 0 1  1  0 \t | ## A normal target
+  14 0 1  0  0 \t | t5:
+  14 ============ => target:t5

@@ -3,45 +3,45 @@
 test/fixtures/Makefile.vars-define
 #: stdout
 == test/fixtures/Makefile.vars-define
-   1 . -   1  0 | ## Usage text shown by `make usage`
-   2 . -   0  0 | define USAGE
-   2 ========== => variable:USAGE
-   3 . R   0  0 | Usage: make [target]
-   4 . R   0  0 | endef
-   5 . R   0  0 |
-   6 . R   1  0 | ## With an operator
-   7 . -   0  0 | define WITH_OPERATOR :=
-   7 ========== => variable:WITH_OPERATOR
-   8 . -   0  0 | x
-   9 . -   0  0 | endef
-  10 . -   0  0 |
-  11 . -   1  0 | ## With an operator without a space
-  12 . -   0  0 | define NO_SPACE+=
-  12 ========== => variable:NO_SPACE
-  13 . -   0  0 | x
-  14 . -   0  0 | endef
-  15 . -   0  0 |
-  16 . -   1  0 | ## With qualifiers
-  17 . -   0  0 | override  export define\tQUALIFIED ?=
-  17 ========== => variable:QUALIFIED
-  18 . -   0  0 | x
-  19 . -   0  0 | endef
-  20 . -   0  0 |
-  21 . -   1  0 | ##! With a comment on the define line
-  22 . -   0  0 | define COMMENTED # a comment
-  22 ========== => variable:COMMENTED
-  23 . -   0  0 | x
-  24 . -   0  0 | endef
-  25 . -   0  0 |
-  26 . -   0  0 | define INLINE ## an inline doc is not used
-  27 . -   0  0 | x
-  28 . -   0  0 | endef
-  29 . -   0  0 |
-  30 . -   0  0 | define UNDOCUMENTED
-  31 . -   1  0 | ## a doc in the body, discarded by endef
-  32 . -   0  0 | endef
-  33 . -   0  0 | AFTER_ENDEF := 1
-  34 . -   0  0 |
-  35 . -   1  0 | ## A variable named define
-  36 . -   0  0 | define := 1
-  36 ========== => variable:define
+   1 0 0  1  0 \t | ## Usage text shown by `make usage`
+   2 0 0  0  0 \t | define USAGE
+   2 ============ => variable:USAGE
+   3 0 1  0  0 \t | Usage: make [target]
+   4 0 1  0  0 \t | endef
+   5 0 1  0  0 \t |
+   6 0 1  1  0 \t | ## With an operator
+   7 0 0  0  0 \t | define WITH_OPERATOR :=
+   7 ============ => variable:WITH_OPERATOR
+   8 0 0  0  0 \t | x
+   9 0 0  0  0 \t | endef
+  10 0 0  0  0 \t |
+  11 0 0  1  0 \t | ## With an operator without a space
+  12 0 0  0  0 \t | define NO_SPACE+=
+  12 ============ => variable:NO_SPACE
+  13 0 0  0  0 \t | x
+  14 0 0  0  0 \t | endef
+  15 0 0  0  0 \t |
+  16 0 0  1  0 \t | ## With qualifiers
+  17 0 0  0  0 \t | override  export define\tQUALIFIED ?=
+  17 ============ => variable:QUALIFIED
+  18 0 0  0  0 \t | x
+  19 0 0  0  0 \t | endef
+  20 0 0  0  0 \t |
+  21 0 0  1  0 \t | ##! With a comment on the define line
+  22 0 0  0  0 \t | define COMMENTED # a comment
+  22 ============ => variable:COMMENTED
+  23 0 0  0  0 \t | x
+  24 0 0  0  0 \t | endef
+  25 0 0  0  0 \t |
+  26 0 0  0  0 \t | define INLINE ## an inline doc is not used
+  27 0 0  0  0 \t | x
+  28 0 0  0  0 \t | endef
+  29 0 0  0  0 \t |
+  30 0 0  0  0 \t | define UNDOCUMENTED
+  31 0 0  1  0 \t | ## a doc in the body, discarded by endef
+  32 0 0  0  0 \t | endef
+  33 0 0  0  0 \t | AFTER_ENDEF := 1
+  34 0 0  0  0 \t |
+  35 0 0  1  0 \t | ## A variable named define
+  36 0 0  0  0 \t | define := 1
+  36 ============ => variable:define

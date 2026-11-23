@@ -3,57 +3,57 @@
 test/fixtures/Makefile.docs-carry-over
 #: stdout
 == test/fixtures/Makefile.docs-carry-over
-   1 . -   1  0 | ## Docs above an include
-   2 . -   0  0 | include other.mk
-   3 . -   0  0 |
-   4 . R   0  0 | t1:
-   5 . R   0  0 |
-   6 . R   1  0 | ## Docs above a function call
-   7 . R   0  0 | $(info hello)
-   8 . R   0  0 | t2:
-   9 . R   0  0 |
-  10 . R   1  0 | ## Docs above an export without an assignment
-  11 . R   0  0 | export PATH
-  12 . -   0  0 | V := 1
-  13 . -   0  0 |
-  14 . -   1  0 | ## Docs above a .PHONY line and a conditional
-  15 . -   1  0 | .PHONY: t3
-  16 . -   1  0 | ifeq ($(OS),Linux)
-  17 . R   0  0 | t3:
-  17 ========== => target:t3
-  18 . R   0  0 | endif
-  19 . R   0  0 |
-  20 . R   1  0 | ## Docs above ifdef and else
-  21 . R   1  0 | ifdef X
-  22 . R   1  0 | else
-  23 . R   0  0 | t4:
-  23 ========== => target:t4
-  24 . R   0  0 | endif
-  25 . R   0  0 |
-  26 . R   1  0 | ## Docs above ifneq, then a variable
-  27 . R   1  0 | ifneq ($(X),)
-  28 . -   0  0 | V2 := 1
-  28 ========== => variable:V2
-  29 . -   0  0 | endif
-  30 . -   0  0 |
-  31 . -   1  0 | ## Docs above ifndef
-  32 . -   1  0 | ifndef X
-  33 . R   0  0 | t5:
-  33 ========== => target:t5
-  34 . R   0  0 | endif
-  35 . R   0  0 |
-  36 . R   1  0 | ## Docs above an optional include
-  37 . R   0  0 | -include other.mk
-  38 . R   0  0 | t6:
-  39 . R   0  0 |
-  40 . R   1  0 | ## Docs above an eval
-  41 . R   0  0 | $(eval $(call FOO))
-  42 . R   0  0 | t7:
-  43 . R   0  0 |
-  44 . R   1  0 | ## Docs above a vpath directive
-  45 . R   0  0 | vpath %.c src
-  46 . R   0  0 | t8:
-  47 . R   0  0 |
-  48 . R   1  0 | ## Docs above an unexport without an assignment
-  49 . R   0  0 | unexport PATH
-  50 . -   0  0 | V3 := 1
+   1 0 0  1  0 \t | ## Docs above an include
+   2 0 0  0  0 \t | include other.mk
+   3 0 0  0  0 \t |
+   4 0 1  0  0 \t | t1:
+   5 0 1  0  0 \t |
+   6 0 1  1  0 \t | ## Docs above a function call
+   7 0 1  0  0 \t | $(info hello)
+   8 0 1  0  0 \t | t2:
+   9 0 1  0  0 \t |
+  10 0 1  1  0 \t | ## Docs above an export without an assignment
+  11 0 1  0  0 \t | export PATH
+  12 0 0  0  0 \t | V := 1
+  13 0 0  0  0 \t |
+  14 0 0  1  0 \t | ## Docs above a .PHONY line and a conditional
+  15 0 0  1  0 \t | .PHONY: t3
+  16 0 0  1  0 \t | ifeq ($(OS),Linux)
+  17 0 1  0  0 \t | t3:
+  17 ============ => target:t3
+  18 0 1  0  0 \t | endif
+  19 0 1  0  0 \t |
+  20 0 1  1  0 \t | ## Docs above ifdef and else
+  21 0 1  1  0 \t | ifdef X
+  22 0 1  1  0 \t | else
+  23 0 1  0  0 \t | t4:
+  23 ============ => target:t4
+  24 0 1  0  0 \t | endif
+  25 0 1  0  0 \t |
+  26 0 1  1  0 \t | ## Docs above ifneq, then a variable
+  27 0 1  1  0 \t | ifneq ($(X),)
+  28 0 0  0  0 \t | V2 := 1
+  28 ============ => variable:V2
+  29 0 0  0  0 \t | endif
+  30 0 0  0  0 \t |
+  31 0 0  1  0 \t | ## Docs above ifndef
+  32 0 0  1  0 \t | ifndef X
+  33 0 1  0  0 \t | t5:
+  33 ============ => target:t5
+  34 0 1  0  0 \t | endif
+  35 0 1  0  0 \t |
+  36 0 1  1  0 \t | ## Docs above an optional include
+  37 0 1  0  0 \t | -include other.mk
+  38 0 1  0  0 \t | t6:
+  39 0 1  0  0 \t |
+  40 0 1  1  0 \t | ## Docs above an eval
+  41 0 1  0  0 \t | $(eval $(call FOO))
+  42 0 1  0  0 \t | t7:
+  43 0 1  0  0 \t |
+  44 0 1  1  0 \t | ## Docs above a vpath directive
+  45 0 1  0  0 \t | vpath %.c src
+  46 0 1  0  0 \t | t8:
+  47 0 1  0  0 \t |
+  48 0 1  1  0 \t | ## Docs above an unexport without an assignment
+  49 0 1  0  0 \t | unexport PATH
+  50 0 0  0  0 \t | V3 := 1

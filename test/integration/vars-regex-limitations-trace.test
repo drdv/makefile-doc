@@ -3,8 +3,8 @@
 test/fixtures/Makefile.vars-regex-limitations
 #: stdout
 == test/fixtures/Makefile.vars-regex-limitations
-   1 . -   0  0 | PREFIX := FOO
-   2 . -   0  0 |
-   3 . -   1  0 | ## Compiler flags
-   4 . -   0  0 | $(PREFIX)_FLAGS := -O2
-   4 ========== => variable:$(PREFIX)_FLAGS
+   1 0 0  0  0 \t | PREFIX := FOO
+   2 0 0  0  0 \t |
+   3 0 0  1  0 \t | ## Compiler flags
+   4 0 0  0  0 \t | $(PREFIX)_FLAGS := -O2
+   4 ============ => variable:$(PREFIX)_FLAGS

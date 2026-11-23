@@ -3,10 +3,10 @@
 test/fixtures/Makefile.sub-deprecated
 #: stdout
 == test/fixtures/Makefile.sub-deprecated
-   1 . -   1  0 | ## Visible target
-   2 . R   0  0 | t1:
-   2 ========== => target:t1
-   3 . R   0  0 |
-   4 . R   1  0 | ##% Deprecated target
-   5 . R   0  0 | t2:
-   5 ========== => target:t2
+   1 0 0  1  0 \t | ## Visible target
+   2 0 1  0  0 \t | t1:
+   2 ============ => target:t1
+   3 0 1  0  0 \t |
+   4 0 1  1  0 \t | ##% Deprecated target
+   5 0 1  0  0 \t | t2:
+   5 ============ => target:t2

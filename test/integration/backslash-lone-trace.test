@@ -3,14 +3,14 @@
 test/fixtures/Makefile.backslash-lone
 #: stdout
 == test/fixtures/Makefile.backslash-lone
-   1 . -   1  0 | ## d
-   2 . R   0  0 | t:
-   2 ========== => target:t
-   3 . R\  0  0 | \t\
-   4 . R   0  0 | BOGUS := 1 ## bogus
-   5 . R   0  0 |
-   6 . R   1  0 | ## c
-   7 \ R   1  0 | #\
-   8 . R   1  0 | ## swallowed
-   9 . -   0  0 | X := 1 ## v
-   9 ========== => variable:X
+   1 0 0  1  0 \t | ## d
+   2 0 1  0  0 \t | t:
+   2 ============ => target:t
+   3 1 1  0  0 \t | \t\
+   4 0 1  0  0 \t | BOGUS := 1 ## bogus
+   5 0 1  0  0 \t |
+   6 0 1  1  0 \t | ## c
+   7 1 1  1  0 \t | #\
+   8 0 1  1  0 \t | ## swallowed
+   9 0 0  0  0 \t | X := 1 ## v
+   9 ============ => variable:X

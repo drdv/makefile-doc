@@ -3,16 +3,16 @@
 test/fixtures/Makefile.section-redefine
 #: stdout
 == test/fixtures/Makefile.section-redefine
-   1 . -   0  1 | ##@
-   2 . -   0  2 | ##@------ S1 ------
-   3 . -   0  3 | ##@
-   4 . -   0  3 |
-   5 . R   0  0 | t1: ## t1
-   5 ========== => target:t1 +section
-   6 . R   0  0 |
-   7 . R   0  1 | ##@
-   8 . R   0  2 | ##@------ S2 ------
-   9 . R   0  3 | ##@
-  10 . R   0  3 |
-  11 . R   0  0 | t1: ## t2
-  11 ========== => target:t1 +section
+   1 0 0  0  1 \t | ##@
+   2 0 0  0  2 \t | ##@------ S1 ------
+   3 0 0  0  3 \t | ##@
+   4 0 0  0  3 \t |
+   5 0 1  0  0 \t | t1: ## t1
+   5 ============ => target:t1 +section
+   6 0 1  0  0 \t |
+   7 0 1  0  1 \t | ##@
+   8 0 1  0  2 \t | ##@------ S2 ------
+   9 0 1  0  3 \t | ##@
+  10 0 1  0  3 \t |
+  11 0 1  0  0 \t | t1: ## t2
+  11 ============ => target:t1 +section
