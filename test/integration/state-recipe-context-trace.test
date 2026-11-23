@@ -1,0 +1,411 @@
+#: desc: The parser state after each line of Makefile.state-recipe-context
+#: trace
+test/fixtures/Makefile.state-recipe-context
+#: stdout
+== test/fixtures/Makefile.state-recipe-context
+   1 . -   0  0 | # Which lines keep or end the recipe context (`make help` relies on it: a tab-indented
+   2 . -   0  0 | # ## line is a recipe line inside a rule, and a doc outside one). Each block is
+   3 . -   0  0 | #   a context: a documented rule with a recipe (inside a rule) or an assignment (outside)
+   4 . -   0  0 | #   the line under test
+   5 . -   0  0 | #   a tab-indented doc
+   6 . -   0  0 | #   a target, next-N: documented only if the line under test leaves the parser outside
+   7 . -   0  0 | #   a rule (as in GNU Make)
+   8 . -   0  0 | # Only the lines where makefile-doc.awk agrees with GNU Make are here (the others are in
+   9 . -   0  0 | # the fixtures of known bugs).
+  10 . -   0  0 |
+  11 . -   0  0 | SRCS := s.c
+  12 . -   0  0 |
+  13 . -   1  0 | ## Doc of rule-1
+  14 . R   0  0 | rule-1:
+  14 ========== => target:rule-1
+  15 . R   0  0 | \t@echo rule-1
+  16 . R   0  0 | x-1: dep
+  17 . R   0  0 | \t## a plain rule, after a rule
+  18 . R   0  0 | next-1:
+  19 . R   0  0 |
+  20 . R   1  0 | ## Doc of rule-2
+  21 . R   0  0 | rule-2:
+  21 ========== => target:rule-2
+  22 . R   0  0 | \t@echo rule-2
+  23 . R   0  0 | x-2::
+  24 . R   0  0 | \t## a double-colon rule, after a rule
+  25 . R   0  0 | next-2:
+  26 . R   0  0 |
+  27 . R   1  0 | ## Doc of rule-3
+  28 . R   0  0 | rule-3:
+  28 ========== => target:rule-3
+  29 . R   0  0 | \t@echo rule-3
+  30 . R   0  0 | x1-3 x2-3 &: dep
+  31 . R   0  0 | \t## grouped targets, after a rule
+  32 . R   0  0 | next-3:
+  33 . R   0  0 |
+  34 . R   1  0 | ## Doc of rule-4
+  35 . R   0  0 | rule-4:
+  35 ========== => target:rule-4
+  36 . R   0  0 | \t@echo rule-4
+  37 . R   0  0 | x-4.o: %.o: %.c
+  38 . R   0  0 | \t## a static pattern rule, after a rule
+  39 . R   0  0 | next-4:
+  40 . R   0  0 |
+  41 . R   1  0 | ## Doc of rule-5
+  42 . R   0  0 | rule-5:
+  42 ========== => target:rule-5
+  43 . R   0  0 | \t@echo rule-5
+  44 . R   0  0 | %.x5: %.y5
+  45 . R   0  0 | \t## a pattern rule, after a rule
+  46 . R   0  0 | next-5:
+  47 . R   0  0 |
+  48 . R   1  0 | ## Doc of rule-6
+  49 . R   0  0 | rule-6:
+  49 ========== => target:rule-6
+  50 . R   0  0 | \t@echo rule-6
+  51 . R   0  0 | x\:6: dep
+  52 . R   0  0 | \t## a rule with an escaped colon, after a rule
+  53 . R   0  0 | next-6:
+  54 . R   0  0 |
+  55 . R   1  0 | ## Doc of rule-7
+  56 . R   0  0 | rule-7:
+  56 ========== => target:rule-7
+  57 . R   0  0 | \t@echo rule-7
+  58 . R   0  0 | .PHONY: next-7
+  59 . R   0  0 | \t## a special target, after a rule
+  60 . R   0  0 | next-7:
+  61 . R   0  0 |
+  62 . R   1  0 | ## Doc of rule-8
+  63 . R   0  0 | rule-8:
+  63 ========== => target:rule-8
+  64 . R   0  0 | \t@echo rule-8
+  65 . R   0  0 | $(SRCS:.c=.o): dep
+  66 . R   0  0 | \t## a substitution reference target, after a rule
+  67 . R   0  0 | next-8:
+  68 . R   0  0 |
+  69 . R   1  0 | ## Doc of rule-9
+  70 . R   0  0 | rule-9:
+  70 ========== => target:rule-9
+  71 . R   0  0 | \t@echo rule-9
+  72 . R   0  0 | $(subst :,_,x-9): dep
+  73 . R   0  0 | \t## a colon in a reference, after a rule
+  74 . R   0  0 | next-9:
+  75 . R   0  0 |
+  76 . R   1  0 | ## Doc of rule-10
+  77 . R   0  0 | rule-10:
+  77 ========== => target:rule-10
+  78 . R   0  0 | \t@echo rule-10
+  79 . -   0  0 | V = 1
+  80 . -   1  0 | \t## an assignment (=), after a rule
+  81 . R   0  0 | next-10:
+  81 ========== => target:next-10
+  82 . R   0  0 |
+  83 . R   1  0 | ## Doc of rule-11
+  84 . R   0  0 | rule-11:
+  84 ========== => target:rule-11
+  85 . R   0  0 | \t@echo rule-11
+  86 . -   0  0 | V := 1
+  87 . -   1  0 | \t## an assignment (:=), after a rule
+  88 . R   0  0 | next-11:
+  88 ========== => target:next-11
+  89 . R   0  0 |
+  90 . R   1  0 | ## Doc of rule-12
+  91 . R   0  0 | rule-12:
+  91 ========== => target:rule-12
+  92 . R   0  0 | \t@echo rule-12
+  93 . -   0  0 | V ::= 1
+  94 . -   1  0 | \t## an assignment (::=), after a rule
+  95 . R   0  0 | next-12:
+  95 ========== => target:next-12
+  96 . R   0  0 |
+  97 . R   1  0 | ## Doc of rule-13
+  98 . R   0  0 | rule-13:
+  98 ========== => target:rule-13
+  99 . R   0  0 | \t@echo rule-13
+ 100 . -   0  0 | V != echo 1
+ 101 . -   1  0 | \t## an assignment (!=), after a rule
+ 102 . R   0  0 | next-13:
+ 102 ========== => target:next-13
+ 103 . R   0  0 |
+ 104 . R   1  0 | ## Doc of rule-14
+ 105 . R   0  0 | rule-14:
+ 105 ========== => target:rule-14
+ 106 . R   0  0 | \t@echo rule-14
+ 107 . -   0  0 | V ?= 1
+ 108 . -   1  0 | \t## an assignment (?=), after a rule
+ 109 . R   0  0 | next-14:
+ 109 ========== => target:next-14
+ 110 . R   0  0 |
+ 111 . R   1  0 | ## Doc of rule-15
+ 112 . R   0  0 | rule-15:
+ 112 ========== => target:rule-15
+ 113 . R   0  0 | \t@echo rule-15
+ 114 . -   0  0 | V += 1
+ 115 . -   1  0 | \t## an assignment (+=), after a rule
+ 116 . R   0  0 | next-15:
+ 116 ========== => target:next-15
+ 117 . R   0  0 |
+ 118 . R   1  0 | ## Doc of rule-16
+ 119 . R   0  0 | rule-16:
+ 119 ========== => target:rule-16
+ 120 . R   0  0 | \t@echo rule-16
+ 121 . -   0  0 | export V = 1
+ 122 . -   1  0 | \t## an exported assignment, after a rule
+ 123 . R   0  0 | next-16:
+ 123 ========== => target:next-16
+ 124 . R   0  0 |
+ 125 . R   1  0 | ## Doc of rule-17
+ 126 . R   0  0 | rule-17:
+ 126 ========== => target:rule-17
+ 127 . R   0  0 | \t@echo rule-17
+ 128 . -   0  0 | override V := 1
+ 129 . -   1  0 | \t## an overridden assignment, after a rule
+ 130 . R   0  0 | next-17:
+ 130 ========== => target:next-17
+ 131 . R   0  0 |
+ 132 . R   1  0 | ## Doc of rule-18
+ 133 . R   0  0 | rule-18:
+ 133 ========== => target:rule-18
+ 134 . R   0  0 | \t@echo rule-18
+ 135 . -   0  0 | define D
+ 136 . -   0  0 | body
+ 137 . -   0  0 | endef
+ 138 . -   1  0 | \t## define ... endef, after a rule
+ 139 . R   0  0 | next-18:
+ 139 ========== => target:next-18
+ 140 . R   0  0 |
+ 141 . R   1  0 | ## Doc of rule-19
+ 142 . R   0  0 | rule-19:
+ 142 ========== => target:rule-19
+ 143 . R   0  0 | \t@echo rule-19
+ 144 . R   0  0 | ifeq (a,a)
+ 145 . R   0  0 | endif
+ 146 . R   0  0 | \t## ifeq ... endif, after a rule
+ 147 . R   0  0 | next-19:
+ 148 . R   0  0 |
+ 149 . R   1  0 | ## Doc of rule-20
+ 150 . R   0  0 | rule-20:
+ 150 ========== => target:rule-20
+ 151 . R   0  0 | \t@echo rule-20
+ 152 . R   0  0 | ifdef V
+ 153 . R   0  0 | endif
+ 154 . R   0  0 | \t## ifdef ... endif, after a rule
+ 155 . R   0  0 | next-20:
+ 156 . R   0  0 |
+ 157 . R   1  0 | ## Doc of rule-21
+ 158 . R   0  0 | rule-21:
+ 158 ========== => target:rule-21
+ 159 . R   0  0 | \t@echo rule-21
+ 160 . R   0  0 | ifeq (a,b)
+ 161 . R   0  0 | else ifeq (a,a)
+ 162 . R   0  0 | endif
+ 163 . R   0  0 | \t## else ifeq, after a rule
+ 164 . R   0  0 | next-21:
+ 165 . R   0  0 |
+ 166 . R   1  0 | ## Doc of rule-22
+ 167 . R   0  0 | rule-22:
+ 167 ========== => target:rule-22
+ 168 . R   0  0 | \t@echo rule-22
+ 169 . R   0  0 | # a comment
+ 170 . R   0  0 | \t## a comment, after a rule
+ 171 . R   0  0 | next-22:
+ 172 . R   0  0 |
+ 173 . R   1  0 | ## Doc of rule-23
+ 174 . R   0  0 | rule-23:
+ 174 ========== => target:rule-23
+ 175 . R   0  0 | \t@echo rule-23
+ 176 . R   0  0 |
+ 177 . R   0  0 | \t## a blank line, after a rule
+ 178 . R   0  0 | next-23:
+ 179 . R   0  0 |
+ 180 . R   1  0 | ## Doc of rule-24
+ 181 . R   0  0 | rule-24:
+ 181 ========== => target:rule-24
+ 182 . R   0  0 | \t@echo rule-24
+ 183 . R   1  0 | ## a doc
+ 184 . R   0  0 | \t## a doc, after a rule
+ 185 . R   0  0 | next-24:
+ 186 . R   0  0 |
+ 187 . R   1  0 | ## Doc of rule-25
+ 188 . R   0  0 | rule-25:
+ 188 ========== => target:rule-25
+ 189 . R   0  0 | \t@echo rule-25
+ 190 . R   0  0 | ###
+ 191 . R   0  0 | \t## a banner, after a rule
+ 192 . R   0  0 | next-25:
+ 193 . R   0  0 |
+ 194 . -   0  0 | A := 1
+ 195 . R   0  0 | x-26: dep
+ 196 . R   0  0 | \t## a plain rule, after an assignment
+ 197 . R   0  0 | next-26:
+ 198 . R   0  0 |
+ 199 . -   0  0 | A := 1
+ 200 . R   0  0 | x-27::
+ 201 . R   0  0 | \t## a double-colon rule, after an assignment
+ 202 . R   0  0 | next-27:
+ 203 . R   0  0 |
+ 204 . -   0  0 | A := 1
+ 205 . R   0  0 | x1-28 x2-28 &: dep
+ 206 . R   0  0 | \t## grouped targets, after an assignment
+ 207 . R   0  0 | next-28:
+ 208 . R   0  0 |
+ 209 . -   0  0 | A := 1
+ 210 . R   0  0 | x-29.o: %.o: %.c
+ 211 . R   0  0 | \t## a static pattern rule, after an assignment
+ 212 . R   0  0 | next-29:
+ 213 . R   0  0 |
+ 214 . -   0  0 | A := 1
+ 215 . R   0  0 | %.x30: %.y30
+ 216 . R   0  0 | \t## a pattern rule, after an assignment
+ 217 . R   0  0 | next-30:
+ 218 . R   0  0 |
+ 219 . -   0  0 | A := 1
+ 220 . R   0  0 | x\:31: dep
+ 221 . R   0  0 | \t## a rule with an escaped colon, after an assignment
+ 222 . R   0  0 | next-31:
+ 223 . R   0  0 |
+ 224 . -   0  0 | A := 1
+ 225 . -   0  0 | V = 1
+ 226 . -   1  0 | \t## an assignment (=), after an assignment
+ 227 . R   0  0 | next-32:
+ 227 ========== => target:next-32
+ 228 . R   0  0 |
+ 229 . -   0  0 | A := 1
+ 230 . -   0  0 | V := 1
+ 231 . -   1  0 | \t## an assignment (:=), after an assignment
+ 232 . R   0  0 | next-33:
+ 232 ========== => target:next-33
+ 233 . R   0  0 |
+ 234 . -   0  0 | A := 1
+ 235 . -   0  0 | V ::= 1
+ 236 . -   1  0 | \t## an assignment (::=), after an assignment
+ 237 . R   0  0 | next-34:
+ 237 ========== => target:next-34
+ 238 . R   0  0 |
+ 239 . -   0  0 | A := 1
+ 240 . -   0  0 | V != echo 1
+ 241 . -   1  0 | \t## an assignment (!=), after an assignment
+ 242 . R   0  0 | next-35:
+ 242 ========== => target:next-35
+ 243 . R   0  0 |
+ 244 . -   0  0 | A := 1
+ 245 . -   0  0 | V ?= 1
+ 246 . -   1  0 | \t## an assignment (?=), after an assignment
+ 247 . R   0  0 | next-36:
+ 247 ========== => target:next-36
+ 248 . R   0  0 |
+ 249 . -   0  0 | A := 1
+ 250 . -   0  0 | V += 1
+ 251 . -   1  0 | \t## an assignment (+=), after an assignment
+ 252 . R   0  0 | next-37:
+ 252 ========== => target:next-37
+ 253 . R   0  0 |
+ 254 . -   0  0 | A := 1
+ 255 . -   0  0 | export V = 1
+ 256 . -   1  0 | \t## an exported assignment, after an assignment
+ 257 . R   0  0 | next-38:
+ 257 ========== => target:next-38
+ 258 . R   0  0 |
+ 259 . -   0  0 | A := 1
+ 260 . -   0  0 | override V := 1
+ 261 . -   1  0 | \t## an overridden assignment, after an assignment
+ 262 . R   0  0 | next-39:
+ 262 ========== => target:next-39
+ 263 . R   0  0 |
+ 264 . -   0  0 | A := 1
+ 265 . -   0  0 | define D
+ 266 . -   0  0 | body
+ 267 . -   0  0 | endef
+ 268 . -   1  0 | \t## define ... endef, after an assignment
+ 269 . R   0  0 | next-40:
+ 269 ========== => target:next-40
+ 270 . R   0  0 |
+ 271 . -   0  0 | A := 1
+ 272 . -   0  0 | ifeq (a,a)
+ 273 . -   0  0 | endif
+ 274 . -   1  0 | \t## ifeq ... endif, after an assignment
+ 275 . R   0  0 | next-41:
+ 275 ========== => target:next-41
+ 276 . R   0  0 |
+ 277 . -   0  0 | A := 1
+ 278 . -   0  0 | ifdef V
+ 279 . -   0  0 | endif
+ 280 . -   1  0 | \t## ifdef ... endif, after an assignment
+ 281 . R   0  0 | next-42:
+ 281 ========== => target:next-42
+ 282 . R   0  0 |
+ 283 . -   0  0 | A := 1
+ 284 . -   0  0 | ifeq (a,b)
+ 285 . -   0  0 | else ifeq (a,a)
+ 286 . -   0  0 | endif
+ 287 . -   1  0 | \t## else ifeq, after an assignment
+ 288 . R   0  0 | next-43:
+ 288 ========== => target:next-43
+ 289 . R   0  0 |
+ 290 . -   0  0 | A := 1
+ 291 . -   0  0 | # a comment
+ 292 . -   1  0 | \t## a comment, after an assignment
+ 293 . R   0  0 | next-44:
+ 293 ========== => target:next-44
+ 294 . R   0  0 |
+ 295 . -   0  0 | A := 1
+ 296 . -   0  0 |
+ 297 . -   1  0 | \t## a blank line, after an assignment
+ 298 . R   0  0 | next-45:
+ 298 ========== => target:next-45
+ 299 . R   0  0 |
+ 300 . -   0  0 | A := 1
+ 301 . -   1  0 | ## a doc
+ 302 . -   2  0 | \t## a doc, after an assignment
+ 303 . R   0  0 | next-46:
+ 303 ========== => target:next-46
+ 304 . R   0  0 |
+ 305 . -   0  0 | A := 1
+ 306 . -   0  0 | ###
+ 307 . -   1  0 | \t## a banner, after an assignment
+ 308 . R   0  0 | next-47:
+ 308 ========== => target:next-47
+ 309 . R   0  0 |
+ 310 . -   0  0 | A := 1
+ 311 . -   0  0 | include /dev/null
+ 312 . -   1  0 | \t## include, after an assignment
+ 313 . R   0  0 | next-48:
+ 313 ========== => target:next-48
+ 314 . R   0  0 |
+ 315 . -   0  0 | A := 1
+ 316 . -   0  0 | -include /nonexistent-49
+ 317 . -   1  0 | \t## -include, after an assignment
+ 318 . R   0  0 | next-49:
+ 318 ========== => target:next-49
+ 319 . R   0  0 |
+ 320 . -   0  0 | A := 1
+ 321 . -   0  0 | vpath %.c src
+ 322 . -   1  0 | \t## vpath, after an assignment
+ 323 . R   0  0 | next-50:
+ 323 ========== => target:next-50
+ 324 . R   0  0 |
+ 325 . -   0  0 | A := 1
+ 326 . -   0  0 | export V
+ 327 . -   1  0 | \t## export (no assignment), after an assignment
+ 328 . R   0  0 | next-51:
+ 328 ========== => target:next-51
+ 329 . R   0  0 |
+ 330 . -   0  0 | A := 1
+ 331 . -   0  0 | unexport V
+ 332 . -   1  0 | \t## unexport, after an assignment
+ 333 . R   0  0 | next-52:
+ 333 ========== => target:next-52
+ 334 . R   0  0 |
+ 335 . -   0  0 | A := 1
+ 336 . -   0  0 | undefine V
+ 337 . -   1  0 | \t## undefine, after an assignment
+ 338 . R   0  0 | next-53:
+ 338 ========== => target:next-53
+ 339 . R   0  0 |
+ 340 . -   0  0 | A := 1
+ 341 . -   0  0 | $(info x)
+ 342 . -   1  0 | \t## a function call ($(info)), after an assignment
+ 343 . R   0  0 | next-54:
+ 343 ========== => target:next-54
+ 344 . R   0  0 |
+ 345 . -   0  0 | A := 1
+ 346 . -   0  0 | $(eval E := 1)
+ 347 . -   1  0 | \t## a function call ($(eval)), after an assignment
+ 348 . R   0  0 | next-55:
+ 348 ========== => target:next-55
