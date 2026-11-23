@@ -159,6 +159,76 @@ section text, and whether a rule is double-colon (for the names \code{t\textasci
 \code{t\textasciitilde 2}).
 
 \filbreak
+\section{Lexical layer}
+
+Questions 4, 6 and 8 depend on the syntax of GNU Make: escapes, \code{\$\$}, references.
+Rather than matching around them, the parser first removes them:
+\[
+  \text{physical lines} \;\to\; \text{logical lines} \;\to\; \text{masked lines}
+  \;\to\; \text{answers to the questions.}
+\]
+
+\paragraph{Masking.} The masked line is a copy of the logical line, of the same length,
+where these are replaced by a placeholder:
+\begin{itemize}
+  \item a reference, from \code{\$(} or \code{\$\{} to its matching \code{)} or
+        \code{\}} (only the same kind of bracket nests), or to the end of the line if it
+        is not closed. Nothing inside a reference is interpreted;
+  \item \code{\$\$} (a literal \code{\$});
+  \item the pairs \code{\textbackslash\textbackslash}, \code{\textbackslash\#},
+        \code{\textbackslash:} and \code{\textbackslash;}, read from left to right: in a run
+        of backslashes, only an odd last one escapes the \code{\#}, \code{:} or \code{;}
+        that follows. Other backslashes are kept.
+\end{itemize}
+The positions in the masked line are those of the logical line: the searches run on the
+masked line, and the names and values are cut from the logical line.
+
+\paragraph{Searches.} On the masked line:
+\begin{itemize}
+  \item \textbf{operator:} the first \code{=}, with the characters before it that are part
+        of the operator (\code{:}, \code{::}, \code{:::}, \code{?}, \code{+}, \code{!});
+  \item \textbf{separating colon:} the first \code{:} that is not part of the operator;
+  \item \textbf{assignment} (question 4): the operator comes before any separating colon,
+        and exactly one word comes before it (possibly after \code{export},
+        \code{override}, \code{private}); or a separating colon is followed by an operator
+        (a target-specific assignment);
+  \item \textbf{rule} (question 6): a separating colon, in a line that is not an assignment;
+  \item \textbf{semicolon:} in a line with a separating colon (a rule or a target-specific
+        assignment), the first \code{;} after the colon: an inline recipe starts there;
+  \item \textbf{comment} (question 8): the first \code{\#}; in a line with a separating
+        colon, only if it comes before the semicolon (after it, the rest is recipe text, or
+        the value of a target-specific assignment).
+\end{itemize}
+
+\paragraph{Examples} (checked with GNU Make 4.3; values are shown without their trailing
+blanks).
+
+\begin{center}
+\begin{tabular}{@{}lP{0.5\textwidth}@{}}
+  \toprule
+  Line & GNU Make \\
+  \midrule
+  \code{V := \$(shell echo x\#y) \# c} & assignment, value \code{x\#y} \\
+  \code{V := \$\$(echo \#x)} & assignment, value \code{\$(echo }: \code{\$\$} is not a
+                                    reference, so the \code{\#} starts a comment \\
+  \code{V := a\textbackslash\#b \# c} & assignment, value \code{a\#b} \\
+  \code{V := a\textbackslash\textbackslash\# c} & assignment, value \code{a\textbackslash} \\
+  \code{V := a:b} & assignment (the operator comes first) \\
+  \code{ifeq (\$(A),a=b)} & conditional (more than one word before the \code{=}) \\
+  \code{\$(subst :,\_,a): dep} & rule, target \code{a} \\
+  \code{foo\textbackslash:bar: dep} & rule, target \code{foo:bar} \\
+  \code{t: dep=1} & target-specific assignment \\
+  \code{t: V = a;b \# c} & target-specific assignment, value \code{a;b \# c} \\
+  \code{t: V = a \# c;b} & target-specific assignment, value \code{a} \\
+  \code{V := a;b \# c} & assignment, value \code{a;b} \\
+  \code{t: dep ; x \# c} & rule, with the inline recipe \code{x \# c} \\
+  \code{t: dep \textbackslash; x \# c} & rule; \code{\# c} is a comment (an escaped
+                                         \code{;} does not hide it) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\filbreak
 \section{Step}
 
 For each kind, the state at line $i$; the anchors (rule, assignment) attach a doc when
@@ -222,13 +292,14 @@ Where the model cannot follow GNU Make:
         conditional, an assignment in an included file. $\mathrm{obs}$ then keeps
         $c_{i-1}$ and reports a warning.
   \item Conditionals are not evaluated: the lines of all their branches are read in order.
+  \item References are not evaluated: a name that contains one is shown as written (e.g.,
+        \code{\$(OBJS)}).
 \end{itemize}
 
 \section{To be specified}
 
-The lexical rules that answer the questions of $\mathrm{obs}$ (mainly 4, 6 and 8): which
-colon separates the targets, which \code{=} is an assignment operator, where a comment
-starts, and where an inline recipe starts (\code{;}), given escapes, \code{\$\$} and
-references.
+The complete table of examples, checked with GNU Make: for the masking (the end of
+references, nested and unterminated references, escapes, \code{\$\$}) and for each search.
+It becomes the unit tests of $\mathrm{obs}$.
 
 \end{document}
