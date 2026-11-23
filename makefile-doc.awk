@@ -252,7 +252,7 @@ function init_globals() {
   # Constants (never changed after init_globals)
   # ---------------------------------------------------------------------------------------
 
-  VERSION = "v2.0" # the only place where the version is defined
+  VERSION = "v2.1" # the only place where the version is defined
   FS = ":" # set the field separator
 
   # Target matching is heuristic (this is not a GNU Make parser; see "Limitations" in the
