@@ -51,26 +51,69 @@ function test_escape_for_latex_output() {
   OUTPUT_FORMAT = ""
 }
 
-function test_get_max_anchor_length(    anchors, tags) {
-  init_globals()
-  anchors[1] = "t"; tags["t"] = "##"
-  anchors[2] = "long-deprecated"; tags["long-deprecated"] = "##%"
-  anchors[3] = "attention"; tags["attention"] = "##!"
+# add a record to the interface, as the parser does (section "": none)
+function add_anchor(kind, name, tag, doc, section) {
+  ANCHOR_COUNT++
+  ANCHORS[ANCHOR_COUNT, "kind"] = kind
+  ANCHORS[ANCHOR_COUNT, "name"] = name
+  ANCHORS[ANCHOR_COUNT, "tag"] = tag
+  ANCHORS[ANCHOR_COUNT, "doc"] = doc
+  if (section != "") {
+    ANCHORS[ANCHOR_COUNT, "section"] = section
+  }
+}
 
+# the displayed names, in order, separated by spaces
+function displayed_names(    k, names) {
+  for (k = 1; k <= DISPLAY_COUNT; k++) {
+    names = k == 1 ? DISPLAY[k, "name"] : names " " DISPLAY[k, "name"]
+  }
+  return names
+}
+
+# a variable, a target documented twice, and a deprecated target in between
+function add_anchors() {
+  add_anchor("variable", "V", "##", " v", " S1")
+  add_anchor("target", "t", "##", " first", "")
+  add_anchor("target", "old", "##%", " deprecated", " S2")
+  add_anchor("target", "t", "##!", " second", "")
+}
+
+function test_prepare_rendering() {
+  init_globals()
+  VARS = 1
   DEPRECATED = 1
-  check("get_max_anchor_length: all anchors displayed",
-        get_max_anchor_length(anchors, tags), 15)
-  DEPRECATED = 0
-  check("get_max_anchor_length: hidden deprecated anchors are skipped",
-        get_max_anchor_length(anchors, tags), 9)
-  SUB_LABELS["t"] = "a-longer-label"
-  check("get_max_anchor_length: SUB labels are used", get_max_anchor_length(anchors, tags), 14)
+  add_anchors()
+  prepare_rendering()
+  check("prepare_rendering: the targets, then the variables, each once, in file order",
+        displayed_names(), "t old V")
+  check("prepare_rendering: the last definition gives the doc and tag",
+        DISPLAY[1, "doc"] " " DISPLAY[1, "tag"], " second ##!")
+  check("prepare_rendering: a section goes to the next displayed anchor",
+        DISPLAY[3, "section"] DISPLAY[2, "section"], " S1 S2")
+  check("prepare_rendering: the documented anchors", DOCUMENTED_COUNT, 3)
 
-  delete anchors[1]
-  delete anchors[3]
-  check("get_max_anchor_length: 0 when no anchor is displayed",
-        get_max_anchor_length(anchors, tags), 0)
   init_globals()
+  VARS = 0
+  DEPRECATED = 0
+  add_anchors()
+  prepare_rendering()
+  check("prepare_rendering: hidden anchors are left out", displayed_names(), "t")
+  check("prepare_rendering: the sections of hidden anchors go to the next displayed one",
+        DISPLAY[1, "section"], " S2")
+  check("prepare_rendering: hidden anchors are still documented", DOCUMENTED_COUNT, 3)
+
+  init_globals()
+  VARS = 1
+  DEPRECATED = 1
+  SUB_LABELS["t"] = "T"
+  SUB_VALUES["t"] = "a b"
+  add_anchor("target", "t", "##", " doc", "")
+  prepare_rendering()
+  check("prepare_rendering: the displayed name and the SUB values",
+        DISPLAY[1, "name"] " " DISPLAY[1, "values"], "T a b")
+  init_globals()
+  VARS = ""
   DEPRECATED = ""
 }
 
@@ -214,7 +257,7 @@ BEGIN {
   test_substitute_backticks_patterns()
   test_escape_for_latex_output()
   test_escape_for_html_output()
-  test_get_max_anchor_length()
+  test_prepare_rendering()
   test_default_color_option()
   test_validate_ansi_param()
   test_is_bool_is_hex_color()

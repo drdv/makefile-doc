@@ -62,15 +62,8 @@ END {
 
   banner("The state of the rendering: written by prepare_rendering")
   prepare_rendering()
-  dump_array("TARGETS", TARGETS)
-  print "TARGETS_INDEX = " TARGETS_INDEX
-  dump_array("VARIABLES", VARIABLES)
-  print "VARIABLES_INDEX = " VARIABLES_INDEX
-  dump_array("TARGETS_DOC", TARGETS_DOC)
-  dump_array("VARIABLES_DOC", VARIABLES_DOC)
-  dump_array("TARGETS_TAG", TARGETS_TAG)
-  dump_array("VARIABLES_TAG", VARIABLES_TAG)
-  dump_array("TARGETS_SECTION_DATA", TARGETS_SECTION_DATA)
-  dump_array("VARIABLES_SECTION_DATA", VARIABLES_SECTION_DATA)
+  dump_records("DISPLAY", DISPLAY, DISPLAY_COUNT, "kind name tag doc section values params")
+  print "DISPLAY_COUNT = " DISPLAY_COUNT
+  print "DOCUMENTED_COUNT = " DOCUMENTED_COUNT
   exit
 }
