@@ -5,11 +5,11 @@ test/fixtures/Makefile.backslash-anchor
 == test/fixtures/Makefile.backslash-anchor
    1 0 0  1  0 \t | ## d
    2 1 0  1  0 \t | t: \
-   3 0 1  0  0 \t | BOGUS := 1 ## x
+   3 0 0  0  0 \t | BOGUS := 1 ## x
    3 ============ => target:[t]
-   4 0 1  0  0 \t |
-   5 0 1  1  0 \t | ## v
-   6 1 1  1  0 \t | X := a \
+   4 0 0  0  0 \t |
+   5 0 0  1  0 \t | ## v
+   6 1 0  1  0 \t | X := a \
    7 0 0  0  0 \t |   Y := b ## bogus
    7 ============ => variable:[X]
    8 0 0  0  0 \t |

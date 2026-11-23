@@ -14,10 +14,6 @@ META_KEYS = {"desc", "issue", "bug", "env", "stdin", "trace"}
 
 # loaded before the script by the cases with `#: trace`
 TRACER = "tools/trace-state.awk"
-# with --new-parser: the tracer of the new parser, loaded before the script and the new parser
-NEW_TRACER = ("-f", "tools/trace-parser.awk", "-f", SCRIPT, "-f", "parser.awk")
-# with --new-parser: the other cases run the script with the new parser, through its driver
-NEW_DRIVER = ("-f", "tools/drive-parser.awk", "-f", SCRIPT, "-f", "parser.awk")
 
 
 class Case(BaseModel):
@@ -116,10 +112,7 @@ def params() -> list[pytest.ParameterSet]:
 
 @pytest.mark.parametrize("case", params())
 def test_case(awk: Awk, case: Case, request: pytest.FixtureRequest) -> None:
-    if request.config.getoption("new_parser"):
-        program: tuple[str, ...] = NEW_TRACER if case.trace else NEW_DRIVER
-    else:
-        program = ("-f", TRACER, "-f", SCRIPT) if case.trace else ("-f", SCRIPT)
+    program = ("-f", TRACER, "-f", SCRIPT) if case.trace else ("-f", SCRIPT)
     actual = render(awk(*program, *case.args, env=case.env, stdin=case.stdin))
 
     # the expected output of a known bug is written by hand: it is never updated

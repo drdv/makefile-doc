@@ -1,7 +1,6 @@
 # Rules that are not documented (special targets, targets that the parser cannot name)
 # start a recipe context, as in GNU Make: the tab-indented ## line after them is a recipe
-# line, so next-N keeps its inline doc. Known bug #181: after an assignment, the ## line
-# is read as a doc, which replaces the inline doc of next-N.
+# line, so next-N keeps its inline doc (issue #181).
 
 SRCS := s.c
 

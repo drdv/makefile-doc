@@ -6,87 +6,6 @@ function test_get_tag_from_description() {
   check("get_tag_from_description: no tag", get_tag_from_description("!#   doc"), "")
 }
 
-function test_parse_variable_name() {
-  check("parse_variable_name: := without spaces",
-        parse_variable_name("VAR2_1:=1##comment"), "VAR2_1")
-  check("parse_variable_name: ?= with spaces",
-        parse_variable_name("var2_1   ?=  1##comment"), "var2_1")
-  check("parse_variable_name: :::=",
-        parse_variable_name("x   :::=fsws"), "x")
-  check("parse_variable_name: += without value",
-        parse_variable_name("__a__   +="), "__a__")
-  check("parse_variable_name: = with inline doc",
-        parse_variable_name("X = ## doc"), "X")
-  check("parse_variable_name: ::= with value and inline doc",
-        parse_variable_name("this_is_A_VARIABLE ::= this is a value ## doc"),
-        "this_is_A_VARIABLE")
-  check("parse_variable_name: ?= with inline doc and no value",
-        parse_variable_name("x4?=## doc"), "x4")
-  check("parse_variable_name: repeated qualifiers",
-        parse_variable_name("override unexport private  override     private  export _w::="),
-        "_w")
-  check("parse_variable_name: name starting with a qualifier",
-        parse_variable_name("private  override  export unexport override1     ::=     1"),
-        "override1")
-  check("parse_variable_name: name made of qualifiers",
-        parse_variable_name("private  override  export unexport export_override::=1"),
-        "export_override")
-}
-
-# the description saved by parse_inline_descriptions(line), or "<none>"
-function saved_inline_description(line, is_variable) {
-  forget_descriptions_data()
-  parse_inline_descriptions(line, is_variable)
-  return length_array_posix(DESCRIPTION_DATA) ? DESCRIPTION_DATA[1] : "<none>"
-}
-
-function test_parse_inline_descriptions() {
-  check("parse_inline_descriptions: ## (a ; in the doc is kept)",
-        saved_inline_description("target: ## some ;description", 0), "## some ;description")
-  check("parse_inline_descriptions: ##! (a ; in the doc is kept)",
-        saved_inline_description("target: ##! some description;", 0), "##! some description;")
-  check("parse_inline_descriptions: ##%",
-        saved_inline_description("target: ##% some description", 0), "##% some description")
-  check("parse_inline_descriptions: after deps without a space",
-        saved_inline_description("target: deps1 deps2 | deps3## some description", 0),
-        "## some description")
-
-  check("parse_inline_descriptions: none after an empty inline recipe",
-        saved_inline_description("target:; ## some description", 0), "<none>")
-  check("parse_inline_descriptions: none after an inline recipe",
-        saved_inline_description("target:; @echo 1 ##! some description", 0), "<none>")
-  check("parse_inline_descriptions: none after an inline recipe with two commands",
-        saved_inline_description("target: ; @echo 1 ; echo 2 ##% some description", 0), "<none>")
-  check("parse_inline_descriptions: none after deps and an inline recipe",
-        saved_inline_description("target: deps1 deps2 | deps3 ; echo 1 ## some description", 0),
-        "<none>")
-  check("parse_inline_descriptions: none without a doc",
-        saved_inline_description("target: ", 0), "<none>")
-  check("parse_inline_descriptions: none after deps without a doc",
-        saved_inline_description("target: deps1 deps2 | deps3", 0), "<none>")
-  check("parse_inline_descriptions: none for an inline ##@ (a section is not inline)",
-        saved_inline_description("target: ##@ some text", 0), "<none>")
-  check("parse_inline_descriptions: none for an inline ##@ on a variable",
-        saved_inline_description("X := 1 ##@ some text", 1), "<none>")
-  check("parse_inline_descriptions: variable with a ; in its value",
-        saved_inline_description("X := a;b ## doc", 1), "## doc")
-  check("parse_inline_descriptions: none in an ordinary comment",
-        saved_inline_description("target: deps # a comment ## text", 0), "<none>")
-  check("parse_inline_descriptions: none in an ordinary comment on a variable",
-        saved_inline_description("X := 1 # a comment ## text", 1), "<none>")
-  check("parse_inline_descriptions: after an escaped # in a value",
-        saved_inline_description("X := a\\#b ## doc", 1), "## doc")
-  check("parse_inline_descriptions: none after an escaped backslash (\\\\ then a comment)",
-        saved_inline_description("X := a\\\\# note ## text", 1), "<none>")
-  check("parse_inline_descriptions: after an escaped backslash and an escaped #",
-        saved_inline_description("X := a\\\\\\#b ## doc", 1), "## doc")
-  check("parse_inline_descriptions: a ## in the doc is kept",
-        saved_inline_description("target: ## a ## b", 0), "## a ## b")
-
-  saved_inline_description("target: ## doc", 0)
-  check("parse_inline_descriptions: the index advances", DESCRIPTION_DATA_INDEX, 2)
-}
-
 function test_form_dc_target_name() {
   init_globals()
   check("form_dc_target_name: first rule", form_dc_target_name("t"), "t~1")
@@ -108,77 +27,9 @@ function test_has_odd_terminal_backslashes() {
         has_odd_terminal_backslashes("a\\ b"), 0)
 }
 
-function test_is_double_colon_rule() {
-  check("is_double_colon_rule: ::", is_double_colon_rule("t::"), 1)
-  check("is_double_colon_rule: :", is_double_colon_rule("t:"), 0)
-  check("is_double_colon_rule: :: with a target variable", is_double_colon_rule("t:: A:=1"), 1)
-  check("is_double_colon_rule: grouped", is_double_colon_rule("a b &::"), 1)
-  check("is_double_colon_rule: :: in the recipe of a : rule",
-        is_double_colon_rule("t: ; @echo \"a::b\""), 0)
-  check("is_double_colon_rule: no colon", is_double_colon_rule("t"), 0)
-}
-
-function test_has_unclosed_reference() {
-  check("has_unclosed_reference: plain text", has_unclosed_reference("target"), 0)
-  check("has_unclosed_reference: closed $(...)", has_unclosed_reference("$(OBJS)"), 0)
-  check("has_unclosed_reference: closed ${...}", has_unclosed_reference("${OBJS}"), 0)
-  check("has_unclosed_reference: unclosed $(...)", has_unclosed_reference("$(info a"), 1)
-  check("has_unclosed_reference: unclosed ${...}", has_unclosed_reference("${info a"), 1)
-  check("has_unclosed_reference: nested and closed",
-        has_unclosed_reference("$(addprefix a-,$(X))"), 0)
-  check("has_unclosed_reference: nested, the outer one unclosed",
-        has_unclosed_reference("$(addprefix a-,$(X)"), 1)
-  check("has_unclosed_reference: several references, the last one unclosed",
-        has_unclosed_reference("$(A) ${B} $(C"), 1)
-  check("has_unclosed_reference: more closing than opening",
-        has_unclosed_reference("a)"), 0)
-  check("has_unclosed_reference: empty text", has_unclosed_reference(""), 0)
-}
-
-function test_is_special_target() {
-  init_globals()
-  check("is_special_target: .PHONY", is_special_target(".PHONY: t"), 1)
-  check("is_special_target: .SILENT", is_special_target(".SILENT: t"), 1)
-  check("is_special_target: .IGNORE", is_special_target(".IGNORE: t"), 1)
-  check("is_special_target: .SECONDARY", is_special_target(".SECONDARY: t"), 1)
-  check("is_special_target: .INTERMEDIATE", is_special_target(".INTERMEDIATE: t"), 1)
-  check("is_special_target: .PRECIOUS", is_special_target(".PRECIOUS: t"), 1)
-  check("is_special_target: leading whitespace and spaces before :",
-        is_special_target(" \t.PHONY  : t"), 1)
-  check("is_special_target: tab before :",
-        is_special_target(".PHONY\t: t"), 1)
-  check("is_special_target: .SECONDEXPANSION without prerequisites",
-        is_special_target(".SECONDEXPANSION:"), 1)
-  check("is_special_target: .DELETE_ON_ERROR", is_special_target(".DELETE_ON_ERROR:"), 1)
-  check("is_special_target: a suffix rule is a target", is_special_target(".c.o:"), 0)
-  check("is_special_target: a hidden file is a target",
-        is_special_target(".venv/.sentinel:"), 0)
-  check("is_special_target: a name with lower-case letters is a target",
-        is_special_target(".PHONYx: t"), 0)
-  check("is_special_target: .SUFFIXES", is_special_target(".SUFFIXES:"), 1)
-  check("is_special_target: .DEFAULT", is_special_target(".DEFAULT:"), 1)
-  check("is_special_target: .NOTINTERMEDIATE", is_special_target(".NOTINTERMEDIATE: t"), 1)
-  check("is_special_target: .LOW_RESOLUTION_TIME",
-        is_special_target(".LOW_RESOLUTION_TIME: t"), 1)
-  check("is_special_target: .EXPORT_ALL_VARIABLES", is_special_target(".EXPORT_ALL_VARIABLES:"), 1)
-  check("is_special_target: .NOTPARALLEL", is_special_target(".NOTPARALLEL:"), 1)
-  check("is_special_target: .ONESHELL", is_special_target(".ONESHELL:"), 1)
-  check("is_special_target: .POSIX", is_special_target(".POSIX:"), 1)
-  check("is_special_target: an upper-case name that is not special is a target",
-        is_special_target(".ENV:"), 0)
-  check("is_special_target: a special name with a suffix is a target",
-        is_special_target(".PHONY_ALL:"), 0)
-  check("is_special_target: .PHONY as a prerequisite", is_special_target("t: .PHONY"), 0)
-}
-
 BEGIN {
   test_get_tag_from_description()
-  test_parse_variable_name()
-  test_parse_inline_descriptions()
   test_form_dc_target_name()
   test_has_odd_terminal_backslashes()
-  test_is_double_colon_rule()
-  test_has_unclosed_reference()
-  test_is_special_target()
   done()
 }

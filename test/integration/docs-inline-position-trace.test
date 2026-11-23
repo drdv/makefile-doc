@@ -9,12 +9,12 @@ test/fixtures/Makefile.docs-inline-position
    3 0 1  0  0 \t | t2: t0 | t1 ## Inline docs after order-only prerequisites
    3 ============ => target:[t2]
    4 0 1  0  0 \t |
-   5 0 1  0  0 \t | t3: A:=1 ## Inline docs after a target-specific variable
+   5 0 0  0  0 \t | t3: A:=1 ## Inline docs after a target-specific variable
    5 ============ => target:[t3]
-   6 0 1  0  0 \t |
+   6 0 0  0  0 \t |
    7 0 1  0  0 \t | t4:## No space needed
    7 ============ => target:[t4]
-   8 0 1  0  0 \t | t5: A:=1## No space needed after a target-specific variable
+   8 0 0  0  0 \t | t5: A:=1## No space needed after a target-specific variable
    8 ============ => target:[t5]
    9 0 1  0  0 \t | t6: this that## No space needed after prerequisites
    9 ============ => target:[t6]

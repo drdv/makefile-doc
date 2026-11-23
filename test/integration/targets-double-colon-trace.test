@@ -25,16 +25,16 @@ test/fixtures/Makefile.targets-double-colon
   15 0 1  1  0 \t | ## This is a top doc for dc~1
   16 0 1  0  0 \t | dc:: ## this is inline (not shown) still dc~1
   16 ============ => target:[dc~1]
-  17 0 1  0  0 \t | dc:: A:=2 ## dc~2 even if there is no recipe
+  17 0 0  0  0 \t | dc:: A:=2 ## dc~2 even if there is no recipe
   17 ============ => target:[dc~2]
   18 0 1  0  0 \t | dc::; @echo $(A)
   19 0 1  0  0 \t | \t@echo $(A)
   20 0 1  0  0 \t | \t@echo $(A)
-  21 0 1  0  0 \t | dc:: A:=2 ## dc~3 if the user says so
+  21 0 0  0  0 \t | dc:: A:=2 ## dc~3 if the user says so
   21 ============ => target:[dc~3]
   22 0 1  0  0 \t | dc::; @echo $(A)
   23 0 1  0  0 \t | dc::
-  24 0 1  0  0 \t | dc:: A:=3
+  24 0 0  0  0 \t | dc:: A:=3
   25 0 1  0  0 \t | dc::
   26 0 1  0  0 \t | dc::
   27 0 1  0  0 \t | \t@echo $(A)
@@ -42,7 +42,7 @@ test/fixtures/Makefile.targets-double-colon
   29 0 1  0  0 \t | \t@echo $(A)
   30 0 1  0  0 \t | \t@echo $(A)
   31 0 1  0  0 \t | \t@echo $(A)
-  32 0 1  0  0 \t | dc:: A:=3
+  32 0 0  0  0 \t | dc:: A:=3
   33 0 1  0  0 \t | dc:: ## dc~4
   33 ============ => target:[dc~4]
   34 0 1  0  0 \t | dc::; @echo $(A)

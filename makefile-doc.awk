@@ -57,7 +57,7 @@
 #   Global initialization  init_globals: the global variables, grouped by who writes them
 #   Options                the options: defaults, checks and derived settings
 #   Output formats         everything that depends on OUTPUT_FORMAT
-#   Parsing                the rules that read the Makefiles, and their helpers
+#   Parsing                the parser that reads the Makefiles, and its helpers
 #   Rendering              the display of the documentation
 #   Flow                   BEGIN and END
 # A function is in the section that owns the variables it writes: Options writes the
@@ -82,8 +82,8 @@
 #     with normal-prerequisites and order-only-prerequisites being space separated lists
 #     of target names.
 #   * Recipe: a sequence of commands executed in the shell. Here, a line that starts with
-#     the recipe prefix is a recipe line if it comes after a target line and before the
-#     next variable assignment (see IN_RULE).
+#     the recipe prefix is a recipe line if it comes after a rule and before a line that
+#     closes it (see lexical_step).
 #   * Target: an abstraction representing a task/goal to achieve which is defined in
 #     terms of, potentially, many rules.
 #     * Normal (single-colon) targets can have only one recipe and to mirror this we
@@ -253,15 +253,8 @@ function init_globals() {
   # ---------------------------------------------------------------------------------------
 
   VERSION = "v2.1" # the only place where the version is defined
-  FS = ":" # set the field separator
 
-  # Target matching is heuristic (this is not a GNU Make parser; see "Limitations" in the
-  # README). Since we cannot use negative lookahead, `(:|::)([^=:]|$)` ensures that the rule
-  # separator is not followed by `:` or `=`, so that assignment operators such as `:=` and
-  # `::=` are not taken for rule separators.
-  TARGETS_REGEX = "^[ \t]*[^# \t=][^#:=]*[ \t]*&?(:|::)([^=:]|$)"
-
-  # The special built-in targets of GNU Make (see is_special_target). Suffix rules, which
+  # The special built-in targets of GNU Make (see lexical_observe). Suffix rules, which
   # GNU Make also counts as special targets, are not among them: they are displayed.
   SPECIAL_TARGETS_REGEX = "^[ \t]*\\.(PHONY|SUFFIXES|DEFAULT|PRECIOUS|INTERMEDIATE|" \
                           "NOTINTERMEDIATE|SECONDARY|SECONDEXPANSION|DELETE_ON_ERROR|" \
@@ -272,7 +265,6 @@ function init_globals() {
   # v1.29.1 and below, fixed in v1.30.0)
   TAG_REGEX = "^(##!|##%|##)"
 
-  initialize_variables_regex()
   initialize_substitution_parameter_defaults()
 
   # the tables of the HTML and LaTeX output formats
@@ -336,7 +328,7 @@ function init_globals() {
   FILES_PROCESSED = "" # the names of the files read, separated by spaces
 
   # ---------------------------------------------------------------------------------------
-  # The state of the parser (and of the current file, see reset_file_state)
+  # The state of the parser
   # ---------------------------------------------------------------------------------------
 
   # the lines of the pending doc and section (to be associated with the next anchor)
@@ -349,6 +341,11 @@ function init_globals() {
   split("", TARGETS_DC_COUNTER)
 
   CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
+
+  # the state of the parser (see lexical_init, called in BEGIN once RECIPEPREFIX is known) and
+  # the observation of the last logical line (see lexical_obs)
+  split("", PARSER_STATE)
+  split("", PARSER_OBS)
 
   # ---------------------------------------------------------------------------------------
   # The state of the rendering: written by prepare_rendering (the anchors to display and
@@ -368,27 +365,6 @@ function init_globals() {
 
   split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
   OUTPUT_BODY = "" # the documentation being printed (see append_output)
-
-  reset_file_state()
-}
-
-function initialize_variables_regex() {
-  ASSIGNMENT_OPERATORS_PATTERN = "(=|:=|::=|:::=|!=|\\?=|\\+=)"
-  split("override unexport export private", VARIABLE_QUALIFIERS, " ")
-
-  # Variable matching is heuristic; this is not a complete GNU Make parser.
-  #
-  # By design, variable/function references in variable names are captured literally
-  # rather than expanded, e.g., `$(PREFIX)_FLAGS := ...` is displayed as `$(PREFIX)_FLAGS`.
-  VARIABLES_REGEX = sprintf("^[ \t]*((%s)[ \t]+)*[^ \t#:=]+[ \t]*%s",
-                            join(VARIABLE_QUALIFIERS, "|"),
-                            ASSIGNMENT_OPERATORS_PATTERN)
-
-  # the first line of a multi-line variable: [qualifiers] define NAME [operator] [# comment]
-  DEFINE_PREFIX_REGEX = sprintf("^[ \t]*((%s)[ \t]+)*define[ \t]+",
-                                join(VARIABLE_QUALIFIERS, "|"))
-  DEFINE_REGEX = sprintf("%s[^ \t#:=]+([ \t]*%s)?[ \t]*(#.*)?$",
-                         DEFINE_PREFIX_REGEX, ASSIGNMENT_OPERATORS_PATTERN)
 }
 
 function initialize_substitution_parameter_defaults() {
@@ -999,20 +975,14 @@ function apply_output_specific_formatting(text) {
 }
 
 #### Parsing
-# The rules that read the Makefiles, one line at a time, and their helpers. Parsing fills
-# the interface variables (see init_globals) and reads no option but RECIPEPREFIX.
-
-# The parser state that must not be carried over from one Makefile to the next: a doc, a
-# rule, a continued line or recipe at the end of a file ends with that file.
-# Pending section data is kept on purpose (a section is anchored to the next documented
-# anchor, which can be in the next file).
-function reset_file_state() {
-  forget_descriptions_data()
-  IN_MULTILINE_BACKSLASH_RECIPE = 0
-  IN_CONTINUED_LINE = 0 # the previous line ended with a backslash (see CONTINUED_LINE)
-  CONTINUED_LINE = ""
-  IN_RULE = ""
-}
+# The parser that reads the Makefiles, one line at a time, and its helpers. It follows the
+# model of misc/docs/parser-model.tex: each physical line is joined with the next ones if it
+# ends with a backslash (lexical_join), each logical line is observed (lexical_obs: what kind
+# of line it is, what it would document) and updates the state (lexical_step: inside a rule,
+# a doc pending, a section pending, the recipe prefix). The rule at the end of this section
+# runs it, keeps the text of the pending doc and section, and gives the doc to the anchor
+# that takes it. Parsing fills the interface variables (see init_globals) and reads no
+# option but RECIPEPREFIX.
 
 # Record a warning about the Makefiles (printed by print_warnings, before the docs). kind is
 # what it is about: "target", "variable" or "file".
@@ -1023,9 +993,11 @@ function add_warning(kind, message) {
 
 # A file whose last line ends with a backslash: the line cannot be joined with a next one,
 # so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
-# the next file and in END).
+# the next file and in END). A continued recipe line is not reported (it is part of a rule
+# that ends with the file).
 function warn_about_continued_last_line() {
-  if (IN_CONTINUED_LINE) {
+  if (PARSER_STATE["joining"] &&
+      !(PARSER_STATE["r"] && substr(PARSER_STATE["pending"], 1, 1) == PARSER_STATE["c"])) {
     add_warning("file", sprintf("[%s] the last line ends with a backslash", CURRENT_FILE))
   }
 }
@@ -1053,50 +1025,6 @@ function forget_section_data() {
   SECTION_DATA_INDEX = 1
 }
 
-# Save the inline doc of a target or variable line. As for Make, the comment starts at the
-# first # that is not escaped (\#), and it is an inline doc only if it starts with ##: a ##
-# later in an ordinary comment is not a doc. On a target line, a ## after a ; is part of an
-# inline recipe (not a doc); in a variable assignment, a ; is part of the value. An inline
-# ##@ is not a doc either (a section is written on its own lines).
-function parse_inline_descriptions(whole_line, is_variable, #locals
-                                   inline_description) {
-  # ([^#\\]|\\.)* skips the text before the comment, including escaped characters
-  if ((is_variable || !match(whole_line, /^[^#]*;/)) &&
-      match(whole_line, /^([^#\\]|\\.)*##/)) {
-    inline_description = substr(whole_line, RLENGTH - 1) # from the ## at the end of the match
-    if (inline_description !~ /^##@/) {
-      save_description_data(inline_description)
-    }
-  }
-}
-
-# True for a line of a special built-in target of GNU Make, e.g., `.PHONY: t` or
-# `.ONESHELL:` (see SPECIAL_TARGETS_REGEX). These lines are skipped and the docs above them
-# are kept. Other targets whose names start with a dot (e.g., `.ENV:`) are regular targets.
-function is_special_target(target_line) {
-  return target_line ~ SPECIAL_TARGETS_REGEX
-}
-
-# Return 1 if text has an unclosed variable reference or function call, e.g., `$(info a`
-# (the part before the first colon of `$(info a: b)`)
-function has_unclosed_reference(text, #locals
-                                opened, closed) {
-  opened = gsub(/[(]/, "(", text)
-  closed = gsub(/[)]/, ")", text)
-  if (opened > closed) {
-    return 1
-  }
-  opened = gsub(/[{]/, "{", text)
-  closed = gsub(/[}]/, "}", text)
-  return opened > closed
-}
-
-function is_double_colon_rule(line, #locals
-                              pos) {
-  pos = index(line, ":")
-  return pos && substr(line, pos + 1, 1) == ":"
-}
-
 function form_dc_target_name(target_name_nominal) {
   if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
     TARGETS_DC_COUNTER[target_name_nominal] = 1
@@ -1106,38 +1034,6 @@ function form_dc_target_name(target_name_nominal) {
                  target_name_nominal,
                  DOUBLE_COLON_SEPARATOR,
                  TARGETS_DC_COUNTER[target_name_nominal])
-}
-
-# return `FOO`, given `override private export FOO := 1`
-# return `export`, given `override private export := 1` even though `export` is a qualifier
-# return `FOO`, given `override define FOO :=` (see DEFINE_REGEX)
-function parse_define_name(whole_line, #locals
-                           name, parts) {
-  name = whole_line
-  sub(/[ \t]*#.*$/, "", name)
-  sub(DEFINE_PREFIX_REGEX, "", name)
-  split(name, parts, ASSIGNMENT_OPERATORS_PATTERN)
-  return strip_start_end_spaces_tabs(parts[1])
-}
-
-function parse_variable_name(whole_line, #locals
-                             whole_line_split, variable_name, qualifiers_pattern) {
-  split(whole_line, whole_line_split, ASSIGNMENT_OPERATORS_PATTERN)
-  variable_name = strip_start_end_spaces_tabs(whole_line_split[1])
-
-  qualifiers_pattern = "(" join(VARIABLE_QUALIFIERS, "|") ")"
-
-  while (match(variable_name, "^" qualifiers_pattern "[ \t]+[^ \t]")) {
-    sub("^" qualifiers_pattern "[ \t]+", "", variable_name)
-  }
-
-  return strip_start_end_spaces_tabs(variable_name)
-}
-
-# True for a line of a recipe: in a rule, a line that starts with the recipe prefix
-# (RECIPEPREFIX is a single character)
-function is_recipe_line() {
-  return IN_RULE && substr($0, 1, 1) == RECIPEPREFIX
 }
 
 # Attach the pending doc to an anchor (target or variable), and record the anchor and the
@@ -1170,196 +1066,426 @@ function associate_data_with_anchor(anchor_name,
   ANCHOR_ORDER_INDEX++
 }
 
-# Each input line goes through the rules below, in this order, until a rule that fully
-# handles it ends with `next`. The order matters, e.g., recipe lines are tested before docs,
-# so that a ## in a recipe is not a doc. "Pending docs" are the doc lines seen since the
-# last anchor: they are waiting for the target or variable they document.
-#
-#   Kind of line                                Pending docs       The line is
-#   ------------------------------------------  -----------------  -------------------------
-#   continuation of a line ending in \          -                  joined to it, then parsed
-#   line ending in \ (not a recipe line)        -                  stored for the next line
-#   recipe line (and its \ continuations)       discarded (1)      skipped
-#   comment banner (only ###...)                discarded          skipped
-#   doc (## not followed by @)                  extended           added to the pending docs
-#   blank line                                  kept               skipped
-#   section (##@)                               kept               saved (pending section)
-#   define line (define NAME ...)               given to it        recorded if documented
-#   conditional (ifeq, ..., endif)              kept               skipped
-#   other directive (include, vpath, ...)       discarded          skipped
-#   special target (.PHONY: ...)                kept               skipped
-#   target line                                 given to it (2)    recorded if documented
-#   variable assignment                         given to it (2)    recorded if documented
-#   other comment                               kept               skipped
-#   anything else                               discarded          skipped
-#
-#   (1) kept if the recipe line is blank
-#   (2) without pending docs, the inline doc of the line is used
-#
-# Before these rules, a final \r is dropped from every line, and the per-file state is reset
-# at the first line of each file.
+# Observe a logical line (questions 2-8 of the model, without question 1: a recipe line
+# depends on the state). Fill obs with:
+#   obs["kind"]     assignment, rule, special rule, neutral, banner, section, doc, other
+#   obs["anchor"]   target or variable (assignment and rule), "" otherwise
+#   obs["name"]     the name of the anchor, as written in the line
+#   obs["comment"]  the comment, from its # to the end of the line ("" if none)
+# The examples are in test/lexical.spec (see test/unit/test_lexical.awk).
+function lexical_observe(line, obs, #locals
+                         first_word) {
+  split("", obs)
+  obs["kind"] = ""
+  obs["anchor"] = ""
+  obs["name"] = ""
+  obs["comment"] = ""
 
-# Makefiles with CRLF line endings: drop the \r
-# (goawk drops it itself, so the coverage report shows the action as not covered)
-substr($0, length($0)) == "\r" { sub(/\r$/, "") } # lint: ignore[substr: start index]
+  if (line ~ /^[ \t]*$/) {
+    obs["kind"] = "neutral"
+    return
+  }
+  if (line ~ /^[ \t]*#/) {
+    obs["kind"] = line ~ /^[ \t]*###+[ \t]*$/ ? "banner" : \
+                  line ~ /^[ \t]*##@/ ? "section" : \
+                  line ~ /^[ \t]*##/ ? "doc" : "neutral"
+    return
+  }
 
-FNR == 1 {
+  lexical_scan(line, obs) # kind: assignment, rule or ""
+  if (obs["kind"] == "assignment") {
+    return
+  }
+
+  first_word = line
+  sub(/^[ \t]+/, "", first_word)
+  sub(/[ \t(].*$/, "", first_word)
+  if (first_word ~ /^(ifeq|ifneq|ifdef|ifndef|else|endif)$/) {
+    lexical_clear(obs, "neutral")
+  } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
+    lexical_clear(obs, "other")
+  } else if (lexical_define_name(line) != "") {
+    lexical_clear(obs, "assignment")
+    obs["anchor"] = "variable"
+    obs["name"] = lexical_define_name(line)
+  } else if (obs["kind"] == "rule") {
+    if ((obs["name"] ":") ~ SPECIAL_TARGETS_REGEX) {
+      lexical_clear(obs, "special rule")
+    }
+  } else {
+    lexical_clear(obs, "other")
+  }
+}
+
+# set the kind of obs, without anchor, name and comment
+function lexical_clear(obs, kind) {
+  obs["kind"] = kind
+  obs["anchor"] = ""
+  obs["name"] = ""
+  obs["comment"] = ""
+}
+
+# the name of the variable of a define line (e.g., `override define V :=`), "" if not one
+function lexical_define_name(line, #locals
+                             rest) {
+  rest = line
+  sub(/^[ \t]*((export|override|private)[ \t]+)*/, "", rest)
+  if (rest !~ /^define[ \t]+[^ \t]/) {
+    return ""
+  }
+  sub(/^define[ \t]+/, "", rest)
+  sub(/[ \t].*$/, "", rest)
+  sub(/(:::=|::=|:=|\+=|\?=|!=|=)$/, "", rest) # an operator without a blank before it
+  return rest
+}
+
+# Fill obs with the structure of a line (the searches of the lexical layer): obs["kind"] is
+# assignment, rule or "" (neither), with obs["anchor"], obs["name"] and obs["comment"]; for
+# an assignment to a variable, also obs["operator"] and obs["value"] (without its comment,
+# leading blanks removed). The searches run on the masked line; the texts are cut from the
+# line.
+function lexical_scan(line, obs, #locals
+                      masked, p, c, q, start, end, after, rest, hit, name) {
+  masked = lexical_mask(line)
+  p = match(masked, /[#=:]/)
+  if (!p) {
+    return
+  }
+  c = substr(masked, p, 1)
+  if (c == "#") {
+    obs["comment"] = substr(line, p)
+    return
+  }
+  q = p # the end of a run of colons
+  while (substr(masked, q + 1, 1) == ":") {
+    q++
+  }
+  if (c == "=" || substr(masked, q + 1, 1) == "=") { # an operator before any separating colon
+    start = (c == "=" && p > 1 && substr(masked, p - 1, 1) ~ /[?+!]/) ? p - 1 : p
+    name = lexical_variable_name(substr(line, 1, start - 1), substr(masked, 1, start - 1))
+    if (name != "") {
+      end = c == "=" ? p : q + 1 # the = of the operator
+      obs["kind"] = "assignment"
+      obs["anchor"] = "variable"
+      obs["name"] = name
+      obs["comment"] = lexical_rest_from(line, masked, end, "#")
+      obs["operator"] = substr(line, start, end - start + 1)
+      obs["value"] = substr(line, end + 1, length(line) - end - length(obs["comment"]))
+      sub(/^[ \t]+/, "", obs["value"])
+    }
+    return
+  }
+
+  # p is the separating colon (:, :: or &:)
+  name = substr(line, 1, p - 1)
+  sub(/[ \t]*&$/, "", name)
+  sub(/^[ \t]+/, "", name)
+  sub(/[ \t]+$/, "", name)
+  if (name == "") {
+    return
+  }
+  obs["kind"] = "rule"
+  obs["anchor"] = "target"
+  obs["name"] = name
+  obs["double"] = q > p # a double-colon rule
+  obs["grouped"] = substr(line, 1, p - 1) ~ /&[ \t]*$/ # grouped targets (&:)
+  after = q + 1
+  rest = substr(masked, after) # not inline in match(): misc/onetrue_awk_bug_20261123.awk
+  hit = match(rest, /[#;=]/)
+  if (!hit) {
+    return
+  }
+  hit += after - 1
+  c = substr(masked, hit, 1)
+  if (c == "#") {
+    obs["comment"] = substr(line, hit)
+  } else if (c == "=") { # a target-specific assignment: after its operator, ; hides #
+    obs["kind"] = "assignment"
+    obs["comment"] = lexical_rest_from(line, masked, hit, "#;")
+  }
+}
+
+# The comment of line after position p: from the first character of chars found in masked
+# after p, if it is a #; "" otherwise
+function lexical_rest_from(line, masked, p, chars, #locals
+                           k, c) {
+  for (k = p + 1; k <= length(masked); k++) {
+    c = substr(masked, k, 1)
+    if (index(chars, c) > 0) {
+      return c == "#" ? substr(line, k) : ""
+    }
+  }
+  return ""
+}
+
+# The variable of the left side of an assignment, with its qualifiers (export, override,
+# private): the single word after them, "" if there is not exactly one word. The words are
+# found in masked (a reference is part of a word), the name is cut from text.
+function lexical_variable_name(text, masked, #locals
+                               word_start, before, n, words, k) {
+  if (!match(masked, /[^ \t]+[ \t]*$/)) {
+    return ""
+  }
+  word_start = RSTART
+  before = substr(masked, 1, word_start - 1)
+  n = split(before, words, /[ \t]+/)
+  for (k = 1; k <= n; k++) {
+    if (words[k] != "" && words[k] !~ /^(export|override|private)$/) {
+      return ""
+    }
+  }
+  text = substr(text, word_start)
+  sub(/[ \t]+$/, "", text)
+  return text
+}
+
+# The line with what GNU Make does not read as syntax replaced by _, so that the searches can
+# look for #, :, = and ; directly. The masked line has the same length as the line (the
+# positions are the same). Masked:
+#   * a reference: from $( or ${ to its matching bracket (only the same kind of bracket
+#     nests), or to the end of the line if it is not closed
+#   * $ and any other character that follows it: a one-character reference (e.g., $@, $#;
+#     $$ is a literal $)
+#   * the escape pairs \\, \#, \: and \; (read from left to right: in a run of backslashes,
+#     only an odd last one escapes the character that follows)
+function lexical_mask(line, #locals
+                      n, k, c, next_char, opening, closing, depth, start, out) {
+  n = length(line)
+  out = ""
+  k = 1
+  while (k <= n) {
+    c = substr(line, k, 1)
+    next_char = substr(line, k + 1, 1)
+    if (c == "$" && (next_char == "(" || next_char == "{")) {
+      opening = next_char
+      closing = opening == "(" ? ")" : "}"
+      depth = 0
+      start = k
+      for (k = k + 1; k <= n; k++) {
+        c = substr(line, k, 1)
+        if (c == opening) {
+          depth++
+        } else if (c == closing) {
+          depth--
+          if (depth == 0) {
+            break
+          }
+        }
+      }
+      if (k > n) { # not closed: masked to the end of the line
+        k = n
+      }
+      out = out repeated_string("_", k - start + 1)
+      k++
+    } else if ((c == "$" && next_char != "") ||
+               (c == "\\" && next_char != "" && index("\\#:;", next_char) > 0)) {
+      out = out "__"
+      k += 2
+    } else {
+      out = out c
+      k++
+    }
+  }
+  return out
+}
+
+# ---------------------------------------------------------------------------------------
+# The state machine (the model, with its state in an array): state["r"] (inside a rule),
+# state["d"] (a doc is pending), state["s"] (a section is pending), state["c"] (the recipe
+# prefix), the numbers of pending doc and section lines (state["dn"], state["sn"]), and the
+# line being joined (state["joining"], state["pending"]).
+# ---------------------------------------------------------------------------------------
+
+function lexical_init(state, prefix) {
+  split("", state)
+  state["r"] = 0
+  state["d"] = 0
+  state["s"] = 0
+  state["c"] = prefix == "" ? "\t" : substr(prefix, 1, 1)
+  state["dn"] = 0
+  state["sn"] = 0
+  state["joining"] = 0
+  state["pending"] = ""
+}
+
+# At the first line of a file: no open rule and no pending doc (a section and the recipe
+# prefix carry over). A line continued at the end of the previous file is dropped.
+function lexical_file_start(state) {
+  state["r"] = 0
+  state["d"] = 0
+  state["dn"] = 0
+  state["joining"] = 0
+  state["pending"] = ""
+}
+
+# Add a physical line: return 1 when a logical line is complete (in state["line"]), 0 when the
+# line continues on the next one (an odd number of final backslashes, recipe lines included).
+# As in GNU Make, the backslash, the newline and the blanks around them become one space.
+function lexical_join(state, physical, #locals
+                      stripped) {
+  sub(/\r$/, "", physical) # CRLF line endings
+  if (state["joining"]) {
+    sub(/^[ \t]+/, "", physical)
+    physical = state["pending"] " " physical
+    state["joining"] = 0
+  }
+  if (has_odd_terminal_backslashes(physical)) {
+    physical = substr(physical, 1, length(physical) - 1)
+    stripped = physical
+    sub(/[ \t]+$/, "", stripped)
+    # a recipe line of only its prefix (e.g., a tab, then the backslash) keeps the prefix
+    physical = stripped == "" ? substr(physical, 1, 1) : stripped
+    state["pending"] = physical
+    state["joining"] = 1
+    return 0
+  }
+  state["line"] = physical
+  return 1
+}
+
+# Observe a logical line with the state (all the questions of the model): lexical_observe,
+# plus question 1 (a recipe line: inside a rule, the line starts with the recipe prefix),
+# obs["inline"] (a_i: the comment is an inline doc) and question 9 (an assignment to
+# .RECIPEPREFIX changes state["c"], for the next lines).
+function lexical_obs(line, state, obs) {
+  if (state["r"] && substr(line, 1, 1) == state["c"]) {
+    split("", obs)
+    lexical_clear(obs, "recipe")
+  } else {
+    lexical_observe(line, obs)
+  }
+  obs["inline"] = obs["anchor"] != "" && obs["comment"] ~ /^##/ && obs["comment"] !~ /^##@/
+  if (obs["kind"] == "assignment" && obs["anchor"] == "variable" &&
+      obs["name"] == ".RECIPEPREFIX") {
+    lexical_set_prefix(state, obs["operator"], obs["value"])
+  }
+}
+
+# The recipe prefix after an assignment to .RECIPEPREFIX: the first character of the value (a
+# tab if it is empty). With += the first character does not change; with != or an expanded
+# reference (:=, ::=), the value is not known: the prefix does not change either.
+function lexical_set_prefix(state, operator, value) {
+  if (operator == "+=" || operator == "!=" || (operator ~ /^:+=$/ && index(value, "$") > 0)) {
+    return
+  }
+  state["c"] = value == "" ? "\t" : substr(value, 1, 1)
+}
+
+# Update the state with an observation (the step table of the model). obs["attach"] is 1 when
+# the line is an anchor that gets documented (by a pending doc or its inline doc), and
+# obs["with_section"] is 1 when the pending section goes with it.
+function lexical_step(state, obs, #locals
+                      kind, documented) {
+  kind = obs["kind"]
+  documented = state["d"] || obs["inline"]
+  obs["attach"] = 0
+  obs["with_section"] = 0
+  if (kind == "recipe") {
+    state["r"] = 1
+    lexical_drop_doc(state)
+  } else if (kind == "doc") {
+    state["d"] = 1
+    state["dn"]++
+  } else if (kind == "section") {
+    state["s"] = 1
+    state["sn"]++
+  } else if (kind == "banner") {
+    lexical_drop_doc(state)
+  } else if (kind == "rule" || kind == "assignment") {
+    state["r"] = kind == "rule"
+    if (documented) {
+      obs["attach"] = 1
+      obs["with_section"] = state["s"]
+      state["s"] = 0
+      state["sn"] = 0
+    }
+    lexical_drop_doc(state)
+  } else if (kind == "special rule") {
+    state["r"] = 1
+  } else if (kind == "other") {
+    state["r"] = 0
+    lexical_drop_doc(state)
+  } # neutral: no change
+}
+
+function lexical_drop_doc(state) {
+  state["d"] = 0
+  state["dn"] = 0
+}
+
+
+# At the first line of a file: the warning about the previous file, then a new file (the
+# pending doc is dropped, the pending section is kept: it goes to the next documented anchor,
+# which can be in this file)
+function parse_file_start() {
   warn_about_continued_last_line()
-  reset_file_state()
+  lexical_file_start(PARSER_STATE)
+  forget_descriptions_data()
   # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
   CURRENT_FILE = FILENAME == "" ? "-" : FILENAME
-  if (FILES_PROCESSED != "") {
-    FILES_PROCESSED = FILES_PROCESSED " " CURRENT_FILE
-  } else {
-    FILES_PROCESSED = CURRENT_FILE
+  FILES_PROCESSED = FILES_PROCESSED == "" ? CURRENT_FILE : FILES_PROCESSED " " CURRENT_FILE
+}
+
+# A logical line: observe it (in PARSER_OBS), keep the text of a doc or section line, update
+# the state, and give the doc to the anchor that takes it (without a pending doc, its inline
+# doc). The pending doc is dropped when the state says so.
+function parse_line(line, #locals
+                    kind, text) {
+  lexical_obs(line, PARSER_STATE, PARSER_OBS)
+  kind = PARSER_OBS["kind"]
+  text = line
+  sub(/^[ \t]+/, "", text)
+  if (kind == "doc") {
+    save_description_data(text)
+  } else if (kind == "section") {
+    sub(/^##@/, "", text) # the tags are not needed anymore
+    save_section_data(text)
   }
-}
 
-# A line continued with a backslash (a comment too, but not a recipe line) is joined with
-# the next one, as in GNU Make: the backslash, the newline and the whitespace around them
-# become one space. The rules below then see the whole logical line, e.g., a doc continued
-# with a backslash is one doc line, whatever the next line is.
-IN_CONTINUED_LINE {
-  g_continuation = $0
-  sub(/^[ \t]+/, "", g_continuation)
-  $0 = CONTINUED_LINE " " g_continuation
-  IN_CONTINUED_LINE = 0
-}
-
-# a line that ends with a backslash (not a recipe line) is kept, to be joined with the next one
-!IN_MULTILINE_BACKSLASH_RECIPE && !is_recipe_line() && has_odd_terminal_backslashes($0) {
-  CONTINUED_LINE = substr($0, 1, length($0) - 1)
-  sub(/[ \t]+$/, "", CONTINUED_LINE)
-  IN_CONTINUED_LINE = 1
-  next
-}
-
-is_recipe_line() || IN_MULTILINE_BACKSLASH_RECIPE {
-  # an empty recipe line is a blank line: it keeps the docs
-  if (DESCRIPTION_DATA_INDEX > 1 && $0 !~ /^[ \t]*$/) {
+  lexical_step(PARSER_STATE, PARSER_OBS)
+  if (PARSER_OBS["attach"]) {
+    if (DESCRIPTION_DATA_INDEX == 1) {
+      save_description_data(PARSER_OBS["comment"])
+    }
+    if (PARSER_OBS["anchor"] == "target") {
+      associate_data_with_anchor(form_target_name(PARSER_OBS), TARGETS_DESCRIPTION_DATA,
+                                 TARGETS_TAG, "target")
+    } else {
+      associate_data_with_anchor(PARSER_OBS["name"], VARIABLES_DESCRIPTION_DATA, VARIABLES_TAG,
+                                 "variable")
+    }
+  }
+  if (!PARSER_STATE["d"]) {
     forget_descriptions_data()
   }
+}
 
-  IN_MULTILINE_BACKSLASH_RECIPE = 0
-  if (substr($0, length($0)) == "\\") {
-    g_recipe_text = substr($0, 1, 1) == RECIPEPREFIX ? substr($0, 2) : $0
-    IN_MULTILINE_BACKSLASH_RECIPE = has_odd_terminal_backslashes(g_recipe_text)
+# The name of a documented target: blanks collapsed (GNU Make treats any run of blanks
+# between target names as one separator), a & after grouped targets, ~N after the documented
+# rules of a double-colon target (see form_dc_target_name; counted across files)
+function form_target_name(obs, #locals
+                          name, nominal) {
+  name = obs["name"]
+  gsub(/[ \t]+/, " ", name)
+  if (obs["grouped"]) {
+    name = name "&"
   }
-
-  next
-}
-
-# A line of three or more # is a comment banner: it is not a doc, and it discards the docs
-# above it (they belong to another part of the Makefile)
-/^[ \t]*###+[ \t]*$/ {
-  forget_descriptions_data()
-  next
-}
-
-# Capture the line if it is a description (but not a section). It can be indented with
-# spaces and tabs (in a rule, a line that starts with the recipe prefix is a recipe line,
-# handled above).
-/^[ \t]*##([^@]|$)/ {
-  g_description_string = $0
-  sub(/^[ \t]*/, "", g_description_string)
-
-  save_description_data(g_description_string)
-  next
-}
-
-# Blank lines (empty or with only spaces and tabs) between docs are allowed (they do not
-# discard the docs)
-/^[ \t]*$/ {
-  next
-}
-
-# New section (all the lines of a multi-line section should start with ##@)
-/^[ \t]*##@/ {
-  g_section_string = $0
-  sub(/^[ \t]*##@/, "", g_section_string) # strip the tags (they are not needed anymore)
-
-  save_section_data(g_section_string)
-  next
-}
-
-# A multi-line variable (define ... endef) is documented by the docs above its first line
-# (not inline). The lines of its body go through the rules as any other line.
-$0 ~ DEFINE_REGEX {
-  if (DESCRIPTION_DATA_INDEX > 1) {
-    associate_data_with_anchor(parse_define_name($0), VARIABLES_DESCRIPTION_DATA,
-                               VARIABLES_TAG, "variable")
+  if (obs["double"]) {
+    nominal = name
+    name = form_dc_target_name(nominal)
+    TARGETS_DC_COUNTER[nominal]++
   }
-  IN_RULE = ""
-  next
+  return name
 }
 
-# A directive is not a rule, even with a colon (e.g., `ifeq "$(OS)" "a:b"`, `vpath %.c a:b`),
-# unless it is an assignment to a variable named as a directive (e.g., `include := x`).
-# Docs are kept above conditionals and discarded by the other directives.
-/^[ \t]*(ifeq|ifneq|ifdef|ifndef|else|endif)([ \t(]|$)/ && $0 !~ VARIABLES_REGEX {
-  next
+FNR == 1 {
+  parse_file_start()
 }
 
-/^[ \t]*(vpath|include|-include|sinclude|export|unexport|undefine)([ \t]|$)/ &&
-    $0 !~ VARIABLES_REGEX {
-  forget_descriptions_data()
-  next
-}
-
-# (a colon inside a reference, as in `$(info a: b)`, is not a rule separator)
-$0 ~ TARGETS_REGEX && !(index($1, "$") && has_unclosed_reference($1)) {
-  if (is_special_target($0)) {
-    next
+{
+  if (lexical_join(PARSER_STATE, $0)) {
+    parse_line(PARSER_STATE["line"])
   }
-
-  if (DESCRIPTION_DATA_INDEX == 1) {
-    parse_inline_descriptions($0, 0)
-  }
-
-  # remove spaces up to & in grouped targets, e.g., `t1 t2   &` becomes `t1 t2&`
-  # for the reason to use \\&, see:
-  # https://www.gnu.org/software/gawk/manual/html_node/Gory-Details.html
-  # GNU Make treats any run of spaces and tabs between target names as one separator
-  g_target_name_nominal = $1
-  gsub(/[ \t]+/, " ", g_target_name_nominal)
-  sub(/[ \t]*&/, "\\&", g_target_name_nominal)
-  g_target_name_nominal = strip_start_end_spaces_tabs(g_target_name_nominal)
-
-  if (DESCRIPTION_DATA_INDEX > 1) {
-    g_target_name = g_target_name_nominal
-    if (is_double_colon_rule($0)) {
-      g_target_name = form_dc_target_name(g_target_name_nominal)
-      TARGETS_DC_COUNTER[g_target_name_nominal]++
-    }
-
-    associate_data_with_anchor(g_target_name, TARGETS_DESCRIPTION_DATA, TARGETS_TAG, "target")
-  }
-
-  IN_RULE = g_target_name_nominal
-  next
-}
-
-$0 ~ VARIABLES_REGEX {
-  if (DESCRIPTION_DATA_INDEX == 1) {
-    parse_inline_descriptions($0, 1)
-  }
-
-  if (DESCRIPTION_DATA_INDEX > 1) {
-    g_variable_name = parse_variable_name($0)
-    associate_data_with_anchor(g_variable_name, VARIABLES_DESCRIPTION_DATA, VARIABLES_TAG,
-                               "variable")
-  }
-
-  IN_RULE = ""
-  next
-}
-
-# Docs are discarded when they are followed by an unrelated line (e.g., a function call,
-# endef), so that they do not end up on the next anchor. Comments are not unrelated: the
-# docs above them are kept. (Blank lines, sections, directives, anchors and special
-# targets have been handled above.)
-$0 !~ /^[ \t]*#/ {
-  forget_descriptions_data()
 }
 
 #### Rendering
@@ -1755,6 +1881,7 @@ BEGIN {
   init_globals()
   if (!UNIT_TEST) {
     process_options()
+    lexical_init(PARSER_STATE, RECIPEPREFIX)
   }
 }
 

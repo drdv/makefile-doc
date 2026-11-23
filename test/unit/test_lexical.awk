@@ -1,5 +1,5 @@
-# Check the functions of the new parser (parser.awk, which test/test_unit.py loads next to the
-# script for this file) against the examples of test/lexical.spec.
+# Check the functions of the parser (the lexical_* functions of the script): against the
+# examples of test/lexical.spec, and line by line.
 
 # Read the blocks of a spec file into blocks[k, key] (k = 1..n) and return n. A value in
 # brackets keeps its spaces (the first [ and the last ] of the line delimit it); a line that
@@ -143,7 +143,125 @@ function test_lexical_states(    state, obs) {
         state["d"] " " state["s"] " " state["joining"], "0 1 0")
 }
 
+# a field of the observation of a line without state (lexical_observe), "" if not set
+function observed(line, field, #locals
+                  obs) {
+  lexical_observe(line, obs)
+  return array_get(obs, field)
+}
+
+# the inline doc of a line outside a rule (lexical_obs), or "<none>"
+function inline_doc(line, #locals
+                    state, obs) {
+  lexical_init(state, "")
+  lexical_obs(line, state, obs)
+  return obs["inline"] ? obs["comment"] : "<none>"
+}
+
+function test_lexical_special_rules() {
+  check("special rule: .PHONY", observed(".PHONY: t", "kind"), "special rule")
+  check("special rule: .SILENT", observed(".SILENT: t", "kind"), "special rule")
+  check("special rule: .IGNORE", observed(".IGNORE: t", "kind"), "special rule")
+  check("special rule: .SECONDARY", observed(".SECONDARY: t", "kind"), "special rule")
+  check("special rule: .INTERMEDIATE", observed(".INTERMEDIATE: t", "kind"), "special rule")
+  check("special rule: .PRECIOUS", observed(".PRECIOUS: t", "kind"), "special rule")
+  check("special rule: leading whitespace and spaces before :",
+        observed(" \t.PHONY  : t", "kind"), "special rule")
+  check("special rule: tab before :", observed(".PHONY\t: t", "kind"), "special rule")
+  check("special rule: .SECONDEXPANSION without prerequisites",
+        observed(".SECONDEXPANSION:", "kind"), "special rule")
+  check("special rule: .DELETE_ON_ERROR", observed(".DELETE_ON_ERROR:", "kind"), "special rule")
+  check("special rule: .SUFFIXES", observed(".SUFFIXES:", "kind"), "special rule")
+  check("special rule: .DEFAULT", observed(".DEFAULT:", "kind"), "special rule")
+  check("special rule: .NOTINTERMEDIATE", observed(".NOTINTERMEDIATE: t", "kind"),
+        "special rule")
+  check("special rule: .LOW_RESOLUTION_TIME", observed(".LOW_RESOLUTION_TIME: t", "kind"),
+        "special rule")
+  check("special rule: .EXPORT_ALL_VARIABLES", observed(".EXPORT_ALL_VARIABLES:", "kind"),
+        "special rule")
+  check("special rule: .NOTPARALLEL", observed(".NOTPARALLEL:", "kind"), "special rule")
+  check("special rule: .ONESHELL", observed(".ONESHELL:", "kind"), "special rule")
+  check("special rule: .POSIX", observed(".POSIX:", "kind"), "special rule")
+  check("special rule: a suffix rule is a rule", observed(".c.o:", "kind"), "rule")
+  check("special rule: a hidden file is a rule", observed(".venv/.sentinel:", "kind"), "rule")
+  check("special rule: a name with lower-case letters is a rule",
+        observed(".PHONYx: t", "kind"), "rule")
+  check("special rule: an upper-case name that is not special is a rule",
+        observed(".ENV:", "kind"), "rule")
+  check("special rule: a special name with a suffix is a rule",
+        observed(".PHONY_ALL:", "kind"), "rule")
+  check("special rule: .PHONY as a prerequisite is a rule", observed("t: .PHONY", "kind"), "rule")
+}
+
+function test_lexical_variable_names() {
+  check("variable name: := without spaces", observed("VAR2_1:=1##comment", "name"), "VAR2_1")
+  check("variable name: ?= with spaces", observed("var2_1   ?=  1##comment", "name"), "var2_1")
+  check("variable name: :::=", observed("x   :::=fsws", "name"), "x")
+  check("variable name: += without value", observed("__a__   +=", "name"), "__a__")
+  check("variable name: = with inline doc", observed("X = ## doc", "name"), "X")
+  check("variable name: ::= with value and inline doc",
+        observed("this_is_A_VARIABLE ::= this is a value ## doc", "name"), "this_is_A_VARIABLE")
+  check("variable name: ?= with inline doc and no value", observed("x4?=## doc", "name"), "x4")
+  check("variable name: repeated qualifiers",
+        observed("override private  override     private  export _w::=", "name"), "_w")
+  check("variable name: name starting with a qualifier",
+        observed("private  override  export override1     ::=     1", "name"), "override1")
+  check("variable name: name made of qualifiers",
+        observed("private  override  export export_override::=1", "name"), "export_override")
+  check("variable name: unexport is a directive, not a qualifier",
+        observed("override unexport V := 1", "kind"), "other")
+}
+
+function test_lexical_inline_docs() {
+  check("inline doc: ## (a ; in the doc is kept)",
+        inline_doc("target: ## some ;description"), "## some ;description")
+  check("inline doc: ##! (a ; in the doc is kept)",
+        inline_doc("target: ##! some description;"), "##! some description;")
+  check("inline doc: ##%", inline_doc("target: ##% some description"), "##% some description")
+  check("inline doc: after deps without a space",
+        inline_doc("target: deps1 deps2 | deps3## some description"), "## some description")
+  check("inline doc: none after an empty inline recipe",
+        inline_doc("target:; ## some description"), "<none>")
+  check("inline doc: none after an inline recipe",
+        inline_doc("target:; @echo 1 ##! some description"), "<none>")
+  check("inline doc: none after an inline recipe with two commands",
+        inline_doc("target: ; @echo 1 ; echo 2 ##% some description"), "<none>")
+  check("inline doc: none after deps and an inline recipe",
+        inline_doc("target: deps1 deps2 | deps3 ; echo 1 ## some description"), "<none>")
+  check("inline doc: none without a doc", inline_doc("target: "), "<none>")
+  check("inline doc: none after deps without a doc",
+        inline_doc("target: deps1 deps2 | deps3"), "<none>")
+  check("inline doc: none for an inline ##@ (a section is not inline)",
+        inline_doc("target: ##@ some text"), "<none>")
+  check("inline doc: none for an inline ##@ on a variable",
+        inline_doc("X := 1 ##@ some text"), "<none>")
+  check("inline doc: variable with a ; in its value", inline_doc("X := a;b ## doc"), "## doc")
+  check("inline doc: none in an ordinary comment",
+        inline_doc("target: deps # a comment ## text"), "<none>")
+  check("inline doc: none in an ordinary comment on a variable",
+        inline_doc("X := 1 # a comment ## text"), "<none>")
+  check("inline doc: after an escaped # in a value", inline_doc("X := a\\#b ## doc"), "## doc")
+  check("inline doc: none after an escaped backslash (\\\\ then a comment)",
+        inline_doc("X := a\\\\# note ## text"), "<none>")
+  check("inline doc: after an escaped backslash and an escaped #",
+        inline_doc("X := a\\\\\\#b ## doc"), "## doc")
+  check("inline doc: a ## in the doc is kept", inline_doc("target: ## a ## b"), "## a ## b")
+}
+
+function test_lexical_double_colon() {
+  check("double colon: ::", observed("t::", "double"), 1)
+  check("double colon: :", observed("t:", "double"), 0)
+  check("double colon: :: with a target variable", observed("t:: A:=1", "double"), 1)
+  check("double colon: grouped", observed("a b &::", "double"), 1)
+  check("double colon: :: in the recipe of a : rule",
+        observed("t: ; @echo \"a::b\"", "double"), 0)
+}
+
 BEGIN {
+  test_lexical_special_rules()
+  test_lexical_variable_names()
+  test_lexical_inline_docs()
+  test_lexical_double_colon()
   test_lexical_mask()
   test_lexical_observe()
   test_lexical_states()

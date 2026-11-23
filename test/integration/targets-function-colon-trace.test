@@ -11,11 +11,11 @@ test/fixtures/Makefile.targets-function-colon
    6 0 1  0  0 \t | t1:
    7 0 1  0  0 \t |
    8 0 1  1  0 \t | ## Docs above a reference with braces (discarded)
-   9 0 1  0  0 \t | ${info a: b}
+   9 0 0  0  0 \t | ${info a: b}
   10 0 1  0  0 \t | t2:
   11 0 1  0  0 \t |
   12 0 1  1  0 \t | ## Docs above a nested call (discarded)
-  13 0 1  0  0 \t | $(foreach x,a b,$(info $(x): y))
+  13 0 0  0  0 \t | $(foreach x,a b,$(info $(x): y))
   14 0 1  0  0 \t | t3:
   15 0 1  0  0 \t |
   16 0 1  1  0 \t | ## Docs of a target with a reference

@@ -4,11 +4,12 @@ test/fixtures/Makefile.targets-regex-limitations
 #: stdout
 == test/fixtures/Makefile.targets-regex-limitations
    1 0 0  1  0 \t | ## Escaped #
-   2 0 0  0  0 \t | foo\#bar:
-   3 0 0  0  0 \t |
-   4 0 0  1  0 \t | ## Escaped :
+   2 0 1  0  0 \t | foo\#bar:
+   2 ============ => target:[foo\#bar]
+   3 0 1  0  0 \t |
+   4 0 1  1  0 \t | ## Escaped :
    5 0 1  0  0 \t | foo\:bar:
-   5 ============ => target:[foo\]
+   5 ============ => target:[foo\:bar]
    6 0 1  0  0 \t |
    7 0 1  1  0 \t | ## Escaped space
    8 0 1  0  0 \t | foo\ bar:
@@ -16,3 +17,4 @@ test/fixtures/Makefile.targets-regex-limitations
    9 0 1  0  0 \t |
   10 0 1  1  0 \t | ## Colon in a reference
   11 0 1  0  0 \t | $(SRCS:.c=.o):
+  11 ============ => target:[$(SRCS:.c=.o)]
