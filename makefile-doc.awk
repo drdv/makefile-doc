@@ -1286,8 +1286,9 @@ function parser_obs(line, state, obs) {
   obs["inline"] = obs["anchor"] != "" && obs["comment"] ~ /^##/ && obs["comment"] !~ /^##@/
   obs["text"] = line # for a doc or section line: its text (without the ##@ of a section)
   sub(obs["kind"] == "section" ? "^[ \t]*##@" : "^[ \t]+", "", obs["text"])
+  # (a define has no operator: its value is on the next lines)
   if (obs["kind"] == "assignment" && obs["anchor"] == "variable" &&
-      obs["name"] == ".RECIPEPREFIX") {
+      obs["name"] == ".RECIPEPREFIX" && ("operator" in obs)) {
     parser_set_prefix(state, obs["operator"], obs["value"])
   }
 }
