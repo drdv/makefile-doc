@@ -13,6 +13,12 @@ function test_form_substitutions_with_labels(    params, labels, values, names) 
   check("form_substitutions: names in order", names[1] " " names[2], "NAME target")
 }
 
+function test_form_substitutions_semicolon(    params, labels, values, names) {
+  form_substitutions("$(S):cd b\\; cmake ..;T:x", params, labels, values, names, 1)
+  check("form_substitutions: an escaped ; is part of the value", values["$(S)"], "cd b; cmake ..")
+  check("form_substitutions: an unescaped ; separates items", names[1] " " names[2], "$(S) T")
+}
+
 function test_form_substitutions_empty_parts(    params, labels, values, names) {
   form_substitutions("T1:;T2:L2:;T3:V31 V32", params, labels, values, names, 0)
   check("form_substitutions: number of params", length_array_posix(params), 3)
@@ -240,6 +246,7 @@ function test_display_name(    labels) {
 BEGIN {
   test_form_substitutions_with_labels()
   test_form_substitutions_empty_parts()
+  test_form_substitutions_semicolon()
   test_form_substitutions_empty_items()
   test_form_substitutions_invalid()
   test_parse_substitution_params()

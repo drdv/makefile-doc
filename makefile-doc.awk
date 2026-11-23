@@ -391,8 +391,8 @@ function report_assignment_operands(    k) {
   }
 }
 
-# Parse spec, the value of SUB or DSUB (items separated by ;), each with optional
-# parameters <p1:v1,...> (see the validate_*_params functions):
+# Parse spec, the value of SUB or DSUB (items separated by ;, \; is a ; in an item), each
+# with optional parameters <p1:v1,...> (see the validate_*_params functions):
 #   SUB   NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (an empty label is no label)
 #   DSUB  NAME:VALUE (no_labels is set)
 # The value is everything after the last separator, so it can hold colons; for SUB,
@@ -403,7 +403,7 @@ function form_substitutions(spec, sub_params_array, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
-                            has_label, n_substitutions, option) {
+                            has_label, n_substitutions, option, placeholder) {
   split("", sub_params_array)
   split("", sub_labels_array)
   split("", sub_values_array)
@@ -411,9 +411,12 @@ function form_substitutions(spec, sub_params_array, sub_labels_array,
 
   option = no_labels ? "DSUB" : "SUB"
   n = 0
+  placeholder = "\034" # the "file separator" ASCII control character
+  gsub(/\\;/, placeholder, spec) # an escaped ; does not separate items
   n_substitutions = split(spec, split_substitutions, ";")
   for (k = 1; k <= n_substitutions; k++) {
     string = split_substitutions[k]
+    gsub(placeholder, ";", string)
     if (string ~ /^[ \t]*$/) {
       continue
     }
