@@ -1,0 +1,12 @@
+#: desc: Rules that are not documented (special targets, targets that the parser cannot name) start a recipe context, as in GNU Make
+#: bug: 181
+-v COLOR=0 test/fixtures/Makefile.state-recipe-start
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+next-1   Doc of next-1
+next-2   Doc of next-2
+next-3   Doc of next-3
+next-4   Doc of next-4
+-----------------------

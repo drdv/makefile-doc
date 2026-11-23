@@ -1,0 +1,26 @@
+# Rules that are not documented (special targets, targets that the parser cannot name)
+# start a recipe context, as in GNU Make: the tab-indented ## line after them is a recipe
+# line, so next-N keeps its inline doc. Known bug #181: after an assignment, the ## line
+# is read as a doc, which replaces the inline doc of next-N.
+
+SRCS := s.c
+
+A := 1
+.PHONY: next-1
+	## a special target (.PHONY), after an assignment
+next-1: ## Doc of next-1
+
+A := 1
+.DEFAULT:
+	## a special target (.DEFAULT), after an assignment
+next-2: ## Doc of next-2
+
+A := 1
+$(SRCS:.c=.o): dep
+	## a substitution reference target, after an assignment
+next-3: ## Doc of next-3
+
+A := 1
+$(subst :,_,x-4): dep
+	## a colon in a reference, after an assignment
+next-4: ## Doc of next-4
