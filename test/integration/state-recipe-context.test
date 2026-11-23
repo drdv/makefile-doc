@@ -1,0 +1,66 @@
+#: desc: Which lines keep or end the recipe context: a tab-indented doc after them documents the next target only outside a rule, as in GNU Make
+-v COLOR=0 test/fixtures/Makefile.state-recipe-context
+#: stdout
+-----------------------
+Available targets:
+-----------------------
+rule-1    Doc of rule-1
+rule-2    Doc of rule-2
+rule-3    Doc of rule-3
+rule-4    Doc of rule-4
+rule-5    Doc of rule-5
+rule-6    Doc of rule-6
+rule-7    Doc of rule-7
+rule-8    Doc of rule-8
+rule-9    Doc of rule-9
+rule-10   Doc of rule-10
+next-10   an assignment (=), after a rule
+rule-11   Doc of rule-11
+next-11   an assignment (:=), after a rule
+rule-12   Doc of rule-12
+next-12   an assignment (::=), after a rule
+rule-13   Doc of rule-13
+next-13   an assignment (!=), after a rule
+rule-14   Doc of rule-14
+next-14   an assignment (?=), after a rule
+rule-15   Doc of rule-15
+next-15   an assignment (+=), after a rule
+rule-16   Doc of rule-16
+next-16   an exported assignment, after a rule
+rule-17   Doc of rule-17
+next-17   an overridden assignment, after a rule
+rule-18   Doc of rule-18
+next-18   define ... endef, after a rule
+rule-19   Doc of rule-19
+rule-20   Doc of rule-20
+rule-21   Doc of rule-21
+rule-22   Doc of rule-22
+rule-23   Doc of rule-23
+rule-24   Doc of rule-24
+rule-25   Doc of rule-25
+next-32   an assignment (=), after an assignment
+next-33   an assignment (:=), after an assignment
+next-34   an assignment (::=), after an assignment
+next-35   an assignment (!=), after an assignment
+next-36   an assignment (?=), after an assignment
+next-37   an assignment (+=), after an assignment
+next-38   an exported assignment, after an assignment
+next-39   an overridden assignment, after an assignment
+next-40   define ... endef, after an assignment
+next-41   ifeq ... endif, after an assignment
+next-42   ifdef ... endif, after an assignment
+next-43   else ifeq, after an assignment
+next-44   a comment, after an assignment
+next-45   a blank line, after an assignment
+next-46   a doc
+          a doc, after an assignment
+next-47   a banner, after an assignment
+next-48   include, after an assignment
+next-49   -include, after an assignment
+next-50   vpath, after an assignment
+next-51   export (no assignment), after an assignment
+next-52   unexport, after an assignment
+next-53   undefine, after an assignment
+next-54   a function call ($(info)), after an assignment
+next-55   a function call ($(eval)), after an assignment
+-----------------------

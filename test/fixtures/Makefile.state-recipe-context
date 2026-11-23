@@ -1,0 +1,348 @@
+# Which lines keep or end the recipe context (`make help` relies on it: a tab-indented
+# ## line is a recipe line inside a rule, and a doc outside one). Each block is
+#   a context: a documented rule with a recipe (inside a rule) or an assignment (outside)
+#   the line under test
+#   a tab-indented doc
+#   a target, next-N: documented only if the line under test leaves the parser outside
+#   a rule (as in GNU Make)
+# Only the lines where makefile-doc.awk agrees with GNU Make are here (the others are in
+# the fixtures of known bugs).
+
+SRCS := s.c
+
+## Doc of rule-1
+rule-1:
+	@echo rule-1
+x-1: dep
+	## a plain rule, after a rule
+next-1:
+
+## Doc of rule-2
+rule-2:
+	@echo rule-2
+x-2::
+	## a double-colon rule, after a rule
+next-2:
+
+## Doc of rule-3
+rule-3:
+	@echo rule-3
+x1-3 x2-3 &: dep
+	## grouped targets, after a rule
+next-3:
+
+## Doc of rule-4
+rule-4:
+	@echo rule-4
+x-4.o: %.o: %.c
+	## a static pattern rule, after a rule
+next-4:
+
+## Doc of rule-5
+rule-5:
+	@echo rule-5
+%.x5: %.y5
+	## a pattern rule, after a rule
+next-5:
+
+## Doc of rule-6
+rule-6:
+	@echo rule-6
+x\:6: dep
+	## a rule with an escaped colon, after a rule
+next-6:
+
+## Doc of rule-7
+rule-7:
+	@echo rule-7
+.PHONY: next-7
+	## a special target, after a rule
+next-7:
+
+## Doc of rule-8
+rule-8:
+	@echo rule-8
+$(SRCS:.c=.o): dep
+	## a substitution reference target, after a rule
+next-8:
+
+## Doc of rule-9
+rule-9:
+	@echo rule-9
+$(subst :,_,x-9): dep
+	## a colon in a reference, after a rule
+next-9:
+
+## Doc of rule-10
+rule-10:
+	@echo rule-10
+V = 1
+	## an assignment (=), after a rule
+next-10:
+
+## Doc of rule-11
+rule-11:
+	@echo rule-11
+V := 1
+	## an assignment (:=), after a rule
+next-11:
+
+## Doc of rule-12
+rule-12:
+	@echo rule-12
+V ::= 1
+	## an assignment (::=), after a rule
+next-12:
+
+## Doc of rule-13
+rule-13:
+	@echo rule-13
+V != echo 1
+	## an assignment (!=), after a rule
+next-13:
+
+## Doc of rule-14
+rule-14:
+	@echo rule-14
+V ?= 1
+	## an assignment (?=), after a rule
+next-14:
+
+## Doc of rule-15
+rule-15:
+	@echo rule-15
+V += 1
+	## an assignment (+=), after a rule
+next-15:
+
+## Doc of rule-16
+rule-16:
+	@echo rule-16
+export V = 1
+	## an exported assignment, after a rule
+next-16:
+
+## Doc of rule-17
+rule-17:
+	@echo rule-17
+override V := 1
+	## an overridden assignment, after a rule
+next-17:
+
+## Doc of rule-18
+rule-18:
+	@echo rule-18
+define D
+body
+endef
+	## define ... endef, after a rule
+next-18:
+
+## Doc of rule-19
+rule-19:
+	@echo rule-19
+ifeq (a,a)
+endif
+	## ifeq ... endif, after a rule
+next-19:
+
+## Doc of rule-20
+rule-20:
+	@echo rule-20
+ifdef V
+endif
+	## ifdef ... endif, after a rule
+next-20:
+
+## Doc of rule-21
+rule-21:
+	@echo rule-21
+ifeq (a,b)
+else ifeq (a,a)
+endif
+	## else ifeq, after a rule
+next-21:
+
+## Doc of rule-22
+rule-22:
+	@echo rule-22
+# a comment
+	## a comment, after a rule
+next-22:
+
+## Doc of rule-23
+rule-23:
+	@echo rule-23
+
+	## a blank line, after a rule
+next-23:
+
+## Doc of rule-24
+rule-24:
+	@echo rule-24
+## a doc
+	## a doc, after a rule
+next-24:
+
+## Doc of rule-25
+rule-25:
+	@echo rule-25
+###
+	## a banner, after a rule
+next-25:
+
+A := 1
+x-26: dep
+	## a plain rule, after an assignment
+next-26:
+
+A := 1
+x-27::
+	## a double-colon rule, after an assignment
+next-27:
+
+A := 1
+x1-28 x2-28 &: dep
+	## grouped targets, after an assignment
+next-28:
+
+A := 1
+x-29.o: %.o: %.c
+	## a static pattern rule, after an assignment
+next-29:
+
+A := 1
+%.x30: %.y30
+	## a pattern rule, after an assignment
+next-30:
+
+A := 1
+x\:31: dep
+	## a rule with an escaped colon, after an assignment
+next-31:
+
+A := 1
+V = 1
+	## an assignment (=), after an assignment
+next-32:
+
+A := 1
+V := 1
+	## an assignment (:=), after an assignment
+next-33:
+
+A := 1
+V ::= 1
+	## an assignment (::=), after an assignment
+next-34:
+
+A := 1
+V != echo 1
+	## an assignment (!=), after an assignment
+next-35:
+
+A := 1
+V ?= 1
+	## an assignment (?=), after an assignment
+next-36:
+
+A := 1
+V += 1
+	## an assignment (+=), after an assignment
+next-37:
+
+A := 1
+export V = 1
+	## an exported assignment, after an assignment
+next-38:
+
+A := 1
+override V := 1
+	## an overridden assignment, after an assignment
+next-39:
+
+A := 1
+define D
+body
+endef
+	## define ... endef, after an assignment
+next-40:
+
+A := 1
+ifeq (a,a)
+endif
+	## ifeq ... endif, after an assignment
+next-41:
+
+A := 1
+ifdef V
+endif
+	## ifdef ... endif, after an assignment
+next-42:
+
+A := 1
+ifeq (a,b)
+else ifeq (a,a)
+endif
+	## else ifeq, after an assignment
+next-43:
+
+A := 1
+# a comment
+	## a comment, after an assignment
+next-44:
+
+A := 1
+
+	## a blank line, after an assignment
+next-45:
+
+A := 1
+## a doc
+	## a doc, after an assignment
+next-46:
+
+A := 1
+###
+	## a banner, after an assignment
+next-47:
+
+A := 1
+include /dev/null
+	## include, after an assignment
+next-48:
+
+A := 1
+-include /nonexistent-49
+	## -include, after an assignment
+next-49:
+
+A := 1
+vpath %.c src
+	## vpath, after an assignment
+next-50:
+
+A := 1
+export V
+	## export (no assignment), after an assignment
+next-51:
+
+A := 1
+unexport V
+	## unexport, after an assignment
+next-52:
+
+A := 1
+undefine V
+	## undefine, after an assignment
+next-53:
+
+A := 1
+$(info x)
+	## a function call ($(info)), after an assignment
+next-54:
+
+A := 1
+$(eval E := 1)
+	## a function call ($(eval)), after an assignment
+next-55:
