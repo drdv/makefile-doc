@@ -24,6 +24,22 @@ function dump_array(name, array, #locals
   }
 }
 
+# the records array[1..count, field], in order, one line each (fields: names separated by
+# spaces; a field that is not set is not shown)
+function dump_records(name, array, count, fields, #locals
+                      k, n, f, j, line) {
+  n = split(fields, f, " ")
+  for (k = 1; k <= count; k++) {
+    line = name "[" k "]"
+    for (j = 1; j <= n; j++) {
+      if ((k, f[j]) in array) {
+        line = line " " f[j] "=" quote(array[k, f[j]])
+      }
+    }
+    print line
+  }
+}
+
 END {
   banner("Settings: derived from the options by process_options")
   dump_array("SUB_PARAMS", SUB_PARAMS)
@@ -37,13 +53,8 @@ END {
   print "DSUB_COUNT = " DSUB_COUNT
 
   banner("The interface: written while parsing")
-  dump_array("TARGETS_DOC", TARGETS_DOC)
-  dump_array("VARIABLES_DOC", VARIABLES_DOC)
-  dump_array("TARGETS_TAG", TARGETS_TAG)
-  dump_array("VARIABLES_TAG", VARIABLES_TAG)
-  dump_array("ANCHOR_ORDER", ANCHOR_ORDER)
-  print "ANCHOR_ORDER_INDEX = " ANCHOR_ORDER_INDEX
-  dump_array("SECTION_BEFORE", SECTION_BEFORE)
+  dump_records("ANCHORS", ANCHORS, ANCHOR_COUNT, "kind name tag doc section")
+  print "ANCHOR_COUNT = " ANCHOR_COUNT
   dump_array("WARNINGS", WARNINGS)
   dump_array("WARNING_KINDS", WARNING_KINDS)
   print "WARNING_COUNT = " WARNING_COUNT
@@ -55,6 +66,10 @@ END {
   print "TARGETS_INDEX = " TARGETS_INDEX
   dump_array("VARIABLES", VARIABLES)
   print "VARIABLES_INDEX = " VARIABLES_INDEX
+  dump_array("TARGETS_DOC", TARGETS_DOC)
+  dump_array("VARIABLES_DOC", VARIABLES_DOC)
+  dump_array("TARGETS_TAG", TARGETS_TAG)
+  dump_array("VARIABLES_TAG", VARIABLES_TAG)
   dump_array("TARGETS_SECTION_DATA", TARGETS_SECTION_DATA)
   dump_array("VARIABLES_SECTION_DATA", VARIABLES_SECTION_DATA)
   exit

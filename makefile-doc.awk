@@ -259,24 +259,19 @@ function init_globals() {
   DSUB_COUNT = 0 # number of DSUB substitutions
 
   # ---------------------------------------------------------------------------------------
-  # The interface between parsing and rendering: written while parsing (see
-  # record_anchor and add_warning), read when rendering (see
-  # print_documentation). An *_INDEX is the next free index of its array.
+  # The interface between parsing and rendering: written while parsing (see record_anchor
+  # and add_warning), read when rendering (see prepare_rendering)
   # ---------------------------------------------------------------------------------------
 
-  # name -> doc (its lines without their tags, joined by \n; the last definition wins)
-  split("", TARGETS_DOC)
-  split("", VARIABLES_DOC)
-
-  # name -> tag of the doc (##, ##! or ##%)
-  split("", TARGETS_TAG)
-  split("", VARIABLES_TAG)
-
-  # the anchors in the order in which they get docs (redefinitions included), across targets
-  # and variables: index -> kind SUBSEP name; and index -> the section just before (if any)
-  split("", ANCHOR_ORDER)
-  ANCHOR_ORDER_INDEX = 1
-  split("", SECTION_BEFORE)
+  # every definition of a documented anchor, in file order (a redefinition too):
+  # ANCHORS[k, field], k = 1..ANCHOR_COUNT, with the fields
+  #   kind     target or variable
+  #   name     as written (blanks collapsed, & for grouped targets, ~N for double-colon rules)
+  #   doc      its lines without their tags, joined by \n
+  #   tag      the tag of its first line: ##, ##! or ##%
+  #   section  the section just before it, its lines joined by \n (only if there is one)
+  split("", ANCHORS)
+  ANCHOR_COUNT = 0
 
   # the warnings about the Makefiles: index -> message and kind (see add_warning)
   split("", WARNINGS)
@@ -299,12 +294,16 @@ function init_globals() {
   # their sections), and while printing
   # ---------------------------------------------------------------------------------------
 
-  # the documented anchors, once each, in file order: index -> name (set by
-  # build_anchor_lists)
+  # the documented anchors, once each, in file order: index -> name; and name -> doc and tag,
+  # of the last definition (set by build_anchor_lists)
   split("", TARGETS)
   TARGETS_INDEX = 1
   split("", VARIABLES)
   VARIABLES_INDEX = 1
+  split("", TARGETS_DOC)
+  split("", VARIABLES_DOC)
+  split("", TARGETS_TAG)
+  split("", VARIABLES_TAG)
 
   # name -> section (set by place_sections)
   split("", TARGETS_SECTION_DATA)
@@ -1173,6 +1172,7 @@ function parser_mask(line, #locals
 #   state["line"]                             the last logical line
 #   state["file"]                             the file being read (- for stdin)
 #   state["dc", name]                         the documented rules of a double-colon target
+#   state["seen", kind, name]                 the anchor is documented (for the redefinitions)
 # ---------------------------------------------------------------------------------------
 
 function parser_init(state, prefix) {
@@ -1300,7 +1300,7 @@ function parser_drop_doc(state) {
 # Record a documented anchor in the interface: its doc (the pending doc, or its inline doc),
 # its tag (that of the first line), its place in the file order, and the pending section
 function record_anchor(state, obs, #locals
-                       kind, name, doc, tag, redefined) {
+                       kind, name, doc, tag) {
   kind = obs["anchor"]
   name = kind == "target" ? form_target_name(state, obs) : obs["name"]
   if (obs["dn"]) {
@@ -1311,24 +1311,19 @@ function record_anchor(state, obs, #locals
     doc = obs["comment"]
     sub(TAG_REGEX, "", doc)
   }
-  if (kind == "target") {
-    redefined = name in TARGETS_DOC
-    TARGETS_DOC[name] = doc
-    TARGETS_TAG[name] = tag
-  } else {
-    redefined = name in VARIABLES_DOC
-    VARIABLES_DOC[name] = doc
-    VARIABLES_TAG[name] = tag
-  }
-  if (redefined) {
+  if (("seen", kind, name) in state) {
     add_warning(kind, sprintf("[%s:%s] redefined docs of %s: %s", state["file"], FNR, kind,
                               name))
   }
-  ANCHOR_ORDER[ANCHOR_ORDER_INDEX] = kind SUBSEP name
+  state["seen", kind, name] = 1
+  ANCHOR_COUNT++
+  ANCHORS[ANCHOR_COUNT, "kind"] = kind
+  ANCHORS[ANCHOR_COUNT, "name"] = name
+  ANCHORS[ANCHOR_COUNT, "doc"] = doc
+  ANCHORS[ANCHOR_COUNT, "tag"] = tag
   if (obs["sn"]) {
-    SECTION_BEFORE[ANCHOR_ORDER_INDEX] = state_lines(state, "section", obs["sn"], 0)
+    ANCHORS[ANCHOR_COUNT, "section"] = state_lines(state, "section", obs["sn"], 0)
   }
-  ANCHOR_ORDER_INDEX++
 }
 
 # the lines state[key, 1..n] joined with \n (without their tags if strip_tags)
@@ -1398,20 +1393,23 @@ function prepare_rendering() {
   place_sections()
 }
 
-# Build TARGETS and VARIABLES from ANCHOR_ORDER: the documented anchors of each kind, once
-# each, in file order (at their first definition)
-function build_anchor_lists(    k, parts, seen) {
-  split("", seen)
-  for (k = 1; k < ANCHOR_ORDER_INDEX; k++) {
-    if (ANCHOR_ORDER[k] in seen) {
-      continue
-    }
-    seen[ANCHOR_ORDER[k]] = 1
-    split(ANCHOR_ORDER[k], parts, SUBSEP)
-    if (parts[1] == "target") {
-      TARGETS[TARGETS_INDEX++] = parts[2]
+# Build TARGETS and VARIABLES from ANCHORS: the documented anchors of each kind, once each,
+# in file order (at their first definition), with the doc and tag of their last definition
+function build_anchor_lists(    k, name) {
+  for (k = 1; k <= ANCHOR_COUNT; k++) {
+    name = ANCHORS[k, "name"]
+    if (ANCHORS[k, "kind"] == "target") {
+      if (!(name in TARGETS_DOC)) {
+        TARGETS[TARGETS_INDEX++] = name
+      }
+      TARGETS_DOC[name] = ANCHORS[k, "doc"]
+      TARGETS_TAG[name] = ANCHORS[k, "tag"]
     } else {
-      VARIABLES[VARIABLES_INDEX++] = parts[2]
+      if (!(name in VARIABLES_DOC)) {
+        VARIABLES[VARIABLES_INDEX++] = name
+      }
+      VARIABLES_DOC[name] = ANCHORS[k, "doc"]
+      VARIABLES_TAG[name] = ANCHORS[k, "tag"]
     }
   }
 }
@@ -1420,22 +1418,22 @@ function build_anchor_lists(    k, parts, seen) {
 # and VARIABLES_SECTION_DATA). Hidden anchors (variables with VARS=0, deprecated anchors with
 # DEPRECATED=0) are skipped, sections with no displayed anchor after them are dropped, and
 # consecutive sections are merged. A later section of the same anchor replaces an earlier one.
-function place_sections(    k, parts, name, has_section, section) {
+function place_sections(    k, kind, name, has_section, section) {
   has_section = 0
-  for (k = 1; k < ANCHOR_ORDER_INDEX; k++) {
-    if (k in SECTION_BEFORE) {
-      section = has_section ? section "\n" SECTION_BEFORE[k] : SECTION_BEFORE[k]
+  for (k = 1; k <= ANCHOR_COUNT; k++) {
+    if ((k, "section") in ANCHORS) {
+      section = has_section ? section "\n" ANCHORS[k, "section"] : ANCHORS[k, "section"]
       has_section = 1
     }
-    split(ANCHOR_ORDER[k], parts, SUBSEP)
-    name = parts[2]
+    kind = ANCHORS[k, "kind"]
+    name = ANCHORS[k, "name"]
     if (!has_section) {
       continue
     }
-    if (parts[1] == "target" && !is_hidden_anchor(name, TARGETS_TAG)) {
+    if (kind == "target" && !is_hidden_anchor(name, TARGETS_TAG)) {
       TARGETS_SECTION_DATA[name] = section
       has_section = 0
-    } else if (parts[1] == "variable" && VARS && !is_hidden_anchor(name, VARIABLES_TAG)) {
+    } else if (kind == "variable" && VARS && !is_hidden_anchor(name, VARIABLES_TAG)) {
       VARIABLES_SECTION_DATA[name] = section
       has_section = 0
     }

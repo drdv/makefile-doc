@@ -320,14 +320,11 @@ formatted.
 
 The interface variables are the only data that parsing hands over to rendering:
 
-| Variables                                        | Meaning                                                                                                                                                                                                                                                                                                      |
-|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `TARGETS_DOC`<br>`VARIABLES_DOC`                 | The doc of each anchor, keyed by its name: its lines without their tokens, joined by `\n` (each line keeps the space that followed its token). If an anchor is documented again, the last doc replaces the previous one.                                                                                     |
-| `TARGETS_TAG`, `VARIABLES_TAG`                   | The token of the doc of each anchor, keyed by its name: `##`, `##!` (needs attention) or `##%` (deprecated). It decides the color of the anchor and whether it is hidden with `DEPRECATED=0`. Like the doc, it comes from the last definition.                                                               |
-| `ANCHOR_ORDER`<br>(`ANCHOR_ORDER_INDEX`)         | Every definition of a documented anchor, targets and variables together, in file order, as `kind SUBSEP name` (`kind` is `target` or `variable`). An anchor documented twice appears twice. When rendering, it gives the documented anchors of each kind (once each, in file order) and places the sections. |
-| `SECTION_BEFORE`                                 | The section that comes just before an entry of `ANCHOR_ORDER`, keyed by the index of that entry (only where there is one): its lines joined by `\n`. When rendering, a section is displayed above the next displayed anchor from that entry on.                                                              |
-| `WARNINGS`, `WARNING_KINDS`<br>(`WARNING_COUNT`) | The warnings about the Makefiles, in the order they were found: the message (with the file and line) and what it is about (`target`, `variable` or `file`). They are printed before the docs, except those about variables when `VARS=0`.                                                                    |
-| `FILES_PROCESSED`                                | The names of the files read, separated by spaces (`-` for stdin). It is used in the messages when nothing is documented.                                                                                                                                                                                     |
+| Variables                                        | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ANCHORS`<br>(`ANCHOR_COUNT`)                    | Every definition of a documented anchor, in file order, as records `ANCHORS[k, field]` (k = 1..`ANCHOR_COUNT`): `kind` (`target` or `variable`), `name`, `doc` (its lines without their tokens, joined by `\n`; each line keeps the space that followed its token), `tag` (`##`, `##!` or `##%`, from its first line) and `section` (the section just before it, its lines joined by `\n`; only where there is one). An anchor documented twice appears twice: when rendering, its first definition gives its place, and its last one its doc and tag. |
+| `WARNINGS`, `WARNING_KINDS`<br>(`WARNING_COUNT`) | The warnings about the Makefiles, in the order they were found: the message (with the file and line) and what it is about (`target`, `variable` or `file`). They are printed before the docs, except those about variables when `VARS=0`.                                                                                                                                                                                                                                                                                                              |
+| `FILES_PROCESSED`                                | The names of the files read, separated by spaces (`-` for stdin). It is used in the messages when nothing is documented.                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 For example, with this `Makefile`:
 
@@ -357,27 +354,16 @@ clean:
 
 the variables hold:
 
-| Name    | `TARGETS_DOC`                                         | `TARGETS_TAG` |
-|---------|-------------------------------------------------------|---------------|
-| `build` | `" Compile the project\n (uses JOBS)"`                | `"##"`        |
-| `clean` | `" Remove all generated files, including the caches"` | `"##!"`       |
-| `test`  | `" Run the tests"`                                    | `"##"`        |
-| `check` | ``" Use `test` instead"``                             | `"##%"`       |
+| k | `kind`       | `name`    | `tag`   | `doc`                                                 | `section`          |
+|---|--------------|-----------|---------|-------------------------------------------------------|--------------------|
+| 1 | `"variable"` | `"JOBS"`  | `"##"`  | `" Number of parallel jobs"`                          | `" Configuration"` |
+| 2 | `"target"`   | `"build"` | `"##"`  | `" Compile the project\n (uses JOBS)"`                | `" Build"`         |
+| 3 | `"target"`   | `"clean"` | `"##"`  | `" Remove the build files"`                           |                    |
+| 4 | `"target"`   | `"test"`  | `"##"`  | `" Run the tests"`                                    | `" Tests"`         |
+| 5 | `"target"`   | `"check"` | `"##%"` | ``" Use `test` instead"``                             |                    |
+| 6 | `"target"`   | `"clean"` | `"##!"` | `" Remove all generated files, including the caches"` |                    |
 
-| Name   | `VARIABLES_DOC`              | `VARIABLES_TAG` |
-|--------|------------------------------|-----------------|
-| `JOBS` | `" Number of parallel jobs"` | `"##"`          |
-
-| Index | `ANCHOR_ORDER`             | `SECTION_BEFORE`   |
-|-------|----------------------------|--------------------|
-| 1     | `"variable" SUBSEP "JOBS"` | `" Configuration"` |
-| 2     | `"target" SUBSEP "build"`  | `" Build"`         |
-| 3     | `"target" SUBSEP "clean"`  |                    |
-| 4     | `"target" SUBSEP "test"`   | `" Tests"`         |
-| 5     | `"target" SUBSEP "check"`  |                    |
-| 6     | `"target" SUBSEP "clean"`  |                    |
-
-with `ANCHOR_ORDER_INDEX = 7`;
+with `ANCHOR_COUNT = 6`;
 
 | Index | `WARNINGS`                                        | `WARNING_KINDS` |
 |-------|---------------------------------------------------|-----------------|
