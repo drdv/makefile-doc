@@ -36,7 +36,7 @@ BEGIN {
   TRACE_PENDING = 0 # a line is waiting to be printed (at the next line, or at the end)
   TRACE_LINE = 0
   TRACE_TEXT = ""
-  TRACE_ANCHOR_INDEX = 0 # the first entry of ANCHOR_ORDER not printed yet
+  TRACE_ANCHOR_INDEX = 0 # the number of entries of ANCHORS printed
   if (TRACE_OBS == "") {
     TRACE_OBS = 0
   }
@@ -44,7 +44,7 @@ BEGIN {
 
 # print the waiting line, with the state that the script left after parsing it, its
 # observation (with TRACE_OBS) and the anchors that it documented
-function trace_print(    k, kind_name, joined, prefix) {
+function trace_print(    k, joined, prefix) {
   joined = PARSER_STATE["joining"] ? 1 : 0
   prefix = PARSER_STATE["c"] == "\t" ? "\\t" : PARSER_STATE["c"]
   printf("%4d %d %d %2d %2d %-2s |%s\n", TRACE_LINE, joined, PARSER_STATE["r"],
@@ -54,12 +54,11 @@ function trace_print(    k, kind_name, joined, prefix) {
     trace_print_obs(PARSER_OBS)
   }
 
-  for (k = TRACE_ANCHOR_INDEX; k < ANCHOR_ORDER_INDEX; k++) {
-    split(ANCHOR_ORDER[k], kind_name, SUBSEP)
-    printf("%4d ============ => %s:[%s]%s\n", TRACE_LINE, kind_name[1], kind_name[2],
-           (k in SECTION_BEFORE) ? " +section" : "")
+  for (k = TRACE_ANCHOR_INDEX + 1; k <= ANCHOR_COUNT; k++) {
+    printf("%4d ============ => %s:[%s]%s\n", TRACE_LINE, ANCHORS[k, "kind"],
+           ANCHORS[k, "name"], ((k, "section") in ANCHORS) ? " +section" : "")
   }
-  TRACE_ANCHOR_INDEX = ANCHOR_ORDER_INDEX
+  TRACE_ANCHOR_INDEX = ANCHOR_COUNT
 }
 
 # print an observation (not for neutral lines): <kind>, then its string fields as key:[value]
@@ -100,7 +99,7 @@ function trace_field(key, value) {
   if (TRACE_PENDING) {
     trace_print()
   } else {
-    TRACE_ANCHOR_INDEX = ANCHOR_ORDER_INDEX # the first line: nothing documented yet
+    TRACE_ANCHOR_INDEX = ANCHOR_COUNT # the first line: nothing documented yet
   }
   if (FNR == 1) {
     print "== " (FILENAME == "" ? "-" : FILENAME)
