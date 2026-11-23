@@ -138,7 +138,7 @@ function test_parser_states(    state, obs) {
   parser_obs(state["line"], state, obs)
   parser_step(state, obs)
   parser_join(state, "t: \\")
-  parser_file_start(state)
+  parser_file_start(state, "")
   check("file start: the doc is dropped, the section carries over",
         state["d"] " " state["s"] " " state["joining"], "0 1 0")
 }

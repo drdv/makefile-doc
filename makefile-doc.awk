@@ -300,7 +300,7 @@ function init_globals() {
 
   # ---------------------------------------------------------------------------------------
   # The interface between parsing and rendering: written while parsing (see
-  # associate_data_with_anchor and add_warning), read when rendering (see
+  # record_anchor and add_warning), read when rendering (see
   # print_documentation). An *_INDEX is the next free index of its array.
   # ---------------------------------------------------------------------------------------
 
@@ -328,17 +328,6 @@ function init_globals() {
   # ---------------------------------------------------------------------------------------
   # The state of the parser
   # ---------------------------------------------------------------------------------------
-
-  # the lines of the pending doc and section (to be associated with the next anchor)
-  split("", DESCRIPTION_DATA)
-  DESCRIPTION_DATA_INDEX = 1
-  split("", SECTION_DATA)
-  SECTION_DATA_INDEX = 1
-
-  # the index for the next double-colon rule with description (the key doesn't include ~k)
-  split("", TARGETS_DC_COUNTER)
-
-  CURRENT_FILE = "" # the name of the file being read, - for stdin (set at its first line)
 
   # the state of the parser (see parser_init, called in BEGIN once RECIPEPREFIX is known) and
   # the observation of the last logical line (see parser_obs)
@@ -973,95 +962,32 @@ function apply_output_specific_formatting(text) {
 }
 
 #### Parsing
-# The parser that reads the Makefiles, one line at a time, and its helpers. It follows the
-# model of misc/docs/parser-model.tex: each physical line is joined with the next ones if it
-# ends with a backslash (parser_join), each logical line is observed (parser_obs: what kind
-# of line it is, what it would document) and updates the state (parser_step: inside a rule,
-# a doc pending, a section pending, the recipe prefix). The rule at the end of this section
-# runs it, keeps the text of the pending doc and section, and gives the doc to the anchor
-# that takes it. Parsing fills the interface variables (see init_globals) and reads no
-# option but RECIPEPREFIX.
+# The parser follows misc/docs/parser-model.tex: a physical line is joined with the next ones
+# while it ends with a backslash (parser_join), then the logical line is observed (parser_obs)
+# and updates the state (parser_step). The text of the pending doc and section is kept in the
+# state too. The rules at the end of the section run it and record each documented anchor in
+# the interface variables (see init_globals).
 
-# Record a warning about the Makefiles (printed by print_warnings, before the docs). kind is
-# what it is about: "target", "variable" or "file".
+# Record a warning about the Makefiles (printed before the docs). kind is "target",
+# "variable" or "file".
 function add_warning(kind, message) {
   WARNINGS[++WARNING_COUNT] = message
   WARNING_KINDS[WARNING_COUNT] = kind
 }
 
-# A file whose last line ends with a backslash: the line cannot be joined with a next one,
-# so it is not parsed (awk has no hook at the end of a file, hence the check at the start of
-# the next file and in END). A continued recipe line is not reported (it is part of a rule
-# that ends with the file).
+# A last line that ends with a backslash cannot be joined, so it is not parsed. awk has no
+# hook at the end of a file: this is called at the next file and in END. A continued recipe
+# line is not reported (its rule ends with the file anyway).
 function warn_about_continued_last_line() {
   if (PARSER_STATE["joining"] &&
       !(PARSER_STATE["r"] && substr(PARSER_STATE["pending"], 1, 1) == PARSER_STATE["c"])) {
-    add_warning("file", sprintf("[%s] the last line ends with a backslash", CURRENT_FILE))
+    add_warning("file", sprintf("[%s] the last line ends with a backslash", PARSER_STATE["file"]))
   }
 }
 
 # the tag of a doc line (##, ##! or ##%), or "" if it does not start with one
 function get_tag_from_description(string) {
   return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
-}
-
-function save_description_data(string) {
-  DESCRIPTION_DATA[DESCRIPTION_DATA_INDEX++] = string
-}
-
-function forget_descriptions_data() {
-  split("", DESCRIPTION_DATA)
-  DESCRIPTION_DATA_INDEX = 1
-}
-
-function save_section_data(string) {
-  SECTION_DATA[SECTION_DATA_INDEX++] = string
-}
-
-function forget_section_data() {
-  split("", SECTION_DATA)
-  SECTION_DATA_INDEX = 1
-}
-
-function form_dc_target_name(target_name_nominal) {
-  if (!(target_name_nominal in TARGETS_DC_COUNTER)) {
-    TARGETS_DC_COUNTER[target_name_nominal] = 1
-  }
-
-  return sprintf("%s%s%s",
-                 target_name_nominal,
-                 DOUBLE_COLON_SEPARATOR,
-                 TARGETS_DC_COUNTER[target_name_nominal])
-}
-
-# Attach the pending doc to an anchor (target or variable), and record the anchor and the
-# pending section in ANCHOR_ORDER and SECTION_BEFORE
-function associate_data_with_anchor(anchor_name,
-                                    anchors_description_data,
-                                    anchors_tags,
-                                    anchor_type, #locals
-                                    tag, k) {
-  tag = get_tag_from_description(DESCRIPTION_DATA[1]) # the tag of the first line decides
-  if (anchor_name in anchors_description_data) {
-    add_warning(anchor_type, sprintf("[%s:%s] redefined docs of %s: %s",
-                                     CURRENT_FILE, FNR, anchor_type, anchor_name))
-  }
-
-  # the doc is stored without its tags (the tag of the first line is stored separately)
-  for (k = 1; k < DESCRIPTION_DATA_INDEX; k++) {
-    sub(TAG_REGEX, "", DESCRIPTION_DATA[k])
-  }
-  anchors_tags[anchor_name] = tag
-  anchors_description_data[anchor_name] = join(DESCRIPTION_DATA, "\n")
-  forget_descriptions_data()
-
-  # the file order, with the pending section (placed by place_sections, when rendering)
-  ANCHOR_ORDER[ANCHOR_ORDER_INDEX] = anchor_type SUBSEP anchor_name
-  if (length_array_posix(SECTION_DATA) > 0) {
-    SECTION_BEFORE[ANCHOR_ORDER_INDEX] = join(SECTION_DATA, "\n")
-    forget_section_data()
-  }
-  ANCHOR_ORDER_INDEX++
 }
 
 # Observe a logical line (questions 2-8 of the model, without question 1: a recipe line
@@ -1288,10 +1214,16 @@ function parser_mask(line, #locals
 }
 
 # ---------------------------------------------------------------------------------------
-# The state machine (the model, with its state in an array): state["r"] (inside a rule),
-# state["d"] (a doc is pending), state["s"] (a section is pending), state["c"] (the recipe
-# prefix), the numbers of pending doc and section lines (state["dn"], state["sn"]), and the
-# line being joined (state["joining"], state["pending"]).
+# The state machine. The state of the model:
+#   state["r"]  inside a rule              state["s"]  a section is pending
+#   state["d"]  a doc is pending           state["c"]  the recipe prefix
+# and the data that travels with it:
+#   state["doc", k], k = 1..state["dn"]       the lines of the pending doc
+#   state["section", k], k = 1..state["sn"]   the lines of the pending section
+#   state["joining"], state["pending"]        the line being joined (see parser_join)
+#   state["line"]                             the last logical line
+#   state["file"]                             the file being read (- for stdin)
+#   state["dc", name]                         the documented rules of a double-colon target
 # ---------------------------------------------------------------------------------------
 
 function parser_init(state, prefix) {
@@ -1308,12 +1240,12 @@ function parser_init(state, prefix) {
 
 # At the first line of a file: no open rule and no pending doc (a section and the recipe
 # prefix carry over). A line continued at the end of the previous file is dropped.
-function parser_file_start(state) {
+function parser_file_start(state, file) {
   state["r"] = 0
-  state["d"] = 0
-  state["dn"] = 0
+  parser_drop_doc(state)
   state["joining"] = 0
   state["pending"] = ""
+  state["file"] = file
 }
 
 # Add a physical line: return 1 when a logical line is complete (in state["line"]), 0 when the
@@ -1353,6 +1285,8 @@ function parser_obs(line, state, obs) {
     parser_observe(line, obs)
   }
   obs["inline"] = obs["anchor"] != "" && obs["comment"] ~ /^##/ && obs["comment"] !~ /^##@/
+  obs["text"] = line # for a doc or section line: its text (without the ##@ of a section)
+  sub(obs["kind"] == "section" ? "^[ \t]*##@" : "^[ \t]+", "", obs["text"])
   if (obs["kind"] == "assignment" && obs["anchor"] == "variable" &&
       obs["name"] == ".RECIPEPREFIX") {
     parser_set_prefix(state, obs["operator"], obs["value"])
@@ -1369,31 +1303,32 @@ function parser_set_prefix(state, operator, value) {
   state["c"] = value == "" ? "\t" : substr(value, 1, 1)
 }
 
-# Update the state with an observation (the step table of the model). obs["attach"] is 1 when
-# the line is an anchor that gets documented (by a pending doc or its inline doc), and
-# obs["with_section"] is 1 when the pending section goes with it.
+# Update the state with an observation (the step table of the model). For an anchor that gets
+# documented (by the pending doc or its inline doc), obs["attach"] is 1, and obs["dn"] and
+# obs["sn"] are the numbers of lines of the pending doc and section that go with it (0: the
+# inline doc, no section). The lines stay in the state until the next ones replace them.
 function parser_step(state, obs, #locals
                      kind, documented) {
   kind = obs["kind"]
   documented = state["d"] || obs["inline"]
   obs["attach"] = 0
-  obs["with_section"] = 0
   if (kind == "recipe") {
     state["r"] = 1
     parser_drop_doc(state)
   } else if (kind == "doc") {
     state["d"] = 1
-    state["dn"]++
+    state["doc", ++state["dn"]] = obs["text"]
   } else if (kind == "section") {
     state["s"] = 1
-    state["sn"]++
+    state["section", ++state["sn"]] = obs["text"]
   } else if (kind == "banner") {
     parser_drop_doc(state)
   } else if (kind == "rule" || kind == "assignment") {
     state["r"] = kind == "rule"
     if (documented) {
       obs["attach"] = 1
-      obs["with_section"] = state["s"]
+      obs["dn"] = state["dn"]
+      obs["sn"] = state["sn"]
       state["s"] = 0
       state["sn"] = 0
     }
@@ -1412,77 +1347,84 @@ function parser_drop_doc(state) {
 }
 
 
-# At the first line of a file: the warning about the previous file, then a new file (the
-# pending doc is dropped, the pending section is kept: it goes to the next documented anchor,
-# which can be in this file)
-function read_file_start() {
-  warn_about_continued_last_line()
-  parser_file_start(PARSER_STATE)
-  forget_descriptions_data()
-  # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
-  CURRENT_FILE = FILENAME == "" ? "-" : FILENAME
-  FILES_PROCESSED = FILES_PROCESSED == "" ? CURRENT_FILE : FILES_PROCESSED " " CURRENT_FILE
+# Record a documented anchor in the interface: its doc (the pending doc, or its inline doc),
+# its tag (that of the first line), its place in the file order, and the pending section
+function record_anchor(state, obs, #locals
+                       kind, name, doc, tag, redefined) {
+  kind = obs["anchor"]
+  name = kind == "target" ? form_target_name(state, obs) : obs["name"]
+  if (obs["dn"]) {
+    tag = get_tag_from_description(state["doc", 1])
+    doc = state_lines(state, "doc", obs["dn"], 1)
+  } else {
+    tag = get_tag_from_description(obs["comment"])
+    doc = obs["comment"]
+    sub(TAG_REGEX, "", doc)
+  }
+  if (kind == "target") {
+    redefined = name in TARGETS_DESCRIPTION_DATA
+    TARGETS_DESCRIPTION_DATA[name] = doc
+    TARGETS_TAG[name] = tag
+  } else {
+    redefined = name in VARIABLES_DESCRIPTION_DATA
+    VARIABLES_DESCRIPTION_DATA[name] = doc
+    VARIABLES_TAG[name] = tag
+  }
+  if (redefined) {
+    add_warning(kind, sprintf("[%s:%s] redefined docs of %s: %s", state["file"], FNR, kind,
+                              name))
+  }
+  ANCHOR_ORDER[ANCHOR_ORDER_INDEX] = kind SUBSEP name
+  if (obs["sn"]) {
+    SECTION_BEFORE[ANCHOR_ORDER_INDEX] = state_lines(state, "section", obs["sn"], 0)
+  }
+  ANCHOR_ORDER_INDEX++
 }
 
-# A logical line: observe it (in PARSER_OBS), keep the text of a doc or section line, update
-# the state, and give the doc to the anchor that takes it (without a pending doc, its inline
-# doc). The pending doc is dropped when the state says so.
-function read_line(line, #locals
-                   kind, text) {
-  parser_obs(line, PARSER_STATE, PARSER_OBS)
-  kind = PARSER_OBS["kind"]
-  text = line
-  sub(/^[ \t]+/, "", text)
-  if (kind == "doc") {
-    save_description_data(text)
-  } else if (kind == "section") {
-    sub(/^##@/, "", text) # the tags are not needed anymore
-    save_section_data(text)
-  }
-
-  parser_step(PARSER_STATE, PARSER_OBS)
-  if (PARSER_OBS["attach"]) {
-    if (DESCRIPTION_DATA_INDEX == 1) {
-      save_description_data(PARSER_OBS["comment"])
+# the lines state[key, 1..n] joined with \n (without their tags if strip_tags)
+function state_lines(state, key, n, strip_tags, #locals
+                     k, line, lines) {
+  for (k = 1; k <= n; k++) {
+    line = state[key, k]
+    if (strip_tags) {
+      sub(TAG_REGEX, "", line)
     }
-    if (PARSER_OBS["anchor"] == "target") {
-      associate_data_with_anchor(form_target_name(PARSER_OBS), TARGETS_DESCRIPTION_DATA,
-                                 TARGETS_TAG, "target")
-    } else {
-      associate_data_with_anchor(PARSER_OBS["name"], VARIABLES_DESCRIPTION_DATA, VARIABLES_TAG,
-                                 "variable")
-    }
+    lines = k == 1 ? line : lines "\n" line
   }
-  if (!PARSER_STATE["d"]) {
-    forget_descriptions_data()
-  }
+  return lines
 }
 
-# The name of a documented target: blanks collapsed (GNU Make treats any run of blanks
-# between target names as one separator), a & after grouped targets, ~N after the documented
-# rules of a double-colon target (see form_dc_target_name; counted across files)
-function form_target_name(obs, #locals
-                          name, nominal) {
+# The name of a documented target as displayed: blanks collapsed (GNU Make reads any run of
+# blanks between names as one separator), & after grouped targets, ~N after the Nth
+# documented rule of a double-colon target (counted across files)
+function form_target_name(state, obs, #locals
+                          name) {
   name = obs["name"]
   gsub(/[ \t]+/, " ", name)
   if (obs["grouped"]) {
     name = name "&"
   }
   if (obs["double"]) {
-    nominal = name
-    name = form_dc_target_name(nominal)
-    TARGETS_DC_COUNTER[nominal]++
+    state["dc", name] = array_get(state, "dc" SUBSEP name) + 1
+    name = name DOUBLE_COLON_SEPARATOR state["dc", name]
   }
   return name
 }
 
+# stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
 FNR == 1 {
-  read_file_start()
+  warn_about_continued_last_line()
+  parser_file_start(PARSER_STATE, FILENAME == "" ? "-" : FILENAME)
+  FILES_PROCESSED = (FILES_PROCESSED == "" ? "" : FILES_PROCESSED " ") PARSER_STATE["file"]
 }
 
 {
   if (parser_join(PARSER_STATE, $0)) {
-    read_line(PARSER_STATE["line"])
+    parser_obs(PARSER_STATE["line"], PARSER_STATE, PARSER_OBS)
+    parser_step(PARSER_STATE, PARSER_OBS)
+    if (PARSER_OBS["attach"]) {
+      record_anchor(PARSER_STATE, PARSER_OBS)
+    }
   }
 }
 
