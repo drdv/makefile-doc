@@ -1,0 +1,36 @@
+#: desc: The parser state after each line of Makefile.state-recipe-start
+#: bug: 181
+#: trace
+test/fixtures/Makefile.state-recipe-start
+#: stdout
+== test/fixtures/Makefile.state-recipe-start
+   1 . -   0  0 | # Rules that are not documented (special targets, targets that the parser cannot name)
+   2 . -   0  0 | # start a recipe context, as in GNU Make: the tab-indented ## line after them is a recipe
+   3 . -   0  0 | # line, so next-N keeps its inline doc. Known bug #181: after an assignment, the ## line
+   4 . -   0  0 | # is read as a doc, which replaces the inline doc of next-N.
+   5 . -   0  0 |
+   6 . -   0  0 | SRCS := s.c
+   7 . -   0  0 |
+   8 . -   0  0 | A := 1
+   9 . R   0  0 | .PHONY: next-1
+  10 . R   0  0 | \t## a special target (.PHONY), after an assignment
+  11 . R   0  0 | next-1: ## Doc of next-1
+  11 ========== => target:next-1
+  12 . R   0  0 |
+  13 . -   0  0 | A := 1
+  14 . R   0  0 | .DEFAULT:
+  15 . R   0  0 | \t## a special target (.DEFAULT), after an assignment
+  16 . R   0  0 | next-2: ## Doc of next-2
+  16 ========== => target:next-2
+  17 . R   0  0 |
+  18 . -   0  0 | A := 1
+  19 . R   0  0 | $(SRCS:.c=.o): dep
+  20 . R   0  0 | \t## a substitution reference target, after an assignment
+  21 . R   0  0 | next-3: ## Doc of next-3
+  21 ========== => target:next-3
+  22 . R   0  0 |
+  23 . -   0  0 | A := 1
+  24 . R   0  0 | $(subst :,_,x-4): dep
+  25 . R   0  0 | \t## a colon in a reference, after an assignment
+  26 . R   0  0 | next-4: ## Doc of next-4
+  26 ========== => target:next-4
