@@ -5,10 +5,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 
-\newcommand{\yes}{\text{yes}}
-\newcommand{\no}{\text{no}}
-\newcommand{\tab}{\text{tab}}
-\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\code}[1]{\mbox{\texttt{#1}}}
 
 \title{A model of the parser of makefile-doc.awk}
 \date{}
@@ -42,30 +39,31 @@ specification for the redesign of the parser.
   Symbol & Description \\
   \midrule
   $l_i$ & the $i$-th logical line \\
-  $b_i$ & line $i$ is the first line of a file: \yes/\no{} (an input, not read from the line) \\
-  $r_i$ & a rule is open from line $i$: \yes/\no \\
-  $d_i$ & a doc is pending from line $i$: \yes/\no \\
-  $s_i$ & a section is pending from line $i$: \yes/\no \\
-  $c_i$ & the recipe prefix from line $i$ (a character) \\
+  $b_i$ & line $i$ is the first line of a file: 1/0 (an input, not read from the line) \\
+  $r_i$ & line $i$ is inside a rule: 1/0 \\
+  $d_i$ & a doc is pending at line $i$: 1/0 \\
+  $s_i$ & a section is pending at line $i$: 1/0 \\
+  $c_i$ & the recipe prefix at line $i$ (a character) \\
   $x_i$ & the state, $(r_i, d_i, s_i, c_i)$ \\
   $K$ & the finite set of kinds of line \\
   $k_i$ & the kind of line $i$, $k_i \in K$ \\
-  $a_i$ & line $i$ has an inline doc: \yes/\no \\
+  $a_i$ & line $i$ has an inline doc: 1/0 \\
   \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent ``From line $i$'' means: starting at line $i$, with the effect of line $i$
-included, until a later line changes it.
+\noindent The state at line $i$ includes the effect of line $i$: it is the state that
+line $i+1$ is read with. A rule line, its recipe lines, and the blank lines and comments
+among them are inside the rule; the line that closes it (e.g., an assignment) is not.
 
 \section{Model}
 
 \begin{align*}
-  x_0 &= (\no,\ \no,\ \no,\ c_0)
+  x_0 &= (0,\ 0,\ 0,\ c_0)
   \qquad \text{($c_0$: the \code{RECIPEPREFIX} option, or a tab)} \\[6pt]
-  r_{i-1} &\leftarrow \begin{cases} \no & \text{if } b_i \\ r_{i-1} & \text{otherwise} \end{cases}
+  r_{i-1} &\leftarrow \begin{cases} 0 & \text{if } b_i = 1 \\ r_{i-1} & \text{otherwise} \end{cases}
   \qquad
-  d_{i-1} \leftarrow \begin{cases} \no & \text{if } b_i \\ d_{i-1} & \text{otherwise} \end{cases} \\[6pt]
+  d_{i-1} \leftarrow \begin{cases} 0 & \text{if } b_i = 1 \\ d_{i-1} & \text{otherwise} \end{cases} \\[6pt]
   (k_i,\ a_i,\ c_i) &= \mathrm{obs}(l_i,\ r_{i-1},\ c_{i-1}) \\[2pt]
   (r_i,\ d_i,\ s_i) &= \mathrm{step}(r_{i-1},\ d_{i-1},\ s_{i-1},\ k_i,\ a_i)
 \end{align*}
@@ -81,6 +79,67 @@ included, until a later line changes it.
   \item \textbf{$\mathrm{step}$} updates $r$, $d$ and $s$ from the observation alone; it
         never reads the line.
 \end{itemize}
+
+\section{Kinds}
+
+Two lines are of the same kind if $\mathrm{step}$ treats them the same; what only matters
+for the output (e.g., a target or a variable) is data, not a kind.
+
+\begin{center}
+\begin{tabular}{@{}lp{0.68\textwidth}@{}}
+  \toprule
+  Kind & Includes \\
+  \midrule
+  recipe & lines that start with $c$ while a rule is open (lines that hold only $c$
+           included) \\
+  neutral & blank lines, comments, conditionals (\code{ifeq}, \code{ifneq},
+            \code{ifdef}, \code{ifndef}, \code{else}, \code{endif}) \\
+  doc & \code{\#\#}, \code{\#\#!}, \code{\#\#\%} \\
+  section & \code{\#\#@} \\
+  banner & \code{\#\#\#\ldots} (only \code{\#} characters, at least three) \\
+  rule & \code{t: dep}, \code{t::}, \code{t1 t2 \&: dep}, \code{\%.o: \%.c},
+         \code{a.o: \%.o: \%.c} \\
+  special rule & \code{.PHONY: t}, \code{.DEFAULT:}, and the other special targets \\
+  assignment & \code{V := 1} (any operator, with \code{export}, \code{override},
+               \code{private}), \code{define V} \\
+  target-specific assignment & \code{t: V := 1} \\
+  other & directives (\code{include}, \code{vpath}, \code{export V}, \ldots),
+          \code{endef}, \code{\$(info \ldots)}, anything else \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Open: a rule whose targets the parser cannot name (e.g., \code{\$(SRCS:.c=.o):})
+opens a rule, but whether it keeps a pending doc (as a special rule) or drops it is not
+decided.
+
+\filbreak
+\section{Step}
+
+For each kind, the state at line $i$; the anchors (rule, assignment, target-specific
+assignment) attach a doc when $d_{i-1} \lor a_i$, and the pending section with it.
+
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+  \toprule
+  Kind & $r_i$ & $d_i$ & $s_i$ \\
+  \midrule
+  recipe & $1$ & $0$ & $s_{i-1}$ \\
+  neutral & $r_{i-1}$ & $d_{i-1}$ & $s_{i-1}$ \\
+  doc & $r_{i-1}$ & $1$ & $s_{i-1}$ \\
+  section & $r_{i-1}$ & $d_{i-1}$ & $1$ \\
+  banner & $r_{i-1}$ & $0$ & $s_{i-1}$ \\
+  rule & $1$ & $0$ & $s_{i-1} \land \lnot(d_{i-1} \lor a_i)$ \\
+  special rule & $1$ & $d_{i-1}$ & $s_{i-1}$ \\
+  assignment & $0$ & $0$ & $s_{i-1} \land \lnot(d_{i-1} \lor a_i)$ \\
+  target-specific assignment & $0$ & $0$ & $s_{i-1} \land \lnot(d_{i-1} \lor a_i)$ \\
+  other & $0$ & $0$ & $s_{i-1}$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent A recipe line requires $r_{i-1} = 1$, hence $r_i = 1$. A section is consumed
+only by an anchor that gets documented: an undocumented target leaves it pending.
 
 \section{Output}
 
@@ -123,7 +182,8 @@ Where the model cannot follow GNU Make:
 
 \section{To be specified}
 
-The set of kinds $K$ with the rule that recognizes each kind (the core of $\mathrm{obs}$),
-and, for each kind, its effect on $r$, $d$ and $s$ (the core of $\mathrm{step}$).
+The rule that recognizes each kind (the core of $\mathrm{obs}$), and the lexical rules
+that it relies on: which colon separates the targets, which \code{=} is an assignment
+operator, where a comment starts.
 
 \end{document}
