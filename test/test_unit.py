@@ -11,7 +11,6 @@ from tap.parser import Parser
 UNIT_FILES = sorted((ROOT / "test/unit").glob("test_*.awk"))
 
 
-
 def unit_args(path: Path, stderr: Path) -> list[str]:
     """The awk arguments that run the unit test file `path` (its code writes to `stderr`)."""
     return [
