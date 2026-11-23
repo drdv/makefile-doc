@@ -1,8 +1,5 @@
-# Check the functions of the new parser (parser.awk) against the examples of
-# test/lexical.spec. Not run by the test suite yet (its name does not start with test_): the
-# functions are placeholders. Run it by hand:
-#   awk -v UNIT_TEST=1 -f test/unit/harness.awk -f makefile-doc.awk -f parser.awk \
-#       -f test/unit/lexical.awk /dev/null
+# Check the functions of the new parser (parser.awk, which test/test_unit.py loads next to the
+# script for this file) against the examples of test/lexical.spec.
 
 # Read the blocks of a spec file into blocks[k, key] (k = 1..n) and return n. A value in
 # brackets keeps its spaces (the first [ and the last ] of the line delimit it); a line that
@@ -33,11 +30,16 @@ function read_spec(path, blocks, #locals
   return n
 }
 
-function test_lexical_kind(    spec, n, k) {
+function test_lexical_observe(    spec, n, k, obs, id) {
   n = read_spec("test/lexical.spec", spec)
   check_true("read_spec: test/lexical.spec has blocks", n > 0)
   for (k = 1; k <= n; k++) {
-    check("lexical_kind: " spec[k, "id"], lexical_kind(spec[k, "line"]), spec[k, "kind"])
+    id = spec[k, "id"]
+    lexical_observe(spec[k, "line"], obs)
+    check("kind: " id, obs["kind"], array_get(spec, k SUBSEP "kind"))
+    check("anchor: " id, obs["anchor"], array_get(spec, k SUBSEP "anchor"))
+    check("name: " id, obs["name"], array_get(spec, k SUBSEP "name"))
+    check("comment: " id, obs["comment"], array_get(spec, k SUBSEP "comment"))
   }
 }
 
@@ -77,6 +79,6 @@ function test_lexical_mask() {
 
 BEGIN {
   test_lexical_mask()
-  test_lexical_kind()
+  test_lexical_observe()
   done()
 }
