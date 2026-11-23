@@ -1,0 +1,9 @@
+#: desc: The parser state after each line of Makefile.vars-semicolon
+#: trace
+test/fixtures/Makefile.vars-semicolon
+#: stdout
+== test/fixtures/Makefile.vars-semicolon
+   1 . -   0  0 | X := a;b ## Variable with a semicolon in its value
+   1 ========== => variable:X
+   2 . -   0  0 |
+   3 . R   0  0 | t: ; @echo 1 ## Not a doc (after an inline recipe)

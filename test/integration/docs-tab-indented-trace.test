@@ -1,0 +1,32 @@
+#: desc: The parser state after each line of Makefile.docs-tab-indented
+#: trace
+test/fixtures/Makefile.docs-tab-indented
+#: stdout
+== test/fixtures/Makefile.docs-tab-indented
+   1 . -   0  0 | # Docs and sections can be indented with tabs (here, in conditionals before the first rule)
+   2 . -   0  0 |
+   3 . -   0  0 | ifdef X
+   4 . -   0  1 | \t##@
+   5 . -   0  2 | \t##@ A section indented with a tab
+   6 . -   0  3 | \t##@
+   7 . -   0  3 |
+   8 . -   1  3 | \t## A doc indented with a tab
+   9 . -   0  0 | \tV1 := 1
+   9 ========== => variable:V1 +section
+  10 . -   0  0 | else
+  11 . -   1  0 |   ## A doc indented with spaces
+  12 . -   0  0 |   V2 := 2
+  12 ========== => variable:V2
+  13 . -   0  0 | endif
+  14 . -   0  0 |
+  15 . -   0  0 | ifdef Y
+  16 . -   1  0 |  \t ##! A doc indented with spaces and tabs
+  17 . -   0  0 | \tV3 := 1
+  17 ========== => variable:V3
+  18 . -   0  0 | endif
+  19 . -   0  0 |
+  20 . -   1  0 | ## A target
+  21 . R   0  0 | t1:
+  21 ========== => target:t1
+  22 . R   0  0 | \t## In a rule, a line that starts with the recipe prefix (here a tab) is a recipe line
+  23 . R   0  0 | t2:

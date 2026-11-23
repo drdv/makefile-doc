@@ -1,0 +1,33 @@
+#: desc: The parser state after each line of Makefile.docs-blank-lines
+#: trace
+test/fixtures/Makefile.docs-blank-lines
+#: stdout
+== test/fixtures/Makefile.docs-blank-lines
+   1 . -   0  0 | # The blank lines below hold spaces and/or tabs: do not strip them
+   2 . -   0  0 |
+   3 . -   1  0 | ## Docs above a line of spaces
+   4 . -   1  0 |    
+   5 . R   0  0 | t1:
+   5 ========== => target:t1
+   6 . R   0  0 |
+   7 . R   1  0 | ## Docs above a line with a tab (an empty recipe line of t1)
+   8 . R   1  0 | \t
+   9 . R   0  0 | t2:
+   9 ========== => target:t2
+  10 . R   0  0 |
+  11 . -   0  0 | V := 1
+  12 . -   1  0 | ## Docs above a line with a tab (not in a rule)
+  13 . -   1  0 | \t
+  14 . R   0  0 | t3:
+  14 ========== => target:t3
+  15 . R   0  0 |
+  16 . R   1  0 | ## Docs above a line of spaces and tabs
+  17 . R   1  0 |   \t 
+  18 . R   0  0 | t4:
+  18 ========== => target:t4
+  19 . R   0  0 |
+  20 . R   1  0 | ## Docs with a line of spaces
+  21 . R   1  0 |   
+  22 . R   2  0 | ## between their lines
+  23 . R   0  0 | t5:
+  23 ========== => target:t5

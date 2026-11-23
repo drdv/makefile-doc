@@ -2,3 +2,7 @@
 test/fixtures/Makefile.crlf -text
 test/fixtures/Makefile.docs-blank-lines whitespace=-blank-at-eol
 test/fixtures/Makefile.backslash-comments whitespace=-space-before-tab
+# the traces of fixtures whose trailing blanks are intended show them as they are
+test/integration/docs-banner-trace.test whitespace=-blank-at-eol
+test/integration/docs-blank-lines-trace.test whitespace=-blank-at-eol
+test/integration/dsub-sections-trace.test whitespace=-blank-at-eol

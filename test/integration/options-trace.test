@@ -1,0 +1,11 @@
+#: desc: The parser state after each line of Makefile.options
+#: trace
+test/fixtures/Makefile.options
+#: stdout
+== test/fixtures/Makefile.options
+   1 . -   1  0 | ## A variable
+   2 . -   0  0 | V := 1
+   2 ========== => variable:V
+   3 . -   0  0 |
+   4 . R   0  0 | t: ## A target
+   4 ========== => target:t

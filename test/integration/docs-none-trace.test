@@ -1,0 +1,8 @@
+#: desc: The parser state after each line of Makefile.docs-none
+#: trace
+test/fixtures/Makefile.docs-none
+#: stdout
+== test/fixtures/Makefile.docs-none
+   1 . -   0  0 | # A Makefile without docs
+   2 . R   0  0 | t:
+   3 . R   0  0 | \t@echo t

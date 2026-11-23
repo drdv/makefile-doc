@@ -1,0 +1,42 @@
+#: desc: The parser state after each line of Makefile.targets-directives
+#: trace
+test/fixtures/Makefile.targets-directives
+#: stdout
+== test/fixtures/Makefile.targets-directives
+   1 . -   1  0 | ## Docs are kept above a conditional with a colon (quoted form)
+   2 . -   1  0 | ifeq "$(OS)" "a:b"
+   3 . R   0  0 | t1:
+   3 ========== => target:t1
+   4 . R   0  0 | endif
+   5 . R   0  0 |
+   6 . R   1  0 | ## Docs are kept above a conditional with a colon (parenthesized form)
+   7 . R   1  0 | ifeq (a:b,c)
+   8 . R   0  0 | t2:
+   8 ========== => target:t2
+   9 . R   0  0 | else ifneq (c:d,e)
+  10 . R   0  0 | endif
+  11 . R   0  0 |
+  12 . R   1  0 | ## These docs are discarded by vpath
+  13 . R   0  0 | vpath %.c src:lib
+  14 . R   0  0 | t3: ## vpath with a colon is not a target
+  14 ========== => target:t3
+  15 . R   0  0 |
+  16 . R   1  0 | ## These docs are discarded by include
+  17 . R   0  0 | include a:b
+  18 . R   0  0 | -include c:d
+  19 . R   0  0 | sinclude e:f
+  20 . R   0  0 | t4: ## include with a colon is not a target
+  20 ========== => target:t4
+  21 . R   0  0 |
+  22 . R   1  0 | ## These docs are discarded by export
+  23 . R   0  0 | export A:B
+  24 . R   0  0 | t5: ## export without an assignment is not a target
+  24 ========== => target:t5
+  25 . R   0  0 |
+  26 . R   1  0 | ## A variable named as a directive is a variable
+  27 . -   0  0 | include := a:b
+  27 ========== => variable:include
+  28 . -   0  0 |
+  29 . -   1  0 | ## A target that starts with the name of a directive is a target
+  30 . R   0  0 | include-all: a:b
+  30 ========== => target:include-all

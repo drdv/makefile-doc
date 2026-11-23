@@ -1,0 +1,18 @@
+#: desc: The parser state after each line of Makefile.formats-escape
+#: trace
+test/fixtures/Makefile.formats-escape
+#: stdout
+== test/fixtures/Makefile.formats-escape
+   1 . -   0  1 | ##@ Section with <tags> & ampersands
+   2 . -   0  1 |
+   3 . -   1  1 | ## Run the tests (use AWK=<variant> & co)
+   4 . R   0  0 | test:
+   4 ========== => target:test +section
+   5 . R   0  0 |
+   6 . R   1  0 | ## Grouped targets (displayed with a &)
+   7 . R   0  0 | a b&:
+   7 ========== => target:a b&
+   8 . R   0  0 |
+   9 . R   1  0 | ## A variable with a \ backslash and {braces}
+  10 . -   0  0 | VAR := 1
+  10 ========== => variable:VAR

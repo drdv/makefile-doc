@@ -1,0 +1,20 @@
+#: desc: The parser state after each line of Makefile.recipeprefix-custom, with 0 as the recipe prefix
+#: trace
+-v RECIPEPREFIX=0 test/fixtures/Makefile.recipeprefix-custom
+#: stdout
+== test/fixtures/Makefile.recipeprefix-custom
+   1 . -   1  0 | ## A target
+   2 . R   0  0 | t1:
+   2 ========== => target:t1
+   3 . R   0  0 | + @echo hello
+   4 . R   0  0 |
+   5 . R   0  0 | t2:
+   6 . R   1  0 | ## Shell assignment in recipe (BAR=1) when RECIPEPREFIX=+
+   7 . R   2  0 | ## Makefile variable (+BAR=1) otherwise
+   8 . -   0  0 | +BAR=1
+   8 ========== => variable:+BAR
+   9 . -   0  0 |
+  10 . R   0  0 | t3:
+  11 . R   1  0 | ## Shell assignment in recipe (FOO=1) when RECIPEPREFIX=0
+  12 . R   2  0 | ## Makefile variable (0FOO=1) otherwise
+  13 . R   0  0 | 0FOO=1

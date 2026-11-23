@@ -1,0 +1,34 @@
+#: desc: The parser state after each line of Makefile.targets-forms
+#: trace
+test/fixtures/Makefile.targets-forms
+#: stdout
+== test/fixtures/Makefile.targets-forms
+   1 . R   0  0 | %.tab.c %.tab.h: %.y: ## A pattern rule
+   1 ========== => target:%.tab.c %.tab.h
+   2 . R   0  0 |
+   3 . R   0  0 | %.c: ## Another pattern rule
+   3 ========== => target:%.c
+   4 . R   0  0 |
+   5 . R   0  0 | bin/%.o: %.c ## A pattern rule with a prerequisite
+   5 ========== => target:bin/%.o
+   6 . R   0  0 |
+   7 . R   1  0 | ## Three targets on one line (separated by several spaces)
+   8 . R   0  0 | first    second third:
+   8 ========== => target:first second third
+   9 . R   0  0 |
+  10 . R   1  0 | ## Target with spaces before and after
+  11 . R   0  0 |   t1  :
+  11 ========== => target:t1
+  12 . R   0  0 |
+  13 . R   0  0 | $(TARGET-NAME): ## Target from a variable in `$()`
+  13 ========== => target:$(TARGET-NAME)
+  14 . R   0  0 |
+  15 . R   0  0 | ${TARGET-NAME}: ## Target from a variable in `${}`
+  15 ========== => target:${TARGET-NAME}
+  16 . R   0  0 |
+  17 . R   0  0 | $T: ## Target from a one-letter variable
+  17 ========== => target:$T
+  18 . R   0  0 |
+  19 . R   0  0 | # t3 here is not treated separately and does not get its own docs
+  20 . R   0  0 | $(t1) ${t2} t3: ## Variables and a name (issue #12)
+  20 ========== => target:$(t1) ${t2} t3

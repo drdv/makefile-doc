@@ -1,0 +1,8 @@
+#: desc: The parser state after each line of Makefile.targets-not-double-colon
+#: trace
+test/fixtures/Makefile.targets-not-double-colon
+#: stdout
+== test/fixtures/Makefile.targets-not-double-colon
+   1 . -   1  0 | ## A normal single-colon target
+   2 . R   0  0 | foo: ; @echo "a::b"
+   2 ========== => target:foo

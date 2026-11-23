@@ -1,0 +1,13 @@
+#: desc: The parser state after each line of Makefile.docs-tags-hidden-targets
+#: trace
+test/fixtures/Makefile.docs-tags-hidden-targets
+#: stdout
+== test/fixtures/Makefile.docs-tags-hidden-targets
+   1 . -   0  1 | ##@ Old stuff
+   2 . -   1  1 | ##% A deprecated target
+   3 . R   0  0 | old:
+   3 ========== => target:old +section
+   4 . R   0  0 |
+   5 . R   1  0 | ## A variable
+   6 . -   0  0 | V := 1
+   6 ========== => variable:V

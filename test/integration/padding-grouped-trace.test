@@ -1,0 +1,8 @@
+#: desc: The parser state after each line of Makefile.padding-grouped
+#: trace
+test/fixtures/Makefile.padding-grouped
+#: stdout
+== test/fixtures/Makefile.padding-grouped
+   1 . -   1  0 | ## doc
+   2 . R   0  0 | a b c:
+   2 ========== => target:a b c
