@@ -111,11 +111,16 @@ function test_lexical_states(    state, obs) {
   check("states: continued lines, recipe lines included",
         trace_lines("## doc|t1 \\|  t2:|\techo \\|still the recipe|V := 1", ""),
         "010 + 100 + 100 000")
+  check("states: a recipe line of only its prefix, continued",
+        trace_lines("t:|\t\\|BOGUS := 1 ## x|u:", ""), "100 + 100 100")
   check("states: an assignment to .RECIPEPREFIX changes the prefix",
         trace_lines(".RECIPEPREFIX := >|t:|> echo|\t## not a recipe line|u:", ""),
         "000 100 100 110 100")
   check("states: the RECIPEPREFIX option", trace_lines("t:|> echo|\t## doc|u:", ">"),
         "100 100 110 100")
+
+  lexical_observe("define NO_SPACE+=", obs)
+  check("define: an operator without a blank is not part of the name", obs["name"], "NO_SPACE")
 
   lexical_init(state, "")
   lexical_obs(".RECIPEPREFIX = $(P)", state, obs)

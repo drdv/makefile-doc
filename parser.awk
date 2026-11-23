@@ -71,6 +71,7 @@ function lexical_define_name(line, #locals
   }
   sub(/^define[ \t]+/, "", rest)
   sub(/[ \t].*$/, "", rest)
+  sub(/(:::=|::=|:=|\+=|\?=|!=|=)$/, "", rest) # an operator without a blank before it
   return rest
 }
 
@@ -122,6 +123,8 @@ function lexical_scan(line, obs, #locals
   obs["kind"] = "rule"
   obs["anchor"] = "target"
   obs["name"] = name
+  obs["double"] = q > p # a double-colon rule
+  obs["grouped"] = substr(line, 1, p - 1) ~ /&[ \t]*$/ # grouped targets (&:)
   after = q + 1
   rest = substr(masked, after) # not inline in match(): misc/onetrue_awk_bug_20261123.awk
   hit = match(rest, /[#;=]/)
@@ -225,7 +228,8 @@ function lexical_mask(line, #locals
 # ---------------------------------------------------------------------------------------
 # The state machine (the model, with its state in an array): state["r"] (inside a rule),
 # state["d"] (a doc is pending), state["s"] (a section is pending), state["c"] (the recipe
-# prefix), and the line being joined (state["joining"], state["pending"]).
+# prefix), the numbers of pending doc and section lines (state["dn"], state["sn"]), and the
+# line being joined (state["joining"], state["pending"]).
 # ---------------------------------------------------------------------------------------
 
 function lexical_init(state, prefix) {
@@ -234,6 +238,8 @@ function lexical_init(state, prefix) {
   state["d"] = 0
   state["s"] = 0
   state["c"] = prefix == "" ? "\t" : substr(prefix, 1, 1)
+  state["dn"] = 0
+  state["sn"] = 0
   state["joining"] = 0
   state["pending"] = ""
 }
@@ -243,6 +249,7 @@ function lexical_init(state, prefix) {
 function lexical_file_start(state) {
   state["r"] = 0
   state["d"] = 0
+  state["dn"] = 0
   state["joining"] = 0
   state["pending"] = ""
 }
@@ -250,7 +257,9 @@ function lexical_file_start(state) {
 # Add a physical line: return 1 when a logical line is complete (in state["line"]), 0 when the
 # line continues on the next one (an odd number of final backslashes, recipe lines included).
 # As in GNU Make, the backslash, the newline and the blanks around them become one space.
-function lexical_join(state, physical) {
+function lexical_join(state, physical, #locals
+                      stripped) {
+  sub(/\r$/, "", physical) # CRLF line endings
   if (state["joining"]) {
     sub(/^[ \t]+/, "", physical)
     physical = state["pending"] " " physical
@@ -258,7 +267,10 @@ function lexical_join(state, physical) {
   }
   if (has_odd_terminal_backslashes(physical)) {
     physical = substr(physical, 1, length(physical) - 1)
-    sub(/[ \t]+$/, "", physical)
+    stripped = physical
+    sub(/[ \t]+$/, "", stripped)
+    # a recipe line of only its prefix (e.g., a tab, then the backslash) keeps the prefix
+    physical = stripped == "" ? substr(physical, 1, 1) : stripped
     state["pending"] = physical
     state["joining"] = 1
     return 0
@@ -296,33 +308,43 @@ function lexical_set_prefix(state, operator, value) {
 }
 
 # Update the state with an observation (the step table of the model). obs["attach"] is 1 when
-# the line is an anchor that gets documented (by a pending doc or its inline doc), with the
-# pending section if there is one.
+# the line is an anchor that gets documented (by a pending doc or its inline doc), and
+# obs["with_section"] is 1 when the pending section goes with it.
 function lexical_step(state, obs, #locals
                       kind, documented) {
   kind = obs["kind"]
   documented = state["d"] || obs["inline"]
   obs["attach"] = 0
+  obs["with_section"] = 0
   if (kind == "recipe") {
     state["r"] = 1
-    state["d"] = 0
+    lexical_drop_doc(state)
   } else if (kind == "doc") {
     state["d"] = 1
+    state["dn"]++
   } else if (kind == "section") {
     state["s"] = 1
+    state["sn"]++
   } else if (kind == "banner") {
-    state["d"] = 0
+    lexical_drop_doc(state)
   } else if (kind == "rule" || kind == "assignment") {
     state["r"] = kind == "rule"
     if (documented) {
       obs["attach"] = 1
+      obs["with_section"] = state["s"]
       state["s"] = 0
+      state["sn"] = 0
     }
-    state["d"] = 0
+    lexical_drop_doc(state)
   } else if (kind == "special rule") {
     state["r"] = 1
   } else if (kind == "other") {
     state["r"] = 0
-    state["d"] = 0
+    lexical_drop_doc(state)
   } # neutral: no change
+}
+
+function lexical_drop_doc(state) {
+  state["d"] = 0
+  state["dn"] = 0
 }
