@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\newcommand{\yes}{\text{yes}}
+\newcommand{\no}{\text{no}}
+\newcommand{\tab}{\text{tab}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{A model of the parser of makefile-doc.awk}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+The parser reads the lines of one or more Makefiles and attaches each doc (and section) to
+its anchor: a target or a variable. This document models the parser as a state machine: a
+state that evolves line by line, driven by an observation of each line. It is the
+specification for the redesign of the parser.
+
+\section{Assumptions}
+
+\begin{enumerate}
+  \item \textbf{Logical lines are given.} Before the model runs, every physical line that
+        ends with an odd number of backslashes is joined with the next one, recipe lines
+        included. The model sees the resulting logical lines $l_1, l_2, \dots$, over all
+        files in order.
+  \item \textbf{Files are read whole, one after another}, in the order given (for
+        \code{make help}, the order of \code{\$(MAKEFILE\_LIST)}).
+\end{enumerate}
+
+\section{Notation}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+  \toprule
+  Symbol & Description \\
+  \midrule
+  $l_i$ & the $i$-th logical line \\
+  $b_i$ & line $i$ is the first line of a file: \yes/\no{} (an input, not read from the line) \\
+  $r_i$ & a rule is open from line $i$: \yes/\no \\
+  $d_i$ & a doc is pending from line $i$: \yes/\no \\
+  $s_i$ & a section is pending from line $i$: \yes/\no \\
+  $c_i$ & the recipe prefix from line $i$ (a character) \\
+  $x_i$ & the state, $(r_i, d_i, s_i, c_i)$ \\
+  $K$ & the finite set of kinds of line \\
+  $k_i$ & the kind of line $i$, $k_i \in K$ \\
+  $a_i$ & line $i$ has an inline doc: \yes/\no \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent ``From line $i$'' means: starting at line $i$, with the effect of line $i$
+included, until a later line changes it.
+
+\section{Model}
+
+\begin{align*}
+  x_0 &= (\no,\ \no,\ \no,\ c_0)
+  \qquad \text{($c_0$: the \code{RECIPEPREFIX} option, or a tab)} \\[6pt]
+  r_{i-1} &\leftarrow \begin{cases} \no & \text{if } b_i \\ r_{i-1} & \text{otherwise} \end{cases}
+  \qquad
+  d_{i-1} \leftarrow \begin{cases} \no & \text{if } b_i \\ d_{i-1} & \text{otherwise} \end{cases} \\[6pt]
+  (k_i,\ a_i,\ c_i) &= \mathrm{obs}(l_i,\ r_{i-1},\ c_{i-1}) \\[2pt]
+  (r_i,\ d_i,\ s_i) &= \mathrm{step}(r_{i-1},\ d_{i-1},\ s_{i-1},\ k_i,\ a_i)
+\end{align*}
+
+\begin{itemize}
+  \item \textbf{The reset at a file boundary} ($\leftarrow$: an update applied before
+        line $i$ is processed) clears $r$ and $d$, and keeps $s$ (sections carry over to
+        the next file) and $c$ (GNU Make does not reset \code{.RECIPEPREFIX} between files).
+  \item \textbf{$\mathrm{obs}$} reads the line. It needs $r_{i-1}$ and $c_{i-1}$ for one
+        decision: a line is a recipe line if a rule is open and the line starts with the
+        recipe prefix. It returns $c_i$: the new prefix if $l_i$ assigns
+        \code{.RECIPEPREFIX} (a tab if the value is empty), $c_{i-1}$ otherwise.
+  \item \textbf{$\mathrm{step}$} updates $r$, $d$ and $s$ from the observation alone; it
+        never reads the line.
+\end{itemize}
+
+\section{Output}
+
+$\mathrm{step}$ produces the attachments: line $i$ attaches a doc when it is an anchor and
+$d_{i-1}$ or $a_i$ holds (a pending doc takes precedence over an inline doc), with the
+pending section if $s_{i-1}$ holds. The content (doc text, section text, anchor names,
+tags) travels alongside the state as data: control depends only on whether something is
+pending.
+
+Postprocessing, outside the model: the warnings (redefined docs, docs pending at the end
+of a file, a continued last line) and the names of double-colon rules (\code{t\textasciitilde 1},
+\code{t\textasciitilde 2}).
+
+\section{Decisions}
+
+Where the model deliberately differs from the current parser:
+\begin{itemize}
+  \item $c$ is tracked: an assignment to \code{.RECIPEPREFIX} changes the prefix of the
+        lines that follow (today, the prefix is the \code{RECIPEPREFIX} option, constant).
+  \item Recipe continuations are joined like the other lines. This changes the
+        representation only: where a recipe line ends is the same.
+  \item A line that holds only the recipe prefix (possibly followed by blanks) while a rule
+        is open is a recipe line, as in GNU Make (today, it is a blank line: pending docs
+        survive it).
+  \item $\mathrm{obs}$ follows GNU Make, which fixes issues \#181, \#182 and \#183.
+\end{itemize}
+
+\section{Limits}
+
+Where the model cannot follow GNU Make:
+\begin{itemize}
+  \item An included file is read by GNU Make at the \code{include} line, in the middle of
+        its parent; the model reads the files one after another.
+  \item Some values of \code{.RECIPEPREFIX} cannot be known without evaluating the
+        Makefile: an expansion (\code{.RECIPEPREFIX := \$(P)}), an assignment inside a
+        conditional, an assignment in an included file. $\mathrm{obs}$ then keeps
+        $c_{i-1}$ and reports a warning.
+  \item Conditionals are not evaluated: the lines of all their branches are read in order.
+\end{itemize}
+
+\section{To be specified}
+
+The set of kinds $K$ with the rule that recognizes each kind (the core of $\mathrm{obs}$),
+and, for each kind, its effect on $r$, $d$ and $s$ (the core of $\mathrm{step}$).
+
+\end{document}
