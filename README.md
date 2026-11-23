@@ -129,8 +129,9 @@ targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
 as `.PHONY: target` or `.ONESHELL:` (other targets whose names start with a dot, e.g., `.ENV:`, are
 regular targets). Any other line discards the doc: `include`, `vpath`, `endef`, an `export`
 without an assignment, a function call such as `$(info ...)`, or a comment banner (a line of three
-or more `#` only, e.g., `###`). A line such as `### text` is not a banner: it is a doc whose text
-starts with `#`.
+or more `#` only, e.g., `###`). An `unexport` line discards the doc too, with or without names
+after it (it is a directive, not an assignment). A line such as `### text` is not a banner: it is a
+doc whose text starts with `#`.
 
 The remaining details:
 
@@ -143,7 +144,8 @@ The remaining details:
 - On a target line, a `##` after an inline recipe (`target: ; command ## text`) is part of the
   recipe, not a doc.
 - Docs and sections can be indented with spaces or tabs. In a rule, a line that starts with the
-  recipe prefix (a tab by default) is a recipe line, not a doc.
+  recipe prefix (a tab by default) is a recipe line, not a doc. As in GNU Make, this includes a
+  line that holds only the prefix (an empty recipe line): it discards the doc above it.
 - A multi-line variable (`define NAME` ... `endef`) is documented above its `define` line, not
   inline.
 
@@ -197,6 +199,13 @@ reported, nothing else is printed and the exit status is 1. An option given as a
 `-v` (e.g., `awk -f makefile-doc.awk VARS=0 Makefile`), is an error too: awk would set it only
 after the options are checked and used. As in GNU Make, only the first character of `RECIPEPREFIX`
 is used.
+
+The assignments to `.RECIPEPREFIX` in the Makefiles are followed: the prefix changes for the lines
+after them. `RECIPEPREFIX` is the prefix at the start, so it is needed only when the prefix is set
+where makefile-doc does not see it (on the command line of `make`, or in a file that is not passed
+to the script). A value computed when it is assigned (`:=` with a reference, as in
+`.RECIPEPREFIX := $(P)`, or `!=`) is not followed: the prefix keeps its previous value. With `=`,
+the value is used as written, as GNU Make does.
 
 Without a Makefile, the script reads one from stdin, e.g., `cat Makefile | awk -f makefile-doc.awk`
 (in messages, stdin is named `-`). If stdin is empty, e.g., `awk -f makefile-doc.awk < /dev/null`
@@ -390,32 +399,20 @@ help: ## Show this help
 
 ## Limitations
 
-makefile-doc finds targets and variable assignments with awk regular expressions. It is not a GNU
-Make parser, so some valid constructs are not recognized.
+makefile-doc reads the Makefiles line by line, following the syntax of GNU Make (see
+[misc/docs/parser-model.tex](misc/docs/parser-model.tex)), but it does not evaluate them:
 
-### Targets
+- **Conditionals are not evaluated.** The lines of all the branches of an `ifeq` ... `endif` are
+  read in order, so an anchor documented in several branches has its docs redefined (with a
+  warning).
+- **Included files are not followed.** An `include` line does not read the file: pass the files
+  to the script (e.g., `$(MAKEFILE_LIST)`), which reads them one after another.
+- **References are not expanded.** Names are displayed as written, e.g., `$(OBJS):` as `$(OBJS)`
+  and `$(SRCS:.c=.o):` as `$(SRCS:.c=.o)`, and an assignment to `.RECIPEPREFIX` whose value
+  is computed is not followed (see [Options](#options)).
 
-- **An escaped `#` in a target name is not handled.**
-  ```makefile
-  foo\#bar:
-  ```
-  GNU Make treats the `#` as part of the name; the regex always excludes it, so the target is not
-  displayed and its doc is lost.
-
-- **An escaped `:` in a target name is not handled.**
-  ```makefile
-  foo\:bar:
-  ```
-  The escaped colon is taken for the rule separator, so the target is displayed as `foo\`.
-
-- **A colon inside a reference in a target name is not handled.**
-  ```makefile
-  $(SRCS:.c=.o):
-  ```
-  The target (here with a substitution reference) is not recognized, so it is not displayed.
-
-Escaped spaces are displayed as written: `foo\ bar:` is shown as `foo\ bar`, which is how
-the target is invoked (`make foo\ bar`).
+Escaped characters in target names are displayed as written: `foo\ bar:` is shown as `foo\ bar`,
+which is how the target is invoked (`make foo\ bar`), and `foo\#bar:` as `foo\#bar`.
 
 ### Variables
 

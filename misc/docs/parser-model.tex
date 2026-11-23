@@ -263,22 +263,26 @@ pending section if $s_{i-1}$ holds. The content (doc text, section text, anchor 
 tags) travels alongside the state as data: control depends only on whether something is
 pending.
 
-Postprocessing, outside the model: the warnings (redefined docs, docs pending at the end
-of a file, a continued last line) and the names of double-colon rules (\code{t\textasciitilde 1},
+Postprocessing, outside the model: the warnings (redefined docs, a continued last line) and the names of double-colon rules (\code{t\textasciitilde 1},
 \code{t\textasciitilde 2}).
 
 \section{Decisions}
 
-Where the model deliberately differs from the current parser:
+Where the model deliberately differs from the parser it replaced (based on regular
+expressions, up to v2.1):
 \begin{itemize}
   \item $c$ is tracked: an assignment to \code{.RECIPEPREFIX} changes the prefix of the
-        lines that follow (today, the prefix is the \code{RECIPEPREFIX} option, constant).
+        lines that follow (the \code{RECIPEPREFIX} option gives the prefix at the start;
+        it used to be constant).
   \item Recipe continuations are joined like the other lines. This changes the
         representation only: where a recipe line ends is the same.
   \item A line that holds only the recipe prefix (possibly followed by blanks) while a rule
-        is open is a recipe line, as in GNU Make (today, it is a blank line: pending docs
-        survive it).
-  \item $\mathrm{obs}$ follows GNU Make, which fixes issues \#181, \#182 and \#183.
+        is open is a recipe line, as in GNU Make (it used to be a blank line: pending docs
+        survived it).
+  \item $\mathrm{obs}$ follows GNU Make, which fixed issues \#181, \#182 and \#183, and
+        the escaped names and references in targets (\code{foo\textbackslash\#bar},
+        \code{\$(SRCS:.c=.o)}). An \code{unexport} line is a directive (it used to be
+        documented as an assignment).
 \end{itemize}
 
 \section{Limits}
@@ -290,7 +294,7 @@ Where the model cannot follow GNU Make:
   \item Some values of \code{.RECIPEPREFIX} cannot be known without evaluating the
         Makefile: an expansion (\code{.RECIPEPREFIX := \$(P)}), an assignment inside a
         conditional, an assignment in an included file. $\mathrm{obs}$ then keeps
-        $c_{i-1}$ and reports a warning.
+        $c_{i-1}$.
   \item Conditionals are not evaluated: the lines of all their branches are read in order.
   \item References are not evaluated: a name that contains one is shown as written (e.g.,
         \code{\$(OBJS)}).
