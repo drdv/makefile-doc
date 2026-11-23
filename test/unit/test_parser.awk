@@ -129,6 +129,9 @@ function test_parser_states(    state, obs) {
   check("prefix: an expanded reference is not known", state["c"], "$")
   parser_obs(".RECIPEPREFIX :=", state, obs)
   check("prefix: an empty value is a tab", state["c"], "\t")
+  parser_obs(".RECIPEPREFIX = >", state, obs)
+  parser_obs("define .RECIPEPREFIX", state, obs)
+  check("prefix: a define is not known (its value is on the next lines)", state["c"], ">")
 
   parser_init(state, "")
   parser_join(state, "##@ s")
