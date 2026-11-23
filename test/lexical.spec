@@ -4,7 +4,8 @@
 #
 # Format: blocks of `key: value` lines, separated by blank lines; a line that starts with #
 # is a comment. A value in brackets keeps its spaces (the first [ and the last ] of the line
-# delimit it, so brackets inside are part of the value); \t stands for a tab. Keys:
+# delimit it, so brackets inside are part of the value); a tab is written as it is (the note
+# of an example that contains one says so). Keys:
 #   id       a short name for the example
 #   line     the logical line
 #   kind     its kind (see the model): assignment, rule, special rule, neutral, other
