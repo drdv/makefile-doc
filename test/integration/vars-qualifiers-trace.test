@@ -3,50 +3,50 @@
 test/fixtures/Makefile.vars-qualifiers
 #: stdout
 == test/fixtures/Makefile.vars-qualifiers
-   1 . -   1  0 | ## only override
-   2 . -   0  0 | override X := 1
-   2 ========== => variable:X
-   3 . -   0  0 |
-   4 . -   1  0 | ## override and export
-   5 . -   0  0 |   override   export Y := 1
-   5 ========== => variable:Y
-   6 . -   0  0 |
-   7 . -   1  0 | ## override, private and export
-   8 . -   0  0 |   override     private  export     Z:=1
-   8 ========== => variable:Z
-   9 . -   0  0 |
-  10 . -   1  0 | ## test all four (even though it makes no sense)
-  11 . -   0  0 | unexport  override     private  export     more_LETTERS:=1
-  11 ========== => variable:more_LETTERS
-  12 . -   0  0 |
-  13 . -   1  0 | ## test repeated qualifiers
-  14 . -   0  0 |    override  unexport private  override     private  export     qsub:=1
-  14 ========== => variable:qsub
-  15 . -   0  0 |
-  16 . -   1  0 | ## test qualifiers in variable name
-  17 . -   0  0 |    override  unexport private  override     private  export     override1:=1
-  17 ========== => variable:override1
-  18 . -   0  0 |
-  19 . -   1  0 | ## test qualifiers in variable name
-  20 . -   0  0 |    override  unexport private  override     private  export     override_private := 1
-  20 ========== => variable:override_private
-  21 . -   0  0 |
-  22 . -   1  0 | ## test variable name that coincides with a qualifier
-  23 . -   0  0 | unexport := 1
-  23 ========== => variable:unexport
-  24 . -   0  0 |
-  25 . -   1  0 | ## test variable name that coincides with a qualifier and has qualifiers
-  26 . -   0  0 |  override  unexport private  override       export   private  := 1
-  26 ========== => variable:private
-  27 . -   0  0 |
-  28 . -   1  0 | ## Start with a leading tab
-  29 . -   0  0 | \texport := 1
-  29 ========== => variable:export
-  30 . -   0  0 |
-  31 . -   1  0 | ## Start with a leading tab and tab between variables
-  32 . -   0  0 | \texport\tprivate U  := 1
-  32 ========== => variable:U
-  33 . -   0  0 |
-  34 . -   1  0 | ## Tab and space
-  35 . -   0  0 | private\t\toverride\t := 1
-  35 ========== => variable:override
+   1 0 0  1  0 \t | ## only override
+   2 0 0  0  0 \t | override X := 1
+   2 ============ => variable:X
+   3 0 0  0  0 \t |
+   4 0 0  1  0 \t | ## override and export
+   5 0 0  0  0 \t |   override   export Y := 1
+   5 ============ => variable:Y
+   6 0 0  0  0 \t |
+   7 0 0  1  0 \t | ## override, private and export
+   8 0 0  0  0 \t |   override     private  export     Z:=1
+   8 ============ => variable:Z
+   9 0 0  0  0 \t |
+  10 0 0  1  0 \t | ## test all four (even though it makes no sense)
+  11 0 0  0  0 \t | unexport  override     private  export     more_LETTERS:=1
+  11 ============ => variable:more_LETTERS
+  12 0 0  0  0 \t |
+  13 0 0  1  0 \t | ## test repeated qualifiers
+  14 0 0  0  0 \t |    override  unexport private  override     private  export     qsub:=1
+  14 ============ => variable:qsub
+  15 0 0  0  0 \t |
+  16 0 0  1  0 \t | ## test qualifiers in variable name
+  17 0 0  0  0 \t |    override  unexport private  override     private  export     override1:=1
+  17 ============ => variable:override1
+  18 0 0  0  0 \t |
+  19 0 0  1  0 \t | ## test qualifiers in variable name
+  20 0 0  0  0 \t |    override  unexport private  override     private  export     override_private := 1
+  20 ============ => variable:override_private
+  21 0 0  0  0 \t |
+  22 0 0  1  0 \t | ## test variable name that coincides with a qualifier
+  23 0 0  0  0 \t | unexport := 1
+  23 ============ => variable:unexport
+  24 0 0  0  0 \t |
+  25 0 0  1  0 \t | ## test variable name that coincides with a qualifier and has qualifiers
+  26 0 0  0  0 \t |  override  unexport private  override       export   private  := 1
+  26 ============ => variable:private
+  27 0 0  0  0 \t |
+  28 0 0  1  0 \t | ## Start with a leading tab
+  29 0 0  0  0 \t | \texport := 1
+  29 ============ => variable:export
+  30 0 0  0  0 \t |
+  31 0 0  1  0 \t | ## Start with a leading tab and tab between variables
+  32 0 0  0  0 \t | \texport\tprivate U  := 1
+  32 ============ => variable:U
+  33 0 0  0  0 \t |
+  34 0 0  1  0 \t | ## Tab and space
+  35 0 0  0  0 \t | private\t\toverride\t := 1
+  35 ============ => variable:override

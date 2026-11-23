@@ -3,6 +3,6 @@
 test/fixtures/Makefile.targets-not-double-colon
 #: stdout
 == test/fixtures/Makefile.targets-not-double-colon
-   1 . -   1  0 | ## A normal single-colon target
-   2 . R   0  0 | foo: ; @echo "a::b"
-   2 ========== => target:foo
+   1 0 0  1  0 \t | ## A normal single-colon target
+   2 0 1  0  0 \t | foo: ; @echo "a::b"
+   2 ============ => target:foo

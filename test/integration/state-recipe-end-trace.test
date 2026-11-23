@@ -4,94 +4,94 @@
 test/fixtures/Makefile.state-recipe-end
 #: stdout
 == test/fixtures/Makefile.state-recipe-end
-   1 . -   0  0 | # Directives, function calls and target-specific assignments end the recipe context, as in
-   2 . -   0  0 | # GNU Make: the tab-indented ## line after them is a comment, so a doc of next-N. Known
-   3 . -   0  0 | # bug #182: the parser keeps the recipe context (and starts one at a target-specific
-   4 . -   0  0 | # assignment), so the doc is lost.
-   5 . -   0  0 |
-   6 . -   1  0 | ## Doc of rule-1
-   7 . R   0  0 | rule-1:
-   7 ========== => target:rule-1
-   8 . R   0  0 | \t@echo rule-1
-   9 . -   0  0 | include /dev/null
-  10 . -   1  0 | \t## include, after a rule
-  11 . R   0  0 | next-1:
-  11 ========== => target:next-1
-  12 . R   0  0 |
-  13 . R   1  0 | ## Doc of rule-2
-  14 . R   0  0 | rule-2:
-  14 ========== => target:rule-2
-  15 . R   0  0 | \t@echo rule-2
-  16 . -   0  0 | -include /nonexistent-2
-  17 . -   1  0 | \t## -include, after a rule
-  18 . R   0  0 | next-2:
-  18 ========== => target:next-2
-  19 . R   0  0 |
-  20 . R   1  0 | ## Doc of rule-3
-  21 . R   0  0 | rule-3:
-  21 ========== => target:rule-3
-  22 . R   0  0 | \t@echo rule-3
-  23 . -   0  0 | vpath %.c src
-  24 . -   1  0 | \t## vpath, after a rule
-  25 . R   0  0 | next-3:
-  25 ========== => target:next-3
-  26 . R   0  0 |
-  27 . R   1  0 | ## Doc of rule-4
-  28 . R   0  0 | rule-4:
-  28 ========== => target:rule-4
-  29 . R   0  0 | \t@echo rule-4
-  30 . -   0  0 | export V
-  31 . -   1  0 | \t## export (no assignment), after a rule
-  32 . R   0  0 | next-4:
-  32 ========== => target:next-4
-  33 . R   0  0 |
-  34 . R   1  0 | ## Doc of rule-5
-  35 . R   0  0 | rule-5:
-  35 ========== => target:rule-5
-  36 . R   0  0 | \t@echo rule-5
-  37 . -   0  0 | unexport V
-  38 . -   1  0 | \t## unexport, after a rule
-  39 . R   0  0 | next-5:
-  39 ========== => target:next-5
-  40 . R   0  0 |
-  41 . R   1  0 | ## Doc of rule-6
-  42 . R   0  0 | rule-6:
-  42 ========== => target:rule-6
-  43 . R   0  0 | \t@echo rule-6
-  44 . -   0  0 | undefine V
-  45 . -   1  0 | \t## undefine, after a rule
-  46 . R   0  0 | next-6:
-  46 ========== => target:next-6
-  47 . R   0  0 |
-  48 . R   1  0 | ## Doc of rule-7
-  49 . R   0  0 | rule-7:
-  49 ========== => target:rule-7
-  50 . R   0  0 | \t@echo rule-7
-  51 . -   0  0 | $(info x)
-  52 . -   1  0 | \t## a function call ($(info)), after a rule
-  53 . R   0  0 | next-7:
-  53 ========== => target:next-7
-  54 . R   0  0 |
-  55 . R   1  0 | ## Doc of rule-8
-  56 . R   0  0 | rule-8:
-  56 ========== => target:rule-8
-  57 . R   0  0 | \t@echo rule-8
-  58 . -   0  0 | $(eval E := 1)
-  59 . -   1  0 | \t## a function call ($(eval)), after a rule
-  60 . R   0  0 | next-8:
-  60 ========== => target:next-8
-  61 . R   0  0 |
-  62 . R   1  0 | ## Doc of rule-9
-  63 . R   0  0 | rule-9:
-  63 ========== => target:rule-9
-  64 . R   0  0 | \t@echo rule-9
-  65 . -   0  0 | t-9: V := 1
-  66 . -   1  0 | \t## a target-specific assignment, after a rule
-  67 . R   0  0 | next-9:
-  67 ========== => target:next-9
-  68 . R   0  0 |
-  69 . -   0  0 | A := 1
-  70 . -   0  0 | t-10: V := 1
-  71 . -   1  0 | \t## a target-specific assignment, after an assignment
-  72 . R   0  0 | next-10:
-  72 ========== => target:next-10
+   1 0 0  0  0 \t | # Directives, function calls and target-specific assignments end the recipe context, as in
+   2 0 0  0  0 \t | # GNU Make: the tab-indented ## line after them is a comment, so a doc of next-N. Known
+   3 0 0  0  0 \t | # bug #182: the parser keeps the recipe context (and starts one at a target-specific
+   4 0 0  0  0 \t | # assignment), so the doc is lost.
+   5 0 0  0  0 \t |
+   6 0 0  1  0 \t | ## Doc of rule-1
+   7 0 1  0  0 \t | rule-1:
+   7 ============ => target:rule-1
+   8 0 1  0  0 \t | \t@echo rule-1
+   9 0 0  0  0 \t | include /dev/null
+  10 0 0  1  0 \t | \t## include, after a rule
+  11 0 1  0  0 \t | next-1:
+  11 ============ => target:next-1
+  12 0 1  0  0 \t |
+  13 0 1  1  0 \t | ## Doc of rule-2
+  14 0 1  0  0 \t | rule-2:
+  14 ============ => target:rule-2
+  15 0 1  0  0 \t | \t@echo rule-2
+  16 0 0  0  0 \t | -include /nonexistent-2
+  17 0 0  1  0 \t | \t## -include, after a rule
+  18 0 1  0  0 \t | next-2:
+  18 ============ => target:next-2
+  19 0 1  0  0 \t |
+  20 0 1  1  0 \t | ## Doc of rule-3
+  21 0 1  0  0 \t | rule-3:
+  21 ============ => target:rule-3
+  22 0 1  0  0 \t | \t@echo rule-3
+  23 0 0  0  0 \t | vpath %.c src
+  24 0 0  1  0 \t | \t## vpath, after a rule
+  25 0 1  0  0 \t | next-3:
+  25 ============ => target:next-3
+  26 0 1  0  0 \t |
+  27 0 1  1  0 \t | ## Doc of rule-4
+  28 0 1  0  0 \t | rule-4:
+  28 ============ => target:rule-4
+  29 0 1  0  0 \t | \t@echo rule-4
+  30 0 0  0  0 \t | export V
+  31 0 0  1  0 \t | \t## export (no assignment), after a rule
+  32 0 1  0  0 \t | next-4:
+  32 ============ => target:next-4
+  33 0 1  0  0 \t |
+  34 0 1  1  0 \t | ## Doc of rule-5
+  35 0 1  0  0 \t | rule-5:
+  35 ============ => target:rule-5
+  36 0 1  0  0 \t | \t@echo rule-5
+  37 0 0  0  0 \t | unexport V
+  38 0 0  1  0 \t | \t## unexport, after a rule
+  39 0 1  0  0 \t | next-5:
+  39 ============ => target:next-5
+  40 0 1  0  0 \t |
+  41 0 1  1  0 \t | ## Doc of rule-6
+  42 0 1  0  0 \t | rule-6:
+  42 ============ => target:rule-6
+  43 0 1  0  0 \t | \t@echo rule-6
+  44 0 0  0  0 \t | undefine V
+  45 0 0  1  0 \t | \t## undefine, after a rule
+  46 0 1  0  0 \t | next-6:
+  46 ============ => target:next-6
+  47 0 1  0  0 \t |
+  48 0 1  1  0 \t | ## Doc of rule-7
+  49 0 1  0  0 \t | rule-7:
+  49 ============ => target:rule-7
+  50 0 1  0  0 \t | \t@echo rule-7
+  51 0 0  0  0 \t | $(info x)
+  52 0 0  1  0 \t | \t## a function call ($(info)), after a rule
+  53 0 1  0  0 \t | next-7:
+  53 ============ => target:next-7
+  54 0 1  0  0 \t |
+  55 0 1  1  0 \t | ## Doc of rule-8
+  56 0 1  0  0 \t | rule-8:
+  56 ============ => target:rule-8
+  57 0 1  0  0 \t | \t@echo rule-8
+  58 0 0  0  0 \t | $(eval E := 1)
+  59 0 0  1  0 \t | \t## a function call ($(eval)), after a rule
+  60 0 1  0  0 \t | next-8:
+  60 ============ => target:next-8
+  61 0 1  0  0 \t |
+  62 0 1  1  0 \t | ## Doc of rule-9
+  63 0 1  0  0 \t | rule-9:
+  63 ============ => target:rule-9
+  64 0 1  0  0 \t | \t@echo rule-9
+  65 0 0  0  0 \t | t-9: V := 1
+  66 0 0  1  0 \t | \t## a target-specific assignment, after a rule
+  67 0 1  0  0 \t | next-9:
+  67 ============ => target:next-9
+  68 0 1  0  0 \t |
+  69 0 0  0  0 \t | A := 1
+  70 0 0  0  0 \t | t-10: V := 1
+  71 0 0  1  0 \t | \t## a target-specific assignment, after an assignment
+  72 0 1  0  0 \t | next-10:
+  72 ============ => target:next-10

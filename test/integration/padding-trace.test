@@ -3,12 +3,12 @@
 test/fixtures/Makefile.padding
 #: stdout
 == test/fixtures/Makefile.padding
-   1 . R   0  0 | t: ## A target with a short name
-   1 ========== => target:t
-   2 . R   0  0 |
-   3 . R   0  0 | longer-target-name: ## More characters
-   3 ========== => target:longer-target-name
-   4 . R   0  0 |
-   5 . R   1  0 | ## And the winner is ...
-   6 . -   0  0 | A_______________________ := 1
-   6 ========== => variable:A_______________________
+   1 0 1  0  0 \t | t: ## A target with a short name
+   1 ============ => target:t
+   2 0 1  0  0 \t |
+   3 0 1  0  0 \t | longer-target-name: ## More characters
+   3 ============ => target:longer-target-name
+   4 0 1  0  0 \t |
+   5 0 1  1  0 \t | ## And the winner is ...
+   6 0 0  0  0 \t | A_______________________ := 1
+   6 ============ => variable:A_______________________

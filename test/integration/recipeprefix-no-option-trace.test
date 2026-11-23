@@ -3,18 +3,18 @@
 test/fixtures/Makefile.recipeprefix
 #: stdout
 == test/fixtures/Makefile.recipeprefix
-   1 . -   0  0 | .RECIPEPREFIX := >
-   2 . -   0  0 |
-   3 . R   0  0 | t: ## A target
-   3 ========== => target:t
-   4 . R   0  0 | > @echo 1
-   5 . R   0  0 | > @echo 2
-   6 . R   0  0 | > @echo 3
-   7 \ R   0  0 | > ## this is a comment\
-   8 \ R   0  0 | in the recipe\
-   9 . R   0  0 | spanning multiple lines and causing trouble in the shell
-  10 . R   0  0 |
-  11 \ R   0  0 | > ## Not a variable\
-  12 . R   0  0 | N := 1 ##! Not a variable
-  13 . -   0  0 | V := 1 ##! A variable
-  13 ========== => variable:V
+   1 0 0  0  0 \t | .RECIPEPREFIX := >
+   2 0 0  0  0 \t |
+   3 0 1  0  0 \t | t: ## A target
+   3 ============ => target:t
+   4 0 1  0  0 \t | > @echo 1
+   5 0 1  0  0 \t | > @echo 2
+   6 0 1  0  0 \t | > @echo 3
+   7 1 1  0  0 \t | > ## this is a comment\
+   8 1 1  0  0 \t | in the recipe\
+   9 0 1  0  0 \t | spanning multiple lines and causing trouble in the shell
+  10 0 1  0  0 \t |
+  11 1 1  0  0 \t | > ## Not a variable\
+  12 0 1  0  0 \t | N := 1 ##! Not a variable
+  13 0 0  0  0 \t | V := 1 ##! A variable
+  13 ============ => variable:V

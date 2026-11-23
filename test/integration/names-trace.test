@@ -3,36 +3,36 @@
 test/fixtures/Makefile.names
 #: stdout
 == test/fixtures/Makefile.names
-   1 . -   1  0 | ## Variable containing .
-   2 . -   0  0 | FOO.BAR := 1
-   2 ========== => variable:FOO.BAR
-   3 . -   0  0 |
-   4 . -   1  0 | ## Variable containing +
-   5 . -   0  0 | FOO+BAR := 1
-   5 ========== => variable:FOO+BAR
-   6 . -   0  0 |
-   7 . -   1  0 | ## Variable containing /
-   8 . -   0  0 | FOO/BAR := 1
-   8 ========== => variable:FOO/BAR
-   9 . -   0  0 |
-  10 . -   1  0 | ## Variable containing @
-  11 . -   0  0 | FOO@BAR := 1
-  11 ========== => variable:FOO@BAR
-  12 . -   0  0 |
-  13 . -   1  0 | ## Target containing +
-  14 . R   0  0 | foo+bar:
-  14 ========== => target:foo+bar
-  15 . R   0  0 |
-  16 . R   1  0 | ## Target containing @
-  17 . R   0  0 | foo@bar:
-  17 ========== => target:foo@bar
-  18 . R   0  0 |
-  19 . R   1  0 | ## Target containing single quote
-  20 . R   2  0 | ## This is not correctly parsed even by makefile-mode in Emacs :)
-  21 . R   0  0 | foo'bar:
-  21 ========== => target:foo'bar
-  22 . R   0  0 |
-  23 . R   1  0 | ## Target containing double quote
-  24 . R   2  0 | ## ... same here
-  25 . R   0  0 | foo"bar:
-  25 ========== => target:foo"bar
+   1 0 0  1  0 \t | ## Variable containing .
+   2 0 0  0  0 \t | FOO.BAR := 1
+   2 ============ => variable:FOO.BAR
+   3 0 0  0  0 \t |
+   4 0 0  1  0 \t | ## Variable containing +
+   5 0 0  0  0 \t | FOO+BAR := 1
+   5 ============ => variable:FOO+BAR
+   6 0 0  0  0 \t |
+   7 0 0  1  0 \t | ## Variable containing /
+   8 0 0  0  0 \t | FOO/BAR := 1
+   8 ============ => variable:FOO/BAR
+   9 0 0  0  0 \t |
+  10 0 0  1  0 \t | ## Variable containing @
+  11 0 0  0  0 \t | FOO@BAR := 1
+  11 ============ => variable:FOO@BAR
+  12 0 0  0  0 \t |
+  13 0 0  1  0 \t | ## Target containing +
+  14 0 1  0  0 \t | foo+bar:
+  14 ============ => target:foo+bar
+  15 0 1  0  0 \t |
+  16 0 1  1  0 \t | ## Target containing @
+  17 0 1  0  0 \t | foo@bar:
+  17 ============ => target:foo@bar
+  18 0 1  0  0 \t |
+  19 0 1  1  0 \t | ## Target containing single quote
+  20 0 1  2  0 \t | ## This is not correctly parsed even by makefile-mode in Emacs :)
+  21 0 1  0  0 \t | foo'bar:
+  21 ============ => target:foo'bar
+  22 0 1  0  0 \t |
+  23 0 1  1  0 \t | ## Target containing double quote
+  24 0 1  2  0 \t | ## ... same here
+  25 0 1  0  0 \t | foo"bar:
+  25 ============ => target:foo"bar
