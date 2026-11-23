@@ -6,12 +6,21 @@ function test_get_tag_from_description() {
   check("get_tag_from_description: no tag", get_tag_from_description("!#   doc"), "")
 }
 
-function test_form_dc_target_name() {
+function test_form_target_name(    state, obs) {
   init_globals()
-  check("form_dc_target_name: first rule", form_dc_target_name("t"), "t~1")
+  parser_init(state, "")
+  obs["name"] = "a \t b"
+  obs["grouped"] = 0
+  obs["double"] = 0
+  check("form_target_name: blanks collapsed", form_target_name(state, obs), "a b")
+  obs["grouped"] = 1
+  check("form_target_name: grouped", form_target_name(state, obs), "a b&")
 
-  TARGETS_DC_COUNTER["t"]++
-  check("form_dc_target_name: second rule", form_dc_target_name("t"), "t~2")
+  obs["name"] = "t"
+  obs["grouped"] = 0
+  obs["double"] = 1
+  check("form_target_name: first double-colon rule", form_target_name(state, obs), "t~1")
+  check("form_target_name: second double-colon rule", form_target_name(state, obs), "t~2")
 }
 
 function test_has_odd_terminal_backslashes() {
@@ -29,7 +38,7 @@ function test_has_odd_terminal_backslashes() {
 
 BEGIN {
   test_get_tag_from_description()
-  test_form_dc_target_name()
+  test_form_target_name()
   test_has_odd_terminal_backslashes()
   done()
 }
