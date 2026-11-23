@@ -1,9 +1,9 @@
-function test_get_tag_from_description() {
-  check("get_tag_from_description: ##", get_tag_from_description("##   doc"), "##")
-  check("get_tag_from_description: ##!", get_tag_from_description("##!   doc"), "##!")
-  check("get_tag_from_description: ##%", get_tag_from_description("##%   doc"), "##%")
-  check("get_tag_from_description: ##Z is ##", get_tag_from_description("##Z   doc"), "##")
-  check("get_tag_from_description: no tag", get_tag_from_description("!#   doc"), "")
+function test_get_doc_tag() {
+  check("get_doc_tag: ##", get_doc_tag("##   doc"), "##")
+  check("get_doc_tag: ##!", get_doc_tag("##!   doc"), "##!")
+  check("get_doc_tag: ##%", get_doc_tag("##%   doc"), "##%")
+  check("get_doc_tag: ##Z is ##", get_doc_tag("##Z   doc"), "##")
+  check("get_doc_tag: no tag", get_doc_tag("!#   doc"), "")
 }
 
 function test_form_target_name(    state, obs) {
@@ -37,7 +37,7 @@ function test_has_odd_terminal_backslashes() {
 }
 
 BEGIN {
-  test_get_tag_from_description()
+  test_get_doc_tag()
   test_form_target_name()
   test_has_odd_terminal_backslashes()
   done()
