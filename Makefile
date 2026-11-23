@@ -46,11 +46,12 @@ help:
 ##@------ Tests ------
 ##@
 
-## Run the integration and unit tests for a given `PLATFORM`
+## Run the integration, unit and JSON tests for a given `PLATFORM`
 ## (e.g., `make test PLATFORM='host-*' PYTEST_FLAGS='-k backslash-anchor'`)
 .PHONY: test
 test:
 	@$(PYTEST) $(TEST_DIR)/test_integration.py $(TEST_DIR)/test_unit.py \
+		$(TEST_DIR)/test_dump_json.py \
 		--platform '$(PLATFORM)' --engine $(ENGINE) $(PYTEST_FLAGS)
 
 ## Lint the awk code (`gawk --lint`) and the Python code (ruff, mypy)
@@ -127,6 +128,10 @@ DEMO_PNGS := $(DEMO_PDFS:.pdf=.png)
 .PHONY: demo-state
 demo-state:
 	@$(AWK) -f tools/dump-state.awk -f $(MAKEFILE_DOC) $(DEMO)
+
+.PHONY: demo-json
+demo-json:
+	@$(AWK) -f tools/dump-json.awk -f $(MAKEFILE_DOC) $(DEMO)
 
 .PHONY: demo-all
 demo-all: $(DEMO_DIR)/demo.html $(DEMO_SVGS) $(DEMO_PNGS)

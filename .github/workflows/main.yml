@@ -106,7 +106,7 @@ jobs:
 
       # the cases of known bugs are part of them: they are expected to fail
       - name: integration and unit tests
-        run: uv run pytest test/test_integration.py test/test_unit.py --platform ${{ matrix.platform.name }}
+        run: uv run pytest test/test_integration.py test/test_unit.py test/test_dump_json.py --platform ${{ matrix.platform.name }}
 
   # the awk that comes with macOS
   macos:
@@ -122,7 +122,7 @@ jobs:
         uses: astral-sh/setup-uv@v10.3.3
 
       - name: integration and unit tests
-        run: uv run pytest test/test_integration.py test/test_unit.py --platform host-awk
+        run: uv run pytest test/test_integration.py test/test_unit.py test/test_dump_json.py --platform host-awk
 
   # the awk that comes with Git for Windows (gawk on the MSYS runtime) and a native gawk
   windows:
@@ -145,5 +145,5 @@ jobs:
 
       - name: integration and unit tests
         run: >-
-          uv run pytest test/test_integration.py test/test_unit.py
+          uv run pytest test/test_integration.py test/test_unit.py test/test_dump_json.py
           --platform host-awk --platform windows-host-gawk

@@ -1,11 +1,12 @@
 # Tests
 
-`makefile-doc.awk` is checked in three ways:
+`makefile-doc.awk` is checked in four ways:
 
 - **integration tests** run the script on small Makefiles and compare its output with the expected
   one;
 - **unit tests** call selected functions of the script in isolation;
-- **lint** runs all of the above under `gawk --lint` and fails on unexpected warnings.
+- **JSON tests** check that `tools/dump-json.awk` prints valid JSON for every fixture;
+- **lint** runs the integration and unit tests under `gawk --lint` and fails on unexpected warnings.
 
 We want the script to support the main awk implementations. The integration and unit tests therefore
 run on a chosen _platform_ — an awk variant and the environment where it runs. It can be the `awk`
