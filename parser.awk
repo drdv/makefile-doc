@@ -75,10 +75,12 @@ function lexical_define_name(line, #locals
 }
 
 # Fill obs with the structure of a line (the searches of the lexical layer): obs["kind"] is
-# assignment, rule or "" (neither), with obs["anchor"], obs["name"] and obs["comment"].
-# The searches run on the masked line; the name and the comment are cut from the line.
+# assignment, rule or "" (neither), with obs["anchor"], obs["name"] and obs["comment"]; for
+# an assignment to a variable, also obs["operator"] and obs["value"] (without its comment,
+# leading blanks removed). The searches run on the masked line; the texts are cut from the
+# line.
 function lexical_scan(line, obs, #locals
-                      masked, p, c, q, start, after, rest, hit, name) {
+                      masked, p, c, q, start, end, after, rest, hit, name) {
   masked = lexical_mask(line)
   p = match(masked, /[#=:]/)
   if (!p) {
@@ -97,10 +99,14 @@ function lexical_scan(line, obs, #locals
     start = (c == "=" && p > 1 && substr(masked, p - 1, 1) ~ /[?+!]/) ? p - 1 : p
     name = lexical_variable_name(substr(line, 1, start - 1), substr(masked, 1, start - 1))
     if (name != "") {
+      end = c == "=" ? p : q + 1 # the = of the operator
       obs["kind"] = "assignment"
       obs["anchor"] = "variable"
       obs["name"] = name
-      obs["comment"] = lexical_rest_from(line, masked, p, "#")
+      obs["comment"] = lexical_rest_from(line, masked, end, "#")
+      obs["operator"] = substr(line, start, end - start + 1)
+      obs["value"] = substr(line, end + 1, length(line) - end - length(obs["comment"]))
+      sub(/^[ \t]+/, "", obs["value"])
     }
     return
   }
@@ -214,4 +220,109 @@ function lexical_mask(line, #locals
     }
   }
   return out
+}
+
+# ---------------------------------------------------------------------------------------
+# The state machine (the model, with its state in an array): state["r"] (inside a rule),
+# state["d"] (a doc is pending), state["s"] (a section is pending), state["c"] (the recipe
+# prefix), and the line being joined (state["joining"], state["pending"]).
+# ---------------------------------------------------------------------------------------
+
+function lexical_init(state, prefix) {
+  split("", state)
+  state["r"] = 0
+  state["d"] = 0
+  state["s"] = 0
+  state["c"] = prefix == "" ? "\t" : substr(prefix, 1, 1)
+  state["joining"] = 0
+  state["pending"] = ""
+}
+
+# At the first line of a file: no open rule and no pending doc (a section and the recipe
+# prefix carry over). A line continued at the end of the previous file is dropped.
+function lexical_file_start(state) {
+  state["r"] = 0
+  state["d"] = 0
+  state["joining"] = 0
+  state["pending"] = ""
+}
+
+# Add a physical line: return 1 when a logical line is complete (in state["line"]), 0 when the
+# line continues on the next one (an odd number of final backslashes, recipe lines included).
+# As in GNU Make, the backslash, the newline and the blanks around them become one space.
+function lexical_join(state, physical) {
+  if (state["joining"]) {
+    sub(/^[ \t]+/, "", physical)
+    physical = state["pending"] " " physical
+    state["joining"] = 0
+  }
+  if (has_odd_terminal_backslashes(physical)) {
+    physical = substr(physical, 1, length(physical) - 1)
+    sub(/[ \t]+$/, "", physical)
+    state["pending"] = physical
+    state["joining"] = 1
+    return 0
+  }
+  state["line"] = physical
+  return 1
+}
+
+# Observe a logical line with the state (all the questions of the model): lexical_observe,
+# plus question 1 (a recipe line: inside a rule, the line starts with the recipe prefix),
+# obs["inline"] (a_i: the comment is an inline doc) and question 9 (an assignment to
+# .RECIPEPREFIX changes state["c"], for the next lines).
+function lexical_obs(line, state, obs) {
+  if (state["r"] && substr(line, 1, 1) == state["c"]) {
+    split("", obs)
+    lexical_clear(obs, "recipe")
+  } else {
+    lexical_observe(line, obs)
+  }
+  obs["inline"] = obs["anchor"] != "" && obs["comment"] ~ /^##/ && obs["comment"] !~ /^##@/
+  if (obs["kind"] == "assignment" && obs["anchor"] == "variable" &&
+      obs["name"] == ".RECIPEPREFIX") {
+    lexical_set_prefix(state, obs["operator"], obs["value"])
+  }
+}
+
+# The recipe prefix after an assignment to .RECIPEPREFIX: the first character of the value (a
+# tab if it is empty). With += the first character does not change; with != or an expanded
+# reference (:=, ::=), the value is not known: the prefix does not change either.
+function lexical_set_prefix(state, operator, value) {
+  if (operator == "+=" || operator == "!=" || (operator ~ /^:+=$/ && index(value, "$") > 0)) {
+    return
+  }
+  state["c"] = value == "" ? "\t" : substr(value, 1, 1)
+}
+
+# Update the state with an observation (the step table of the model). obs["attach"] is 1 when
+# the line is an anchor that gets documented (by a pending doc or its inline doc), with the
+# pending section if there is one.
+function lexical_step(state, obs, #locals
+                      kind, documented) {
+  kind = obs["kind"]
+  documented = state["d"] || obs["inline"]
+  obs["attach"] = 0
+  if (kind == "recipe") {
+    state["r"] = 1
+    state["d"] = 0
+  } else if (kind == "doc") {
+    state["d"] = 1
+  } else if (kind == "section") {
+    state["s"] = 1
+  } else if (kind == "banner") {
+    state["d"] = 0
+  } else if (kind == "rule" || kind == "assignment") {
+    state["r"] = kind == "rule"
+    if (documented) {
+      obs["attach"] = 1
+      state["s"] = 0
+    }
+    state["d"] = 0
+  } else if (kind == "special rule") {
+    state["r"] = 1
+  } else if (kind == "other") {
+    state["r"] = 0
+    state["d"] = 0
+  } # neutral: no change
 }

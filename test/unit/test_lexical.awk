@@ -77,8 +77,70 @@ function test_lexical_mask() {
   check("lexical_mask: a$$$b", lexical_mask("a$$$b"), "a____")
 }
 
+# The states after each physical line of text (lines separated by |), as "rds" (1/0 for
+# r, d, s), or "+" for a line that continues on the next one
+function trace_lines(text, prefix, #locals
+                     state, lines, n, k, obs, out) {
+  lexical_init(state, prefix)
+  n = split(text, lines, "|")
+  out = ""
+  for (k = 1; k <= n; k++) {
+    if (lexical_join(state, lines[k])) {
+      lexical_obs(state["line"], state, obs)
+      lexical_step(state, obs)
+      out = out " " state["r"] state["d"] state["s"]
+    } else {
+      out = out " +"
+    }
+  }
+  return substr(out, 2)
+}
+
+function test_lexical_states(    state, obs) {
+  check("states: the example of the model",
+        trace_lines("##@ Build|## Compile the app|build: main.c|\tcc -o app main.c||" \
+                    "## The version|V := 1", ""), "001 011 100 100 100 110 000")
+  check("states: an inline doc consumes the section", trace_lines("##@ s|t: ## doc", ""), "001 100")
+  check("states: an undocumented target leaves the section", trace_lines("##@ s|t:", ""), "001 101")
+  check("states: a special target opens a rule (#181)",
+        trace_lines("A := 1|.DEFAULT:|\t## not a doc|next:", ""), "000 100 100 100")
+  check("states: a directive closes the rule (#182)",
+        trace_lines("t:|\techo|include x|\t## a doc|u:", ""), "100 100 000 010 100")
+  check("states: a line with only the prefix is a recipe line (drops the doc)",
+        trace_lines("t:|## doc|\t|u:", ""), "100 110 100 100")
+  check("states: continued lines, recipe lines included",
+        trace_lines("## doc|t1 \\|  t2:|\techo \\|still the recipe|V := 1", ""),
+        "010 + 100 + 100 000")
+  check("states: an assignment to .RECIPEPREFIX changes the prefix",
+        trace_lines(".RECIPEPREFIX := >|t:|> echo|\t## not a recipe line|u:", ""),
+        "000 100 100 110 100")
+  check("states: the RECIPEPREFIX option", trace_lines("t:|> echo|\t## doc|u:", ">"),
+        "100 100 110 100")
+
+  lexical_init(state, "")
+  lexical_obs(".RECIPEPREFIX = $(P)", state, obs)
+  check("prefix: = keeps the text of a reference", state["c"], "$")
+  lexical_obs(".RECIPEPREFIX := $(P)", state, obs)
+  check("prefix: an expanded reference is not known", state["c"], "$")
+  lexical_obs(".RECIPEPREFIX :=", state, obs)
+  check("prefix: an empty value is a tab", state["c"], "\t")
+
+  lexical_init(state, "")
+  lexical_join(state, "##@ s")
+  lexical_obs(state["line"], state, obs)
+  lexical_step(state, obs)
+  lexical_join(state, "## d")
+  lexical_obs(state["line"], state, obs)
+  lexical_step(state, obs)
+  lexical_join(state, "t: \\")
+  lexical_file_start(state)
+  check("file start: the doc is dropped, the section carries over",
+        state["d"] " " state["s"] " " state["joining"], "0 1 0")
+}
+
 BEGIN {
   test_lexical_mask()
   test_lexical_observe()
+  test_lexical_states()
   done()
 }
