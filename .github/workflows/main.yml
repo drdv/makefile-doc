@@ -106,9 +106,9 @@ jobs:
       - name: integration and unit tests
         run: uv run pytest test/test_integration.py test/test_unit.py --platform host-awk
 
-  # the awk that comes with Git for Windows (gawk on the MSYS runtime)
+  # the awk that comes with Git for Windows (gawk on the MSYS runtime) and a native gawk
   windows:
-    name: host-awk (Windows)
+    name: host-awk, windows-host-gawk (Windows)
     runs-on: windows-latest
     timeout-minutes: 15
     defaults:
@@ -121,5 +121,10 @@ jobs:
       - name: install uv
         uses: astral-sh/setup-uv@v10.3.3
 
+      - name: install a native gawk
+        run: choco install gawk --no-progress
+
       - name: integration and unit tests
-        run: uv run pytest test/test_integration.py test/test_unit.py --platform host-awk
+        run: >-
+          uv run pytest test/test_integration.py test/test_unit.py
+          --platform host-awk --platform windows-host-gawk

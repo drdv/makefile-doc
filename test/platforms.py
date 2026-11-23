@@ -61,6 +61,8 @@ class Awk(BaseModel):
 
     engine: str = ENGINE
 
+    crlf: bool = False  # awk writes \r\n: the output is compared with \n
+
     def _get_host_args(
         self, awk_exec_cmd: list[str], env: dict[str, str]
     ) -> tuple[list[str], dict[str, str]]:
@@ -108,7 +110,7 @@ class Awk(BaseModel):
     ) -> subprocess.CompletedProcess[bytes]:
         """Run awk with args, with `stdin` as its stdin (empty by default)."""
         command, env = self.command(*args, env=env)
-        return subprocess.run(
+        proc = subprocess.run(
             command,
             cwd=ROOT,
             env=env,
@@ -117,6 +119,10 @@ class Awk(BaseModel):
             timeout=timeout,
             check=False,
         )
+        if self.crlf:
+            proc.stdout = proc.stdout.replace(b"\r\n", b"\n")
+            proc.stderr = proc.stderr.replace(b"\r\n", b"\n")
+        return proc
 
 
 class Platform(BaseModel):
@@ -141,6 +147,7 @@ class Platform(BaseModel):
     host: StrictBool = False  # run awk on this machine, not in a container
     ci: StrictBool = False  # also run in CI
     explicit: StrictBool = False  # selected only by its name, not by a pattern
+    crlf: StrictBool = False  # awk writes \r\n (e.g., a native Windows awk)
 
     engine: str = ENGINE
 
@@ -204,7 +211,7 @@ class Platform(BaseModel):
             if self.build:
                 self._export_binary()
             self._verify_awk()
-            yield Awk(awk=self.awk_argv, engine=self.engine)
+            yield Awk(awk=self.awk_argv, engine=self.engine, crlf=self.crlf)
             return
 
         mounts = [f"--volume={ROOT}:{ROOT}:ro,z"] + [

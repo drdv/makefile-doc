@@ -271,7 +271,8 @@ awk = "mawk"
 
 A table can inherit the keys of another table with `extends`, and any key it sets itself overrides
 the inherited one. `ci = true` also runs the platform in CI, and `explicit = true` runs it only when
-named explicitly (a pattern such as `'*'` does not select it).
+named explicitly (a pattern such as `'*'` does not select it). `crlf = true` is for an awk that writes
+`\r\n`, as native Windows awks do: the tests compare its output with `\n`.
 
 Building binaries and running containers need a container engine: `podman` by default, or another
 one set with `--engine` (`ENGINE=` with make), e.g., `--engine docker`.
