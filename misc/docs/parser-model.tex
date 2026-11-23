@@ -2,6 +2,8 @@
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{array}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 
@@ -83,10 +85,11 @@ among them are inside the rule; the line that closes it (e.g., an assignment) is
 \section{Kinds}
 
 Two lines are of the same kind if $\mathrm{step}$ treats them the same; what only matters
-for the output (e.g., a target or a variable) is data, not a kind.
+for the output is data, not a kind. For example, \code{V := 1} documents a variable and
+\code{t: V := 1} a target, but $\mathrm{step}$ treats them the same: both are assignments.
 
 \begin{center}
-\begin{tabular}{@{}lp{0.68\textwidth}@{}}
+\begin{tabular}{@{}lP{0.68\textwidth}@{}}
   \toprule
   Kind & Includes \\
   \midrule
@@ -101,8 +104,7 @@ for the output (e.g., a target or a variable) is data, not a kind.
          \code{a.o: \%.o: \%.c} \\
   special rule & \code{.PHONY: t}, \code{.DEFAULT:}, and the other special targets \\
   assignment & \code{V := 1} (any operator, with \code{export}, \code{override},
-               \code{private}), \code{define V} \\
-  target-specific assignment & \code{t: V := 1} \\
+               \code{private}), \code{t: V := 1} (target-specific), \code{define V} \\
   other & directives (\code{include}, \code{vpath}, \code{export V}, \ldots),
           \code{endef}, \code{\$(info \ldots)}, anything else \\
   \bottomrule
@@ -114,10 +116,53 @@ opens a rule, but whether it keeps a pending doc (as a special rule) or drops it
 decided.
 
 \filbreak
+\section{Observation}
+
+$\mathrm{obs}$ answers these questions about line $i$. Questions 1--7 give $k_i$: the
+first one that answers yes decides the kind; if none does, the kind is other. How each
+question is answered (the lexical rules) is specified separately.
+
+\begin{center}
+\begin{tabular}{@{}rP{0.55\textwidth}l@{}}
+  \toprule
+  & Question & If yes \\
+  \midrule
+  1 & Is $r_{i-1} = 1$, and does the line start with $c_{i-1}$? & recipe \\
+  2 & Is the line blank? & neutral \\
+  3 & Is it a comment? Which one: banner, section, doc, plain? & banner, section, doc, neutral \\
+  4 & Is it an assignment? (to which variable, or for which target) & assignment \\
+  5 & Does it start with a keyword? Which one: conditional, \code{define}, directive or
+      \code{endef}? & neutral, assignment, other \\
+  6 & Is it a rule? (which targets) & question 7 \\
+  7 & Are the targets special? & special rule, else rule \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Question 4 comes before question 5, so that \code{export V = 1} and
+\code{include := x} are assignments. Two more questions do not affect the kind:
+
+\begin{center}
+\begin{tabular}{@{}rP{0.55\textwidth}l@{}}
+  \toprule
+  & Question & Gives \\
+  \midrule
+  8 & Does the line have an inline doc? & $a_i$ \\
+  9 & Does it assign \code{.RECIPEPREFIX}, and to what? & $c_i$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The observation also carries data for the output, which does not change the
+state: the anchor (a target or a variable) and its name, the doc text and its tag, the
+section text, and whether a rule is double-colon (for the names \code{t\textasciitilde 1},
+\code{t\textasciitilde 2}).
+
+\filbreak
 \section{Step}
 
-For each kind, the state at line $i$; the anchors (rule, assignment, target-specific
-assignment) attach a doc when $d_{i-1} \lor a_i$, and the pending section with it.
+For each kind, the state at line $i$; the anchors (rule, assignment) attach a doc when
+$d_{i-1} \lor a_i$, and the pending section with it.
 
 \begin{center}
 \begin{tabular}{@{}llll@{}}
@@ -132,7 +177,6 @@ assignment) attach a doc when $d_{i-1} \lor a_i$, and the pending section with i
   rule & $1$ & $0$ & $s_{i-1} \land \lnot(d_{i-1} \lor a_i)$ \\
   special rule & $1$ & $d_{i-1}$ & $s_{i-1}$ \\
   assignment & $0$ & $0$ & $s_{i-1} \land \lnot(d_{i-1} \lor a_i)$ \\
-  target-specific assignment & $0$ & $0$ & $s_{i-1} \land \lnot(d_{i-1} \lor a_i)$ \\
   other & $0$ & $0$ & $s_{i-1}$ \\
   \bottomrule
 \end{tabular}
@@ -182,8 +226,9 @@ Where the model cannot follow GNU Make:
 
 \section{To be specified}
 
-The rule that recognizes each kind (the core of $\mathrm{obs}$), and the lexical rules
-that it relies on: which colon separates the targets, which \code{=} is an assignment
-operator, where a comment starts.
+The lexical rules that answer the questions of $\mathrm{obs}$ (mainly 4, 6 and 8): which
+colon separates the targets, which \code{=} is an assignment operator, where a comment
+starts, and where an inline recipe starts (\code{;}), given escapes, \code{\$\$} and
+references.
 
 \end{document}
