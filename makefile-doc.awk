@@ -522,26 +522,48 @@ function copy_param_defaults(table, name, #locals
   }
 }
 
+# Start the row name of table with the defaults (see copy_param_defaults), and parse its
+# parameters, string_with_parameters (see parse_substitution_params). Report the repeated
+# parameters and the unknown ones (allowed: the known keys, as written in the message, e.g.,
+# "A or D"; see option_error), and return the others: keys[1..n] in the order given and
+# params[key] their values. option is SUB or DSUB.
+function checked_params(option, allowed, table, name, string_with_parameters, params,
+                        keys, #locals
+                        all_params, all_keys, k, n, n_all, key, seen) {
+  copy_param_defaults(table, name)
+  split("", params)
+  split("", keys)
+  split("", seen)
+  n = 0
+  n_all = parse_substitution_params(string_with_parameters, all_params, all_keys)
+  for (k = 1; k <= n_all; k++) {
+    key = all_keys[k]
+    if (key in seen) {
+      option_error(sprintf("%s: parameter %s of %s is given more than once", option, key,
+                           name))
+    } else if (!(("", key) in table)) {
+      option_error(sprintf("%s: unknown parameter %s of %s (use %s)", option, key, name,
+                           allowed))
+    } else {
+      keys[++n] = key
+      params[key] = all_params[key]
+    }
+    seen[key] = 1
+  }
+  return n
+}
+
 # Store the parameters of the SUB substitution of name in its row of table: the defaults (the
 # row ""), replaced by the valid parameters of string_with_parameters; the invalid ones are
 # reported (see option_error). L, M and N are stored as numbers.
 function store_sub_params(table, name, string_with_parameters, #locals
-                          params, keys, k, n, key, value, seen) {
-  copy_param_defaults(table, name)
-  split("", seen)
-  n = parse_substitution_params(string_with_parameters, params, keys)
+                          params, keys, k, n, key, value) {
+  n = checked_params("SUB", "L, M, N, S, P, I or T", table, name, string_with_parameters,
+                     params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
-    if (key in seen) {
-      option_error(sprintf("SUB: parameter %s of %s is given more than once", key, name))
-      continue
-    }
-    seen[key] = 1
-    if (!(("", key) in table)) {
-      option_error(sprintf("SUB: unknown parameter %s of %s (use L, M, N, S, P, I or T)",
-                           key, name))
-    } else if ((key == "L" || key == "M") && !is_bool(value)) {
+    if ((key == "L" || key == "M") && !is_bool(value)) {
       option_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
     } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
       option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
@@ -559,21 +581,12 @@ function store_sub_params(table, name, string_with_parameters, #locals
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
 #   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
 function store_dsub_params(table, name, string_with_parameters, #locals
-                           params, keys, k, n, key, value, seen) {
-  copy_param_defaults(table, name)
-  split("", seen)
-  n = parse_substitution_params(string_with_parameters, params, keys)
+                           params, keys, k, n, key, value) {
+  n = checked_params("DSUB", "A or D", table, name, string_with_parameters, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
-    if (key in seen) {
-      option_error(sprintf("DSUB: parameter %s of %s is given more than once", key, name))
-      continue
-    }
-    seen[key] = 1
-    if (!(("", key) in table)) {
-      option_error(sprintf("DSUB: unknown parameter %s of %s (use A or D)", key, name))
-    } else if (!is_bool(value)) {
+    if (!is_bool(value)) {
       option_error(sprintf("DSUB: parameter %s of %s should be 0 or 1", key, name))
     } else {
       table[name, key] = value + 0

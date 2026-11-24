@@ -76,6 +76,22 @@ function test_parse_substitution_params(    params, keys, n) {
         parse_substitution_params("", params, keys), 0)
 }
 
+function test_checked_params(    table, params, keys, n) {
+  init_globals()
+  set_dsub_param_defaults(table)
+  n = checked_params("DSUB", "A or D", table, "x", "D:0,Z:1,D:1,A:1", params, keys)
+  check("checked_params: the keys that are neither repeated nor unknown, in order",
+        n " " keys[1] keys[2], "2 DA")
+  check("checked_params: their values", params["A"], "1")
+  check("checked_params: the row starts with the defaults", table["x", "A"] table["x", "D"],
+        "01")
+  check("checked_params: unknown and repeated parameters are reported",
+        stderr_text(),
+        "ERROR: DSUB: unknown parameter Z of x (use A or D)\n" \
+        "ERROR: DSUB: parameter D of x is given more than once\n")
+  init_globals()
+}
+
 function test_store_sub_params(    params) {
   init_globals()
   set_sub_param_defaults(params)
@@ -258,6 +274,7 @@ BEGIN {
   test_form_substitutions_empty_items()
   test_form_substitutions_invalid()
   test_parse_substitution_params()
+  test_checked_params()
   test_store_sub_params()
   test_store_sub_params_values()
   test_form_substitutions_colons()
