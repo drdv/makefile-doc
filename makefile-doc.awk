@@ -314,8 +314,7 @@ function init_globals() {
   split("", PARSER_CONTEXT)
 
   # ---------------------------------------------------------------------------------------
-  # The state of the rendering: written by prepare_rendering (what is displayed), and while
-  # printing
+  # The state of the rendering: written by prepare_rendering (what is displayed)
   # ---------------------------------------------------------------------------------------
 
   # the anchors to display, in order (the targets, then the variables): DISPLAY[k, field],
@@ -331,8 +330,6 @@ function init_globals() {
   split("", DISPLAY)
   DISPLAY_COUNT = 0
   DOCUMENTED_COUNT = 0 # the documented anchors, displayed or not
-
-  OUTPUT_BODY = "" # the documentation being printed (see append_output)
 }
 
 # Empty a table of SUB parameters, then set its row of defaults, "" (see init_globals)
@@ -899,7 +896,7 @@ function latex_header(    header) {
   header = header "\n"
   header = header "\\PreviewEnvironment{varwidth}\n"
   header = header "\n"
-  # FG and BG only if they are set (FG is given to each line, see print_documentation)
+  # FG and BG only if they are set (FG is given to each line, see format_documentation)
   if (EXPORT_FG_BG["FG"] != "") {
     header = header latex_definecolor("FG", EXPORT_FG_BG["FG"])
   }
@@ -1511,7 +1508,8 @@ FNR == 1 {
 
 #### Rendering
 # The display of the documentation, in two stages: prepare_rendering decides what is
-# displayed (the DISPLAY records), then print_documentation lays it out in the output format.
+# displayed (the DISPLAY records), then format_documentation lays it out in the output format
+# (print_documentation runs both and prints the result).
 
 # Print the warnings recorded while parsing, except those about variables with VARS=0 (they
 # are not displayed)
@@ -1748,10 +1746,11 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
   return output "\n"
 }
 
-# Lay out DISPLAY[k] after names of width len_anchors: its section, then its name (colored
-# by its tag, padded), its doc and its SUB values
-function print_anchor(k, len_anchors, #locals
-                      section, label, formatted_anchor, padding, color, output) {
+# Return the text of DISPLAY[k], after names of width len_anchors: its section, then its name
+# (colored by its tag, padded), its doc and its SUB values
+function format_anchor(k, len_anchors, #locals
+                       section, label, formatted_anchor, padding, color, output) {
+  output = ""
   section = ((k, "section") in DISPLAY) ? format_section(DISPLAY[k, "section"]) : ""
   if (section) {
     if (COLOR_SECTION_CODE) {
@@ -1762,7 +1761,7 @@ function print_anchor(k, len_anchors, #locals
       }
       section = color_lines(section, COLOR_SECTION_CODE)
     }
-    append_output(section "\n")
+    output = section "\n"
   }
 
   label = DISPLAY[k, "label"]
@@ -1777,43 +1776,52 @@ function print_anchor(k, len_anchors, #locals
     formatted_anchor = formatted_anchor padding
   }
 
-  output = formatted_anchor format_doc(DISPLAY[k, "doc"], len_anchors) \
+  output = output formatted_anchor format_doc(DISPLAY[k, "doc"], len_anchors) \
            display_substitutions(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors)
-  append_output(strip_trailing_blanks(output))
+  return strip_trailing_blanks(output)
 }
 
-# add text to the documentation (OUTPUT_BODY, printed by print_documentation)
-function append_output(text) {
-  OUTPUT_BODY = OUTPUT_BODY text
-}
-
-# Display the documentation (all its output is printed from here): the targets, then the
-# variables, each under a header, all names padded to the longest one.
-function print_documentation(    k, len_anchors, separator) {
-  prepare_rendering()
+# Return the documentation of the DISPLAY records (see prepare_rendering) in the output
+# format: the targets, then the variables, each under a header, all names padded to the
+# longest one, between OUTPUT_HEADER and OUTPUT_FOOTER.
+function format_documentation(    k, len_anchors, separator, body) {
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
     len_anchors = max(len_anchors, length(DISPLAY[k, "label"]))
   }
   separator = get_separator("-", len_anchors)
-  OUTPUT_BODY = ""
-  print_warnings() # (on stderr, before the docs)
 
+  body = ""
   for (k = 1; k <= DISPLAY_COUNT; k++) {
     if (k == 1 || DISPLAY[k, "kind"] != DISPLAY[k - 1, "kind"]) {
       if (k > 1) {
-        append_output("\n") # a blank line after the targets
+        body = body "\n" # a blank line after the targets
       }
-      append_output(separator "\n" \
-                    (DISPLAY[k, "kind"] == "target" ? HEADER_TARGETS : HEADER_VARIABLES) "\n" \
-                    separator "\n")
+      body = body separator "\n" \
+             (DISPLAY[k, "kind"] == "target" ? HEADER_TARGETS : HEADER_VARIABLES) "\n" \
+             separator "\n"
     }
-    print_anchor(k, len_anchors)
+    body = body format_anchor(k, len_anchors)
+  }
+  if (DISPLAY_COUNT > 0) {
+    body = body separator "\n"
   }
 
-  if (DISPLAY_COUNT > 0) {
-    append_output(separator "\n")
-  } else if (FILES_PROCESSED != "") {
+  # In LaTeX, the default text color (FG) is given to each line: with one \color for the
+  # whole documentation, varwidth would not crop the page to the text
+  if (OUTPUT_FORMAT == "LATEX" && EXPORT_FG_BG["FG"] != "") {
+    body = color_lines(body, "\\textcolor{" color_name("FG") "}{")
+  }
+  return OUTPUT_HEADER body OUTPUT_FOOTER
+}
+
+# Display the documentation (all its output is printed from here): the warnings on stderr,
+# then the documentation on stdout.
+function print_documentation(    document) {
+  prepare_rendering()
+  print_warnings() # (on stderr, before the docs)
+  document = format_documentation()
+  if (DISPLAY_COUNT == 0 && FILES_PROCESSED != "") {
     if (DOCUMENTED_COUNT > 0) {
       printf("WARNING: all documented targets/variables are hidden in %s\n",
              FILES_PROCESSED) > STDERR
@@ -1821,13 +1829,7 @@ function print_documentation(    k, len_anchors, separator) {
       printf("WARNING: no documented targets/variables in %s\n", FILES_PROCESSED) > STDERR
     }
   }
-
-  # In LaTeX, the default text color (FG) is given to each line: with one \color for the
-  # whole documentation, varwidth would not crop the page to the text
-  if (OUTPUT_FORMAT == "LATEX" && EXPORT_FG_BG["FG"] != "") {
-    OUTPUT_BODY = color_lines(OUTPUT_BODY, "\\textcolor{" color_name("FG") "}{")
-  }
-  printf("%s%s%s", OUTPUT_HEADER, OUTPUT_BODY, OUTPUT_FOOTER)
+  printf("%s", document)
 }
 
 #### Flow

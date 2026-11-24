@@ -313,7 +313,7 @@ flowchart TD
 
     subgraph end_ ["<b>END</b>: print_documentation()"]
         content["<b>Content</b><br/>prepare_rendering()"] --> display[("DISPLAY")]
-        display --> layout["<b>Layout</b><br/>print_anchor()"]
+        display --> layout["<b>Layout</b><br/>format_documentation(),<br/>format_anchor()"]
     end
 
     interface --> content
