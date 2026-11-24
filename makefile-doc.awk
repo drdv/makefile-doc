@@ -1759,11 +1759,12 @@ function anchor_color(tag) {
 # next lines aligned with it, with the escapes of the output format and the colors of the
 # text in backticks
 function format_doc(doc, len_anchors, #locals
-                    n, lines, indentation) {
+                    n, lines) {
+  # colored before the lines are indented: a span in backticks that continues on the next
+  # line does not color the indentation
+  doc = colorize_doc_backticks(fmt_escape(doc))
   n = split(doc, lines, "\n")
-  indentation = spaces(OFFSET + len_anchors) # aligned with the first line
-  doc = spaces(OFFSET) join(lines, n, "\n" indentation)
-  return colorize_doc_backticks(fmt_escape(doc))
+  return spaces(OFFSET) join(lines, n, "\n" spaces(OFFSET + len_anchors)) # aligned lines
 }
 
 # a section, with the escapes of the output format and the colors of the text in backticks

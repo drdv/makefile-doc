@@ -11,7 +11,7 @@ Available targets:
 
 [34mb3[0m   No backticks
 [34mb4[0m   Text in backticks [1mthat spans[0m
-[1m     two lines[0m (each line is colored on its own)
+    [1m two lines[0m (each line is colored on its own)
 
 ------------------
 Variables:
