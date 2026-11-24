@@ -48,8 +48,9 @@
 #   Rendering              what is displayed (DISPLAY), then its layout in the output format
 #   Flow                   BEGIN and END
 # A function is in the section that owns the variables it writes: Options writes the
-# settings, Parsing the interface (see init_globals), which Rendering reads. Output formats
-# is the exception: it groups a feature across these steps.
+# settings, Parsing the interface (see init_globals), which Rendering reads. Rendering uses
+# the output formats only through their functions fmt_* (and the color codes); Parsing does
+# not use them.
 
 #### Terminology
 #   * Rule: `targets [&]:[:] [prerequisites] [; inline recipe]` or
@@ -241,7 +242,7 @@ function init_globals() {
   # Constants (never changed after init_globals)
   # ---------------------------------------------------------------------------------------
 
-  VERSION = "v2.1" # the only place where the version is defined
+  VERSION = "v2.1" # the source of truth for the version (tools/release.py updates it)
 
   # The special built-in targets of GNU Make (see parser_observe). Suffix rules, which
   # GNU Make also counts as special targets, are not among them: they are displayed.
@@ -441,8 +442,9 @@ function report_assignment_operands(    k) {
 # init_globals, and the store_*_params functions):
 #   SUB   NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (an empty label is no label)
 #   DSUB  NAME:VALUE (no_labels is set)
-# The value is everything after the last separator, so it can hold colons; for SUB,
-# t::/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
+# The separators are the first colon (DSUB) or the first two colons (SUB): the value is
+# everything after them, so it can hold colons. For SUB, t::/a:b gives the value /a:b, while
+# t:/a:b gives the label /a and the value b.
 # Empty items are skipped; invalid ones (no colon, no name, a name given twice) are reported
 # (see option_error) and skipped, as are invalid parameters.
 function form_substitutions(spec, param_table, sub_labels_array,
