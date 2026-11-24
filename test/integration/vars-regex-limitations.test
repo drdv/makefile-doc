@@ -2,8 +2,8 @@
 #: issue: 90
 -v COLOR=0 test/fixtures/Makefile.vars-regex-limitations
 #: stdout
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 $(PREFIX)_FLAGS   Compiler flags
------------------------
+------------------

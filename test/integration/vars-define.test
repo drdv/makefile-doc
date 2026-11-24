@@ -1,13 +1,13 @@
 #: desc: A multi-line variable (define ... endef) is documented by the docs above its first line
 -v COLOR=0 test/fixtures/Makefile.vars-define
 #: stdout
------------------------
-Command-line arguments:
------------------------
-USAGE           Usage text shown by `make usage`
-WITH_OPERATOR   With an operator
-NO_SPACE        With an operator without a space
-QUALIFIED       With qualifiers
-COMMENTED       With a comment on the define line
-define          A variable named define
------------------------
+------------------
+Variables:
+------------------
+USAGE               Usage text shown by `make usage`
+WITH_OPERATOR       With an operator
+NO_SPACE            With an operator without a space
+QUALIFIED (fixed)   With qualifiers
+COMMENTED           With a comment on the define line
+define              A variable named define
+------------------

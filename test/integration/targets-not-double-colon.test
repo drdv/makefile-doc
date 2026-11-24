@@ -2,8 +2,8 @@
 #: issue: 86
 -v COLOR=0 test/fixtures/Makefile.targets-not-double-colon
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 foo   A normal single-colon target
------------------------
+------------------

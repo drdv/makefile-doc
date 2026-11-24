@@ -1,8 +1,8 @@
 #: desc: SUB with L:0 and no values only renames the target
 -v COLOR=0 -v SUB='<L:0>$(TARGET):renamed:' -v VARS=0 test/fixtures/Makefile.sub
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 renamed   Some target:
------------------------
+------------------

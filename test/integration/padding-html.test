@@ -19,7 +19,7 @@ Available targets:
 <span class="makefile-doc-default">longer-target-name......</span>   More characters
 
 ------------------------
-Command-line arguments:
+Variables:
 ------------------------
 <span class="makefile-doc-default">A_______________________</span>   And the winner is ...
 ------------------------

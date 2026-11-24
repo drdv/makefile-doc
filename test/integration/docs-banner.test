@@ -2,9 +2,9 @@
 #: issue: 140
 -v COLOR=0 test/fixtures/Makefile.docs-banner
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t2   Docs below a banner
 t4  # Docs starting with three # (kept)
------------------------
+------------------

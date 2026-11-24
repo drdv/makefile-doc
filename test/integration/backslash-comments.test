@@ -1,9 +1,9 @@
 #: desc: A comment continued with a backslash (a doc too) is joined with the next line
 -v COLOR=0 test/fixtures/Makefile.backslash-comments
 #: stdout
------------------------
+-------------------
 Available targets:
------------------------
+-------------------
 t-tab                 A doc indented with a tab (outside a rule) continued
 t-space-tab           A doc indented with a space and a tab continued
 t-joined              A doc continued on the next line
@@ -16,4 +16,4 @@ t-plain-comment       A doc kept above a continued plain comment
  A section continued
 t-section             A doc below the section
 t-doc-doc             A doc ## continued with a doc line
------------------------
+-------------------

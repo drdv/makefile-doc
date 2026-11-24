@@ -1,9 +1,9 @@
 #: desc: Pattern rules, several targets per line and targets given by variables
 -v COLOR=0 test/fixtures/Makefile.targets-forms
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 %.tab.c %.tab.h      A pattern rule
 %.c                  Another pattern rule
 bin/%.o              A pattern rule with a prerequisite
@@ -13,4 +13,4 @@ $(TARGET-NAME)       Target from a variable in `$()`
 ${TARGET-NAME}       Target from a variable in `${}`
 $T                   Target from a one-letter variable
 $(t1) ${t2} t3       Variables and a name (issue #12)
------------------------
+------------------

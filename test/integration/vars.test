@@ -3,17 +3,17 @@
 #: stderr
 WARNING: [test/fixtures/Makefile.vars:33] redefined docs of variable: VAR6
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 
  ----- This section in anchored on a target -----
 
 some-target     some target (that will consume the above section)
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 VAR1_1          First variable (with value)
 VAR1_0          First variable (without value)
 VAR2_1          Second variable (with value)
@@ -29,4 +29,4 @@ VAR6            Overwrites previous docs for this variable (change to deprecated
 x               A one letter variable
 y               A one letter variable inline docs
 .DEFAULT_GOAL   Default goal
------------------------
+------------------

@@ -1,15 +1,15 @@
 #: desc: Without the parameter A, DSUB leaves the names of anchors as they are
 -v COLOR=0 -v DSUB='$(OUT_DIR):out' test/fixtures/Makefile.dsub-names
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 $(OUT_DIR)/a       Write out/a
 $(OUT_DIR)/b       Write b (after out/a)
 plain              A target without the variable in its name
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 $(OUT_DIR)_FLAGS   Flags used for the files in out
------------------------
+------------------

@@ -230,7 +230,7 @@ function init_globals() {
   define_ansi_to_latex_function()
 
   HEADER_TARGETS = "Available targets:"
-  HEADER_VARIABLES = "Command-line arguments:"
+  HEADER_VARIABLES = "Variables:"
   DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
 
   # ---------------------------------------------------------------------------------------
@@ -270,6 +270,7 @@ function init_globals() {
   #   doc      its lines without their tags, joined by \n
   #   tag      the tag of its first line: ##, ##! or ##%
   #   section  the section just before it, its lines joined by \n (only if there is one)
+  #   override 1 for a variable set with override (only then)
   split("", ANCHORS)
   ANCHOR_COUNT = 0
 
@@ -302,6 +303,7 @@ function init_globals() {
   #   section    the section above it after DSUB (only if there is one, see place_sections)
   #   values     its SUB values, space-separated ("" if none)
   #   params     its SUB parameters ("" if none)
+  #   override   1 for a variable set with override (only then; displayed as "(fixed)")
   split("", DISPLAY)
   DISPLAY_COUNT = 0
   DOCUMENTED_COUNT = 0 # the documented anchors, displayed or not
@@ -977,6 +979,8 @@ function parser_observe(line, obs, #locals
     parser_clear(obs, "assignment")
     obs["anchor"] = "variable"
     obs["name"] = parser_define_name(line)
+    match(line, /^[ \t]*((export|override|private)[ \t]+)*/)
+    obs["override"] = (" " substr(line, 1, RLENGTH)) ~ /[ \t]override[ \t]/
   } else if (obs["kind"] == "rule") {
     if ((obs["name"] ":") ~ SPECIAL_TARGETS_REGEX) {
       parser_clear(obs, "special rule")
@@ -1037,6 +1041,7 @@ function parser_scan(line, obs, #locals
       obs["kind"] = "assignment"
       obs["anchor"] = "variable"
       obs["name"] = name
+      obs["override"] = parser_has_override(substr(masked, 1, start - 1))
       obs["comment"] = parser_rest_from(line, masked, end, "#")
       obs["operator"] = substr(line, start, end - start + 1)
       obs["value"] = substr(line, end + 1, length(line) - end - length(obs["comment"]))
@@ -1085,6 +1090,13 @@ function parser_rest_from(line, masked, p, chars, #locals
     }
   }
   return ""
+}
+
+# true if the left side of an assignment has the qualifier override (before its name, the
+# last word)
+function parser_has_override(text) {
+  sub(/[ \t]*[^ \t]+[ \t]*$/, "", text)
+  return (" " text " ") ~ /[ \t]override[ \t]/
 }
 
 # The variable of the left side of an assignment, with its qualifiers (export, override,
@@ -1320,6 +1332,9 @@ function record_anchor(state, obs, #locals
   if (obs["sn"]) {
     ANCHORS[ANCHOR_COUNT, "section"] = state_lines(state, "section", obs["sn"], 0)
   }
+  if (("override" in obs) && obs["override"]) { # the command line cannot change it
+    ANCHORS[ANCHOR_COUNT, "override"] = 1
+  }
 }
 
 # the lines state[key, 1..n] joined with \n (without their tags if strip_tags)
@@ -1448,6 +1463,9 @@ function add_display_record(k, key, sections, #locals
   DISPLAY[DISPLAY_COUNT, "doc"] = apply_doc_substitutions(ANCHORS[k, "doc"])
   if (key in sections) {
     DISPLAY[DISPLAY_COUNT, "section"] = apply_doc_substitutions(sections[key])
+  }
+  if ((k, "override") in ANCHORS) {
+    DISPLAY[DISPLAY_COUNT, "override"] = 1
   }
   DISPLAY[DISPLAY_COUNT, "values"] = array_get(SUB_VALUES, name)
   DISPLAY[DISPLAY_COUNT, "params"] = array_get(SUB_PARAMS, name)
@@ -1619,6 +1637,12 @@ function display_substitutions(sub_values, len_anchors, #locals
   return output "\n"
 }
 
+# the label of DISPLAY[k]: its displayed name, with "(fixed)" after a variable set with
+# override (the command line cannot change it)
+function display_label(k) {
+  return DISPLAY[k, "name"] (((k, "override") in DISPLAY) ? " (fixed)" : "")
+}
+
 # Lay out DISPLAY[k] after names of width len_anchors: its section, then its name (colored
 # by its tag, padded), its doc and its SUB values
 function print_anchor(k, len_anchors, #locals
@@ -1638,7 +1662,7 @@ function print_anchor(k, len_anchors, #locals
     append_output(section "\n")
   }
 
-  name = DISPLAY[k, "name"]
+  name = display_label(k)
   formatted_anchor = apply_output_specific_formatting(name)
   # the padding is measured on the displayed name (an HTML or LaTeX escape is longer than
   # its character), then escaped too (PADDING can be any character)
@@ -1666,7 +1690,7 @@ function print_documentation(    k, len_anchors, separator) {
   prepare_rendering()
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
-    len_anchors = max(len_anchors, length(DISPLAY[k, "name"]))
+    len_anchors = max(len_anchors, length(display_label(k)))
   }
   separator = get_separator("-", len_anchors)
   OUTPUT_BODY = ""

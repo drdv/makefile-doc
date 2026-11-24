@@ -87,6 +87,9 @@ function trace_print_obs(obs, #locals
   if (obs["inline"]) {
     line = line " inline"
   }
+  if (("override" in obs) && obs["override"]) {
+    line = line " override"
+  }
   print line
 }
 

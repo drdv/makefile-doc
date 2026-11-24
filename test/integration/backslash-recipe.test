@@ -1,9 +1,9 @@
 #: desc: A recipe line ending with an odd number of backslashes continues on the next line
 -v COLOR=0 test/fixtures/Makefile.backslash-recipe
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t0   t-t0
 t1   t-t1
 t2   t-t2
@@ -16,11 +16,11 @@ t6   i-t6
 t7   i-t7
 t8   i-t8
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 T0   v-t0 (this is a variable)
 T2   v-t2 (this is a variable)
 T4   v-t4 (this is a variable)
 T7   T7
------------------------
+------------------

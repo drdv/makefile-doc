@@ -3,11 +3,11 @@
 #: stderr
 WARNING: [test/fixtures/Makefile.docs-precedence:8] redefined docs of target: t3
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t1   Top doc (takes precedence over inline docs)
 t2   Inline doc without top docs
 t3   A new rule with a doc replaces the docs of t3
 t4
------------------------
+------------------

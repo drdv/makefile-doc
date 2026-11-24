@@ -2,14 +2,14 @@
 #: issue: 183
 -v COLOR=0 test/fixtures/Makefile.docs-hash-in-reference
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t     Doc of t
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 BAZ   Doc of BAZ
 QUX   Doc of QUX
------------------------
+------------------

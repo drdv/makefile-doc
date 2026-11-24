@@ -3,11 +3,11 @@
 #: stderr
 WARNING: [test/fixtures/Makefile.section-redefine:11] redefined docs of target: t1
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 
 ------ S2 ------
 
 t1   t2
------------------------
+------------------

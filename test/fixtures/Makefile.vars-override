@@ -1,0 +1,16 @@
+## Install prefix (cannot be changed)
+override PREFIX := /usr
+
+## Build type
+BUILD ?= release
+
+## A variable named override
+override := 1
+
+## A multi-line variable, fixed
+override define BANNER
+hello
+endef
+
+## Exported and fixed
+export override JOBS = 4

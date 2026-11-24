@@ -1,0 +1,12 @@
+#: desc: A variable set with override is marked (fixed): the command line cannot change it
+-v COLOR=0 test/fixtures/Makefile.vars-override
+#: stdout
+------------------
+Variables:
+------------------
+PREFIX (fixed)   Install prefix (cannot be changed)
+BUILD            Build type
+override         A variable named override
+BANNER (fixed)   A multi-line variable, fixed
+JOBS (fixed)     Exported and fixed
+------------------

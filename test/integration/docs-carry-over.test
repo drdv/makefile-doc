@@ -2,15 +2,15 @@
 #: issue: 130
 -v COLOR=0 test/fixtures/Makefile.docs-carry-over
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t3   Docs above a .PHONY line and a conditional
 t4   Docs above ifdef and else
 t5   Docs above ifndef
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 V2   Docs above ifneq, then a variable
------------------------
+------------------

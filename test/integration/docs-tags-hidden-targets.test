@@ -2,9 +2,9 @@
 #: issue: 124
 -v COLOR=0 -v DEPRECATED=0 test/fixtures/Makefile.docs-tags-hidden-targets
 #: stdout
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
  Old stuff
 V   A variable
------------------------
+------------------

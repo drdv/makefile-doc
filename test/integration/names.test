@@ -2,9 +2,9 @@
 #: issue: 90
 -v COLOR=0 test/fixtures/Makefile.names
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 foo+bar   Target containing +
 foo@bar   Target containing @
 foo'bar   Target containing single quote
@@ -12,11 +12,11 @@ foo'bar   Target containing single quote
 foo"bar   Target containing double quote
           ... same here
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 FOO.BAR   Variable containing .
 FOO+BAR   Variable containing +
 FOO/BAR   Variable containing /
 FOO@BAR   Variable containing @
------------------------
+------------------

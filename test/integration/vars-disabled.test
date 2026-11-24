@@ -1,9 +1,9 @@
 #: desc: VARS=0 hides the variables (their sections go to the next displayed anchor)
 -v COLOR=0 -v VARS=0 test/fixtures/Makefile.vars
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 
  ----- Will be associated with the next anchor (which happens to be a variable) -----
 
@@ -11,4 +11,4 @@ Available targets:
  ----- This section in anchored on a target -----
 
 some-target   some target (that will consume the above section)
------------------------
+------------------

@@ -11,12 +11,12 @@
 </style>
 <div class="makefile-doc">
 <pre>
------------------------
+------------------
 Available targets:
------------------------
+------------------
 <span class="makefile-doc-default">&lt;out&gt;/a</span>   Write &lt;out&gt;/a
 <span class="makefile-doc-default">&lt;out&gt;/b</span>   Write b (after &lt;out&gt;/a)
 <span class="makefile-doc-default">plain  </span>   A target without the variable in its name
------------------------
+------------------
 </pre>
 </div>

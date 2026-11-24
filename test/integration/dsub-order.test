@@ -2,8 +2,8 @@
 #: issue: 109
 -v COLOR=0 -v DSUB='$(X):one;$(X)Y:two' test/fixtures/Makefile.dsub-order
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t   v=oneY
------------------------
+------------------

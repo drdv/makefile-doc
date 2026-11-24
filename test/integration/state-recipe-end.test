@@ -2,9 +2,9 @@
 #: issue: 182
 -v COLOR=0 test/fixtures/Makefile.state-recipe-end
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 rule-1    Doc of rule-1
 next-1    include, after a rule
 rule-2    Doc of rule-2
@@ -24,4 +24,4 @@ next-8    a function call ($(eval)), after a rule
 rule-9    Doc of rule-9
 next-9    a target-specific assignment, after a rule
 next-10   a target-specific assignment, after an assignment
------------------------
+------------------

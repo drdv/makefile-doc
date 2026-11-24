@@ -1,9 +1,9 @@
 #: desc: Which lines keep or end the recipe context: a tab-indented doc after them documents the next target only outside a rule, as in GNU Make
 -v COLOR=0 test/fixtures/Makefile.state-recipe-context
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 rule-1    Doc of rule-1
 rule-2    Doc of rule-2
 rule-3    Doc of rule-3
@@ -63,4 +63,4 @@ next-52   unexport, after an assignment
 next-53   undefine, after an assignment
 next-54   a function call ($(info)), after an assignment
 next-55   a function call ($(eval)), after an assignment
------------------------
+------------------

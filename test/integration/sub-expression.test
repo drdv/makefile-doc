@@ -1,9 +1,9 @@
 #: desc: SUB documents a target defined by an expression (with a label and values)
 -v COLOR=0 -v SUB='$(I)target:target:immediate immediate immediate immediate deferred deferred' test/fixtures/Makefile.sub-expression
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 help     Show this help
 target   A target that demonstrates the two-phase approach. It would be nice
          to optionally disable the newline in the $(info) function's output.
@@ -15,9 +15,9 @@ target   A target that demonstrates the two-phase approach. It would be nice
          deferred
          deferred
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 I        This is an instrumented variable (used for introspection)
 X        Set value of X to be used during the first pass.
------------------------
+------------------

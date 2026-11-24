@@ -1,9 +1,9 @@
 #: desc: Lines of the special targets of GNU Make (e.g., .PHONY) are skipped; their docs go to the next target
 -v COLOR=0 test/fixtures/Makefile.targets-ignore
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t0                (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
 .c.o              A suffix rule is a target
 t1                (t1) Ignore .PHONY
@@ -14,4 +14,4 @@ t5                (t5) Ignore .INTERMEDIATE and .PRECIOUS
 t6                (t6)
 .venv/.sentinel   Create a python venv
 .ENV              A target named in upper case like a special target is a target
------------------------
+------------------

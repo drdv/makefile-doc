@@ -1,15 +1,15 @@
 #: desc: SUB parameter M: the values are on one line (M:0) or one per line (M:1)
 -v COLOR=0 -v SUB='<M:0>$(TARGET):counter-:one two three;<M:1>AWK:awk mawk nawk bawk wak goawk' test/fixtures/Makefile.sub
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 counter-   Some target:
            one two three
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 AWK        Some variable:
            awk
            mawk
@@ -17,4 +17,4 @@ AWK        Some variable:
            bawk
            wak
            goawk
------------------------
+------------------

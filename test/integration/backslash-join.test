@@ -2,14 +2,14 @@
 #: issue: 128
 -v COLOR=0 test/fixtures/Makefile.backslash-join
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t1 t2   Two targets on a continued line
 t3 t4   Inline doc at the end of a continued rule (tab before t4)
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 X       Inline doc at the end of a continued assignment
------------------------
+------------------
