@@ -304,7 +304,7 @@ config:
 ---
 flowchart TD
     options["Options (-v)"] --> begin["<b>BEGIN</b><br/>init_globals(), process_options()"]
-    makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_join(), parser_obs(),<br/>parser_step(), record_anchor()"]
+    makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_join(), parser_observe(),<br/>parser_kind(), parser_step(),<br/>record_anchor(), parser_carry()"]
     begin -- "constants" --> parsing
     begin --> settings[("Options and settings")]
 

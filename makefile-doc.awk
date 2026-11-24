@@ -301,15 +301,17 @@ function init_globals() {
 
   # As in misc/docs/parser-model.tex (see parser_init, called in BEGIN once RECIPEPREFIX is
   # known):
-  #   PARSER_STATE    the state x_i = (r_i, d_i, s_i, c_i)
-  #   PARSER_DATA     the data that travels with it: the pending text D_i and S_i
-  #   PARSER_OBS      the observation of the last logical line l_i
+  #   PARSER_STATE    the state x_i = (r_i, d_i, s_i, p_i)
+  #   PARSER_MEMORY   the memory: the pending text D_i and S_i
+  #   PARSER_OBS      the observations of the last logical line L_i
+  #   PARSER_DERIVED  its derived quantities: k_i and e_i
   # and outside the model:
   #   PARSER_JOINER   the physical lines joined into the next logical line (see parser_join)
   #   PARSER_CONTEXT  the file being read, and what names and warnings need (see record_anchor)
   split("", PARSER_STATE)
-  split("", PARSER_DATA)
+  split("", PARSER_MEMORY)
   split("", PARSER_OBS)
+  split("", PARSER_DERIVED)
   parser_join_init(PARSER_JOINER)
   split("", PARSER_CONTEXT)
 
@@ -989,12 +991,13 @@ function fmt_document(body) {
 }
 
 #### Parsing
-# The parser follows misc/docs/parser-model.tex, whose names the comments use (in ASCII: l_i
-# is the logical line i, r_bar the bar over r, ...). A physical line is joined with the next
-# ones while it ends with a backslash (parser_join); each logical line is then processed by
-# parser_process: observed (parser_obs), the state updated (parser_step), a documented anchor
-# recorded in the interface variables (record_anchor, see init_globals), and the pending text
-# updated (parser_carry). The rules at the end of the section run it.
+# The parser follows misc/docs/parser-model.tex, whose names the comments use (in ASCII: L_i
+# is the logical line i, r_bar the bar over r, O_i[x] the observation x of L_i, ...). A
+# physical line is joined with the next ones while it ends with a backslash (parser_join);
+# each logical line is then processed by parser_process: observed (parser_observe), its kind
+# derived (parser_kind), the state updated (parser_step), a documented anchor recorded in the
+# interface variables (record_anchor, see init_globals), and the memory updated
+# (parser_carry). The rules at the end of the section run it.
 
 # Record a warning about the Makefiles (printed before the docs). kind is "target",
 # "variable" or "file".
@@ -1008,7 +1011,7 @@ function add_warning(kind, message) {
 # line is not reported (its rule ends with the file anyway).
 function warn_about_continued_last_line() {
   if (PARSER_JOINER["joining"] &&
-      !(PARSER_STATE["r"] && substr(PARSER_JOINER["pending"], 1, 1) == PARSER_STATE["c"])) {
+      !(PARSER_STATE["r"] && substr(PARSER_JOINER["pending"], 1, 1) == PARSER_STATE["p"])) {
     add_warning("file", sprintf("[%s] the last line ends with a backslash",
                                 PARSER_CONTEXT["file"]))
   }
@@ -1019,34 +1022,37 @@ function get_doc_tag(string) {
   return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
 }
 
-# Observe a logical line, without the state (questions 2-7 of the model, and the comment that
-# question 8 reads; question 1 depends on the state: see parser_obs). Fill obs with:
-#   obs["kind"]     assignment, rule, special rule, neutral, banner, section, doc, other
-#   obs["anchor"]   target or variable (assignment and rule), "" otherwise
-#   obs["name"]     the name of the anchor, as written in the line
-#   obs["comment"]  the comment, from its # to the end of the line ("" if none)
-# The examples are in test/parser.spec (see test/unit/test_parser.awk).
-function parser_observe(line, obs, #locals
-                        first_word, define_name) {
+# The structure of a line (the questions of the kind of a line, and the searches of the
+# lexical layer; see parser_observe). Fill obs with:
+#   obs["line_kind"]    the kind of the line as if no rule were open: assignment, rule,
+#                       special rule, neutral, banner, section, doc, other
+#   obs["anchor_kind"]  target or variable (assignment and rule), "" otherwise
+#   obs["anchor_name"]  the name of the anchor, as written in the line
+#   obs["comment"]      the comment, from its # to the end of the line ("" if none)
+# and, depending on the line, obs["override"], obs["operator"], obs["value"], obs["double"]
+# and obs["grouped"] (see parser_scan). The examples are in test/parser.spec (see
+# test/unit/test_parser.awk).
+function parser_structure(line, obs, #locals
+                          first_word, define_name) {
   split("", obs)
-  obs["kind"] = ""
-  obs["anchor"] = ""
-  obs["name"] = ""
+  obs["line_kind"] = ""
+  obs["anchor_kind"] = ""
+  obs["anchor_name"] = ""
   obs["comment"] = ""
 
-  if (line ~ /^[ \t]*$/) {
-    obs["kind"] = "neutral"
+  if (line ~ /^[ \t]*$/) {                    # question 1: a blank line
+    obs["line_kind"] = "neutral"
     return
   }
-  if (line ~ /^[ \t]*#/) {
-    obs["kind"] = line ~ /^[ \t]*###+[ \t]*$/ ? "banner" : \
-                  line ~ /^[ \t]*##@/ ? "section" : \
-                  line ~ /^[ \t]*##/ ? "doc" : "neutral"
+  if (line ~ /^[ \t]*#/) {                    # question 2: a comment
+    obs["line_kind"] = line ~ /^[ \t]*###+[ \t]*$/ ? "banner" : \
+                       line ~ /^[ \t]*##@/ ? "section" : \
+                       line ~ /^[ \t]*##/ ? "doc" : "neutral"
     return
   }
 
-  parser_scan(line, obs) # kind: assignment, rule or ""
-  if (obs["kind"] == "assignment") {
+  parser_scan(line, obs) # questions 3 and 5: assignment, rule or ""
+  if (obs["line_kind"] == "assignment") {
     return
   }
 
@@ -1054,18 +1060,19 @@ function parser_observe(line, obs, #locals
   sub(/^[ \t]+/, "", first_word)
   sub(/[ \t(].*$/, "", first_word)
   define_name = parser_define_name(line)
+  # question 4: a keyword
   if (first_word ~ /^(ifeq|ifneq|ifdef|ifndef|else|endif)$/) {
     parser_clear(obs, "neutral")
   } else if (define_name != "") { # before the directives: `export define V`
     parser_clear(obs, "assignment")
-    obs["anchor"] = "variable"
-    obs["name"] = define_name
+    obs["anchor_kind"] = "variable"
+    obs["anchor_name"] = define_name
     match(line, /^[ \t]*((export|override|private)[ \t]+)*/)
     obs["override"] = (" " substr(line, 1, RLENGTH)) ~ /[ \t]override[ \t]/
   } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
     parser_clear(obs, "other")
-  } else if (obs["kind"] == "rule") {
-    if ((obs["name"] ":") ~ SPECIAL_TARGETS_REGEX) {
+  } else if (obs["line_kind"] == "rule") { # question 6: special targets
+    if ((obs["anchor_name"] ":") ~ SPECIAL_TARGETS_REGEX) {
       parser_clear(obs, "special rule")
     }
   } else {
@@ -1074,10 +1081,10 @@ function parser_observe(line, obs, #locals
 }
 
 # set the kind of obs, without anchor, name and comment
-function parser_clear(obs, kind) {
-  obs["kind"] = kind
-  obs["anchor"] = ""
-  obs["name"] = ""
+function parser_clear(obs, line_kind) {
+  obs["line_kind"] = line_kind
+  obs["anchor_kind"] = ""
+  obs["anchor_name"] = ""
   obs["comment"] = ""
 }
 
@@ -1095,8 +1102,9 @@ function parser_define_name(line, #locals
   return rest
 }
 
-# Fill obs with the structure of a line (the searches of the lexical layer): obs["kind"] is
-# assignment, rule or "" (neither), with obs["anchor"], obs["name"] and obs["comment"]; for
+# Fill obs with the structure of a line (the searches of the lexical layer):
+# obs["line_kind"] is assignment, rule or "" (neither), with obs["anchor_kind"],
+# obs["anchor_name"] and obs["comment"]; for
 # an assignment to a variable, also obs["operator"] and obs["value"] (without its comment,
 # leading blanks removed). The searches run on the masked line; the texts are cut from the
 # line.
@@ -1121,9 +1129,9 @@ function parser_scan(line, obs, #locals
     name = parser_variable_name(substr(line, 1, start - 1), substr(masked, 1, start - 1))
     if (name != "") {
       end = c == "=" ? p : q + 1 # the = of the operator
-      obs["kind"] = "assignment"
-      obs["anchor"] = "variable"
-      obs["name"] = name
+      obs["line_kind"] = "assignment"
+      obs["anchor_kind"] = "variable"
+      obs["anchor_name"] = name
       obs["override"] = parser_has_override(substr(masked, 1, start - 1))
       obs["comment"] = parser_rest_from(line, masked, end, "#")
       obs["operator"] = substr(line, start, end - start + 1)
@@ -1141,9 +1149,9 @@ function parser_scan(line, obs, #locals
   if (name == "") {
     return
   }
-  obs["kind"] = "rule"
-  obs["anchor"] = "target"
-  obs["name"] = name
+  obs["line_kind"] = "rule"
+  obs["anchor_kind"] = "target"
+  obs["anchor_name"] = name
   obs["double"] = q > p # a double-colon rule
   obs["grouped"] = substr(line, 1, p - 1) ~ /&[ \t]*$/ # grouped targets (&:)
   after = q + 1
@@ -1157,7 +1165,7 @@ function parser_scan(line, obs, #locals
   if (c == "#") {
     obs["comment"] = substr(line, hit)
   } else if (c == "=") { # a target-specific assignment: after its operator, ; hides #
-    obs["kind"] = "assignment"
+    obs["line_kind"] = "assignment"
     obs["comment"] = parser_rest_from(line, masked, hit, "#;")
   }
 }
@@ -1272,70 +1280,67 @@ function parser_reference_end(line, k, #locals
 }
 
 # ---------------------------------------------------------------------------------------
-# The model: its arrays are
-#   state   the state x_i: state["r"] (a rule is open), state["d"] (a doc is pending),
-#           state["s"] (a section is pending), state["c"] (the recipe prefix)
-#   data    the pending text: data["doc", k], k = 1..data["dn"] (D_i, data["doc_tag"] the
-#           tag of its first line) and data["section", k], k = 1..data["sn"] (S_i). dn and sn
-#           are the lengths of D_i and S_i: D_i is not empty if and only if d_i = 1 (and S_i
-#           if and only if s_i = 1)
-#   obs     the observation of l_i (see parser_obs)
+# The model (misc/docs/parser-model.tex): its arrays are
+#   state    the state x_i: state["r"] (a rule is open), state["d"] (a doc is pending),
+#            state["s"] (a section is pending), state["p"] (the recipe prefix)
+#   memory   the pending text: memory["doc", k], k = 1..memory["dn"] (D_i, memory["doc_tag"]
+#            the tag of its first line) and memory["section", k], k = 1..memory["sn"] (S_i).
+#            dn and sn are the lengths of D_i and S_i: D_i is not empty if and only if
+#            d_i = 1 (and S_i if and only if s_i = 1)
+#   obs      the observations of L_i (see parser_observe)
+#   derived  the derived quantities of L_i: derived["k"] (k_i) and derived["e"] (e_i); the
+#            reset at a new file is applied to state and memory (see parser_file_start)
 # ---------------------------------------------------------------------------------------
 
-# x_0 = (0, 0, 0, c_0), D_0 = S_0 = empty (c_0: the RECIPEPREFIX option, a tab by default)
-function parser_init(state, data, prefix) {
+# x_0 = (0, 0, 0, p_0), D_0 = S_0 = empty (p_0: the RECIPEPREFIX option, a tab by default)
+function parser_init(state, memory, prefix) {
   split("", state)
   state["r"] = 0
   state["d"] = 0
   state["s"] = 0
-  state["c"] = prefix == "" ? "\t" : substr(prefix, 1, 1)
-  split("", data)
-  data["dn"] = 0
-  data["sn"] = 0
+  state["p"] = prefix == "" ? "\t" : substr(prefix, 1, 1)
+  split("", memory)
+  memory["dn"] = 0
+  memory["sn"] = 0
 }
 
-# At the first line of a file (b_i = 1), the rule is closed and the doc dropped, with its text
-# (a section and the recipe prefix carry over):
+# At the first line of a file (b_i = 1), no rule is open and no doc is pending: r and d of
+# the state are reset to 0, and the pending doc D in the memory is emptied (the section and
+# the recipe prefix carry over):
 #   r_bar_{i-1} = 0 if b_i = 1, r_{i-1} otherwise
 #   d_bar_{i-1} = 0 if b_i = 1, d_{i-1} otherwise
 #   D_bar_{i-1} = empty if b_i = 1, D_{i-1} otherwise
-function parser_file_start(state, data) {
+function parser_file_start(state, memory) {
   state["r"] = 0
   state["d"] = 0
-  data["dn"] = 0
+  memory["dn"] = 0
 }
 
-# (k_i, a_i, c_i; T_i, A_i) = obs(l_i, r_bar_{i-1}, c_{i-1}): parser_observe, plus question 1
-# (a recipe line: inside a rule, the line starts with the recipe prefix), question 8 and
-# question 9. state is read, not changed. Besides the fields of parser_observe, obs gets:
-#   obs["inline"]      a_i: the comment is an inline doc
-#   obs["prefix"]      c_i: the recipe prefix after the line (see parser_new_prefix)
-#   obs["text"]        T_i: the text of a doc or section line, without its token
-#   obs["inline_doc"]  A_i: the inline doc, without its token ("" if none)
+# O_i = obs(L_i): the observations of a line, a pure function of the line (it reads neither
+# the state nor the memory). Besides the fields of parser_structure, obs gets:
+#   obs["first_char"]  the first character of the line ("" for an empty line)
+#   obs["inline"]      1 if the line has an anchor and its comment starts with ## but not
+#                      ##@: an inline doc
+#   obs["inline_doc"]  that comment without its token ("" if there is none)
+#   obs["text"]        the line without its leading blanks and its token, for a doc or
+#                      section line ("" otherwise)
 #   obs["tag"]         the token of a doc line or of the inline doc: ##, ##! or ##%
-function parser_obs(line, state, obs) {
-  if (state["r"] && substr(line, 1, 1) == state["c"]) {
-    split("", obs)
-    parser_clear(obs, "recipe")
-  } else {
-    parser_observe(line, obs)
-  }
-  obs["inline"] = obs["anchor"] != "" && obs["comment"] ~ /^##/ && obs["comment"] !~ /^##@/
-  obs["prefix"] = state["c"]
-  # (a define has no operator: its value is on the next lines)
-  if (obs["kind"] == "assignment" && obs["anchor"] == "variable" &&
-      obs["name"] == ".RECIPEPREFIX" && ("operator" in obs)) {
-    obs["prefix"] = parser_new_prefix(state["c"], obs["operator"], obs["value"])
-  }
-  obs["text"] = ""
+#   obs["prefix"]      the prefix that the line assigns to .RECIPEPREFIX, when the value is
+#                      written on the line ("" if none: see parser_new_prefix)
+function parser_observe(line, obs) {
+  parser_structure(line, obs)
+  obs["first_char"] = substr(line, 1, 1)
+  obs["inline"] = obs["anchor_kind"] != "" && obs["comment"] ~ /^##/ &&
+                  obs["comment"] !~ /^##@/
   obs["inline_doc"] = ""
+  obs["text"] = ""
   obs["tag"] = ""
-  if (obs["kind"] == "doc") {
+  if (obs["line_kind"] == "doc") {
     obs["text"] = line
     sub(/^[ \t]+/, "", obs["text"])
     obs["tag"] = get_doc_tag(obs["text"])
     sub(TAG_REGEX, "", obs["text"])
-  } else if (obs["kind"] == "section") {
+  } else if (obs["line_kind"] == "section") {
     obs["text"] = line
     sub(/^[ \t]*##@/, "", obs["text"])
   } else if (obs["inline"]) {
@@ -1343,92 +1348,119 @@ function parser_obs(line, state, obs) {
     obs["tag"] = get_doc_tag(obs["inline_doc"])
     sub(TAG_REGEX, "", obs["inline_doc"])
   }
+  obs["prefix"] = ""
+  # (a define has no operator: its value is on the next lines)
+  if (obs["line_kind"] == "assignment" && obs["anchor_kind"] == "variable" &&
+      obs["anchor_name"] == ".RECIPEPREFIX" && ("operator" in obs)) {
+    obs["prefix"] = parser_new_prefix(obs["operator"], obs["value"])
+  }
 }
 
-# The recipe prefix after an assignment to .RECIPEPREFIX, from the prefix before it: the
-# first character of the value (a tab if it is empty). With += the first character does not
-# change; with ?= nothing changes (.RECIPEPREFIX is always defined, with origin default); with
-# != or an expanded reference (:=, ::=), the value is not known: the prefix does not change
-# either.
-function parser_new_prefix(prefix, operator, value) {
+# The prefix that an assignment to .RECIPEPREFIX gives, when its value is written on the
+# line: the first character of the value (a tab if it is empty), with = or with := or ::=
+# and no reference in the value. "" (none) otherwise: with += the first character does not
+# change; with ?= nothing changes (.RECIPEPREFIX is always defined, with origin default);
+# with != or an expanded reference, the value is not known.
+function parser_new_prefix(operator, value) {
   if (operator == "+=" || operator == "?=" || operator == "!=" ||
       (operator ~ /^:+=$/ && index(value, "$") > 0)) {
-    return prefix
+    return ""
   }
   return value == "" ? "\t" : substr(value, 1, 1)
 }
 
-# (r_i, d_i, s_i, e_i) = step(r_bar_{i-1}, d_bar_{i-1}, s_{i-1}, k_i, a_i): state holds
-# x_{i-1} and becomes x_i; return e_i. The step never reads the text of the line.
-function parser_step(state, obs, #locals
-                     k, e) {
-  k = obs["kind"]
-  # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or a_i = 1), 0 otherwise
+# k_i, the kind of the line: a line is a recipe line if a rule is open and the line starts
+# with the prefix; otherwise its kind is observed. state holds x_{i-1} (after the reset)
+#   k_i = recipe           if r_bar_{i-1} = 1 and O_i[first_char] = p_{i-1}
+#         O_i[line_kind]   otherwise
+function parser_kind(state, obs) {
+  return (state["r"] && obs["first_char"] == state["p"]) ? "recipe" : obs["line_kind"]
+}
+
+# The state transition: state holds x_{i-1} (after the reset) and becomes x_i, from the kind
+# of the line k and the observations; return e_i. The step never reads the text of the line.
+function parser_step(state, obs, k, #locals
+                     e) {
+  # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or O_i[inline] = 1), 0 otherwise
   e = (k == "rule" || k == "assignment") && (state["d"] || obs["inline"])
   if (k == "recipe" || k == "rule" || k == "special rule") {
     state["r"] = 1                   # r_i = 1             if k_i in {recipe, rule, special rule}
   } else if (k == "assignment" || k == "other") {
     state["r"] = 0                   #       0             if k_i in {assignment, other}
-  }                                  #       r_bar_{i-1}   otherwise
+  }                                  #       r_bar_{i-1}   if k_i in {neutral, doc, section,
+                                     #                       banner}
   if (k == "doc") {
     state["d"] = 1                   # d_i = 1             if k_i = doc
   } else if (k == "recipe" || k == "banner" || k == "rule" || k == "assignment" ||
              k == "other") {
     state["d"] = 0                   #       0             if k_i in {recipe, banner, rule,
   }                                  #                       assignment, other}
-                                     #       d_bar_{i-1}   otherwise
+                                     #       d_bar_{i-1}   if k_i in {neutral, section,
+                                     #                       special rule}
   if (k == "section") {
     state["s"] = 1                   # s_i = 1             if k_i = section
   } else if (e) {
     state["s"] = 0                   #       0             if e_i = 1
   }                                  #       s_{i-1}       otherwise
-  state["c"] = obs["prefix"]         # c_i (from the observation)
+  if (k != "recipe" && obs["prefix"] != "") {
+    state["p"] = obs["prefix"]       # p_i = O_i[prefix]   if k_i != recipe and O_i[prefix]
+  }                                  #                       is not none
+                                     #       p_{i-1}       otherwise
   return e
 }
 
-# The pending text after the step: data holds D_bar_{i-1} and S_{i-1}, and becomes D_i and
-# S_i, from the kind k_i and the text T_i of the line, and the new state x_i.
-function parser_carry(data, state, obs) {
-  if (obs["kind"] == "doc") {
-    if (data["dn"] == 0) {
-      data["doc_tag"] = obs["tag"]               # the tag of the doc: that of its first line
+# The memory transition: memory holds D_bar_{i-1} and S_{i-1}, and becomes D_i and S_i, from
+# the kind of the line k, the observations, and the new state x_i.
+function parser_carry(memory, state, obs, k) {
+  if (k == "doc") {
+    if (memory["dn"] == 0) {
+      memory["doc_tag"] = obs["tag"]               # the tag of the doc: that of its first line
     }
-    data["doc", ++data["dn"]] = obs["text"]      # D_i = D_bar_{i-1} + T_i   if k_i = doc
+    memory["doc", ++memory["dn"]] = obs["text"]    # D_i = D_bar_{i-1} + O_i[text]  if k_i = doc
   } else if (!state["d"]) {
-    data["dn"] = 0                               #       empty               if d_i = 0
-  }                                              #       D_bar_{i-1}         otherwise
-  if (obs["kind"] == "section") {
-    data["section", ++data["sn"]] = obs["text"]  # S_i = S_{i-1} + T_i       if k_i = section
+    memory["dn"] = 0                               #       empty                    if d_i = 0
+  }                                                #       D_bar_{i-1}              otherwise
+  if (k == "section") {
+    memory["section", ++memory["sn"]] = obs["text"] # S_i = S_{i-1} + O_i[text]  if k_i = section
   } else if (!state["s"]) {
-    data["sn"] = 0                               #       empty               if s_i = 0
-  }                                              #       S_{i-1}             otherwise
+    memory["sn"] = 0                                #       empty                if s_i = 0
+  }                                                 #       S_{i-1}              otherwise
 }
 
-# Process the logical line l_i (line, from the physical line line_number of the file): state
-# and data hold x_{i-1} and D_bar_{i-1}, S_{i-1} (after parser_file_start at the first line of
-# a file), and become x_i and D_i, S_i. The record of a documented anchor reads the state
-# before the step (x_{i-1}, kept in before) and the pending text before parser_carry.
-function parser_process(state, data, context, obs, line, line_number, #locals
-                        before, e) {
-  parser_obs(line, state, obs)     # (k_i, a_i, c_i; T_i, A_i) = obs(l_i, r_bar_{i-1}, c_{i-1})
-  copy_array(state, before)        # x_{i-1}
-  e = parser_step(state, obs)      # (r_i, d_i, s_i, e_i) = step(...)
+# Process the logical line L_i (line, from the physical line line_number of the file), in the
+# order of the note: state and memory hold x_{i-1} and D_bar_{i-1}, S_{i-1} (after
+# parser_file_start at the first line of a file), and become x_i and D_i, S_i; derived gets
+# k_i and e_i. The record of a documented anchor reads the state before the transition
+# (x_{i-1}, kept in before) and the memory before its transition.
+function parser_process(state, memory, context, obs, derived, line, line_number, #locals
+                        before, k, e) {
+  parser_observe(line, obs)          # O_i = obs(L_i)
+  k = parser_kind(state, obs)        # k_i
+  copy_array(state, before)          # x_{i-1}
+  e = parser_step(state, obs, k)     # x_i and e_i
   if (e) {
-    record_anchor(context, obs, before, data, line_number)
+    record_anchor(context, obs, before, memory, line_number)
   }
-  parser_carry(data, state, obs)   # (D_i, S_i)
+  parser_carry(memory, state, obs, k) # (D_i, S_i)
+  derived["k"] = k
+  derived["e"] = e
 }
 
-# Record a documented anchor (e_i = 1) in the interface, in the file order, with (before is
-# x_{i-1}; data holds D_bar_{i-1} and S_{i-1}):
-#   doc     = D_bar_{i-1} if d_bar_{i-1} = 1, A_i otherwise (with the tag of its first line)
-#   section = S_{i-1} if s_{i-1} = 1, none otherwise
+# Record a documented anchor (e_i = 1) as the next anchor record A_n, the entry n of ANCHORS
+# (before is x_{i-1}; memory holds D_bar_{i-1} and S_{i-1}):
+#   A_n[kind]      O_i[anchor_kind]
+#   A_n[name]      O_i[anchor_name] (for a target, see form_target_name)
+#   A_n[doc]       the texts of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[inline_doc] otherwise
+#   A_n[tag]       the tag of the first line of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[tag]
+#                  otherwise
+#   A_n[section]   S_{i-1} if s_{i-1} = 1, absent otherwise
+#   A_n[override]  1 if O_i[override] = 1, absent otherwise
 # Outside the model: the name of a target (see form_target_name), and the warning about a
 # redefined doc (context holds the file and the anchors already documented).
-function record_anchor(context, obs, before, data, line_number, #locals
+function record_anchor(context, obs, before, memory, line_number, #locals
                        kind, name) {
-  kind = obs["anchor"]
-  name = kind == "target" ? form_target_name(context, obs) : obs["name"]
+  kind = obs["anchor_kind"]
+  name = kind == "target" ? form_target_name(context, obs) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
     add_warning(kind, sprintf("[%s:%s] redefined docs of %s: %s", context["file"],
                               line_number, kind, name))
@@ -1438,26 +1470,26 @@ function record_anchor(context, obs, before, data, line_number, #locals
   ANCHORS[ANCHOR_COUNT, "kind"] = kind
   ANCHORS[ANCHOR_COUNT, "name"] = name
   if (before["d"]) {
-    ANCHORS[ANCHOR_COUNT, "doc"] = data_lines(data, "doc", data["dn"])
-    ANCHORS[ANCHOR_COUNT, "tag"] = data["doc_tag"]
+    ANCHORS[ANCHOR_COUNT, "doc"] = memory_lines(memory, "doc", memory["dn"])
+    ANCHORS[ANCHOR_COUNT, "tag"] = memory["doc_tag"]
   } else {
     ANCHORS[ANCHOR_COUNT, "doc"] = obs["inline_doc"]
     ANCHORS[ANCHOR_COUNT, "tag"] = obs["tag"]
   }
   if (before["s"]) {
-    ANCHORS[ANCHOR_COUNT, "section"] = data_lines(data, "section", data["sn"])
+    ANCHORS[ANCHOR_COUNT, "section"] = memory_lines(memory, "section", memory["sn"])
   }
   if (("override" in obs) && obs["override"]) { # the command line cannot change it
     ANCHORS[ANCHOR_COUNT, "override"] = 1
   }
 }
 
-# the lines data[key, 1..n] joined with \n
-function data_lines(data, key, n, #locals
+# the lines memory[key, 1..n] joined with \n
+function memory_lines(memory, key, n, #locals
                     k, lines) {
   lines = ""
   for (k = 1; k <= n; k++) {
-    lines = k == 1 ? data[key, k] : lines "\n" data[key, k]
+    lines = k == 1 ? memory[key, k] : lines "\n" memory[key, k]
   }
   return lines
 }
@@ -1467,7 +1499,7 @@ function data_lines(data, key, n, #locals
 # documented rule of a double-colon target (counted across files, in context)
 function form_target_name(context, obs, #locals
                           name) {
-  name = obs["name"]
+  name = obs["anchor_name"]
   gsub(/[ \t]+/, " ", name)
   if (obs["grouped"]) {
     name = name "&"
@@ -1534,15 +1566,15 @@ function parser_join(joiner, physical, line_number, #locals
 FNR == 1 {
   warn_about_continued_last_line()
   parser_join_init(PARSER_JOINER)
-  parser_file_start(PARSER_STATE, PARSER_DATA) # b_i = 1
+  parser_file_start(PARSER_STATE, PARSER_MEMORY) # b_i = 1
   PARSER_CONTEXT["file"] = FILENAME == "" ? "-" : FILENAME
   FILES_PROCESSED = (FILES_PROCESSED == "" ? "" : FILES_PROCESSED " ") PARSER_CONTEXT["file"]
 }
 
 {
   if (parser_join(PARSER_JOINER, $0, FNR)) {
-    parser_process(PARSER_STATE, PARSER_DATA, PARSER_CONTEXT, PARSER_OBS, PARSER_JOINER["line"],
-                   PARSER_JOINER["start"])
+    parser_process(PARSER_STATE, PARSER_MEMORY, PARSER_CONTEXT, PARSER_OBS, PARSER_DERIVED,
+                   PARSER_JOINER["line"], PARSER_JOINER["start"])
   }
 }
 
@@ -1856,7 +1888,7 @@ BEGIN {
       ABORT = 1
       exit 1
     }
-    parser_init(PARSER_STATE, PARSER_DATA, RECIPEPREFIX)
+    parser_init(PARSER_STATE, PARSER_MEMORY, RECIPEPREFIX)
   }
 }
 
