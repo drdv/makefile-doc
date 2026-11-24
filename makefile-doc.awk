@@ -945,7 +945,7 @@ function get_doc_tag(string) {
 #   obs["comment"]  the comment, from its # to the end of the line ("" if none)
 # The examples are in test/parser.spec (see test/unit/test_parser.awk).
 function parser_observe(line, obs, #locals
-                        first_word) {
+                        first_word, define_name) {
   split("", obs)
   obs["kind"] = ""
   obs["anchor"] = ""
@@ -971,16 +971,17 @@ function parser_observe(line, obs, #locals
   first_word = line
   sub(/^[ \t]+/, "", first_word)
   sub(/[ \t(].*$/, "", first_word)
+  define_name = parser_define_name(line)
   if (first_word ~ /^(ifeq|ifneq|ifdef|ifndef|else|endif)$/) {
     parser_clear(obs, "neutral")
-  } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
-    parser_clear(obs, "other")
-  } else if (parser_define_name(line) != "") {
+  } else if (define_name != "") { # before the directives: `export define V`
     parser_clear(obs, "assignment")
     obs["anchor"] = "variable"
-    obs["name"] = parser_define_name(line)
+    obs["name"] = define_name
     match(line, /^[ \t]*((export|override|private)[ \t]+)*/)
     obs["override"] = (" " substr(line, 1, RLENGTH)) ~ /[ \t]override[ \t]/
+  } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
+    parser_clear(obs, "other")
   } else if (obs["kind"] == "rule") {
     if ((obs["name"] ":") ~ SPECIAL_TARGETS_REGEX) {
       parser_clear(obs, "special rule")

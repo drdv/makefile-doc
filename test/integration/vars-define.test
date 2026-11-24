@@ -10,4 +10,5 @@ NO_SPACE            With an operator without a space
 QUALIFIED (fixed)   With qualifiers
 COMMENTED           With a comment on the define line
 define              A variable named define
+EXPORTED            Exported (export is a qualifier here, not the directive)
 ------------------

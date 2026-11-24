@@ -295,6 +295,19 @@ kind:    assignment
 anchor:  variable
 name:    [V]
 
+id:      export-define
+line:    [export define V]
+kind:    assignment
+anchor:  variable
+name:    [V]
+note:    define after export: a define, not the export directive
+
+id:      export-override-define
+line:    [export override define V :=]
+kind:    assignment
+anchor:  variable
+name:    [V]
+
 id:      keyword-as-variable
 line:    [include := x]
 kind:    assignment
