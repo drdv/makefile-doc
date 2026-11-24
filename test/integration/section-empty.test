@@ -1,0 +1,16 @@
+#: desc: Each empty ##@ line is a blank line above the next displayed anchor, also a lone one
+-v COLOR=0 test/fixtures/Makefile.section-empty
+#: stdout
+------------------
+Available targets:
+------------------
+
+t1   Doc of t1
+
+
+t2   Doc of t2
+
+ Section
+
+t3   Doc of t3
+------------------

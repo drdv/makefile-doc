@@ -156,6 +156,9 @@ function test_format_anchor() {
   DISPLAY[1, "section"] = " S"
   DISPLAY[1, "doc"] = " doc"
   check("format_anchor: the section above", format_anchor(1, 3), " S\nt..   doc\n")
+  DISPLAY[1, "section"] = ""
+  check("format_anchor: an empty section is a blank line", format_anchor(1, 3),
+        "\nt..   doc\n")
   DISPLAY[1, "values"] = "a b"
   delete DISPLAY[1, "section"]
   check("format_anchor: the SUB values after the doc", format_anchor(1, 3),

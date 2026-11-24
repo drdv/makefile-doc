@@ -1,0 +1,17 @@
+# A lone empty ##@ line: one blank line above t1
+##@
+## Doc of t1
+t1:
+
+# Two empty ##@ lines: two blank lines above t2
+##@
+##@
+## Doc of t2
+t2:
+
+# A blank line, a title, a blank line above t3
+##@
+##@ Section
+##@
+## Doc of t3
+t3:
