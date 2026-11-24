@@ -1,3 +1,5 @@
+# Check the helpers of the script (its section Helpers): pure functions.
+
 function test_max_min() {
   check("max: second is larger", max(1, 2), 2)
   check("max: first is larger", max(1, -3), 1)
@@ -119,6 +121,33 @@ function test_strip_start_end_spaces_tabs() {
         strip_start_end_spaces_tabs(" \t   a test string \t   "), "a test string")
 }
 
+function test_is_bool_is_hex_color() {
+  check_true("is_bool: 0", is_bool(0))
+  check_true("is_bool: 1", is_bool("1"))
+  check_true("is_bool: 2", !is_bool(2))
+  check_true("is_bool: empty", !is_bool(""))
+  check_true("is_bool: text", !is_bool("yes"))
+  check_true("is_hex_color: lower case", is_hex_color("7c3f00"))
+  check_true("is_hex_color: upper case", is_hex_color("AABBCC"))
+  check_true("is_hex_color: 3 digits", !is_hex_color("fff"))
+  check_true("is_hex_color: leading #", !is_hex_color("#7c3f00"))
+  check_true("is_hex_color: not hex", !is_hex_color("00000g"))
+  check_true("is_hex_color: empty", !is_hex_color(""))
+}
+
+function test_has_odd_terminal_backslashes() {
+  check("has_odd_terminal_backslashes: none", has_odd_terminal_backslashes("abc"), 0)
+  check("has_odd_terminal_backslashes: empty string", has_odd_terminal_backslashes(""), 0)
+  check("has_odd_terminal_backslashes: only a backslash", has_odd_terminal_backslashes("\\"), 1)
+  check("has_odd_terminal_backslashes: one", has_odd_terminal_backslashes("abc\\"), 1)
+  check("has_odd_terminal_backslashes: two", has_odd_terminal_backslashes("abc\\\\"), 0)
+  check("has_odd_terminal_backslashes: three", has_odd_terminal_backslashes("abc\\\\\\"), 1)
+  check("has_odd_terminal_backslashes: only the trailing run counts",
+        has_odd_terminal_backslashes("a\\ \\"), 1)
+  check("has_odd_terminal_backslashes: not at the end",
+        has_odd_terminal_backslashes("a\\ b"), 0)
+}
+
 BEGIN {
   test_max_min()
   test_repeated_string()
@@ -128,5 +157,7 @@ BEGIN {
   test_string_replace()
   test_strip_start_end_spaces_tabs()
   test_strip_trailing_blanks()
+  test_is_bool_is_hex_color()
+  test_has_odd_terminal_backslashes()
   done()
 }

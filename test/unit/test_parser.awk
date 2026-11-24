@@ -340,6 +340,30 @@ function test_parser_double_colon() {
         observed("t: ; @echo \"a::b\"", "double"), 0)
 }
 
+function test_get_doc_tag() {
+  check("get_doc_tag: ##", get_doc_tag("##   doc"), "##")
+  check("get_doc_tag: ##!", get_doc_tag("##!   doc"), "##!")
+  check("get_doc_tag: ##%", get_doc_tag("##%   doc"), "##%")
+  check("get_doc_tag: ##Z is ##", get_doc_tag("##Z   doc"), "##")
+  check("get_doc_tag: no tag", get_doc_tag("!#   doc"), "")
+}
+
+function test_form_target_name(    context, obs) {
+  init_globals()
+  obs["name"] = "a \t b"
+  obs["grouped"] = 0
+  obs["double"] = 0
+  check("form_target_name: blanks collapsed", form_target_name(context, obs), "a b")
+  obs["grouped"] = 1
+  check("form_target_name: grouped", form_target_name(context, obs), "a b&")
+
+  obs["name"] = "t"
+  obs["grouped"] = 0
+  obs["double"] = 1
+  check("form_target_name: first double-colon rule", form_target_name(context, obs), "t~1")
+  check("form_target_name: second double-colon rule", form_target_name(context, obs), "t~2")
+}
+
 BEGIN {
   test_parser_special_rules()
   test_parser_variable_names()
@@ -351,5 +375,7 @@ BEGIN {
   test_parser_states()
   test_parser_data()
   test_record_anchor()
+  test_get_doc_tag()
+  test_form_target_name()
   done()
 }
