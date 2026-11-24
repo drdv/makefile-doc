@@ -45,10 +45,10 @@ BEGIN {
 # print the waiting line, with the state that the script left after parsing it, its
 # observation (with TRACE_OBS) and the anchors that it documented
 function trace_print(    k, joined, prefix) {
-  joined = PARSER_STATE["joining"] ? 1 : 0
+  joined = PARSER_JOINER["joining"] ? 1 : 0
   prefix = PARSER_STATE["c"] == "\t" ? "\\t" : PARSER_STATE["c"]
   printf("%4d %d %d %2d %2d %-2s |%s\n", TRACE_LINE, joined, PARSER_STATE["r"],
-         PARSER_STATE["dn"], PARSER_STATE["sn"], prefix,
+         PARSER_DATA["dn"], PARSER_DATA["sn"], prefix,
          TRACE_TEXT == "" ? "" : " " TRACE_TEXT)
   if (TRACE_OBS && !joined) {
     trace_print_obs(PARSER_OBS)

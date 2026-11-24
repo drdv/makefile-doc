@@ -6,21 +6,20 @@ function test_get_doc_tag() {
   check("get_doc_tag: no tag", get_doc_tag("!#   doc"), "")
 }
 
-function test_form_target_name(    state, obs) {
+function test_form_target_name(    context, obs) {
   init_globals()
-  parser_init(state, "")
   obs["name"] = "a \t b"
   obs["grouped"] = 0
   obs["double"] = 0
-  check("form_target_name: blanks collapsed", form_target_name(state, obs), "a b")
+  check("form_target_name: blanks collapsed", form_target_name(context, obs), "a b")
   obs["grouped"] = 1
-  check("form_target_name: grouped", form_target_name(state, obs), "a b&")
+  check("form_target_name: grouped", form_target_name(context, obs), "a b&")
 
   obs["name"] = "t"
   obs["grouped"] = 0
   obs["double"] = 1
-  check("form_target_name: first double-colon rule", form_target_name(state, obs), "t~1")
-  check("form_target_name: second double-colon rule", form_target_name(state, obs), "t~2")
+  check("form_target_name: first double-colon rule", form_target_name(context, obs), "t~1")
+  check("form_target_name: second double-colon rule", form_target_name(context, obs), "t~2")
 }
 
 function test_has_odd_terminal_backslashes() {
