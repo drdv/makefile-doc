@@ -170,8 +170,8 @@ The remaining details:
   targets are displayed with a `&` at the end, e.g., `t1 t2 t3&` (also in double-colon
   form).
 - A target-specific assignment (`t: V := 1`) documents its target, `t`, like a rule.
-- Inside a `define` block, documented targets and variables are displayed too (e.g., in canned
-  recipes).
+- Inside a `define` block, documented targets and variables are displayed too (e.g., in a
+  template of rules instantiated with `$(eval $(call ...))`).
 
 See `test/fixtures/Makefile.*` for many more examples.
 
