@@ -82,7 +82,7 @@ A unit test file runs as follows (`test/test_unit.py`):
 
 ```
 awk -v UNIT_TEST=1 -v STDERR=<file> \
-    -f test/unit/harness.awk -f makefile-doc.awk -f test/unit/test_strings.awk /dev/null
+    -f test/unit/harness.awk -f makefile-doc.awk -f test/unit/test_helpers.awk /dev/null
 ```
 
 which results in the following program:
@@ -120,7 +120,7 @@ END {
   }
 }
 
-# ===== 3. test/unit/test_strings.awk =====
+# ===== 3. test/unit/test_helpers.awk =====
 ...                                    # test functions, which call check()
 BEGIN {                                # BEGIN #3
   test_max_min()

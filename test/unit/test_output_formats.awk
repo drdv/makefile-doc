@@ -1,23 +1,5 @@
-function test_substitute_backticks_patterns() {
-  COLOR_BACKTICKS_CODE = ">>>"
-  COLOR_RESET_CODE = "<<<"
-
-  check("substitute_backticks_patterns: two regions",
-        substitute_backticks_patterns("this `is` a test `x` and"),
-        "this >>>is<<< a test >>>x<<< and")
-  check("substitute_backticks_patterns: regions are paired from the left",
-        substitute_backticks_patterns("`this `is` a test `x` and`"),
-        ">>>this <<<is>>> a test <<<x>>> and<<<")
-  check("substitute_backticks_patterns: inside braces",
-        substitute_backticks_patterns("{`1`, `2`, `3`}"),
-        "{>>>1<<<, >>>2<<<, >>>3<<<}")
-  check("substitute_backticks_patterns: region with a space",
-        substitute_backticks_patterns("empty ` ` region"),
-        "empty >>> <<< region")
-  check("substitute_backticks_patterns: empty region is left as is",
-        substitute_backticks_patterns("empty `` region"),
-        "empty `` region")
-}
+# Check the section Output formats of the script: colors, themes, escapes, and the
+# functions fmt_* that rendering calls.
 
 function test_html_escape() {
   check("html_escape: <, > and &", html_escape("AWK=<variant> & co"),
@@ -78,108 +60,6 @@ function test_fmt_document() {
   init_globals()
 }
 
-# add a record to the interface, as the parser does (section "": none)
-function add_anchor(kind, name, tag, doc, section) {
-  ANCHOR_COUNT++
-  ANCHORS[ANCHOR_COUNT, "kind"] = kind
-  ANCHORS[ANCHOR_COUNT, "name"] = name
-  ANCHORS[ANCHOR_COUNT, "tag"] = tag
-  ANCHORS[ANCHOR_COUNT, "doc"] = doc
-  if (section != "") {
-    ANCHORS[ANCHOR_COUNT, "section"] = section
-  }
-}
-
-# the displayed names, in order, separated by spaces
-function displayed_names(    k, names) {
-  for (k = 1; k <= DISPLAY_COUNT; k++) {
-    names = k == 1 ? DISPLAY[k, "name"] : names " " DISPLAY[k, "name"]
-  }
-  return names
-}
-
-# a variable, a target documented twice, and a deprecated target in between
-function add_anchors() {
-  add_anchor("variable", "V", "##", " v", " S1")
-  add_anchor("target", "t", "##", " first", "")
-  add_anchor("target", "old", "##%", " deprecated", " S2")
-  add_anchor("target", "t", "##!", " second", "")
-}
-
-function test_prepare_rendering() {
-  init_globals()
-  VARS = 1
-  DEPRECATED = 1
-  add_anchors()
-  prepare_rendering()
-  check("prepare_rendering: the targets, then the variables, each once, in file order",
-        displayed_names(), "t old V")
-  check("prepare_rendering: the last definition gives the doc and tag",
-        DISPLAY[1, "doc"] " " DISPLAY[1, "tag"], " second ##!")
-  check("prepare_rendering: a section goes to the next displayed anchor",
-        DISPLAY[3, "section"] DISPLAY[2, "section"], " S1 S2")
-  check("prepare_rendering: the documented anchors", DOCUMENTED_COUNT, 3)
-
-  init_globals()
-  VARS = 0
-  DEPRECATED = 0
-  add_anchors()
-  prepare_rendering()
-  check("prepare_rendering: hidden anchors are left out", displayed_names(), "t")
-  check("prepare_rendering: the sections of hidden anchors go to the next displayed one",
-        DISPLAY[1, "section"], " S2")
-  check("prepare_rendering: hidden anchors are still documented", DOCUMENTED_COUNT, 3)
-
-  init_globals()
-  VARS = 1
-  DEPRECATED = 1
-  SUB_LABELS["t"] = "T"
-  SUB_VALUES["t"] = "a b"
-  add_anchor("target", "t", "##", " doc", "")
-  prepare_rendering()
-  check("prepare_rendering: the displayed name and the SUB values",
-        DISPLAY[1, "name"] " " DISPLAY[1, "values"], "T a b")
-  check("prepare_rendering: the label is the displayed name", DISPLAY[1, "label"], "T")
-
-  init_globals()
-  add_anchor("variable", "V", "##", " doc", "")
-  ANCHORS[ANCHOR_COUNT, "override"] = 1
-  prepare_rendering()
-  check("prepare_rendering: the label of a variable set with override",
-        DISPLAY[1, "name"] "|" DISPLAY[1, "label"], "V|V (fixed)")
-  init_globals()
-  VARS = ""
-  DEPRECATED = ""
-}
-
-function test_format_documentation() {
-  init_globals()
-  VARS = 1
-  DEPRECATED = 1
-  OFFSET = 2
-  PADDING = "."
-  add_anchor("variable", "VAR", "##", " v", " S")
-  add_anchor("target", "t", "##", " doc", "")
-  prepare_rendering()
-  check("format_documentation: the targets, then the variables (no colors)",
-        format_documentation(),
-        "------------------\n" \
-        "Available targets:\n" \
-        "------------------\n" \
-        "t..   doc\n" \
-        "\n" \
-        "------------------\n" \
-        "Variables:\n" \
-        "------------------\n" \
-        " S\n" \
-        "VAR   v\n" \
-        "------------------\n")
-
-  init_globals()
-  check("format_documentation: nothing displayed", format_documentation(), "")
-  VARS = DEPRECATED = OFFSET = PADDING = ""
-}
-
 # initialize the colors as init_globals() and process_options() do (with the default color
 # options)
 function setup_colors(output_format, export_theme) {
@@ -223,20 +103,6 @@ function test_validate_ansi_param(    message) {
         validate_ansi_param("COLOR_X", "FG"), 0)
   check("validate_ansi_param: the other errors", stderr_text(), message message message message)
   check("validate_ansi_param: every error is counted", OPTION_ERRORS, 5)
-}
-
-function test_is_bool_is_hex_color() {
-  check_true("is_bool: 0", is_bool(0))
-  check_true("is_bool: 1", is_bool("1"))
-  check_true("is_bool: 2", !is_bool(2))
-  check_true("is_bool: empty", !is_bool(""))
-  check_true("is_bool: text", !is_bool("yes"))
-  check_true("is_hex_color: lower case", is_hex_color("7c3f00"))
-  check_true("is_hex_color: upper case", is_hex_color("AABBCC"))
-  check_true("is_hex_color: 3 digits", !is_hex_color("fff"))
-  check_true("is_hex_color: leading #", !is_hex_color("#7c3f00"))
-  check_true("is_hex_color: not hex", !is_hex_color("00000g"))
-  check_true("is_hex_color: empty", !is_hex_color(""))
 }
 
 function test_fmt_color_code() {
@@ -317,17 +183,13 @@ function test_ansi_color_param_to_html_style() {
 }
 
 BEGIN {
-  test_substitute_backticks_patterns()
   test_html_escape()
   test_latex_escape()
   test_fmt_escape()
   test_fmt_color()
   test_fmt_document()
-  test_prepare_rendering()
-  test_format_documentation()
   test_default_color_option()
   test_validate_ansi_param()
-  test_is_bool_is_hex_color()
   test_fmt_color_code()
   test_export_theme()
   test_ansi_color_param_to_html_style()
