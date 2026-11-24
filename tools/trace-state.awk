@@ -1,19 +1,20 @@
-# Print the state of the parser of makefile-doc.awk after each input line, instead of the
-# help. Load it before the script, so that its rule sees each line before the script parses
-# it, i.e., with the state that the previous line left (its END runs first, and its exit
-# skips the END of the script):
+# Print the state and the memory of the parser of makefile-doc.awk after each input line,
+# instead of the help. Load it before the script, so that its rule sees each line before the
+# script parses it, i.e., with the state and the memory that the previous line left (its END
+# runs first, and its exit skips the END of the script):
 #   awk -f tools/trace-state.awk -f makefile-doc.awk Makefile
 # This assumes that the script reads its input only through the main loop of awk (no
 # getline): a line read otherwise would not be seen here.
 #
-# The fields are the state of the model of the parser (misc/docs/parser-model.tex), in terms
-# of Make, not of the variables of the script, so that another parser can produce the same
-# trace. Each file starts with a header line
+# The fields follow the model of the parser (misc/docs/parser-model.tex): R and P are from its
+# state, D and S are the sizes of its memory, and J is from the joining of lines (outside the
+# model). They are in terms of Make, not of the variables of the script, so that another
+# parser can produce the same trace. Each file starts with a header line
 #   == FILE
 # (stdin is -; an empty file has no line, so it has no header), then one line per physical
 # input line:
 #   LINE J R D S P | TEXT
-# with the state from the line on (the effect of the line included):
+# with the values from the line on (the effect of the line included):
 #   J     1 if the line is joined with the next one (a backslash continuation, recipe lines
 #         included: the joined line takes effect at its last physical line), 0 otherwise
 #   R     1 if a rule is open (a line that starts with the recipe prefix is a recipe line),
@@ -27,9 +28,10 @@
 #   LINE ============ => KIND:[NAME]
 # where KIND is target or variable, with " +section" when the pending section is placed
 # before the anchor. `grep -e '^==' -e '=>'` lists the documented anchors of each file.
-# With -v TRACE_OBS=1, the observations of each logical line (but neutral ones) follow its
-# last physical line, with the kind of the line (k_i: recipe for a recipe line, whose other
-# observations are not shown):
+# With -v TRACE_OBS=1, the observations of the structure of each logical line (but neutral
+# ones) follow its last physical line, with the kind of the line (k_i: recipe for a recipe
+# line, whose observations are not shown); the observations added by parser_observe (e.g.,
+# the tag and the text of a doc line) are not shown:
 #   LINE ============ -> <KIND> key:[value]... flags
 # e.g., `-> <assignment> variable:[SRCS] operator:[:=] value:[s.c]`.
 
@@ -43,8 +45,8 @@ BEGIN {
   }
 }
 
-# print the waiting line, with the state that the script left after parsing it, its
-# observation (with TRACE_OBS) and the anchors that it documented
+# print the waiting line, with the state and the memory that the script left after parsing
+# it, its observations (with TRACE_OBS) and the anchors that it documented
 function trace_print(    k, joined, prefix) {
   joined = PARSER_JOINER["joining"] ? 1 : 0
   prefix = PARSER_STATE["p"] == "\t" ? "\\t" : PARSER_STATE["p"]
