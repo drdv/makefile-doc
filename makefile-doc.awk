@@ -1327,63 +1327,48 @@ function parser_new_prefix(prefix, operator, value) {
 
 # (r_i, d_i, s_i, e_i) = step(r_bar_{i-1}, d_bar_{i-1}, s_{i-1}, k_i, a_i): state holds
 # x_{i-1} and becomes x_i; return e_i. The step never reads the text of the line.
-#   e_i = [k_i in {rule, assignment}] and (d_bar_{i-1} or a_i)
-#   r_i = 1             if k_i in {recipe, rule, special rule}
-#         0             if k_i in {assignment, other}
-#         r_bar_{i-1}   otherwise
-#   d_i = 1             if k_i = doc
-#         0             if k_i in {recipe, banner, rule, assignment, other}
-#         d_bar_{i-1}   otherwise
-#   s_i = 1             if k_i = section
-#         0             if e_i = 1
-#         s_{i-1}       otherwise
-# and c_i comes from the observation.
 function parser_step(state, obs, #locals
                      k, e) {
   k = obs["kind"]
+  # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or a_i = 1), 0 otherwise
   e = (k == "rule" || k == "assignment") && (state["d"] || obs["inline"])
   if (k == "recipe" || k == "rule" || k == "special rule") {
-    state["r"] = 1
+    state["r"] = 1                   # r_i = 1             if k_i in {recipe, rule, special rule}
   } else if (k == "assignment" || k == "other") {
-    state["r"] = 0
-  }
+    state["r"] = 0                   #       0             if k_i in {assignment, other}
+  }                                  #       r_bar_{i-1}   otherwise
   if (k == "doc") {
-    state["d"] = 1
+    state["d"] = 1                   # d_i = 1             if k_i = doc
   } else if (k == "recipe" || k == "banner" || k == "rule" || k == "assignment" ||
              k == "other") {
-    state["d"] = 0
-  }
+    state["d"] = 0                   #       0             if k_i in {recipe, banner, rule,
+  }                                  #                       assignment, other}
+                                     #       d_bar_{i-1}   otherwise
   if (k == "section") {
-    state["s"] = 1
+    state["s"] = 1                   # s_i = 1             if k_i = section
   } else if (e) {
-    state["s"] = 0
-  }
-  state["c"] = obs["prefix"]
+    state["s"] = 0                   #       0             if e_i = 1
+  }                                  #       s_{i-1}       otherwise
+  state["c"] = obs["prefix"]         # c_i (from the observation)
   return e
 }
 
 # The pending text after the step: data holds D_bar_{i-1} and S_{i-1}, and becomes D_i and
-# S_i, from the kind k_i and the text T_i of the line, and the new state x_i:
-#   D_i = D_bar_{i-1} + T_i   if k_i = doc
-#         empty               if d_i = 0
-#         D_bar_{i-1}         otherwise
-#   S_i = S_{i-1} + T_i       if k_i = section
-#         empty               if s_i = 0
-#         S_{i-1}             otherwise
+# S_i, from the kind k_i and the text T_i of the line, and the new state x_i.
 function parser_carry(data, state, obs) {
   if (obs["kind"] == "doc") {
     if (data["dn"] == 0) {
-      data["doc_tag"] = obs["tag"] # the tag of the doc is that of its first line
+      data["doc_tag"] = obs["tag"]               # the tag of the doc: that of its first line
     }
-    data["doc", ++data["dn"]] = obs["text"]
+    data["doc", ++data["dn"]] = obs["text"]      # D_i = D_bar_{i-1} + T_i   if k_i = doc
   } else if (!state["d"]) {
-    data["dn"] = 0
-  }
+    data["dn"] = 0                               #       empty               if d_i = 0
+  }                                              #       D_bar_{i-1}         otherwise
   if (obs["kind"] == "section") {
-    data["section", ++data["sn"]] = obs["text"]
+    data["section", ++data["sn"]] = obs["text"]  # S_i = S_{i-1} + T_i       if k_i = section
   } else if (!state["s"]) {
-    data["sn"] = 0
-  }
+    data["sn"] = 0                               #       empty               if s_i = 0
+  }                                              #       S_{i-1}             otherwise
 }
 
 # Process the logical line l_i (line, from the physical line line_number of the file): state
