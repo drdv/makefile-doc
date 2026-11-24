@@ -65,11 +65,12 @@ the model (section~\ref{sec:implementation}).
 \label{sec:model}
 
 The state starts empty, and a new file closes the rule and drops the doc, with its text:
-\[
+\begin{equation}
   x_0 = (0,\ 0,\ 0,\ c_0), \quad D_0 = S_0 = \varnothing
   \qquad \text{($c_0$: the \code{RECIPEPREFIX} option, a tab by default)}
-\]
-\[
+  \label{eq:init}
+\end{equation}
+\begin{equation}
   \bar r_{i-1} =
   \begin{cases}
     0 & \text{if } b_i = 1\\
@@ -87,22 +88,25 @@ The state starts empty, and a new file closes the rule and drops the doc, with i
     \varnothing & \text{if } b_i = 1\\
     D_{i-1} & \text{otherwise}
   \end{cases}
-\]
+  \label{eq:reset}
+\end{equation}
 Each line is observed (section~\ref{sec:observation}), with the state for one question:
-\[
+\begin{equation}
   (k_i,\ a_i,\ c_i;\ T_i,\ A_i) = \obs(\ell_i,\ \bar r_{i-1},\ c_{i-1}).
-\]
+  \label{eq:obs}
+\end{equation}
 \paragraph{State.} The step (section~\ref{sec:step}) depends on the kind and the inline doc
 only:
-\[
+\begin{equation}
   r_i =
   \begin{cases}
     1 & \text{if } k_i \in \{\kind{recipe}, \kind{rule}, \kind{special rule}\}\\
     0 & \text{if } k_i \in \{\kind{assignment}, \kind{other}\}\\
     \bar r_{i-1} & \text{otherwise}
   \end{cases}
-\]
-\[
+  \label{eq:r}
+\end{equation}
+\begin{equation}
   d_i =
   \begin{cases}
     1 & \text{if } k_i = \kind{doc}\\
@@ -110,36 +114,50 @@ only:
                               \kind{other}\}\\
     \bar d_{i-1} & \text{otherwise}
   \end{cases}
-\]
-\[
-  e_i = [k_i \in \{\kind{rule}, \kind{assignment}\}] \land (\bar d_{i-1} \lor a_i)
-  \qquad
+  \label{eq:d}
+\end{equation}
+\begin{equation}
+  e_i =
+  \begin{cases}
+    1 & \text{if } k_i \in \{\kind{rule}, \kind{assignment}\} \text{ and }
+        (\bar d_{i-1} = 1 \text{ or } a_i = 1)\\
+    0 & \text{otherwise}
+  \end{cases}
+  \label{eq:e}
+\end{equation}
+\begin{equation}
   s_i =
   \begin{cases}
     1 & \text{if } k_i = \kind{section}\\
     0 & \text{if } e_i = 1\\
     s_{i-1} & \text{otherwise}
   \end{cases}
-\]
+  \label{eq:s}
+\end{equation}
+where $c_i$ is given by \eqref{eq:obs}.
+
 \paragraph{Data.} The pending text follows the new state (section~\ref{sec:data}):
-\[
+\begin{equation}
   D_i =
   \begin{cases}
     \bar D_{i-1} + T_i & \text{if } k_i = \kind{doc}\\
     \varnothing & \text{if } d_i = 0\\
     \bar D_{i-1} & \text{otherwise}
   \end{cases}
-  \qquad
+  \label{eq:D}
+\end{equation}
+\begin{equation}
   S_i =
   \begin{cases}
     S_{i-1} + T_i & \text{if } k_i = \kind{section}\\
     \varnothing & \text{if } s_i = 0\\
     S_{i-1} & \text{otherwise}
   \end{cases}
-\]
+  \label{eq:S}
+\end{equation}
 \paragraph{Record.} When $e_i = 1$, the anchor of $\ell_i$ is recorded with the state and
 the text before the line:
-\[
+\begin{equation}
   \text{doc} =
   \begin{cases}
     \bar D_{i-1} & \text{if } \bar d_{i-1} = 1\\
@@ -151,18 +169,22 @@ the text before the line:
     S_{i-1} & \text{if } s_{i-1} = 1\\
     \text{none} & \text{otherwise}
   \end{cases}
-\]
+  \label{eq:record}
+\end{equation}
 and the tag of the first line of its doc (\code{\#\#}, \code{\#\#!} or \code{\#\#\%}).
 
 \begin{itemize}
-  \item $\obs$ reads the line. It needs the state for one question only: a line is a
-        recipe line if a rule is open and the line starts with the prefix. It returns the
-        new prefix $c_i$ if $\ell_i$ assigns \code{.RECIPEPREFIX}, $c_{i-1}$ otherwise.
-  \item The step never reads the line: it depends on the kind and the inline doc only.
-  \item The data follows the new state ($d_i$, $s_i$); the record reads the state before
-        the line ($\bar d_{i-1}$, $s_{i-1}$).
-  \item $s$, $S$ and $c$ carry over to the next file: a section goes to the next documented
-        anchor, wherever it is, and GNU Make does not reset \code{.RECIPEPREFIX}.
+  \item $\obs$ \eqref{eq:obs} reads the line. It needs the state for one question only: a
+        line is a recipe line if a rule is open and the line starts with the prefix. It
+        returns the new prefix $c_i$ if $\ell_i$ assigns \code{.RECIPEPREFIX}, $c_{i-1}$
+        otherwise.
+  \item The step \eqref{eq:r}--\eqref{eq:s} never reads the line: it depends on the kind and
+        the inline doc only.
+  \item The data \eqref{eq:D}--\eqref{eq:S} follows the new state ($d_i$, $s_i$); the record
+        \eqref{eq:record} reads the state before the line ($\bar d_{i-1}$, $s_{i-1}$).
+  \item $s$, $S$ and $c$ carry over to the next file \eqref{eq:reset}: a section goes to the
+        next documented anchor, wherever it is, and GNU Make does not reset
+        \code{.RECIPEPREFIX}.
 \end{itemize}
 
 \section{Kinds}
@@ -306,8 +328,8 @@ positions.
 \label{sec:step}
 
 An anchor is a line of kind \kind{rule} or \kind{assignment}. It gets documented ($e_i = 1$)
-if a doc is pending or it has an inline doc. The equations of the state
-(section~\ref{sec:model}), by kind:
+if a doc is pending or it has an inline doc \eqref{eq:e}. The equations \eqref{eq:r},
+\eqref{eq:d} and \eqref{eq:s}, by kind:
 
 \begin{center}
 \begin{tabular}{@{}llll@{}}
@@ -334,17 +356,14 @@ takes the section.
 \label{sec:data}
 
 The text travels with the state but never controls it: $d_i$ and $s_i$ only say whether
-something is pending, and $D_i$ and $S_i$ hold it.
-\begin{itemize}
-  \item A \kind{doc} line adds $T_i$ to the pending doc, a \kind{section} line to the
-        pending section.
-  \item The doc text is dropped with the doc ($d_i = 0$), including at a new file. The
-        section text is dropped when a documented anchor takes it ($s_i = 0$).
-  \item So $D_i \ne \varnothing$ if and only if $d_i = 1$, and $S_i \ne \varnothing$ if and
-        only if $s_i = 1$.
-  \item When $e_i = 1$, the record takes $\bar D_{i-1}$ and $S_{i-1}$, the text before the
-        line: $D_i$ and $S_i$ are already empty.
-\end{itemize}
+something is pending, and $D_i$ and $S_i$ hold it. By \eqref{eq:reset}, \eqref{eq:d},
+\eqref{eq:s}, \eqref{eq:D} and \eqref{eq:S},
+\[
+  D_i \ne \varnothing \iff d_i = 1, \qquad S_i \ne \varnothing \iff s_i = 1.
+\]
+The record \eqref{eq:record} reads $\bar D_{i-1}$ and $S_{i-1}$ because a documented anchor
+empties $D_i$ and $S_i$.
+
 Outside the model: the displayed name of a target (blanks collapsed, \code{\&} after grouped
 targets, \code{\textasciitilde}$N$ after the $N$-th documented rule of a double-colon
 target), and the warnings (a redefined doc, a continued last line).
@@ -376,15 +395,16 @@ In makefile-doc.awk, the model is in three arrays, and two more hold what is out
   Function & Role \\
   \midrule
   \code{parser\_join} & physical lines to logical lines \\
-  \code{parser\_file\_start} & the reset at $b_i = 1$: $\bar r_{i-1}$, $\bar d_{i-1}$,
-                               $\bar D_{i-1}$ \\
-  \code{parser\_obs} & $\obs$: questions 1, 8 and 9 around \code{parser\_observe} \\
+  \code{parser\_init} & the initial state and data \eqref{eq:init} \\
+  \code{parser\_file\_start} & the reset at $b_i = 1$ \eqref{eq:reset} \\
+  \code{parser\_obs} & $\obs$ \eqref{eq:obs}: questions 1, 8 and 9 around
+                       \code{parser\_observe} \\
   \code{parser\_observe} & questions 2--7 (and the comment that question 8 reads), without
                            the state \\
   \code{parser\_mask}, \code{parser\_scan} & the lexical layer \\
-  \code{parser\_step} & the state; returns $e_i$ \\
-  \code{record\_anchor} & the record, with the state before the line \\
-  \code{parser\_carry} & the data \\
+  \code{parser\_step} & the state \eqref{eq:r}--\eqref{eq:s}; returns $e_i$ \\
+  \code{record\_anchor} & the record \eqref{eq:record}, with the state before the line \\
+  \code{parser\_carry} & the data \eqref{eq:D}--\eqref{eq:S} \\
   \code{parser\_process} & one logical line: \code{parser\_obs}, \code{parser\_step},
                            \code{record\_anchor} (if $e_i = 1$), \code{parser\_carry}; it
                            keeps $x_{i-1}$ for \code{record\_anchor} \\
