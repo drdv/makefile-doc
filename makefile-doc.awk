@@ -358,8 +358,8 @@ function set_dsub_param_defaults(table) {
 # The options given with -v: their defaults, their checks and the settings derived from them
 # (those of the output formats are in Output formats).
 
-# Check the options and derive the settings. All the invalid options are reported, then the
-# script exits with status 1. (Not called by the unit tests: an exit in BEGIN would end them.)
+# Check the options and derive the settings. All the invalid options are reported (see
+# option_error); return their number (BEGIN exits when it is not 0).
 function process_options(    sub_names, dummy_array_labels) {
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
@@ -395,15 +395,11 @@ function process_options(    sub_names, dummy_array_labels) {
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
   report_assignment_operands()
-
-  if (OPTION_ERRORS > 0) {
-    ABORT = 1
-    exit 1
-  }
+  return OPTION_ERRORS
 }
 
 # Report an invalid value of an option. The script goes on, so that all the invalid options
-# are reported, and stops at the end of process_options().
+# are reported, and stops after process_options() (see BEGIN).
 function option_error(message) {
   printf("ERROR: %s\n", message) > STDERR
   OPTION_ERRORS++
@@ -1842,7 +1838,10 @@ function print_documentation(    k, len_anchors, separator) {
 BEGIN {
   init_globals()
   if (!UNIT_TEST) {
-    process_options()
+    if (process_options() > 0) {
+      ABORT = 1
+      exit 1
+    }
     parser_init(PARSER_STATE, PARSER_DATA, RECIPEPREFIX)
   }
 }
