@@ -1777,8 +1777,8 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
 function format_anchor(k, len_anchors, #locals
                        section, label, formatted_anchor, padding, color, output) {
   output = ""
-  section = ((k, "section") in DISPLAY) ? format_section(DISPLAY[k, "section"]) : ""
-  if (section) {
+  if ((k, "section") in DISPLAY) { # (an empty section is a blank line)
+    section = format_section(DISPLAY[k, "section"])
     output = fmt_color(section, COLOR_SECTION_CODE) "\n"
   }
 
