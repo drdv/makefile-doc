@@ -1,0 +1,9 @@
+#: desc: .RECIPEPREFIX ?= does not change the recipe prefix (it is always defined)
+-v COLOR=0 test/fixtures/Makefile.recipeprefix-conditional
+#: stdout
+------------------
+Available targets:
+------------------
+a   Doc of a
+b   Doc of b
+------------------

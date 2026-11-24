@@ -1,0 +1,12 @@
+# .RECIPEPREFIX is always defined (empty, with origin default): ?= does not change it, so
+# the recipe lines below start with a tab
+.RECIPEPREFIX ?= >
+
+## Doc of a
+a:
+	@echo a
+	## a comment for the shell, not a doc
+
+## Doc of b
+b:
+	@echo b
