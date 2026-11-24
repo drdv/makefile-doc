@@ -1,0 +1,14 @@
+#: desc: Logical lines joined from thousands of continued lines are read in linear time
+#: timeout: 5
+-v COLOR=0 test/fixtures/Makefile.long-lines
+#: stdout
+------------------
+Available targets:
+------------------
+objects   Objects: a long list of prerequisites, continued over many lines
+
+------------------
+Variables:
+------------------
+SRCS      Sources: a long list, continued over many lines
+------------------

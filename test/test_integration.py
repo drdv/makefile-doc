@@ -10,7 +10,7 @@ from platforms import ROOT, SCRIPT, VERSION, Awk
 from pydantic import BaseModel, ConfigDict, model_validator
 
 # the keys of the `#:` lines (see test/README.md)
-META_KEYS = {"desc", "issue", "bug", "env", "stdin", "trace"}
+META_KEYS = {"desc", "issue", "bug", "env", "stdin", "trace", "timeout"}
 
 # loaded before the script by the cases with `#: trace`
 TRACER = "tools/trace-state.awk"
@@ -33,6 +33,8 @@ class Case(BaseModel):
             raise ValueError(f"{self.path.name}: unknown metadata: {', '.join(unknown)}")
         if not any(self.meta.get("desc", [])):
             raise ValueError(f"{self.path.name}: needs a non-empty `#: desc:` line")
+        if "timeout" in self.meta and not self.meta["timeout"][0].isdigit():
+            raise ValueError(f"{self.path.name}: `#: timeout:` should be a number of seconds")
         return self
 
     @classmethod
@@ -71,6 +73,11 @@ class Case(BaseModel):
     def trace(self) -> bool:
         """Whether the output is the trace of the parser (`#: trace`) instead of the help."""
         return "trace" in self.meta
+
+    @property
+    def timeout(self) -> int:
+        """The time limit of the run, in seconds (`#: timeout: N`; 30 by default)."""
+        return int(self.meta["timeout"][0]) if "timeout" in self.meta else 30
 
     @property
     def stdin(self) -> bytes:
@@ -113,7 +120,11 @@ def params() -> list[pytest.ParameterSet]:
 @pytest.mark.parametrize("case", params())
 def test_case(awk: Awk, case: Case, request: pytest.FixtureRequest) -> None:
     program = ("-f", TRACER, "-f", SCRIPT) if case.trace else ("-f", SCRIPT)
-    actual = render(awk(*program, *case.args, env=case.env, stdin=case.stdin))
+    try:
+        proc = awk(*program, *case.args, env=case.env, stdin=case.stdin, timeout=case.timeout)
+    except subprocess.TimeoutExpired:
+        pytest.fail(f"awk did not finish within {case.timeout} s")
+    actual = render(proc)
 
     # the expected output of a known bug is written by hand: it is never updated
     if request.config.getoption("update") and not case.bug and actual != case.expected:
