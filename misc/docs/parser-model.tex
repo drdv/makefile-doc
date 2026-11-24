@@ -485,6 +485,8 @@ In makefile-doc.awk:
                           \code{dn} and \code{sn} are the lengths of $D_i$ and $S_i$ \\
   \code{PARSER\_OBS} & the observations of $L_i$, with the names of
                        \eqref{eq:obs} \\
+  \code{PARSER\_DERIVED} & the derived quantities of $L_i$: $k_i$ and $e_i$ (the reset is
+                           applied to the state and the memory) \\
   \code{ANCHORS} & the anchor records \\
   \code{PARSER\_JOINER} & the physical lines joined into the next logical line \\
   \code{PARSER\_CONTEXT} & the file, and what names and warnings need \\
@@ -501,7 +503,8 @@ In makefile-doc.awk:
   \code{parser\_init} & the initial state and memory \eqref{eq:init},
                         \eqref{eq:memory-init} \\
   \code{parser\_file\_start} & the reset at $b_i = 1$ \eqref{eq:reset} \\
-  \code{parser\_observe} & $\obs$ \eqref{eq:obs}, without the state \\
+  \code{parser\_observe} & $\obs$ \eqref{eq:obs}: a pure function of the line \\
+  \code{parser\_structure} & the questions of table~\ref{tab:questions}, with the searches \\
   \code{parser\_mask}, \code{parser\_scan} & the lexical layer \\
   \code{parser\_kind} & the kind of the line \eqref{eq:k} \\
   \code{parser\_step} & the state \eqref{eq:r}--\eqref{eq:p}; returns $e_i$ \eqref{eq:e} \\

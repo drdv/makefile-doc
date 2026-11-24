@@ -1,9 +1,10 @@
 # Check the functions of the parser (the parser_* functions of the script), stage by stage:
-# the observation (against the examples of test/parser.spec), the step, the data and the
-# record (against the equations of misc/docs/parser-model.tex), then the whole parser.
+# the observations (against the examples of test/parser.spec), the kind of the line, the
+# state, the memory and the record (against the equations of misc/docs/parser-model.tex),
+# then the whole parser.
 
 # ---------------------------------------------------------------------------------------
-# line -> obs: the questions of the observation, the lexical layer
+# line -> obs: the observations, the lexical layer
 # ---------------------------------------------------------------------------------------
 
 # Read the blocks of a spec file into blocks[k, key] (k = 1..n) and return n. A value in
@@ -41,9 +42,9 @@ function test_parser_observe(    spec, n, k, obs, id) {
   for (k = 1; k <= n; k++) {
     id = spec[k, "id"]
     parser_observe(spec[k, "line"], obs)
-    check("kind: " id, obs["kind"], array_get(spec, k SUBSEP "kind"))
-    check("anchor: " id, obs["anchor"], array_get(spec, k SUBSEP "anchor"))
-    check("name: " id, obs["name"], array_get(spec, k SUBSEP "name"))
+    check("line_kind: " id, obs["line_kind"], array_get(spec, k SUBSEP "line_kind"))
+    check("anchor_kind: " id, obs["anchor_kind"], array_get(spec, k SUBSEP "anchor_kind"))
+    check("anchor_name: " id, obs["anchor_name"], array_get(spec, k SUBSEP "anchor_name"))
     check("comment: " id, obs["comment"], array_get(spec, k SUBSEP "comment"))
   }
 }
@@ -101,69 +102,73 @@ function observed(line, field, #locals
 }
 
 function test_parser_special_rules() {
-  check("special rule: .PHONY", observed(".PHONY: t", "kind"), "special rule")
-  check("special rule: .SILENT", observed(".SILENT: t", "kind"), "special rule")
-  check("special rule: .IGNORE", observed(".IGNORE: t", "kind"), "special rule")
-  check("special rule: .SECONDARY", observed(".SECONDARY: t", "kind"), "special rule")
-  check("special rule: .INTERMEDIATE", observed(".INTERMEDIATE: t", "kind"), "special rule")
-  check("special rule: .PRECIOUS", observed(".PRECIOUS: t", "kind"), "special rule")
+  check("special rule: .PHONY", observed(".PHONY: t", "line_kind"), "special rule")
+  check("special rule: .SILENT", observed(".SILENT: t", "line_kind"), "special rule")
+  check("special rule: .IGNORE", observed(".IGNORE: t", "line_kind"), "special rule")
+  check("special rule: .SECONDARY", observed(".SECONDARY: t", "line_kind"), "special rule")
+  check("special rule: .INTERMEDIATE", observed(".INTERMEDIATE: t", "line_kind"), "special rule")
+  check("special rule: .PRECIOUS", observed(".PRECIOUS: t", "line_kind"), "special rule")
   check("special rule: leading whitespace and spaces before :",
-        observed(" \t.PHONY  : t", "kind"), "special rule")
-  check("special rule: tab before :", observed(".PHONY\t: t", "kind"), "special rule")
+        observed(" \t.PHONY  : t", "line_kind"), "special rule")
+  check("special rule: tab before :", observed(".PHONY\t: t", "line_kind"), "special rule")
   check("special rule: .SECONDEXPANSION without prerequisites",
-        observed(".SECONDEXPANSION:", "kind"), "special rule")
-  check("special rule: .DELETE_ON_ERROR", observed(".DELETE_ON_ERROR:", "kind"), "special rule")
-  check("special rule: .SUFFIXES", observed(".SUFFIXES:", "kind"), "special rule")
-  check("special rule: .DEFAULT", observed(".DEFAULT:", "kind"), "special rule")
-  check("special rule: .NOTINTERMEDIATE", observed(".NOTINTERMEDIATE: t", "kind"),
+        observed(".SECONDEXPANSION:", "line_kind"), "special rule")
+  check("special rule: .DELETE_ON_ERROR", observed(".DELETE_ON_ERROR:", "line_kind"),
         "special rule")
-  check("special rule: .LOW_RESOLUTION_TIME", observed(".LOW_RESOLUTION_TIME: t", "kind"),
+  check("special rule: .SUFFIXES", observed(".SUFFIXES:", "line_kind"), "special rule")
+  check("special rule: .DEFAULT", observed(".DEFAULT:", "line_kind"), "special rule")
+  check("special rule: .NOTINTERMEDIATE", observed(".NOTINTERMEDIATE: t", "line_kind"),
         "special rule")
-  check("special rule: .EXPORT_ALL_VARIABLES", observed(".EXPORT_ALL_VARIABLES:", "kind"),
+  check("special rule: .LOW_RESOLUTION_TIME", observed(".LOW_RESOLUTION_TIME: t", "line_kind"),
         "special rule")
-  check("special rule: .NOTPARALLEL", observed(".NOTPARALLEL:", "kind"), "special rule")
-  check("special rule: .ONESHELL", observed(".ONESHELL:", "kind"), "special rule")
-  check("special rule: .POSIX", observed(".POSIX:", "kind"), "special rule")
-  check("special rule: a suffix rule is a rule", observed(".c.o:", "kind"), "rule")
-  check("special rule: a hidden file is a rule", observed(".venv/.sentinel:", "kind"), "rule")
+  check("special rule: .EXPORT_ALL_VARIABLES", observed(".EXPORT_ALL_VARIABLES:", "line_kind"),
+        "special rule")
+  check("special rule: .NOTPARALLEL", observed(".NOTPARALLEL:", "line_kind"), "special rule")
+  check("special rule: .ONESHELL", observed(".ONESHELL:", "line_kind"), "special rule")
+  check("special rule: .POSIX", observed(".POSIX:", "line_kind"), "special rule")
+  check("special rule: a suffix rule is a rule", observed(".c.o:", "line_kind"), "rule")
+  check("special rule: a hidden file is a rule", observed(".venv/.sentinel:", "line_kind"), "rule")
   check("special rule: a name with lower-case letters is a rule",
-        observed(".PHONYx: t", "kind"), "rule")
+        observed(".PHONYx: t", "line_kind"), "rule")
   check("special rule: an upper-case name that is not special is a rule",
-        observed(".ENV:", "kind"), "rule")
+        observed(".ENV:", "line_kind"), "rule")
   check("special rule: a special name with a suffix is a rule",
-        observed(".PHONY_ALL:", "kind"), "rule")
-  check("special rule: .PHONY as a prerequisite is a rule", observed("t: .PHONY", "kind"), "rule")
+        observed(".PHONY_ALL:", "line_kind"), "rule")
+  check("special rule: .PHONY as a prerequisite is a rule", observed("t: .PHONY", "line_kind"),
+        "rule")
 }
 
 function test_parser_variable_names() {
-  check("variable name: := without spaces", observed("VAR2_1:=1##comment", "name"), "VAR2_1")
-  check("variable name: ?= with spaces", observed("var2_1   ?=  1##comment", "name"), "var2_1")
-  check("variable name: :::=", observed("x   :::=fsws", "name"), "x")
-  check("variable name: += without value", observed("__a__   +=", "name"), "__a__")
-  check("variable name: = with inline doc", observed("X = ## doc", "name"), "X")
+  check("variable name: := without spaces", observed("VAR2_1:=1##comment", "anchor_name"), "VAR2_1")
+  check("variable name: ?= with spaces", observed("var2_1   ?=  1##comment", "anchor_name"),
+        "var2_1")
+  check("variable name: :::=", observed("x   :::=fsws", "anchor_name"), "x")
+  check("variable name: += without value", observed("__a__   +=", "anchor_name"), "__a__")
+  check("variable name: = with inline doc", observed("X = ## doc", "anchor_name"), "X")
   check("variable name: ::= with value and inline doc",
-        observed("this_is_A_VARIABLE ::= this is a value ## doc", "name"), "this_is_A_VARIABLE")
-  check("variable name: ?= with inline doc and no value", observed("x4?=## doc", "name"), "x4")
+        observed("this_is_A_VARIABLE ::= this is a value ## doc", "anchor_name"),
+        "this_is_A_VARIABLE")
+  check("variable name: ?= with inline doc and no value", observed("x4?=## doc", "anchor_name"),
+        "x4")
   check("variable name: repeated qualifiers",
-        observed("override private  override     private  export _w::=", "name"), "_w")
+        observed("override private  override     private  export _w::=", "anchor_name"), "_w")
   check("variable name: name starting with a qualifier",
-        observed("private  override  export override1     ::=     1", "name"), "override1")
+        observed("private  override  export override1     ::=     1", "anchor_name"), "override1")
   check("variable name: name made of qualifiers",
-        observed("private  override  export export_override::=1", "name"), "export_override")
+        observed("private  override  export export_override::=1", "anchor_name"), "export_override")
   check("override: a qualifier", observed("override PREFIX := /usr", "override"), 1)
   check("override: among other qualifiers", observed("export override V = 1", "override"), 1)
   check("override: not a qualifier when it is the name", observed("override := 1", "override"), 0)
   check("override: none", observed("V := 1", "override"), 0)
   check("override: on a define", observed("override define V", "override"), 1)
   check("variable name: unexport is a directive, not a qualifier",
-        observed("override unexport V := 1", "kind"), "other")
+        observed("override unexport V := 1", "line_kind"), "other")
 }
 
-# the inline doc of a line outside a rule (parser_obs), or "<none>"
+# the inline doc of a line (parser_observe), or "<none>"
 function inline_doc(line, #locals
-                    state, data, obs) {
-  parser_init(state, data, "")
-  parser_obs(line, state, obs)
+                    obs) {
+  parser_observe(line, obs)
   return obs["inline"] ? obs["comment"] : "<none>"
 }
 
@@ -221,7 +226,7 @@ function test_get_doc_tag() {
 }
 
 # ---------------------------------------------------------------------------------------
-# (state, obs) -> state, data and record: the equations of the note (section Model)
+# (state, obs) -> state, memory and record: the equations of the note
 # ---------------------------------------------------------------------------------------
 
 # The step table of the note (section Step): r_i, d_i and s_i for each kind, where r, d and s
@@ -253,8 +258,9 @@ function step_entry(entry, r, d, s, e) {
   return entry + 0
 }
 
-# parser_step against the step table, for every kind and every state before the line (and
-# with and without an inline doc for an anchor), with e_i as in the note
+# parser_step against the step table, for every kind of line and every state before the line
+# (and with and without an inline doc for an anchor), with e_i as in the note, and p_i (a
+# recipe line does not change the prefix)
 function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, state, obs,
                               got, want, failures) {
   step_table(table)
@@ -275,16 +281,16 @@ function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, 
             state["r"] = r
             state["d"] = d
             state["s"] = s
-            state["c"] = "\t"
+            state["p"] = "\t"
             split("", obs)
-            obs["kind"] = kind
             obs["inline"] = a
             obs["prefix"] = ">"
             e = ((kind == "rule" || kind == "assignment") && (d || a)) ? 1 : 0
             want = step_entry(cols[1], r, d, s, e) step_entry(cols[2], r, d, s, e) \
-                   step_entry(cols[3], r, d, s, e) " e=" e " c=>"
-            got = parser_step(state, obs)
-            got = state["r"] state["d"] state["s"] " e=" (got ? 1 : 0) " c=" state["c"]
+                   step_entry(cols[3], r, d, s, e) " e=" e \
+                   " p=" (kind == "recipe" ? "\t" : ">")
+            got = parser_step(state, obs, kind)
+            got = state["r"] state["d"] state["s"] " e=" (got ? 1 : 0) " p=" state["p"]
             if (got != want) {
               failures = failures sprintf(" [rds=%d%d%d a=%d: got %s, want %s]", r, d, s, a,
                                           got, want)
@@ -298,60 +304,61 @@ function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, 
 }
 
 # the pending text, as D/S (the lines of each joined by +) and the tag of D
-function data_text(data, #locals
+function memory_text(memory, #locals
                    text) {
-  text = data_lines(data, "doc", data["dn"]) "/" data_lines(data, "section", data["sn"]) \
-         "/" (data["dn"] ? data["doc_tag"] : "")
+  text = memory_lines(memory, "doc", memory["dn"]) "/" \
+         memory_lines(memory, "section", memory["sn"]) \
+         "/" (memory["dn"] ? memory["doc_tag"] : "")
   gsub(/\n/, "+", text)
   return text
 }
 
-# the data of one doc line (a) and one section line (s), and a state with d_i and s_i
-function carry_setup(data, state, d, s) {
-  split("", data)
-  data["dn"] = 1
-  data["doc", 1] = "a"
-  data["doc_tag"] = "##"
-  data["sn"] = 1
-  data["section", 1] = "s"
+# the memory of one doc line (a) and one section line (s), and a state with d_i and s_i
+function carry_setup(memory, state, d, s) {
+  split("", memory)
+  memory["dn"] = 1
+  memory["doc", 1] = "a"
+  memory["doc_tag"] = "##"
+  memory["sn"] = 1
+  memory["section", 1] = "s"
   split("", state)
   state["d"] = d
   state["s"] = s
 }
 
-# parser_carry against the equations of the data (D_i and S_i)
-function test_parser_carry(    data, state, obs) {
-  carry_setup(data, state, 1, 1)
-  obs["kind"] = "doc"
+# parser_carry against the equations of the memory (D_i and S_i)
+function test_parser_carry(    memory, state, obs, k) {
+  carry_setup(memory, state, 1, 1)
+  k = "doc"
   obs["text"] = "b"
   obs["tag"] = "##!"
-  parser_carry(data, state, obs)
+  parser_carry(memory, state, obs, k)
   check("parser_carry: a doc line adds its text (the tag stays that of the first line)",
-        data_text(data), "a+b/s/##")
+        memory_text(memory), "a+b/s/##")
 
-  data["dn"] = 0
-  parser_carry(data, state, obs)
-  check("parser_carry: the first line of a doc gives its tag", data_text(data), "b/s/##!")
+  memory["dn"] = 0
+  parser_carry(memory, state, obs, k)
+  check("parser_carry: the first line of a doc gives its tag", memory_text(memory), "b/s/##!")
 
-  carry_setup(data, state, 1, 1)
-  obs["kind"] = "section"
+  carry_setup(memory, state, 1, 1)
+  k = "section"
   obs["text"] = "t"
-  parser_carry(data, state, obs)
-  check("parser_carry: a section line adds its text", data_text(data), "a/s+t/##")
+  parser_carry(memory, state, obs, k)
+  check("parser_carry: a section line adds its text", memory_text(memory), "a/s+t/##")
 
-  carry_setup(data, state, 0, 1)
-  obs["kind"] = "rule"
-  parser_carry(data, state, obs)
-  check("parser_carry: d_i = 0 drops the doc text", data_text(data), "/s/")
+  carry_setup(memory, state, 0, 1)
+  k = "rule"
+  parser_carry(memory, state, obs, k)
+  check("parser_carry: d_i = 0 drops the doc text", memory_text(memory), "/s/")
 
-  carry_setup(data, state, 1, 0)
-  parser_carry(data, state, obs)
-  check("parser_carry: s_i = 0 drops the section text", data_text(data), "a//##")
+  carry_setup(memory, state, 1, 0)
+  parser_carry(memory, state, obs, k)
+  check("parser_carry: s_i = 0 drops the section text", memory_text(memory), "a//##")
 
-  carry_setup(data, state, 1, 1)
-  obs["kind"] = "neutral"
-  parser_carry(data, state, obs)
-  check("parser_carry: otherwise the text is kept", data_text(data), "a/s/##")
+  carry_setup(memory, state, 1, 1)
+  k = "neutral"
+  parser_carry(memory, state, obs, k)
+  check("parser_carry: otherwise the text is kept", memory_text(memory), "a/s/##")
 }
 
 # the doc, tag and section (or <none>) of the last record
@@ -361,23 +368,23 @@ function last_record() {
 }
 
 # record_anchor against the equations of the record, and the warning about a redefined doc
-function test_record_anchor(    context, obs, before, data) {
+function test_record_anchor(    context, obs, before, memory) {
   init_globals()
-  carry_setup(data, before, 1, 1)
-  data["dn"] = 2
-  data["doc", 2] = "b"
-  obs["anchor"] = "variable"
-  obs["name"] = "V"
+  carry_setup(memory, before, 1, 1)
+  memory["dn"] = 2
+  memory["doc", 2] = "b"
+  obs["anchor_kind"] = "variable"
+  obs["anchor_name"] = "V"
   obs["inline_doc"] = "i"
   obs["tag"] = "##%"
   context["file"] = "f"
-  record_anchor(context, obs, before, data, 7)
+  record_anchor(context, obs, before, memory, 7)
   check("record_anchor: d_bar = 1: the pending doc and its tag; s = 1: the section",
         last_record(), "a\nb|##|s")
 
   before["d"] = 0
   before["s"] = 0
-  record_anchor(context, obs, before, data, 9)
+  record_anchor(context, obs, before, memory, 9)
   check("record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
         last_record(), "i|##%|<none>")
   check("record_anchor: a redefined doc is reported with its file and line",
@@ -387,14 +394,14 @@ function test_record_anchor(    context, obs, before, data) {
 
 function test_form_target_name(    context, obs) {
   init_globals()
-  obs["name"] = "a \t b"
+  obs["anchor_name"] = "a \t b"
   obs["grouped"] = 0
   obs["double"] = 0
   check("form_target_name: blanks collapsed", form_target_name(context, obs), "a b")
   obs["grouped"] = 1
   check("form_target_name: grouped", form_target_name(context, obs), "a b&")
 
-  obs["name"] = "t"
+  obs["anchor_name"] = "t"
   obs["grouped"] = 0
   obs["double"] = 1
   check("form_target_name: first double-colon rule", form_target_name(context, obs), "t~1")
@@ -402,20 +409,20 @@ function test_form_target_name(    context, obs) {
 }
 
 # ---------------------------------------------------------------------------------------
-# lines -> state, data and records: the whole parser, from lines of text
+# lines -> state, memory and records: the whole parser, from lines of text
 # ---------------------------------------------------------------------------------------
 
 # The states after each physical line of text (lines separated by |), as "rds" (1/0 for
 # r, d, s), or "+" for a line that continues on the next one
 function trace_lines(text, prefix, #locals
-                     state, data, joiner, context, lines, n, k, obs, out) {
-  parser_init(state, data, prefix)
+                     state, memory, joiner, context, lines, n, k, obs, derived, out) {
+  parser_init(state, memory, prefix)
   parser_join_init(joiner)
   n = split(text, lines, "|")
   out = ""
   for (k = 1; k <= n; k++) {
     if (parser_join(joiner, lines[k], k)) {
-      parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+      parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
       out = out " " state["r"] state["d"] state["s"]
     } else {
       out = out " +"
@@ -424,7 +431,7 @@ function trace_lines(text, prefix, #locals
   return substr(out, 2)
 }
 
-function test_parser_states(    state, data, joiner, context, obs) {
+function test_parser_states(    state, memory, joiner, context, obs, derived) {
   check("states: the example of the model",
         trace_lines("##@ Build|## Compile the app|build: main.c|\tcc -o app main.c||" \
                     "## The version|V := 1", ""), "001 011 100 100 100 110 000")
@@ -448,82 +455,95 @@ function test_parser_states(    state, data, joiner, context, obs) {
         "100 100 110 100")
 
   parser_observe("define NO_SPACE+=", obs)
-  check("define: an operator without a blank is not part of the name", obs["name"], "NO_SPACE")
+  check("define: an operator without a blank is not part of the name", obs["anchor_name"],
+        "NO_SPACE")
 
-  parser_init(state, data, "")
-  parser_obs(".RECIPEPREFIX = $(P)", state, obs)
+  parser_observe(".RECIPEPREFIX = $(P)", obs)
   check("prefix: = keeps the text of a reference", obs["prefix"], "$")
-  check("prefix: the observation does not change the state", state["c"], "\t")
-  state["c"] = ">"
-  parser_obs(".RECIPEPREFIX := $(P)", state, obs)
-  check("prefix: an expanded reference is not known", obs["prefix"], ">")
-  parser_obs(".RECIPEPREFIX :=", state, obs)
+  parser_observe(".RECIPEPREFIX := $(P)", obs)
+  check("prefix: an expanded reference is not known", obs["prefix"], "")
+  parser_observe(".RECIPEPREFIX :=", obs)
   check("prefix: an empty value is a tab", obs["prefix"], "\t")
-  parser_obs("define .RECIPEPREFIX", state, obs)
-  check("prefix: a define is not known (its value is on the next lines)", obs["prefix"], ">")
-  parser_obs(".RECIPEPREFIX ?= +", state, obs)
-  check("prefix: ?= does not change it (.RECIPEPREFIX is always defined)", obs["prefix"], ">")
-  parser_obs("V := 1", state, obs)
-  check("prefix: another line keeps it", obs["prefix"], ">")
+  parser_observe("define .RECIPEPREFIX", obs)
+  check("prefix: a define is not known (its value is on the next lines)", obs["prefix"], "")
+  parser_observe(".RECIPEPREFIX ?= +", obs)
+  check("prefix: ?= does not change it (.RECIPEPREFIX is always defined)", obs["prefix"], "")
+  parser_observe("V := 1", obs)
+  check("prefix: another line assigns none", obs["prefix"], "")
+  check("prefix: a recipe line does not change it",
+        trace_lines("t:|\t.RECIPEPREFIX = >|\t## still a recipe line|u:", ""), "100 100 100 100")
 
-  parser_init(state, data, "")
+  split("", state)
+  state["r"] = 1
+  state["p"] = "\t"
+  parser_observe("\techo", obs)
+  check("parser_kind: a rule is open and the line starts with the prefix",
+        parser_kind(state, obs), "recipe")
+  parser_observe("V := 1", obs)
+  check("parser_kind: otherwise the observed kind of the line", parser_kind(state, obs),
+        "assignment")
+  state["r"] = 0
+  parser_observe("\tV := 1", obs)
+  check("parser_kind: no rule is open", parser_kind(state, obs), "assignment")
+
+  parser_init(state, memory, "")
   parser_join_init(joiner)
   parser_join(joiner, "##@ s", 1)
-  parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+  parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
   parser_join(joiner, "## d", 2)
-  parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+  parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
   parser_join(joiner, "t: \\", 3)
   parser_join_init(joiner)
-  parser_file_start(state, data)
+  parser_file_start(state, memory)
   check("file start: the doc is dropped, with its text, the section carries over",
-        state["d"] " " data["dn"] " " state["s"] " " data["sn"], "0 0 1 1")
+        state["d"] " " memory["dn"] " " state["s"] " " memory["sn"], "0 0 1 1")
   check("file start: a line continued at the end of a file is dropped", joiner["joining"], 0)
 }
 
 # the pending text (D and S) after each physical line of text (lines separated by |), as
 # D/S with the lines of each joined by +
-function trace_data(text, #locals
-                    state, data, joiner, context, lines, n, k, obs, out) {
-  parser_init(state, data, "")
+function trace_memory(text, #locals
+                    state, memory, joiner, context, lines, n, k, obs, derived, out) {
+  parser_init(state, memory, "")
   parser_join_init(joiner)
   n = split(text, lines, "|")
   out = ""
   for (k = 1; k <= n; k++) {
     if (parser_join(joiner, lines[k], k)) {
-      parser_process(state, data, context, obs, joiner["line"], joiner["start"])
-      out = out " " data_lines(data, "doc", data["dn"]) "/" \
-            data_lines(data, "section", data["sn"])
+      parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
+      out = out " " memory_lines(memory, "doc", memory["dn"]) "/" \
+            memory_lines(memory, "section", memory["sn"])
     }
   }
   gsub(/\n/, "+", out)
   return substr(out, 2)
 }
 
-function test_parser_data() {
-  check("data: doc and section lines are added without their tokens",
-        trace_data("##@ s1|## d1|##! d2|##@ s2"), "/ s1  d1/ s1  d1+ d2/ s1  d1+ d2/ s1+ s2")
-  check("data: a directive drops the doc, an undocumented anchor keeps the section",
-        trace_data("##@ s|## d|include x|t:"), "/ s  d/ s / s / s")
-  check("data: a special rule keeps the doc",
-        trace_data("## d|.PHONY: t"), " d/  d/")
-  check("data: a documented anchor takes the doc and the section",
-        trace_data("##@ s|## d|t:"), "/ s  d/ s /")
-  check("data: an inline doc takes the section, not the text of the doc",
-        trace_data("##@ s|t: ## i"), "/ s /")
+function test_parser_memory() {
+  check("memory: doc and section lines are added without their tokens",
+        trace_memory("##@ s1|## d1|##! d2|##@ s2"), "/ s1  d1/ s1  d1+ d2/ s1  d1+ d2/ s1+ s2")
+  check("memory: a directive drops the doc, an undocumented anchor keeps the section",
+        trace_memory("##@ s|## d|include x|t:"), "/ s  d/ s / s / s")
+  check("memory: a special rule keeps the doc",
+        trace_memory("## d|.PHONY: t"), " d/  d/")
+  check("memory: a documented anchor takes the doc and the section",
+        trace_memory("##@ s|## d|t:"), "/ s  d/ s /")
+  check("memory: an inline doc takes the section, not the text of the doc",
+        trace_memory("##@ s|t: ## i"), "/ s /")
   init_globals()
 }
 
 # the doc, tag and section (or <none>) of the last anchor recorded from the lines of text
 # (separated by |)
 function recorded(text, #locals
-                  state, data, joiner, context, lines, n, k, obs) {
+                  state, memory, joiner, context, lines, n, k, obs, derived) {
   init_globals()
-  parser_init(state, data, "")
+  parser_init(state, memory, "")
   parser_join_init(joiner)
   n = split(text, lines, "|")
   for (k = 1; k <= n; k++) {
     if (parser_join(joiner, lines[k], k)) {
-      parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+      parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
     }
   }
   return last_record()
@@ -540,7 +560,7 @@ function test_parser_records() {
 }
 
 BEGIN {
-  # line -> obs: the questions of the observation, the lexical layer
+  # line -> obs: the observations, the lexical layer
   test_parser_observe()
   test_parser_mask()
   test_parser_reference_end()
@@ -550,15 +570,15 @@ BEGIN {
   test_parser_double_colon()
   test_get_doc_tag()
 
-  # (state, obs) -> state, data and record: the equations of the note (section Model)
+  # (state, obs) -> state, memory and record: the equations of the note
   test_parser_step()
   test_parser_carry()
   test_record_anchor()
   test_form_target_name()
 
-  # lines -> state, data and records: the whole parser, from lines of text
+  # lines -> state, memory and records: the whole parser, from lines of text
   test_parser_states()
-  test_parser_data()
+  test_parser_memory()
   test_parser_records()
   done()
 }

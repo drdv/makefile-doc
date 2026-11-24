@@ -12,7 +12,7 @@
 #   == FILE
 # (stdin is -; an empty file has no line, so it has no header), then one line per physical
 # input line:
-#   LINE J R D S C | TEXT
+#   LINE J R D S P | TEXT
 # with the state from the line on (the effect of the line included):
 #   J     1 if the line is joined with the next one (a backslash continuation, recipe lines
 #         included: the joined line takes effect at its last physical line), 0 otherwise
@@ -20,15 +20,16 @@
 #         0 otherwise
 #   D     the number of pending doc lines (waiting for their anchor)
 #   S     the number of pending section lines
-#   C     the recipe prefix (a tab is shown as \t)
+#   P     the recipe prefix (a tab is shown as \t)
 #   TEXT  the input line (a tab is shown as \t, a final \r is dropped); for an empty line,
 #         nothing follows the | (no trailing space)
 # Each anchor that the line documents follows it on a line of its own:
 #   LINE ============ => KIND:[NAME]
 # where KIND is target or variable, with " +section" when the pending section is placed
 # before the anchor. `grep -e '^==' -e '=>'` lists the documented anchors of each file.
-# With -v TRACE_OBS=1, the observation of each logical line (but neutral ones) follows its
-# last physical line:
+# With -v TRACE_OBS=1, the observations of each logical line (but neutral ones) follow its
+# last physical line, with the kind of the line (k_i: recipe for a recipe line, whose other
+# observations are not shown):
 #   LINE ============ -> <KIND> key:[value]... flags
 # e.g., `-> <assignment> variable:[SRCS] operator:[:=] value:[s.c]`.
 
@@ -46,12 +47,12 @@ BEGIN {
 # observation (with TRACE_OBS) and the anchors that it documented
 function trace_print(    k, joined, prefix) {
   joined = PARSER_JOINER["joining"] ? 1 : 0
-  prefix = PARSER_STATE["c"] == "\t" ? "\\t" : PARSER_STATE["c"]
+  prefix = PARSER_STATE["p"] == "\t" ? "\\t" : PARSER_STATE["p"]
   printf("%4d %d %d %2d %2d %-2s |%s\n", TRACE_LINE, joined, PARSER_STATE["r"],
-         PARSER_DATA["dn"], PARSER_DATA["sn"], prefix,
+         PARSER_MEMORY["dn"], PARSER_MEMORY["sn"], prefix,
          TRACE_TEXT == "" ? "" : " " TRACE_TEXT)
   if (TRACE_OBS && !joined) {
-    trace_print_obs(PARSER_OBS)
+    trace_print_obs(PARSER_OBS, PARSER_DERIVED["k"])
   }
 
   for (k = TRACE_ANCHOR_INDEX + 1; k <= ANCHOR_COUNT; k++) {
@@ -61,16 +62,21 @@ function trace_print(    k, joined, prefix) {
   TRACE_ANCHOR_INDEX = ANCHOR_COUNT
 }
 
-# print an observation (not for neutral lines): <kind>, then its string fields as key:[value]
-# in the order of the line (the anchor is the key of the name), then its flags
-function trace_print_obs(obs, #locals
+# print the observations of a line of kind k (not for neutral lines): <k>, then their string
+# fields as key:[value] in the order of the line (the kind of the anchor is the key of its
+# name), then their flags; for a recipe line, only <recipe>
+function trace_print_obs(obs, k, #locals
                          line) {
-  if (obs["kind"] == "neutral") {
+  if (k == "neutral") {
     return
   }
-  line = sprintf("%4d ============ -> <%s>", TRACE_LINE, obs["kind"])
-  if (obs["anchor"] != "") {
-    line = line trace_field(obs["anchor"], obs["name"])
+  line = sprintf("%4d ============ -> <%s>", TRACE_LINE, k)
+  if (k == "recipe") {
+    print line
+    return
+  }
+  if (obs["anchor_kind"] != "") {
+    line = line trace_field(obs["anchor_kind"], obs["anchor_name"])
   }
   if (obs["operator"] != "") {
     line = line trace_field("operator", obs["operator"]) trace_field("value", obs["value"])
