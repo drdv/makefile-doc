@@ -314,14 +314,16 @@ flowchart TD
     subgraph end_ ["<b>END</b>: print_documentation()"]
         content["<b>Content</b><br/>prepare_rendering()"] --> display[("DISPLAY")]
         display --> layout["<b>Layout</b><br/>format_documentation(),<br/>format_anchor()"]
+        layout --> formats["<b>Output formats</b><br/>fmt_escape(), fmt_color(),<br/>fmt_document()"]
     end
 
     interface --> content
     settings -- "VARS, DEPRECATED, SUB, DSUB" --> content
-    settings -- "PADDING, OFFSET, colors, OUTPUT_FORMAT" --> layout
-    layout -- "ANSI" --> ansi["Terminal text"]
-    layout -- "HTML" --> html["HTML fragment"]
-    layout -- "LATEX" --> latex["LaTeX document"]
+    settings -- "PADDING, OFFSET" --> layout
+    settings -- "colors, OUTPUT_FORMAT" --> formats
+    formats -- "ANSI" --> ansi["Terminal text"]
+    formats -- "HTML" --> html["HTML fragment"]
+    formats -- "LATEX" --> latex["LaTeX document"]
     interface --> stderr["Warnings (stderr)"]
 ```
 
@@ -332,57 +334,5 @@ anchors, under which names, with which docs and sections) and writes the `DISPLA
 layout prints them in the output format. The output goes to stdout in all three formats.
 
 The interface variables are the only data that parsing hands over to rendering:
-
-| Variables                                        | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ANCHORS`<br>(`ANCHOR_COUNT`)                    | Every definition of a documented anchor, in file order, as records `ANCHORS[k, field]` (k = 1..`ANCHOR_COUNT`): `kind` (`target` or `variable`), `name`, `doc` (its lines without their tokens, joined by `\n`; each line keeps the space that followed its token), `tag` (`##`, `##!` or `##%`, from its first line) and `section` (the section just before it, its lines joined by `\n`; only where there is one). An anchor documented twice appears twice: when rendering, its first definition gives its place, and its last one its doc and tag. |
-| `WARNINGS`, `WARNING_KINDS`<br>(`WARNING_COUNT`) | The warnings about the Makefiles, in the order they were found: the message (with the file and line) and what it is about (`target`, `variable` or `file`). They are printed before the docs, except those about variables when `VARS=0`.                                                                                                                                                                                                                                                                                                              |
-| `FILES_PROCESSED`                                | The names of the files read, separated by spaces (`-` for stdin). It is used in the messages when nothing is documented.                                                                                                                                                                                                                                                                                                                                                                                                                               |
-
-For example, with this `Makefile`:
-
-```makefile
-##@ Configuration
-## Number of parallel jobs
-JOBS := 4
-
-##@ Build
-## Compile the project
-## (uses JOBS)
-build:
-
-## Remove the build files
-clean:
-
-##@ Tests
-## Run the tests
-test: build
-
-##% Use `test` instead
-check: test
-
-##! Remove all generated files, including the caches
-clean:
-```
-
-`ANCHORS` holds one record per row (`ANCHORS[k, "kind"]`, `ANCHORS[k, "name"]`, ...); a field
-that is not set, such as the `section` of record 3, has no key:
-
-| k | `kind`       | `name`    | `tag`   | `doc`                                                 | `section`          |
-|---|--------------|-----------|---------|-------------------------------------------------------|--------------------|
-| 1 | `"variable"` | `"JOBS"`  | `"##"`  | `" Number of parallel jobs"`                          | `" Configuration"` |
-| 2 | `"target"`   | `"build"` | `"##"`  | `" Compile the project\n (uses JOBS)"`                | `" Build"`         |
-| 3 | `"target"`   | `"clean"` | `"##"`  | `" Remove the build files"`                           |                    |
-| 4 | `"target"`   | `"test"`  | `"##"`  | `" Run the tests"`                                    | `" Tests"`         |
-| 5 | `"target"`   | `"check"` | `"##%"` | ``" Use `test` instead"``                             |                    |
-| 6 | `"target"`   | `"clean"` | `"##!"` | `" Remove all generated files, including the caches"` |                    |
-
-with `ANCHOR_COUNT = 6`;
-
-| Index | `WARNINGS`                                        | `WARNING_KINDS` |
-|-------|---------------------------------------------------|-----------------|
-| 1     | `"[Makefile:21] redefined docs of target: clean"` | `"target"`      |
-
-with `WARNING_COUNT = 1`, and `FILES_PROCESSED = "Makefile"`.
 
 [^1]: `--update` takes one platform only and never rewrites a known-bug case.
