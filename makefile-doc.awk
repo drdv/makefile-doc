@@ -1347,10 +1347,12 @@ function parser_obs(line, state, obs) {
 
 # The recipe prefix after an assignment to .RECIPEPREFIX, from the prefix before it: the
 # first character of the value (a tab if it is empty). With += the first character does not
-# change; with != or an expanded reference (:=, ::=), the value is not known: the prefix does
-# not change either.
+# change; with ?= nothing changes (.RECIPEPREFIX is always defined, with origin default); with
+# != or an expanded reference (:=, ::=), the value is not known: the prefix does not change
+# either.
 function parser_new_prefix(prefix, operator, value) {
-  if (operator == "+=" || operator == "!=" || (operator ~ /^:+=$/ && index(value, "$") > 0)) {
+  if (operator == "+=" || operator == "?=" || operator == "!=" ||
+      (operator ~ /^:+=$/ && index(value, "$") > 0)) {
     return prefix
   }
   return value == "" ? "\t" : substr(value, 1, 1)

@@ -461,6 +461,8 @@ function test_parser_states(    state, data, joiner, context, obs) {
   check("prefix: an empty value is a tab", obs["prefix"], "\t")
   parser_obs("define .RECIPEPREFIX", state, obs)
   check("prefix: a define is not known (its value is on the next lines)", obs["prefix"], ">")
+  parser_obs(".RECIPEPREFIX ?= +", state, obs)
+  check("prefix: ?= does not change it (.RECIPEPREFIX is always defined)", obs["prefix"], ">")
   parser_obs("V := 1", state, obs)
   check("prefix: another line keeps it", obs["prefix"], ">")
 

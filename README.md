@@ -208,7 +208,8 @@ after them. `RECIPEPREFIX` is the prefix at the start, so it is needed only when
 where makefile-doc does not see it (on the command line of `make`, or in a file that is not passed
 to the script). A value that is not written on the line (`:=` with a reference, as in
 `.RECIPEPREFIX := $(P)`, `!=`, or a `define`) is not followed: the prefix keeps its previous value.
-With `=`, the value is used as written, as GNU Make does.
+With `=`, the value is used as written, and `?=` changes nothing, as in GNU Make (where
+`.RECIPEPREFIX` is always defined).
 
 Without a Makefile, the script reads one from stdin, e.g., `cat Makefile | awk -f makefile-doc.awk`
 (in messages, stdin is named `-`). If stdin is empty, e.g., `awk -f makefile-doc.awk < /dev/null`

@@ -446,8 +446,9 @@ Where the model cannot follow GNU Make, because it does not evaluate the Makefil
         \code{\$(OBJS)}).
   \item The new value of \code{.RECIPEPREFIX} is known only when it is written on the line:
         with \code{=}, the text as written (as GNU Make does); with \code{+=}, the first
-        character does not change. A value computed at the assignment (\code{:=} or
-        \code{::=} with a reference, \code{!=}) or given by a \code{define} keeps
+        character does not change; \code{?=} changes nothing (as in GNU Make, where
+        \code{.RECIPEPREFIX} is always defined). A value computed at the assignment
+        (\code{:=} or \code{::=} with a reference, \code{!=}) or given by a \code{define} keeps
         $c_{i-1}$, as does an assignment in an included file.
 \end{itemize}
 
