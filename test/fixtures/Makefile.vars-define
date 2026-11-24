@@ -34,3 +34,8 @@ AFTER_ENDEF := 1
 
 ## A variable named define
 define := 1
+
+## Exported (export is a qualifier here, not the directive)
+export define EXPORTED
+x
+endef
