@@ -132,6 +132,22 @@ function test_display_substitutions(    labels, values, names) {
   init_globals()
 }
 
+# format_doc: the doc after the name, its lines aligned
+function test_format_doc() {
+  init_globals()
+  OFFSET = 2
+  check("format_doc: the lines aligned with the first one (width 1)",
+        format_doc(" a\n b", 1), "   a\n    b")
+  OUTPUT_FORMAT = "HTML"
+  COLOR_BACKTICKS = 1
+  COLOR_BACKTICKS_CODE = "<b>"
+  COLOR_RESET_CODE = "</b>"
+  check("format_doc: a span in backticks across lines does not color the indentation",
+        format_doc(" see `foo\n bar` here", 1), "   see <b>foo</b>\n   <b> bar</b> here")
+  OFFSET = OUTPUT_FORMAT = COLOR_BACKTICKS = ""
+  init_globals()
+}
+
 # one DISPLAY record (no section, no SUB values)
 function display_record(label, tag, doc) {
   DISPLAY_COUNT = 1
@@ -202,6 +218,7 @@ BEGIN {
 
   # DISPLAY -> text: the layout (format_documentation)
   test_substitute_backticks_patterns()
+  test_format_doc()
   test_display_substitutions()
   test_format_anchor()
   test_format_documentation()
