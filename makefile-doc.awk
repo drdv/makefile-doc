@@ -1081,16 +1081,14 @@ function parser_scan(line, obs, #locals
 }
 
 # The comment of line after position p: from the first character of chars found in masked
-# after p, if it is a #; "" otherwise
+# after p, if it is a #; "" otherwise. (One match, not a loop over the characters: in some
+# awks, e.g., the one true awk and wak, substr and length take time linear in the length of
+# the string, so such a loop is quadratic.)
 function parser_rest_from(line, masked, p, chars, #locals
-                          k, c) {
-  for (k = p + 1; k <= length(masked); k++) {
-    c = substr(masked, k, 1)
-    if (index(chars, c) > 0) {
-      return c == "#" ? substr(line, k) : ""
-    }
-  }
-  return ""
+                          rest, k) {
+  rest = substr(masked, p + 1)
+  k = match(rest, chars == "#" ? "#" : "[#;]")
+  return (k && substr(rest, k, 1) == "#") ? substr(line, p + k) : ""
 }
 
 # true if the left side of an assignment has the qualifier override (before its name, the
@@ -1131,34 +1129,29 @@ function parser_variable_name(text, masked, #locals
 #   * the escape pairs \\, \#, \: and \; (read from left to right: in a run of backslashes,
 #     only an odd last one escapes the character that follows)
 function parser_mask(line, #locals
-                     n, k, c, next_char, opening, closing, depth, start, out) {
+                     n, k, c, next_char, end, out, rest) {
+  if (!index(line, "$") && !index(line, "\\")) {
+    return line # nothing to mask (the usual case)
+  }
   n = length(line)
   out = ""
   k = 1
   while (k <= n) {
+    # the characters up to the next $ or \ are copied in one piece (see parser_rest_from)
+    rest = substr(line, k)
+    if (!match(rest, /[$\\]/)) {
+      return out rest
+    }
+    if (RSTART > 1) {
+      out = out substr(rest, 1, RSTART - 1)
+      k += RSTART - 1
+    }
     c = substr(line, k, 1)
     next_char = substr(line, k + 1, 1)
     if (c == "$" && (next_char == "(" || next_char == "{")) {
-      opening = next_char
-      closing = opening == "(" ? ")" : "}"
-      depth = 0
-      start = k
-      for (k = k + 1; k <= n; k++) {
-        c = substr(line, k, 1)
-        if (c == opening) {
-          depth++
-        } else if (c == closing) {
-          depth--
-          if (depth == 0) {
-            break
-          }
-        }
-      }
-      if (k > n) { # not closed: masked to the end of the line
-        k = n
-      }
-      out = out repeated_string("_", k - start + 1)
-      k++
+      end = parser_reference_end(line, k)
+      out = out repeated_string("_", end - k + 1)
+      k = end + 1
     } else if ((c == "$" && next_char != "") ||
                (c == "\\" && next_char != "" && index("\\#:;", next_char) > 0)) {
       out = out "__"
@@ -1169,6 +1162,31 @@ function parser_mask(line, #locals
     }
   }
   return out
+}
+
+# The end of the reference $( or ${ at position k of line: the position of its matching
+# bracket (only the same kind of bracket nests), or the end of the line if it is not closed.
+# (match could jump from bracket to bracket instead of reading each character, but there is
+# no point: a reference is short, so it would be faster only on lines of thousands of
+# references, which Makefiles do not have.)
+function parser_reference_end(line, k, #locals
+                              n, opening, closing, depth, c) {
+  n = length(line)
+  opening = substr(line, k + 1, 1)
+  closing = opening == "(" ? ")" : "}"
+  depth = 0
+  for (k = k + 1; k <= n; k++) {
+    c = substr(line, k, 1)
+    if (c == opening) {
+      depth++
+    } else if (c == closing) {
+      depth--
+      if (depth == 0) {
+        return k
+      }
+    }
+  }
+  return n
 }
 
 # ---------------------------------------------------------------------------------------
@@ -1210,26 +1228,34 @@ function parser_file_start(state, file) {
 # Add a physical line: return 1 when a logical line is complete (in state["line"]), 0 when the
 # line continues on the next one (an odd number of final backslashes, recipe lines included).
 # As in GNU Make, the backslash, the newline and the blanks around them become one space.
+# The searches run on the physical line only, not on the text joined so far (see
+# parser_rest_from): a continued line of only blanks adds nothing.
 function parser_join(state, physical, #locals
                      stripped) {
   sub(/\r$/, "", physical) # CRLF line endings
+  if (!has_odd_terminal_backslashes(physical)) {
+    if (state["joining"]) {
+      sub(/^[ \t]+/, "", physical)
+      physical = state["pending"] " " physical
+      state["joining"] = 0
+    }
+    state["line"] = physical
+    return 1
+  }
+  physical = substr(physical, 1, length(physical) - 1) # without the backslash
+  stripped = physical
+  sub(/[ \t]+$/, "", stripped)
   if (state["joining"]) {
-    sub(/^[ \t]+/, "", physical)
-    physical = state["pending"] " " physical
-    state["joining"] = 0
-  }
-  if (has_odd_terminal_backslashes(physical)) {
-    physical = substr(physical, 1, length(physical) - 1)
-    stripped = physical
-    sub(/[ \t]+$/, "", stripped)
+    sub(/^[ \t]+/, "", stripped)
+    if (stripped != "") {
+      state["pending"] = state["pending"] " " stripped
+    }
+  } else {
     # a recipe line of only its prefix (e.g., a tab, then the backslash) keeps the prefix
-    physical = stripped == "" ? substr(physical, 1, 1) : stripped
-    state["pending"] = physical
+    state["pending"] = stripped == "" ? substr(physical, 1, 1) : stripped
     state["joining"] = 1
-    return 0
   }
-  state["line"] = physical
-  return 1
+  return 0
 }
 
 # Observe a logical line with the state (all the questions of the model): parser_observe,

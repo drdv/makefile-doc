@@ -77,6 +77,17 @@ function test_parser_mask() {
   check("parser_mask: a$$$b", parser_mask("a$$$b"), "a____")
 }
 
+function test_parser_reference_end() {
+  check("parser_reference_end: $(...)", parser_reference_end("a $(b) c", 3), 6)
+  check("parser_reference_end: ${...}", parser_reference_end("a ${b} c", 3), 6)
+  check("parser_reference_end: nested", parser_reference_end("$(a $(b)) c", 1), 9)
+  check("parser_reference_end: parentheses nest in $(...)",
+        parser_reference_end("$(a (b)) c", 1), 8)
+  check("parser_reference_end: braces do not nest in $(...)",
+        parser_reference_end("$(a {b) c}", 1), 7)
+  check("parser_reference_end: not closed", parser_reference_end("x $(a (b) c", 3), 11)
+}
+
 # The states after each physical line of text (lines separated by |), as "rds" (1/0 for
 # r, d, s), or "+" for a line that continues on the next one
 function trace_lines(text, prefix, #locals
@@ -271,6 +282,7 @@ BEGIN {
   test_parser_inline_docs()
   test_parser_double_colon()
   test_parser_mask()
+  test_parser_reference_end()
   test_parser_observe()
   test_parser_states()
   done()
