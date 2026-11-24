@@ -1,0 +1,16 @@
+#: desc: PADDING can be a multi-byte character
+-v COLOR=0 -v PADDING=· test/fixtures/Makefile.utf8
+#: stdout
+------------------
+Available targets:
+------------------
+ビルド·····   ビルドする
+test····   Run the tests (テスト)
+déployer   Déployer
+clean···   Clean
+
+------------------
+Variables:
+------------------
+TAILLE··   Taille du cache
+------------------

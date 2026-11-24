@@ -7,6 +7,14 @@ function test_max_min() {
   check("min: second is smaller", min(1, -3), -3)
 }
 
+function test_text_length() {
+  check("text_length: ASCII", text_length("abc"), 3)
+  check("text_length: empty", text_length(""), 0)
+  check("text_length: an accented letter is one character", text_length("d\303\251ployer"), 8)
+  check("text_length: a Japanese character is one character",
+        text_length("\343\203\223\343\203\253\343\203\211"), 3)
+}
+
 function test_repeated_string() {
   check("repeated_string: a character", repeated_string("a", 4), "aaaa")
   check("repeated_string: a string", repeated_string("ab", 2), "abab")
@@ -150,6 +158,7 @@ function test_has_odd_terminal_backslashes() {
 
 BEGIN {
   test_max_min()
+  test_text_length()
   test_repeated_string()
   test_length_array_posix()
   test_array_get()

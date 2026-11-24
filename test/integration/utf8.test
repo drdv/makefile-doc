@@ -1,0 +1,16 @@
+#: desc: A multi-byte character counts as one character in the padding, in every awk
+-v COLOR=0 test/fixtures/Makefile.utf8
+#: stdout
+------------------
+Available targets:
+------------------
+ビルド        ビルドする
+test       Run the tests (テスト)
+déployer   Déployer
+clean      Clean
+
+------------------
+Variables:
+------------------
+TAILLE     Taille du cache
+------------------
