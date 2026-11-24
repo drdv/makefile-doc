@@ -19,36 +19,63 @@ function test_substitute_backticks_patterns() {
         "empty `` region")
 }
 
-function test_escape_for_html_output() {
+function test_html_escape() {
+  check("html_escape: <, > and &", html_escape("AWK=<variant> & co"),
+        "AWK=&lt;variant&gt; &amp; co")
+  check("html_escape: & is escaped only once", html_escape("&lt;"), "&amp;lt;")
+}
+
+function test_latex_escape() {
+  check("latex_escape: braces", latex_escape("this is {a test} string"),
+        "this is \\{a test\\} string")
+  check("latex_escape: backslash", latex_escape("a \\n b"), "a \\textbackslash{}n b")
+  check("latex_escape: backslash next to braces", latex_escape("\\{x}"),
+        "\\textbackslash{}\\{x\\}")
+}
+
+function test_fmt_escape() {
+  OUTPUT_FORMAT = "ANSI"
+  check("fmt_escape (ANSI): unchanged", fmt_escape("<a> & {b} \\"), "<a> & {b} \\")
   OUTPUT_FORMAT = "HTML"
-  check("escape_for_html_output: <, > and &",
-        escape_for_html_output("AWK=<variant> & co"), "AWK=&lt;variant&gt; &amp; co")
-  check("escape_for_html_output: & is escaped only once",
-        escape_for_html_output("&lt;"), "&amp;lt;")
-
+  check("fmt_escape (HTML): the HTML escapes only", fmt_escape("<a> & {b} \\"),
+        "&lt;a&gt; &amp; {b} \\")
   OUTPUT_FORMAT = "LATEX"
-  check("escape_for_html_output: LATEX is unchanged",
-        escape_for_html_output("<a> & b"), "<a> & b")
-
+  check("fmt_escape (LATEX): the LaTeX escapes only", fmt_escape("<a> & {b} \\"),
+        "<a> & \\{b\\} \\textbackslash{}")
   OUTPUT_FORMAT = ""
 }
 
-function test_escape_for_latex_output() {
+function test_fmt_color() {
   OUTPUT_FORMAT = "HTML"
-  check("escape_for_latex_output: HTML is unchanged",
-        escape_for_latex_output("this is {a test} string"),
-        "this is {a test} string")
-
-  OUTPUT_FORMAT = "LATEX"
-  check("escape_for_latex_output: LATEX",
-        escape_for_latex_output("this is {a test} string"),
-        "this is \\{a test\\} string")
-  check("escape_for_latex_output: backslash",
-        escape_for_latex_output("a \\n b"), "a \\textbackslash{}n b")
-  check("escape_for_latex_output: backslash next to braces",
-        escape_for_latex_output("\\{x}"), "\\textbackslash{}\\{x\\}")
-
+  COLOR_RESET_CODE = "</>"
+  check("fmt_color: each line on its own, not the empty ones", fmt_color("a\n\nb", "<c>"),
+        "<c>a</>\n\n<c>b</>")
+  check("fmt_color: no color code, no change", fmt_color("a\nb", ""), "a\nb")
+  check("fmt_color (HTML): a reset inside is kept as is", fmt_color("x<y>z</>w", "<c>"),
+        "<c>x<y>z</>w</>")
+  OUTPUT_FORMAT = "ANSI"
+  COLOR_RESET_CODE = "\033[0m"
+  check("fmt_color (ANSI): the color is restored after a reset inside",
+        fmt_color("x\033[33mz\033[0mw", "\033[32m"),
+        "\033[32mx\033[33mz\033[0m\033[32mw\033[0m")
   OUTPUT_FORMAT = ""
+  COLOR_RESET_CODE = ""
+}
+
+function test_fmt_document() {
+  init_globals()
+  OUTPUT_HEADER = "<h>\n"
+  OUTPUT_FOOTER = "</h>\n"
+  OUTPUT_FORMAT = "HTML"
+  check("fmt_document: the body between the header and the footer", fmt_document("a\n"),
+        "<h>\na\n</h>\n")
+  OUTPUT_FORMAT = "LATEX"
+  COLOR_RESET_CODE = "}"
+  EXPORT_FG_BG["FG"] = "111111"
+  check("fmt_document (LATEX): FG on each line", fmt_document("a\n"),
+        "<h>\n\\textcolor{makefile-doc-fg}{a}\n</h>\n")
+  OUTPUT_FORMAT = ""
+  init_globals()
 }
 
 # add a record to the interface, as the parser does (section "": none)
@@ -212,24 +239,24 @@ function test_is_bool_is_hex_color() {
   check_true("is_hex_color: empty", !is_hex_color(""))
 }
 
-function test_define_color() {
+function test_fmt_color_code() {
   setup_colors("ANSI", "")
-  check("define_color (ANSI): color", define_color(34, "DEFAULT"), "\033[34m")
-  check("define_color (ANSI): reset", define_color(-1), "\033[0m")
-  check("define_color (ANSI): no color", define_color(0, "DEFAULT"), "")
+  check("fmt_color_code (ANSI): color", fmt_color_code(34, "DEFAULT"), "\033[34m")
+  check("fmt_color_code (ANSI): reset", fmt_color_code(-1), "\033[0m")
+  check("fmt_color_code (ANSI): no color", fmt_color_code(0, "DEFAULT"), "")
 
   setup_colors("HTML", "")
-  check("define_color (HTML): color", define_color(34, "DEFAULT"),
+  check("fmt_color_code (HTML): color", fmt_color_code(34, "DEFAULT"),
         "<span class=\"makefile-doc-default\">")
-  check("define_color (HTML): reset", define_color(-1), "</span>")
+  check("fmt_color_code (HTML): reset", fmt_color_code(-1), "</span>")
 
   setup_colors("LATEX", "")
-  check("define_color (LATEX): color", define_color(34, "DEFAULT"),
+  check("fmt_color_code (LATEX): color", fmt_color_code(34, "DEFAULT"),
         "\\textcolor{makefile-doc-default}{")
-  check("define_color (LATEX): background", define_color(44, "BACKTICKS"),
+  check("fmt_color_code (LATEX): background", fmt_color_code(44, "BACKTICKS"),
         "\\bgcolor{makefile-doc-backticks}{")
-  check("define_color (LATEX): attribute", define_color(1, "BACKTICKS"), "\\textbf{")
-  check("define_color (LATEX): reset", define_color(-1), "}")
+  check("fmt_color_code (LATEX): attribute", fmt_color_code(1, "BACKTICKS"), "\\textbf{")
+  check("fmt_color_code (LATEX): reset", fmt_color_code(-1), "}")
 
   setup_colors("", "")
 }
@@ -291,14 +318,17 @@ function test_ansi_color_param_to_html_style() {
 
 BEGIN {
   test_substitute_backticks_patterns()
-  test_escape_for_latex_output()
-  test_escape_for_html_output()
+  test_html_escape()
+  test_latex_escape()
+  test_fmt_escape()
+  test_fmt_color()
+  test_fmt_document()
   test_prepare_rendering()
   test_format_documentation()
   test_default_color_option()
   test_validate_ansi_param()
   test_is_bool_is_hex_color()
-  test_define_color()
+  test_fmt_color_code()
   test_export_theme()
   test_ansi_color_param_to_html_style()
   done()
