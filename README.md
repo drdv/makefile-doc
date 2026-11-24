@@ -263,15 +263,15 @@ $(OPEN_NOTES):
 prints
 
 ```
------------------------
+------------------
 Available targets:
------------------------
+------------------
 help    Show this help
 open-   Notes:
         my-budget
         trip-info
         misc
------------------------
+------------------
 ```
 
 Variables can be substituted in the same way. `NAME` is the name of the anchor as it is displayed

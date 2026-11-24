@@ -108,7 +108,11 @@ BEGIN {                                # BEGIN #1 (initialize harness state)
 BEGIN {                                # BEGIN #2
   init_globals()                       # initialize global state
   if (!UNIT_TEST) {
-    process_options()                  # skipped
+    if (process_options() > 0) {       # skipped
+      ABORT = 1
+      exit 1
+    }
+    parser_init(PARSER_STATE, PARSER_MEMORY, RECIPEPREFIX)   # skipped
   }
 }
 ...                                    # rules that parse a Makefile (never run)
@@ -124,7 +128,7 @@ END {
 ...                                    # test functions, which call check()
 BEGIN {                                # BEGIN #3
   test_max_min()
-  test_join()
+  test_text_length()
   ...
   done()                               # prints the number of checks, then exit
 }
