@@ -6,8 +6,11 @@ function test_max_min() {
 }
 
 function test_repeated_string() {
-  check("repeated_string: empty string means a space", repeated_string("", 5), "     ")
   check("repeated_string: a character", repeated_string("a", 4), "aaaa")
+  check("repeated_string: a string", repeated_string("ab", 2), "abab")
+  check("repeated_string: an empty string", repeated_string("", 5), "")
+  check("repeated_string: zero times", repeated_string("a", 0), "")
+  check("spaces", spaces(3), "   ")
 }
 
 function test_length_array_posix(    arr) {
@@ -30,19 +33,22 @@ function test_array_get(    arr) {
   check("array_get: the array is unchanged", length_array_posix(arr), 2)
 }
 
-function test_join(    arr) {
-  split("this is another test", arr, " ")
-  check("join: colon delimiter", join(arr, ":"), "this:is:another:test")
+function test_join(    arr, n) {
+  n = split("this is another test", arr, " ")
+  check("join: colon delimiter", join(arr, n, ":"), "this:is:another:test")
 
   split("", arr)
   arr[1] = "first line"
-  check("join: one element", join(arr, "\n"), "first line")
+  check("join: one element", join(arr, 1, "\n"), "first line")
   arr[2] = "   second line"
   arr[3] = "\t last line  "
   check("join: lines joined with newlines (spaces kept)",
-        join(arr, "\n"), "first line\n   second line\n\t last line  ")
+        join(arr, 3, "\n"), "first line\n   second line\n\t last line  ")
+  check("join: only the elements 1..n", join(arr, 2, "|"), "first line|   second line")
+  arr["other"] = "x"
+  check("join: other keys are ignored", join(arr, 1, "|"), "first line")
   split("", arr)
-  check("join: empty array", join(arr, "\n"), "")
+  check("join: empty array", join(arr, 0, "\n"), "")
 }
 
 function test_string_replace(    text, parts) {
@@ -63,7 +69,7 @@ function test_string_replace(    text, parts) {
         "aXbX")
   # many occurrences (a recursive implementation exhausts the stack of mawk at about 200)
   check("string_replace: 1000 occurrences",
-        string_replace(" ", ".", repeated_string("", 1000)),
+        string_replace(" ", ".", spaces(1000)),
         repeated_string(".", 1000))
   check("string_replace: the replacement is not searched again",
         string_replace("a", "aa", "a-a"), "aa-aa")

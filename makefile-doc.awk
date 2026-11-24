@@ -72,19 +72,21 @@ function min(x, y) {
   return (x <= y) ? x : y
 }
 
-# string repeated n times ("" means a space). n must be a non-negative integer: the only one
-# from the user, OFFSET, is checked by process_options. (A loop, not gsub, which would need
-# & and \ escaped.)
+# string repeated n times. n must be a non-negative integer (the only n that comes from the
+# user, OFFSET, is checked by process_options). (A loop, not gsub, which would need & and \
+# escaped.)
 function repeated_string(string, n, #locals
                          s, k) {
-  if (string == "") {
-    string = " "
-  }
   s = ""
   for (k = 1; k <= n; k++) {
     s = s string
   }
   return s
+}
+
+# n spaces (see repeated_string)
+function spaces(n) {
+  return repeated_string(" ", n)
 }
 
 # array[key], or "" if there is no such key (unlike reading array[key], it does not create it)
@@ -102,12 +104,11 @@ function length_array_posix(array, #locals
   return n
 }
 
-# join the elements 1..n of an array (e.g., one produced by split())
-function join(array, delimiter, #locals
-              string, k, n_elements) {
+# join the elements 1..n of an array (e.g., n and the array of split())
+function join(array, n, delimiter, #locals
+              string, k) {
   string = ""
-  n_elements = length_array_posix(array)
-  for (k = 1; k <= n_elements; k++) {
+  for (k = 1; k <= n; k++) {
     if (k == 1) {
       string = array[k]
     } else {
@@ -1577,7 +1578,7 @@ function color_lines(text, color_code, #locals
       lines[k] = color_code lines[k] COLOR_RESET_CODE
     }
   }
-  return join(lines, "\n")
+  return join(lines, n, "\n")
 }
 
 function substitute_backticks_patterns(string, #locals
@@ -1614,10 +1615,10 @@ function anchor_color(tag) {
 # next lines aligned with it, with the escapes of the output format and the colors of the
 # text in backticks
 function format_doc(doc, len_anchors, #locals
-                    lines, indentation) {
-  split(doc, lines, "\n")
-  indentation = repeated_string("", OFFSET + len_anchors) # aligned with the first line
-  doc = repeated_string("", OFFSET) join(lines, "\n" indentation)
+                    n, lines, indentation) {
+  n = split(doc, lines, "\n")
+  indentation = spaces(OFFSET + len_anchors) # aligned with the first line
+  doc = spaces(OFFSET) join(lines, n, "\n" indentation)
   return colorize_doc_backticks(apply_output_specific_formatting(doc))
 }
 
@@ -1670,10 +1671,10 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
 
   # the + 1 assumes the usual space after the token (as in `## doc`), so that the values
   # line up with the text of the doc
-  indentation = repeated_string("", len_anchors + OFFSET + 1)
+  indentation = spaces(len_anchors + OFFSET + 1)
   output = (SUB_PARAM[sub_row, "L"] ? "\n" indentation : " ") lines[1]
   # the lines after the first are aligned with the first value (after I)
-  next_indentation = indentation repeated_string("", length(initial))
+  next_indentation = indentation spaces(length(initial))
   for (k = 2; k <= n_lines; k++) {
     output = output "\n" next_indentation lines[k]
   }
