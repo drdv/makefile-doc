@@ -91,14 +91,14 @@ function test_parser_reference_end() {
 # The states after each physical line of text (lines separated by |), as "rds" (1/0 for
 # r, d, s), or "+" for a line that continues on the next one
 function trace_lines(text, prefix, #locals
-                     state, lines, n, k, obs, out) {
-  parser_init(state, prefix)
+                     state, data, joiner, context, lines, n, k, obs, out) {
+  parser_init(state, data, prefix)
+  parser_join_init(joiner)
   n = split(text, lines, "|")
   out = ""
   for (k = 1; k <= n; k++) {
-    if (parser_join(state, lines[k])) {
-      parser_obs(state["line"], state, obs)
-      parser_step(state, obs)
+    if (parser_join(joiner, lines[k], k)) {
+      parser_process(state, data, context, obs, joiner["line"], joiner["start"])
       out = out " " state["r"] state["d"] state["s"]
     } else {
       out = out " +"
@@ -107,7 +107,7 @@ function trace_lines(text, prefix, #locals
   return substr(out, 2)
 }
 
-function test_parser_states(    state, obs) {
+function test_parser_states(    state, data, joiner, context, obs) {
   check("states: the example of the model",
         trace_lines("##@ Build|## Compile the app|build: main.c|\tcc -o app main.c||" \
                     "## The version|V := 1", ""), "001 011 100 100 100 110 000")
@@ -133,28 +133,92 @@ function test_parser_states(    state, obs) {
   parser_observe("define NO_SPACE+=", obs)
   check("define: an operator without a blank is not part of the name", obs["name"], "NO_SPACE")
 
-  parser_init(state, "")
+  parser_init(state, data, "")
   parser_obs(".RECIPEPREFIX = $(P)", state, obs)
-  check("prefix: = keeps the text of a reference", state["c"], "$")
+  check("prefix: = keeps the text of a reference", obs["prefix"], "$")
+  check("prefix: the observation does not change the state", state["c"], "\t")
+  state["c"] = ">"
   parser_obs(".RECIPEPREFIX := $(P)", state, obs)
-  check("prefix: an expanded reference is not known", state["c"], "$")
+  check("prefix: an expanded reference is not known", obs["prefix"], ">")
   parser_obs(".RECIPEPREFIX :=", state, obs)
-  check("prefix: an empty value is a tab", state["c"], "\t")
-  parser_obs(".RECIPEPREFIX = >", state, obs)
+  check("prefix: an empty value is a tab", obs["prefix"], "\t")
   parser_obs("define .RECIPEPREFIX", state, obs)
-  check("prefix: a define is not known (its value is on the next lines)", state["c"], ">")
+  check("prefix: a define is not known (its value is on the next lines)", obs["prefix"], ">")
+  parser_obs("V := 1", state, obs)
+  check("prefix: another line keeps it", obs["prefix"], ">")
 
-  parser_init(state, "")
-  parser_join(state, "##@ s")
-  parser_obs(state["line"], state, obs)
-  parser_step(state, obs)
-  parser_join(state, "## d")
-  parser_obs(state["line"], state, obs)
-  parser_step(state, obs)
-  parser_join(state, "t: \\")
-  parser_file_start(state, "")
-  check("file start: the doc is dropped, the section carries over",
-        state["d"] " " state["s"] " " state["joining"], "0 1 0")
+  parser_init(state, data, "")
+  parser_join_init(joiner)
+  parser_join(joiner, "##@ s", 1)
+  parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+  parser_join(joiner, "## d", 2)
+  parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+  parser_join(joiner, "t: \\", 3)
+  parser_join_init(joiner)
+  parser_file_start(state, data)
+  check("file start: the doc is dropped, with its text, the section carries over",
+        state["d"] " " data["dn"] " " state["s"] " " data["sn"], "0 0 1 1")
+  check("file start: a line continued at the end of a file is dropped", joiner["joining"], 0)
+}
+
+# the pending text (D and S) after each physical line of text (lines separated by |), as
+# D/S with the lines of each joined by +
+function trace_data(text, #locals
+                    state, data, joiner, context, lines, n, k, obs, out) {
+  parser_init(state, data, "")
+  parser_join_init(joiner)
+  n = split(text, lines, "|")
+  out = ""
+  for (k = 1; k <= n; k++) {
+    if (parser_join(joiner, lines[k], k)) {
+      parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+      out = out " " data_lines(data, "doc", data["dn"]) "/" \
+            data_lines(data, "section", data["sn"])
+    }
+  }
+  gsub(/\n/, "+", out)
+  return substr(out, 2)
+}
+
+function test_parser_data() {
+  check("data: doc and section lines are added without their tokens",
+        trace_data("##@ s1|## d1|##! d2|##@ s2"), "/ s1  d1/ s1  d1+ d2/ s1  d1+ d2/ s1+ s2")
+  check("data: a directive drops the doc, an undocumented anchor keeps the section",
+        trace_data("##@ s|## d|include x|t:"), "/ s  d/ s / s / s")
+  check("data: a special rule keeps the doc",
+        trace_data("## d|.PHONY: t"), " d/  d/")
+  check("data: a documented anchor takes the doc and the section",
+        trace_data("##@ s|## d|t:"), "/ s  d/ s /")
+  check("data: an inline doc takes the section, not the text of the doc",
+        trace_data("##@ s|t: ## i"), "/ s /")
+  init_globals()
+}
+
+# the doc, tag and section (or <none>) of the last anchor recorded from the lines of text
+# (separated by |)
+function recorded(text, #locals
+                  state, data, joiner, context, lines, n, k, obs) {
+  init_globals()
+  parser_init(state, data, "")
+  parser_join_init(joiner)
+  n = split(text, lines, "|")
+  for (k = 1; k <= n; k++) {
+    if (parser_join(joiner, lines[k], k)) {
+      parser_process(state, data, context, obs, joiner["line"], joiner["start"])
+    }
+  }
+  return ANCHORS[ANCHOR_COUNT, "doc"] "|" ANCHORS[ANCHOR_COUNT, "tag"] "|" \
+         (((ANCHOR_COUNT, "section") in ANCHORS) ? ANCHORS[ANCHOR_COUNT, "section"] : "<none>")
+}
+
+function test_record_anchor() {
+  check("record: the pending doc, with the tag of its first line, and the section",
+        recorded("##@ s|##! d1|## d2|t:"), " d1\n d2|##!| s")
+  check("record: the pending doc wins over the inline doc", recorded("## d|t: ##% i"),
+        " d|##|<none>")
+  check("record: the inline doc, without a pending doc", recorded("t: ##% i"), " i|##%|<none>")
+  check("record: an empty section is a section", recorded("##@|t: ## i"), " i|##|")
+  init_globals()
 }
 
 # a field of the observation of a line without state (parser_observe), "" if not set
@@ -166,8 +230,8 @@ function observed(line, field, #locals
 
 # the inline doc of a line outside a rule (parser_obs), or "<none>"
 function inline_doc(line, #locals
-                    state, obs) {
-  parser_init(state, "")
+                    state, data, obs) {
+  parser_init(state, data, "")
   parser_obs(line, state, obs)
   return obs["inline"] ? obs["comment"] : "<none>"
 }
@@ -285,5 +349,7 @@ BEGIN {
   test_parser_reference_end()
   test_parser_observe()
   test_parser_states()
+  test_parser_data()
+  test_record_anchor()
   done()
 }
