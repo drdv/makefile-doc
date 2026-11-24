@@ -6,11 +6,14 @@
 \newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
+\usepackage{xcolor}
 
 \newcommand{\code}[1]{\mbox{\texttt{#1}}}
 \newcommand{\obs}{\mathrm{obs}}
-\newcommand{\step}{\mathrm{step}}
-\newcommand{\kind}[1]{\textsf{#1}}
+\newcommand{\kind}[1]{\textcolor{blue}{\texttt{#1}}}
+\newcommand{\field}[1]{\texttt{#1}}
+\newcommand{\Obs}[1]{\mathcal{O}_i[\field{#1}]}
+\newcommand{\Acr}[1]{\mathcal{A}_n[\field{#1}]}
 
 \title{A model of the parser of makefile-doc.awk}
 \date{}
@@ -22,8 +25,8 @@
 
 The parser reads one or more Makefiles and attaches each doc, and each section, to an
 \emph{anchor}: a target or a variable. This note models it as a state machine: a small
-state that evolves line by line, driven by an observation of each line. The code follows
-the model (section~\ref{sec:implementation}).
+state that evolves line by line, driven by observations of each line. The code follows the
+model (section~\ref{sec:implementation}).
 
 \section{Input}
 
@@ -31,45 +34,251 @@ the model (section~\ref{sec:implementation}).
   \item \textbf{Logical lines.} A physical line that ends with an odd number of
         backslashes is joined with the next one, recipe lines included; as in GNU Make,
         the backslash, the newline and the blanks around them become one space. The model
-        reads the resulting logical lines $\ell_1, \ell_2, \dots$
+        reads the resulting logical lines $L_1, L_2, \dots$
   \item \textbf{Files in order.} The files are read whole, one after another (for
         \code{make help}, in the order of \code{\$(MAKEFILE\_LIST)}). A line continued at
         the end of a file is dropped.
 \end{itemize}
 
-\section{Notation}
+\section{Overview}
+\label{sec:overview}
+
+What the parser uses to read line $i$ falls into five groups, and it produces one output:
 
 \begin{center}
-\begin{tabular}{@{}lP{0.68\textwidth}@{}}
+\begin{tabular}{@{}lP{0.66\textwidth}@{}}
   \toprule
-  $\ell_i$ & the $i$-th logical line, over all files \\
-  $b_i \in \{0,1\}$ & $\ell_i$ is the first line of a file (given with the line) \\
-  $r_i \in \{0,1\}$ & a rule is open: a line that starts with the recipe prefix is a recipe line \\
-  $d_i \in \{0,1\}$ & a doc is pending \\
-  $s_i \in \{0,1\}$ & a section is pending \\
-  $c_i$ & the recipe prefix (a character) \\
-  $x_i = (r_i, d_i, s_i, c_i)$ & the state \emph{after} line $i$: the state that line
-                                 $i+1$ is read with \\
-  $D_i$, $S_i$ & the pending doc and section text after line $i$: sequences of lines
-                 ($\varnothing$ when empty), the data that travels with the state \\
-  $k_i \in K$ & the kind of $\ell_i$ (section~\ref{sec:kinds}) \\
-  $a_i \in \{0,1\}$ & $\ell_i$ has an inline doc \\
-  $T_i$ & the text of $\ell_i$ when it is a doc or section line (without its token) \\
-  $A_i$ & the inline doc of $\ell_i$ (without its token) \\
-  $e_i \in \{0,1\}$ & $\ell_i$ is an anchor that gets documented \\
+  Group & Content \\
+  \midrule
+  Environment & given with each line, not read from it: $b_i$ \\
+  State & what decides how lines are read: $x_i = (r_i, d_i, s_i, p_i)$
+          (section~\ref{sec:state}) \\
+  Memory & the pending text, carried from line to line but never deciding anything:
+           $D_i$, $S_i$ (section~\ref{sec:memory}) \\
+  Observations & read from the text of $L_i$ only: $\mathcal{O}_i[\ldots]$
+                 (section~\ref{sec:observations}) \\
+  Derived & computed for line $i$ from the groups above, and not carried to the next line:
+            $\bar r_{i-1}$, $\bar d_{i-1}$, $\bar D_{i-1}$, $k_i$, $e_i$
+            (section~\ref{sec:derived}) \\
+  \midrule
+  Output & the anchor records $\mathcal{A}_1, \dots, \mathcal{A}_m$, one for each
+           documented anchor (section~\ref{sec:output}) \\
   \bottomrule
 \end{tabular}
 \end{center}
 
-\section{Model}
-\label{sec:model}
+\noindent For each line $i$, in this order:
+\begin{enumerate}
+  \item the environment gives $b_i$;
+  \item $\obs$ computes the observations $\mathcal{O}_i$ from $L_i$ alone;
+  \item the derived quantities are computed (section~\ref{sec:derived}), among them the
+        kind of the line $k_i$ and whether it is an anchor that gets documented, $e_i$;
+  \item if $e_i = 1$, the next anchor record $\mathcal{A}_n$ is produced, from the memory
+        \emph{before} its transition;
+  \item the state goes from $x_{i-1}$ to $x_i$, and the memory from
+        $(D_{i-1}, S_{i-1})$ to $(D_i, S_i)$.
+\end{enumerate}
+Then line $i+1$, whose observations do not depend on anything before it.
 
-The state starts empty, and a new file closes the rule and drops the doc, with its text:
+\section{Notation}
+
+Letters name the state, the memory and the derived quantities; upper-case letters name
+text.
+
+\begin{center}
+\begin{tabular}{@{}lP{0.68\textwidth}@{}}
+  \toprule
+  $L_i$ & the $i$-th logical line, over all files \\
+  $D_i$ & the pending doc after line $i$: its lines, each with its text and tag
+          ($\varnothing$ when empty) \\
+  $S_i$ & the pending section after line $i$: its lines ($\varnothing$ when empty) \\
+  \midrule
+  $b_i \in \{0,1\}$ & $L_i$ is the first line of a file \\
+  $r_i \in \{0,1\}$ & a rule is open: a line that starts with the recipe prefix is a recipe line \\
+  $d_i \in \{0,1\}$ & a doc is pending \\
+  $s_i \in \{0,1\}$ & a section is pending \\
+  $p_i$ & the recipe prefix (a character) \\
+  $x_i = (r_i, d_i, s_i, p_i)$ & the state \emph{after} line $i$: the state that line
+                                 $i+1$ is read with \\
+  $k_i$ & the kind of the line $L_i$ (section~\ref{sec:kinds}) \\
+  $e_i \in \{0,1\}$ & $L_i$ is an anchor that gets documented \\
+  $\mathcal{O}_i[\field{name}]$ & an observation of $L_i$ (section~\ref{sec:observations}) \\
+  $\mathcal{A}_n[\field{name}]$ & a field of the $n$-th anchor record
+                                  (section~\ref{sec:output}) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The indices follow the state: $D_i$ is the pending doc \emph{after} line $i$, so
+line $i$ is read with $D_{i-1}$. For example:
+
+\begin{center}
+\begin{tabular}{@{}rlll@{}}
+  \toprule
+  $i$ & $L_i$ & $\Obs{text}$ & $D_i$ \\
+  \midrule
+  1 & \code{\ \ \#\# Compile the} & \code{\ Compile the} & (\code{\ Compile the}) \\
+  2 & \code{\#\# project} & \code{\ project} & (\code{\ Compile the}, \code{\ project}) \\
+  3 & \code{build:} & & $\varnothing$ (the doc of \code{build}: $D_2$) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Kinds of lines}
+\label{sec:kinds}
+
+Two lines have the same kind if the state transition treats them the same; everything else
+about a line is in its observations. For example, \code{V := 1} documents a variable and
+\code{t: V := 1} a target,\footnote{\code{t: V := 1} is a target-specific variable
+assignment: its anchor is the target \code{t}, so a target-specific variable cannot be
+documented as a variable.} but both lines are of kind \kind{assignment}: they close the rule
+and take the pending doc.
+
+\begin{center}
+\begin{tabular}{@{}lP{0.7\textwidth}@{}}
+  \toprule
+  Kind of line & Lines \\
+  \midrule
+  \kind{recipe} & a line that starts with the prefix while a rule is open, including a line
+                  that holds only the prefix (derived, section~\ref{sec:derived}) \\
+  \kind{neutral} & a blank line, a comment, a conditional (\code{ifeq}, \code{ifneq},
+                   \code{ifdef}, \code{ifndef}, \code{else}, \code{endif}) \\
+  \kind{doc} & a comment that starts with \code{\#\#}, \code{\#\#!} or \code{\#\#\%},
+               and is neither a \kind{section} nor a \kind{banner} \\
+  \kind{section} & a comment that starts with \code{\#\#@} \\
+  \kind{banner} & a comment of \code{\#} only, at least three \\
+  \kind{rule} & \code{t: dep}, \code{t::}, \code{t1 t2 \&: dep}, \code{\%.o: \%.c},
+                \code{\$(OBJS): \%.o: \%.c} \\
+  \kind{special rule} & a rule of a special target: \code{.PHONY: t}, \code{.DEFAULT:},
+                        \ldots \\
+  \kind{assignment} & \code{V := 1} (any operator, after \code{export}, \code{override},
+                      \code{private}), \code{t: V := 1}, \code{define V} \\
+  \kind{other} & a directive (\code{include}, \code{vpath}, \code{export V},
+                 \code{unexport}, \ldots), \code{endef}, \code{\$(info \ldots)}, anything
+                 else \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\section{Observations}
+\label{sec:observations}
+
+The observations are pure functions of the line: $\mathcal{O}_i = \obs(L_i)$ reads the text
+of $L_i$ and nothing else (neither the state, nor the memory, nor the environment).
+
 \begin{equation}
-  x_0 = (0,\ 0,\ 0,\ c_0), \quad D_0 = S_0 = \varnothing
-  \qquad \text{($c_0$: the \code{RECIPEPREFIX} option, a tab by default)}
-  \label{eq:init}
+  \begin{array}{@{}l@{\quad}P{0.62\textwidth}@{}}
+    \Obs{line\_kind} & the kind of the line as if no rule were open: the first question of
+                       table~\ref{tab:questions} answered yes, \kind{other} if none \\[3pt]
+    \Obs{first\_char} & the first character of $L_i$ (empty for an empty line) \\[3pt]
+    \Obs{anchor\_kind} & the kind of the anchor of $L_i$: \code{variable} for an assignment
+                         whose operator comes before any separating colon, or a
+                         \code{define}; \code{target} for a rule or a target-specific
+                         assignment; none otherwise, a special rule included
+                         (section~\ref{sec:lexical}) \\[3pt]
+    \Obs{anchor\_name} & the name of the anchor, as written: the word before the operator,
+                         after the qualifiers (a variable), or the text before the
+                         separating colon (a target) \\[3pt]
+    \Obs{override} & 1 if a variable is set with the qualifier \code{override} \\[3pt]
+    \Obs{inline} & 1 if $L_i$ has an anchor and its comment (section~\ref{sec:lexical})
+                   starts with \code{\#\#} but not \code{\#\#@}: an inline doc \\[3pt]
+    \Obs{inline\_doc} & that comment without its token (empty if there is none) \\[3pt]
+    \Obs{text} & $L_i$ without its leading blanks and its token, if $\Obs{line\_kind}$ is
+                 \kind{doc} or \kind{section} (empty otherwise) \\[3pt]
+    \Obs{tag} & the token of a doc line, or of the inline doc: \code{\#\#}, \code{\#\#!} or
+                \code{\#\#\%} \\[3pt]
+    \Obs{prefix} & the prefix that $L_i$ assigns to \code{.RECIPEPREFIX}, when the value is
+                   written on the line: the first character of the value (a tab if it is
+                   empty), with \code{=}, or with \code{:=} or \code{::=} and no reference
+                   in the value; none otherwise (no such assignment, \code{+=},
+                   \code{?=}, \code{!=}, \code{define})
+  \end{array}
+  \label{eq:obs}
 \end{equation}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}rP{0.52\textwidth}l@{}}
+  \toprule
+  & Question & $\Obs{line\_kind}$ \\
+  \midrule
+  1 & Is the line blank? & \kind{neutral} \\
+  2 & Is it a comment: banner, section, doc, other? &
+      \kind{banner}, \kind{section}, \kind{doc}, \kind{neutral} \\
+  3 & Is it an assignment? & \kind{assignment} \\
+  4 & Does it start with a keyword: conditional, \code{define}, directive, \code{endef}? &
+      \kind{neutral}, \kind{assignment}, \kind{other} \\
+  5 & Is it a rule? & question 6 \\
+  6 & Are its targets special? & \kind{special rule}, else \kind{rule} \\
+  \bottomrule
+\end{tabular}
+\caption{The questions that give $\Obs{line\_kind}$.}
+\label{tab:questions}
+\end{table}
+
+\noindent Question 3 comes before question 4, so that \code{export V = 1} and
+\code{include := x} are assignments. Questions 3 and 5, the anchor and the comment depend on
+the syntax of GNU Make (section~\ref{sec:lexical}). Leading blanks are not part of the
+syntax: a line that starts with a tab is read like any other (whether it is a recipe line
+depends on the state, section~\ref{sec:derived}).
+
+\section{Lexical layer}
+\label{sec:lexical}
+
+Escapes, \code{\$\$} and references change where a line splits. Rather than matching around
+them, $\obs$ masks them first, then searches the masked line:
+\[
+  \text{logical line} \;\to\; \text{masked line} \;\to\; \text{searches}
+  \;\to\; \text{questions 3 and 5, the anchor, the comment.}
+\]
+
+\paragraph{Masking.} The masked line has the length of the line, with these replaced by a
+placeholder:
+\begin{itemize}
+  \item a reference: from \code{\$(} or \code{\$\{} to the matching \code{)} or \code{\}}
+        (only the same kind of bracket nests), or to the end of the line if it is not
+        closed. Nothing inside a reference is read;
+  \item \code{\$} and the character after it: a one-character reference (\code{\$@},
+        \code{\$\#}); \code{\$\$} is a literal \code{\$};
+  \item the pairs \code{\textbackslash\textbackslash}, \code{\textbackslash\#},
+        \code{\textbackslash:} and \code{\textbackslash;}, from left to right: in a run of
+        backslashes, only an odd last one escapes the character after it. Other
+        backslashes are kept.
+\end{itemize}
+The searches run on the masked line; names and values are cut from the line at the same
+positions.
+
+\paragraph{Searches.} $\obs$ finds the structure of a line from four positions in the
+masked line $M$ (they are used by questions 3 and 5 of table~\ref{tab:questions} and by
+$\Obs{anchor\_kind}$, $\Obs{anchor\_name}$, $\Obs{override}$, $\Obs{inline}$,
+$\Obs{inline\_doc}$ and $\Obs{prefix}$):
+\begin{itemize}
+  \item \textbf{operator}: the first \code{=} in $M$, with the characters just before it
+        that belong to it: a run of \code{:} (\code{:=}, \code{::=}, \code{:::=}), or one of
+        \code{?}, \code{+}, \code{!};
+  \item \textbf{separating colon}: the first \code{:} in $M$ that is not part of the
+        operator;
+  \item \textbf{assignment} (question 3): the operator comes before the separating colon, or
+        there is none, and the text before the operator is one word after the qualifiers
+        \code{export}, \code{override}, \code{private} (that word is the name of the
+        variable);
+  \item \textbf{rule} (question 5): otherwise, a separating colon (the text before it is the
+        name of the target). After the colon, the first of \code{=}, \code{;} and \code{\#}
+        decides: \code{=} makes the line a target-specific assignment, \code{;} starts an
+        inline recipe (the rest of the line is not read), \code{\#} starts the comment;
+  \item \textbf{comment}: in an assignment, from the first \code{\#} after the operator; in
+        a target-specific assignment, only if a \code{\#} comes before any \code{;} (after
+        a \code{;}, the rest is the value).
+\end{itemize}
+The value of an assignment is the text between the operator and the comment. The examples
+are in \code{test/parser.spec}.
+
+\section{Derived quantities}
+\label{sec:derived}
+
+\paragraph{Reset.} At the first line of a file ($b_i = 1$), no rule is open and no doc is
+pending: $r$ and $d$ of the state are reset to 0, and the pending doc $D$ in the memory is
+emptied:
 \begin{equation}
   \bar r_{i-1} =
   \begin{cases}
@@ -90,19 +299,48 @@ The state starts empty, and a new file closes the rule and drops the doc, with i
   \end{cases}
   \label{eq:reset}
 \end{equation}
-Each line is observed (section~\ref{sec:observation}), with the state for one question:
+The section, the prefix and the memory of the section carry over to the next file.
+
+\paragraph{Kind of the line.} A line is a recipe line if a rule is open and the line starts
+with the prefix; otherwise its kind is observed:
 \begin{equation}
-  (k_i,\ a_i,\ c_i;\ T_i,\ A_i) = \obs(\ell_i,\ \bar r_{i-1},\ c_{i-1}).
-  \label{eq:obs}
+  k_i =
+  \begin{cases}
+    \kind{recipe} & \text{if } \bar r_{i-1} = 1 \text{ and } \Obs{first\_char} = p_{i-1}\\
+    \Obs{line\_kind} & \text{otherwise}
+  \end{cases}
+  \label{eq:k}
 \end{equation}
-\paragraph{State.} The step (section~\ref{sec:step}) depends on the kind and the inline doc
-only:
+The other observations of a recipe line are not used: the equations below depend on them
+only for the kinds of lines that are not \kind{recipe}.
+
+\paragraph{Documented anchor.} An anchor is a line of kind \kind{rule} or
+\kind{assignment}. It gets documented if a doc is pending or it has an inline doc:
+\begin{equation}
+  e_i =
+  \begin{cases}
+    1 & \text{if } k_i \in \{\kind{rule}, \kind{assignment}\} \text{ and }
+        (\bar d_{i-1} = 1 \text{ or } \Obs{inline} = 1)\\
+    0 & \text{otherwise}
+  \end{cases}
+  \label{eq:e}
+\end{equation}
+
+\section{State}
+\label{sec:state}
+
+\begin{equation}
+  x_0 = (0,\ 0,\ 0,\ p_0)
+  \qquad \text{($p_0$: the \code{RECIPEPREFIX} option, a tab by default)}
+  \label{eq:init}
+\end{equation}
 \begin{equation}
   r_i =
   \begin{cases}
     1 & \text{if } k_i \in \{\kind{recipe}, \kind{rule}, \kind{special rule}\}\\
     0 & \text{if } k_i \in \{\kind{assignment}, \kind{other}\}\\
-    \bar r_{i-1} & \text{otherwise}
+    \bar r_{i-1} & \text{if } k_i \in \{\kind{neutral}, \kind{doc}, \kind{section},
+                   \kind{banner}\}
   \end{cases}
   \label{eq:r}
 \end{equation}
@@ -112,18 +350,10 @@ only:
     1 & \text{if } k_i = \kind{doc}\\
     0 & \text{if } k_i \in \{\kind{recipe}, \kind{banner}, \kind{rule}, \kind{assignment},
                               \kind{other}\}\\
-    \bar d_{i-1} & \text{otherwise}
+    \bar d_{i-1} & \text{if } k_i \in \{\kind{neutral}, \kind{section},
+                   \kind{special rule}\}
   \end{cases}
   \label{eq:d}
-\end{equation}
-\begin{equation}
-  e_i =
-  \begin{cases}
-    1 & \text{if } k_i \in \{\kind{rule}, \kind{assignment}\} \text{ and }
-        (\bar d_{i-1} = 1 \text{ or } a_i = 1)\\
-    0 & \text{otherwise}
-  \end{cases}
-  \label{eq:e}
 \end{equation}
 \begin{equation}
   s_i =
@@ -134,202 +364,17 @@ only:
   \end{cases}
   \label{eq:s}
 \end{equation}
-where $c_i$ is given by \eqref{eq:obs}.
-
-\paragraph{Data.} The pending text follows the new state (section~\ref{sec:data}):
 \begin{equation}
-  D_i =
+  p_i =
   \begin{cases}
-    \bar D_{i-1} + T_i & \text{if } k_i = \kind{doc}\\
-    \varnothing & \text{if } d_i = 0\\
-    \bar D_{i-1} & \text{otherwise}
+    \Obs{prefix} & \text{if } k_i \ne \kind{recipe} \text{ and } \Obs{prefix} \text{ is not
+                   none}\\
+    p_{i-1} & \text{otherwise}
   \end{cases}
-  \label{eq:D}
+  \label{eq:p}
 \end{equation}
-\begin{equation}
-  S_i =
-  \begin{cases}
-    S_{i-1} + T_i & \text{if } k_i = \kind{section}\\
-    \varnothing & \text{if } s_i = 0\\
-    S_{i-1} & \text{otherwise}
-  \end{cases}
-  \label{eq:S}
-\end{equation}
-\paragraph{Record.} When $e_i = 1$, the anchor of $\ell_i$ is recorded with the state and
-the text before the line:
-\begin{equation}
-  \text{doc} =
-  \begin{cases}
-    \bar D_{i-1} & \text{if } \bar d_{i-1} = 1\\
-    A_i & \text{otherwise}
-  \end{cases}
-  \qquad
-  \text{section} =
-  \begin{cases}
-    S_{i-1} & \text{if } s_{i-1} = 1\\
-    \text{none} & \text{otherwise}
-  \end{cases}
-  \label{eq:record}
-\end{equation}
-and the tag of the first line of its doc (\code{\#\#}, \code{\#\#!} or \code{\#\#\%}).
 
-\begin{itemize}
-  \item $\obs$ \eqref{eq:obs} reads the line. It needs the state for one question only: a
-        line is a recipe line if a rule is open and the line starts with the prefix. It
-        returns the new prefix $c_i$ if $\ell_i$ assigns \code{.RECIPEPREFIX}, $c_{i-1}$
-        otherwise.
-  \item The step \eqref{eq:r}--\eqref{eq:s} never reads the line: it depends on the kind and
-        the inline doc only.
-  \item The data \eqref{eq:D}--\eqref{eq:S} follows the new state ($d_i$, $s_i$); the record
-        \eqref{eq:record} reads the state before the line ($\bar d_{i-1}$, $s_{i-1}$).
-  \item $s$, $S$ and $c$ carry over to the next file \eqref{eq:reset}: a section goes to the
-        next documented anchor, wherever it is, and GNU Make does not reset
-        \code{.RECIPEPREFIX}.
-\end{itemize}
-
-\section{Kinds}
-\label{sec:kinds}
-
-Two lines have the same kind if $\step$ treats them the same; everything else about a line
-is data. For example, \code{V := 1} documents a variable and \code{t: V := 1} a target, but
-both are assignments: they close the rule and take the pending doc.
-
-\begin{center}
-\begin{tabular}{@{}lP{0.7\textwidth}@{}}
-  \toprule
-  Kind & Lines \\
-  \midrule
-  \kind{recipe} & a line that starts with $c$ while a rule is open, including a line that
-                  holds only $c$ \\
-  \kind{neutral} & a blank line, a comment, a conditional (\code{ifeq}, \code{ifneq},
-                   \code{ifdef}, \code{ifndef}, \code{else}, \code{endif}) \\
-  \kind{doc} & a comment that starts with \code{\#\#}, \code{\#\#!} or \code{\#\#\%} \\
-  \kind{section} & a comment that starts with \code{\#\#@} \\
-  \kind{banner} & a comment of \code{\#} only, at least three \\
-  \kind{rule} & \code{t: dep}, \code{t::}, \code{t1 t2 \&: dep}, \code{\%.o: \%.c},
-                \code{\$(OBJS): \%.o: \%.c} \\
-  \kind{special rule} & a rule of a special target: \code{.PHONY: t}, \code{.DEFAULT:},
-                        \ldots \\
-  \kind{assignment} & \code{V := 1} (any operator, after \code{export}, \code{override},
-                      \code{private}), \code{t: V := 1}, \code{define V} \\
-  \kind{other} & a directive (\code{include}, \code{vpath}, \code{export V},
-                 \code{unexport}, \ldots), \code{endef}, \code{\$(info \ldots)}, anything
-                 else \\
-  \bottomrule
-\end{tabular}
-\end{center}
-
-\section{Observation}
-\label{sec:observation}
-
-$\obs$ answers questions about the line. Questions 1--7 give $k_i$: the first one answered
-yes decides, and the kind is \kind{other} if none is. Questions 4, 6 and 8 depend on the
-syntax of GNU Make (section~\ref{sec:lexical}).
-
-\begin{center}
-\begin{tabular}{@{}rP{0.52\textwidth}l@{}}
-  \toprule
-  & Question & Answer \\
-  \midrule
-  1 & Is a rule open ($\bar r_{i-1}$), and does the line start with $c_{i-1}$? &
-      \kind{recipe} \\
-  2 & Is the line blank? & \kind{neutral} \\
-  3 & Is it a comment: banner, section, doc, other? &
-      \kind{banner}, \kind{section}, \kind{doc}, \kind{neutral} \\
-  4 & Is it an assignment? & \kind{assignment} \\
-  5 & Does it start with a keyword: conditional, \code{define}, directive, \code{endef}? &
-      \kind{neutral}, \kind{assignment}, \kind{other} \\
-  6 & Is it a rule? & question 7 \\
-  7 & Are its targets special? & \kind{special rule}, else \kind{rule} \\
-  \midrule
-  8 & Does the line have an inline doc? & $a_i$ \\
-  9 & Does it assign \code{.RECIPEPREFIX}, and to what? & $c_i$ \\
-  \bottomrule
-\end{tabular}
-\end{center}
-
-\noindent Question 4 comes before question 5, so that \code{export V = 1} and
-\code{include := x} are assignments. Besides $(k_i, a_i, c_i)$, the observation carries the
-data of the line: $T_i$ and $A_i$, with their tokens, and the anchor and its name.
-
-\section{Lexical layer}
-\label{sec:lexical}
-
-Escapes, \code{\$\$} and references change where a line splits. Rather than matching around
-them, the parser masks them first, then searches the masked line:
-\[
-  \text{logical line} \;\to\; \text{masked line} \;\to\; \text{searches}
-  \;\to\; \text{answers to questions 4, 6, 8.}
-\]
-
-\paragraph{Masking.} The masked line has the length of the line, with these replaced by a
-placeholder:
-\begin{itemize}
-  \item a reference: from \code{\$(} or \code{\$\{} to the matching \code{)} or \code{\}}
-        (only the same kind of bracket nests), or to the end of the line if it is not
-        closed. Nothing inside a reference is read;
-  \item \code{\$} and the character after it: a one-character reference (\code{\$@},
-        \code{\$\#}); \code{\$\$} is a literal \code{\$};
-  \item the pairs \code{\textbackslash\textbackslash}, \code{\textbackslash\#},
-        \code{\textbackslash:} and \code{\textbackslash;}, from left to right: in a run of
-        backslashes, only an odd last one escapes the character after it. Other
-        backslashes are kept.
-\end{itemize}
-The searches run on the masked line; names and values are cut from the line at the same
-positions.
-
-\paragraph{Searches.}
-\begin{itemize}
-  \item \textbf{operator:} the first \code{=}, with the characters before it that belong to
-        the operator (\code{:}, \code{::}, \code{:::}, \code{?}, \code{+}, \code{!});
-  \item \textbf{separating colon:} the first \code{:} that is not part of the operator;
-  \item \textbf{assignment} (question 4): the operator comes before any separating colon,
-        after exactly one word (and the qualifiers \code{export}, \code{override},
-        \code{private}); or the separating colon is followed by an operator (a
-        target-specific assignment);
-  \item \textbf{rule} (question 6): a separating colon, in a line that is not an
-        assignment;
-  \item \textbf{inline recipe:} in a rule, the first \code{;} after the colon;
-  \item \textbf{comment} (question 8): the first \code{\#}. In a rule, only before the
-        inline recipe; in a target-specific assignment, only before the first \code{;}
-        (after it, the rest is the value). The comment is an inline doc if it starts with
-        \code{\#\#} but not \code{\#\#@}.
-\end{itemize}
-
-\paragraph{Examples} (checked with GNU Make 4.3; values without their trailing blanks).
-
-\begin{center}
-\begin{tabular}{@{}lP{0.5\textwidth}@{}}
-  \toprule
-  Line & GNU Make \\
-  \midrule
-  \code{V := \$(shell echo x\#y) \# c} & assignment, value \code{x\#y} \\
-  \code{V := \$\$(echo \#x)} & assignment, value \code{\$(echo }: \code{\$\$} is not a
-                                reference, so \code{\#} starts a comment \\
-  \code{V := a\$\#b \# c} & assignment: \code{\$\#} is a reference, \code{\# c} a comment \\
-  \code{V := a\textbackslash\#b \# c} & assignment, value \code{a\#b} \\
-  \code{V := a\textbackslash\textbackslash\# c} & assignment, value \code{a\textbackslash} \\
-  \code{V := a:b} & assignment (the operator comes first) \\
-  \code{ifeq (\$(A),a=b)} & conditional (two words before the \code{=}) \\
-  \code{\$(subst :,\_,a): dep} & rule, target \code{a} \\
-  \code{foo\textbackslash:bar: dep} & rule, target \code{foo:bar} \\
-  \code{t: dep=1} & target-specific assignment \\
-  \code{t: V = a;b \# c} & target-specific assignment, value \code{a;b \# c} \\
-  \code{t: V = a \# c;b} & target-specific assignment, value \code{a} \\
-  \code{V := a;b \# c} & assignment, value \code{a;b} \\
-  \code{t: dep ; x \# c} & rule, with the inline recipe \code{x \# c} \\
-  \code{t: dep \textbackslash; x \# c} & rule; \code{\# c} is a comment (an escaped
-                                         \code{;} starts no recipe) \\
-  \bottomrule
-\end{tabular}
-\end{center}
-
-\section{Step}
-\label{sec:step}
-
-An anchor is a line of kind \kind{rule} or \kind{assignment}. It gets documented ($e_i = 1$)
-if a doc is pending or it has an inline doc \eqref{eq:e}. The equations \eqref{eq:r},
-\eqref{eq:d} and \eqref{eq:s}, by kind:
+\noindent The equations \eqref{eq:r}, \eqref{eq:d} and \eqref{eq:s}, by kind of line:
 
 \begin{center}
 \begin{tabular}{@{}llll@{}}
@@ -352,37 +397,95 @@ if a doc is pending or it has an inline doc \eqref{eq:e}. The equations \eqref{e
 \noindent Every anchor drops the pending doc, documented or not; only a documented one
 takes the section.
 
-\section{Data}
-\label{sec:data}
+\section{Memory}
+\label{sec:memory}
 
-The text travels with the state but never controls it: $d_i$ and $s_i$ only say whether
-something is pending, and $D_i$ and $S_i$ hold it. By \eqref{eq:reset}, \eqref{eq:d},
-\eqref{eq:s}, \eqref{eq:D} and \eqref{eq:S},
+The memory holds the pending text. It does not affect the state, the kind of a line, or
+which anchors get documented: those depend only on the environment, the state and the
+observations. It gives the content of the records: the doc and the section of each
+documented anchor ($d_i$ and $s_i$ say whether something is pending, $D_i$ and $S_i$ hold
+it).
+\begin{equation}
+  D_0 = S_0 = \varnothing
+  \label{eq:memory-init}
+\end{equation}
+\begin{equation}
+  D_i =
+  \begin{cases}
+    \bar D_{i-1} + (\Obs{text}, \Obs{tag}) & \text{if } k_i = \kind{doc}\\
+    \varnothing & \text{if } d_i = 0\\
+    \bar D_{i-1} & \text{otherwise}
+  \end{cases}
+  \label{eq:D}
+\end{equation}
+\begin{equation}
+  S_i =
+  \begin{cases}
+    S_{i-1} + \Obs{text} & \text{if } k_i = \kind{section}\\
+    \varnothing & \text{if } s_i = 0\\
+    S_{i-1} & \text{otherwise}
+  \end{cases}
+  \label{eq:S}
+\end{equation}
+By \eqref{eq:reset}, \eqref{eq:d}, \eqref{eq:s}, \eqref{eq:D} and \eqref{eq:S},
 \[
   D_i \ne \varnothing \iff d_i = 1, \qquad S_i \ne \varnothing \iff s_i = 1.
 \]
-The record \eqref{eq:record} reads $\bar D_{i-1}$ and $S_{i-1}$ because a documented anchor
-empties $D_i$ and $S_i$.
+The record of a documented anchor (section~\ref{sec:output}) reads the memory \emph{before}
+its transition, $\bar D_{i-1}$ and $S_{i-1}$: a documented anchor empties $D_i$ and $S_i$.
 
-Outside the model: the displayed name of a target (blanks collapsed, \code{\&} after grouped
-targets, \code{\textasciitilde}$N$ after the $N$-th documented rule of a double-colon
-target), and the warnings (a redefined doc, a continued last line).
+\section{Output}
+\label{sec:output}
+
+When $e_i = 1$, the anchor of $L_i$ is recorded as the next anchor record $\mathcal{A}_n$
+(the entry $n$ of the array \code{ANCHORS}, which the parser hands over to the rendering):
+\begin{equation}
+  \begin{array}{@{}l@{\quad}l@{}}
+    \Acr{kind} & \Obs{anchor\_kind}\\[3pt]
+    \Acr{name} & \Obs{anchor\_name} \text{ (for a target, see below)}\\[3pt]
+    \Acr{doc} & \begin{cases}
+                  \text{the texts of } \bar D_{i-1} \text{, joined by newlines} &
+                    \text{if } \bar d_{i-1} = 1\\
+                  \Obs{inline\_doc} & \text{otherwise}
+                \end{cases}\\[12pt]
+    \Acr{tag} & \begin{cases}
+                  \text{the tag of the first line of } \bar D_{i-1} &
+                    \text{if } \bar d_{i-1} = 1\\
+                  \Obs{tag} & \text{otherwise}
+                \end{cases}\\[12pt]
+    \Acr{section} & \begin{cases}
+                      S_{i-1} \text{, joined by newlines} & \text{if } s_{i-1} = 1\\
+                      \text{absent} & \text{otherwise}
+                    \end{cases}\\[12pt]
+    \Acr{override} & 1 \text{ if } \Obs{override} = 1 \text{, absent otherwise}
+  \end{array}
+  \label{eq:record}
+\end{equation}
+A pending doc wins over the inline doc, which never enters the memory. The output of the
+parser is the sequence of records $\mathcal{A}_1, \dots, \mathcal{A}_m$, in the order of the
+lines.
+
+Outside the model: the name of a target as displayed (blanks collapsed, \code{\&} after
+grouped targets, \code{\textasciitilde}$N$ after the $N$-th documented rule of a
+double-colon target), and the warnings (a redefined doc, a continued last line).
 
 \section{Implementation}
 \label{sec:implementation}
 
-In makefile-doc.awk, the model is in three arrays, and two more hold what is outside it:
+In makefile-doc.awk:
 
 \begin{center}
 \begin{tabular}{@{}lP{0.62\textwidth}@{}}
   \toprule
   Array & Content \\
   \midrule
-  \code{PARSER\_STATE} & the state: \code{r}, \code{d}, \code{s} and \code{c} \\
-  \code{PARSER\_DATA} & the pending text: $D_i$ in \code{doc}$_{1..\code{dn}}$ (with the tag
-                        of its first line), $S_i$ in \code{section}$_{1..\code{sn}}$; \code{dn}
-                        and \code{sn} are the lengths of $D_i$ and $S_i$ \\
-  \code{PARSER\_OBS} & the observation of $\ell_i$ \\
+  \code{PARSER\_STATE} & the state: \code{r}, \code{d}, \code{s} and \code{p} \\
+  \code{PARSER\_MEMORY} & the memory: $D_i$ in \code{doc}$_{1..\code{dn}}$ (with the tag of
+                          its first line), $S_i$ in \code{section}$_{1..\code{sn}}$;
+                          \code{dn} and \code{sn} are the lengths of $D_i$ and $S_i$ \\
+  \code{PARSER\_OBS} & the observations of $L_i$, with the names of
+                       \eqref{eq:obs} \\
+  \code{ANCHORS} & the anchor records \\
   \code{PARSER\_JOINER} & the physical lines joined into the next logical line \\
   \code{PARSER\_CONTEXT} & the file, and what names and warnings need \\
   \bottomrule
@@ -395,19 +498,17 @@ In makefile-doc.awk, the model is in three arrays, and two more hold what is out
   Function & Role \\
   \midrule
   \code{parser\_join} & physical lines to logical lines \\
-  \code{parser\_init} & the initial state and data \eqref{eq:init} \\
+  \code{parser\_init} & the initial state and memory \eqref{eq:init},
+                        \eqref{eq:memory-init} \\
   \code{parser\_file\_start} & the reset at $b_i = 1$ \eqref{eq:reset} \\
-  \code{parser\_obs} & $\obs$ \eqref{eq:obs}: questions 1, 8 and 9 around
-                       \code{parser\_observe} \\
-  \code{parser\_observe} & questions 2--7 (and the comment that question 8 reads), without
-                           the state \\
+  \code{parser\_observe} & $\obs$ \eqref{eq:obs}, without the state \\
   \code{parser\_mask}, \code{parser\_scan} & the lexical layer \\
-  \code{parser\_step} & the state \eqref{eq:r}--\eqref{eq:s}; returns $e_i$ \\
-  \code{record\_anchor} & the record \eqref{eq:record}, with the state before the line \\
-  \code{parser\_carry} & the data \eqref{eq:D}--\eqref{eq:S} \\
-  \code{parser\_process} & one logical line: \code{parser\_obs}, \code{parser\_step},
-                           \code{record\_anchor} (if $e_i = 1$), \code{parser\_carry}; it
-                           keeps $x_{i-1}$ for \code{record\_anchor} \\
+  \code{parser\_kind} & the kind of the line \eqref{eq:k} \\
+  \code{parser\_step} & the state \eqref{eq:r}--\eqref{eq:p}; returns $e_i$ \eqref{eq:e} \\
+  \code{record\_anchor} & the record \eqref{eq:record}, with the memory before its
+                          transition \\
+  \code{parser\_carry} & the memory \eqref{eq:D}--\eqref{eq:S} \\
+  \code{parser\_process} & one logical line, in the order of section~\ref{sec:overview} \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -415,24 +516,9 @@ In makefile-doc.awk, the model is in three arrays, and two more hold what is out
 \noindent The comments of these functions give their equations. The checks:
 \begin{itemize}
   \item \code{test/parser.spec}: the examples of $\obs$ (checked with GNU Make 4.3);
-  \item \code{test/unit/test\_parser.awk}: the checks of the state and of the data;
+  \item \code{test/unit/test\_parser.awk}: the checks of the state, the memory and the
+        records;
   \item \code{tools/trace-state.awk}: prints the state after each line of a Makefile.
-\end{itemize}
-
-\section{Decisions}
-
-Where the model differs from the parser it replaced (regular expressions, up to v2.1):
-\begin{itemize}
-  \item $c$ is tracked: an assignment to \code{.RECIPEPREFIX} changes the prefix of the
-        lines after it ($c_0$ used to be the prefix throughout).
-  \item A line that holds only $c$ while a rule is open is a recipe line, as in GNU Make
-        (it used to be a blank line, which kept the doc).
-  \item Recipe continuations are joined like the other lines. This changes the
-        representation only.
-  \item $\obs$ follows GNU Make, which fixed issues \#181, \#182 and \#183, and reads
-        escaped names and references in targets (\code{foo\textbackslash\#bar},
-        \code{\$(SRCS:.c=.o)}). \code{unexport} is a directive (it used to be read as an
-        assignment).
 \end{itemize}
 
 \section{Limits}
@@ -442,14 +528,16 @@ Where the model cannot follow GNU Make, because it does not evaluate the Makefil
   \item An included file is read by GNU Make at the \code{include} line; the model reads
         the files one after another.
   \item Conditionals are not evaluated: the lines of all their branches are read in order.
+  \item The body of a \code{define} is read as ordinary lines (GNU Make keeps it as the
+        value), so that docs in templates are displayed.
   \item References are not expanded: a name that contains one is shown as written (e.g.,
         \code{\$(OBJS)}).
-  \item The new value of \code{.RECIPEPREFIX} is known only when it is written on the line:
-        with \code{=}, the text as written (as GNU Make does); with \code{+=}, the first
-        character does not change; \code{?=} changes nothing (as in GNU Make, where
-        \code{.RECIPEPREFIX} is always defined). A value computed at the assignment
-        (\code{:=} or \code{::=} with a reference, \code{!=}) or given by a \code{define} keeps
-        $c_{i-1}$, as does an assignment in an included file.
+  \item The new value of \code{.RECIPEPREFIX} is known only when it is written on the line
+        ($\Obs{prefix}$): with \code{=}, the text as written (as GNU Make does); with
+        \code{+=}, the first character does not change; \code{?=} changes nothing (as in
+        GNU Make, where \code{.RECIPEPREFIX} is always defined). A value computed at the
+        assignment (\code{:=} or \code{::=} with a reference, \code{!=}) or given by a
+        \code{define} keeps $p_{i-1}$, as does an assignment in an included file.
 \end{itemize}
 
 \end{document}
