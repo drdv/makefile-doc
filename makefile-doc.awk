@@ -223,6 +223,11 @@ function init_globals() {
   # v1.29.1 and below, fixed in v1.30.0)
   TAG_REGEX = "^(##!|##%|##)"
 
+  # stands in for a character during a split or a replacement (see form_substitutions,
+  # parse_substitution_params, escape_for_latex_output); assumed absent from options and
+  # docs. Not SUBSEP, though it has the same default value.
+  PLACEHOLDER = "\034"
+
   # the tables of the HTML and LaTeX output formats
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
@@ -408,7 +413,7 @@ function form_substitutions(spec, param_table, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
-                            has_label, n_substitutions, option, placeholder) {
+                            has_label, n_substitutions, option) {
   if (no_labels) {
     set_dsub_param_defaults(param_table)
   } else {
@@ -420,12 +425,11 @@ function form_substitutions(spec, param_table, sub_labels_array,
 
   option = no_labels ? "DSUB" : "SUB"
   n = 0
-  placeholder = "\034" # the "file separator" ASCII control character
-  gsub(/\\;/, placeholder, spec) # an escaped ; does not separate items
+  gsub(/\\;/, PLACEHOLDER, spec) # an escaped ; does not separate items
   n_substitutions = split(spec, split_substitutions, ";")
   for (k = 1; k <= n_substitutions; k++) {
     string = split_substitutions[k]
-    gsub(placeholder, ";", string)
+    gsub(PLACEHOLDER, ";", string)
     if (string ~ /^[ \t]*$/) {
       continue
     }
@@ -483,20 +487,19 @@ function form_substitutions(spec, param_table, sub_labels_array,
 # keys[1..n] (the keys in the order given); return n. In a pair, only the first colon is a
 # separator, and a comma in a value is written \,
 function parse_substitution_params(string, params, keys, #locals
-                                   temp_placeholder, k, n, n_pairs, key_values, pair, key) {
+                                   k, n, n_pairs, key_values, pair, key) {
   split("", params)
   split("", keys)
-  temp_placeholder = "\034" # the "file separator" ASCII control character
 
   # temporarily replace escaped commas
-  gsub(/\\,/, temp_placeholder, string)
+  gsub(/\\,/, PLACEHOLDER, string)
   n_pairs = split(string, key_values, ",")
   n = 0
   for (k = 1; k <= n_pairs; k++) {
     if (key_values[k] ~ /^[ \t]*$/) {
       continue # an empty pair, e.g., after a trailing comma
     }
-    gsub(temp_placeholder, ",", key_values[k]) # restore commas
+    gsub(PLACEHOLDER, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
     key = strip_start_end_spaces_tabs(pair[1])
     params[key] = substr(key_values[k], length(pair[1]) + 2) # after the first colon
@@ -904,16 +907,14 @@ function escape_for_html_output(text) {
 }
 
 # In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
-# a placeholder: escaping them first would escape the braces of \textbackslash{}, and
+# PLACEHOLDER: escaping them first would escape the braces of \textbackslash{}, and
 # escaping them last would escape the backslashes of \{ and \}.
-function escape_for_latex_output(text, #locals
-                                 placeholder) {
+function escape_for_latex_output(text) {
   if (OUTPUT_FORMAT == "LATEX") {
-    placeholder = "\034"
-    text = string_replace("\\", placeholder, text)
+    text = string_replace("\\", PLACEHOLDER, text)
     gsub(/\{/, "\\{", text)
     gsub(/\}/, "\\}", text)
-    text = string_replace(placeholder, "\\textbackslash{}", text)
+    text = string_replace(PLACEHOLDER, "\\textbackslash{}", text)
   }
   return text
 }
