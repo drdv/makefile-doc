@@ -423,6 +423,10 @@ makefile-doc reads the Makefiles line by line, following the syntax of GNU Make 
 Escaped characters in target names are displayed as written: `foo\ bar:` is shown as `foo\ bar`,
 which is how the target is invoked (`make foo\ bar`), and `foo\#bar:` as `foo\#bar`.
 
+The docs are aligned by padding the names, one column per character. Wide characters (e.g.,
+Japanese) take two columns on most terminals, so the doc of a name that contains them starts
+further to the right.
+
 ## Development
 
 The tests are run by pytest through [uv](https://docs.astral.sh/uv), which is the only thing to

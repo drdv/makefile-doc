@@ -1,0 +1,27 @@
+#: desc: The parser state after each line of Makefile.utf8
+#: trace
+test/fixtures/Makefile.utf8
+#: stdout
+== test/fixtures/Makefile.utf8
+   1 0 0  0  0 \t | # Names and docs with multi-byte characters (UTF-8): an accented letter (é, two bytes), and
+   2 0 0  0  0 \t | # Japanese (three bytes a character, two columns wide on most terminals)
+   3 0 0  0  0 \t |
+   4 0 0  1  0 \t | ## ビルドする
+   5 0 1  0  0 \t | ビルド:
+   5 ============ => target:[ビルド]
+   6 0 1  0  0 \t |
+   7 0 1  1  0 \t | ## Run the tests (テスト)
+   8 0 1  0  0 \t | test:
+   8 ============ => target:[test]
+   9 0 1  0  0 \t |
+  10 0 1  1  0 \t | ## Déployer
+  11 0 1  0  0 \t | déployer:
+  11 ============ => target:[déployer]
+  12 0 1  0  0 \t |
+  13 0 1  1  0 \t | ## Clean
+  14 0 1  0  0 \t | clean:
+  14 ============ => target:[clean]
+  15 0 1  0  0 \t |
+  16 0 1  1  0 \t | ## Taille du cache
+  17 0 0  0  0 \t | TAILLE := 1
+  17 ============ => variable:[TAILLE]

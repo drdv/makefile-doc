@@ -1,0 +1,17 @@
+# Names and docs with multi-byte characters (UTF-8): an accented letter (é, two bytes), and
+# Japanese (three bytes a character, two columns wide on most terminals)
+
+## ビルドする
+ビルド:
+
+## Run the tests (テスト)
+test:
+
+## Déployer
+déployer:
+
+## Clean
+clean:
+
+## Taille du cache
+TAILLE := 1

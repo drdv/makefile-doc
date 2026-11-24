@@ -84,6 +84,27 @@ function repeated_string(string, n, #locals
   return s
 }
 
+# The number of characters of a UTF-8 text, as wide as a column each (a wide character, e.g.,
+# Japanese, takes two columns on most terminals: it is not counted so). Some awks count bytes
+# (mawk, busybox, gawk in the C locale, goawk): there, the continuation bytes (\200 to \277)
+# of the multi-byte characters are not counted. They are compared one by one: a regex such as
+# [\200-\277] is rejected by goawk (its regexes match UTF-8 characters, not bytes).
+function text_length(text, #locals
+                     n, i, count, c) {
+  n = length(text)
+  if (length("\303\251") == 1) { # the two bytes of an e with an acute accent
+    return n
+  }
+  count = 0
+  for (i = 1; i <= n; i++) {
+    c = substr(text, i, 1)
+    if (c < "\200" || c >= "\300") {
+      count++
+    }
+  }
+  return count
+}
+
 # n spaces (see repeated_string)
 function spaces(n) {
   return repeated_string(" ", n)
@@ -378,7 +399,7 @@ function process_options(    sub_names, dummy_array_labels) {
   if (!is_bool(VARS)) {
     option_error("VARS should be 0 or 1")
   }
-  if (length(PADDING) != 1) {
+  if (text_length(PADDING) != 1) {
     option_error("PADDING should have length 1")
   }
   if (!is_bool(DEPRECATED)) {
@@ -1797,7 +1818,7 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
   indentation = spaces(len_anchors + OFFSET + 1)
   output = (SUB_PARAM[sub_row, "L"] ? "\n" indentation : " ") lines[1]
   # the lines after the first are aligned with the first value (after I)
-  next_indentation = indentation spaces(length(initial))
+  next_indentation = indentation spaces(text_length(initial))
   for (k = 2; k <= n_lines; k++) {
     output = output "\n" next_indentation lines[k]
   }
@@ -1818,7 +1839,7 @@ function format_anchor(k, len_anchors, #locals
   formatted_anchor = fmt_escape(label)
   # the padding is measured on the label (an HTML or LaTeX escape is longer than
   # its character), then escaped too (PADDING can be any character)
-  padding = fmt_escape(repeated_string(PADDING, len_anchors - length(label)))
+  padding = fmt_escape(repeated_string(PADDING, len_anchors - text_length(label)))
   color = anchor_color(DISPLAY[k, "tag"])
   if (color) {
     formatted_anchor = color formatted_anchor padding COLOR_RESET_CODE
@@ -1837,7 +1858,7 @@ function format_anchor(k, len_anchors, #locals
 function format_documentation(    k, len_anchors, separator, body) {
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
-    len_anchors = max(len_anchors, length(DISPLAY[k, "label"]))
+    len_anchors = max(len_anchors, text_length(DISPLAY[k, "label"]))
   }
   separator = get_separator("-", len_anchors)
 
