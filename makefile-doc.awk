@@ -234,7 +234,7 @@ function init_globals() {
   TAG_REGEX = "^(##!|##%|##)"
 
   # stands in for a character during a split or a replacement (see form_substitutions,
-  # parse_substitution_params, escape_for_latex_output); assumed absent from options and
+  # parse_substitution_params, latex_escape); assumed absent from options and
   # docs. Not SUBSEP, though it has the same default value.
   PLACEHOLDER = "\034"
 
@@ -643,7 +643,8 @@ function print_option(name, description, value) {
 
 #### Output formats
 # Everything that depends on OUTPUT_FORMAT (ANSI, HTML, LATEX): colors, themes, escapes,
-# header and footer.
+# header and footer. Rendering does not read OUTPUT_FORMAT: it calls the functions fmt_*
+# (fmt_escape, fmt_color, fmt_document), and uses the color codes of fmt_color_code.
 
 function initialize_colors() {
   COLOR = COLOR == "" ? default_color_option() : COLOR
@@ -668,12 +669,12 @@ function initialize_colors() {
     COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
   }
 
-  COLOR_DEFAULT_CODE = define_color(COLOR_DEFAULT, "DEFAULT")
-  COLOR_ATTENTION_CODE = define_color(COLOR_ATTENTION, "ATTENTION")
-  COLOR_DEPRECATED_CODE = define_color(COLOR_DEPRECATED, "DEPRECATED")
-  COLOR_SECTION_CODE = define_color(COLOR_SECTION, "SECTION")
-  COLOR_BACKTICKS_CODE = define_color(COLOR_BACKTICKS, "BACKTICKS")
-  COLOR_RESET_CODE = define_color(-1)
+  COLOR_DEFAULT_CODE = fmt_color_code(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = fmt_color_code(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = fmt_color_code(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_SECTION_CODE = fmt_color_code(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = fmt_color_code(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = fmt_color_code(-1)
 }
 
 # the default of the COLOR option: 0 if NO_COLOR is set to a non-empty value (no-color.org)
@@ -786,11 +787,12 @@ function define_ansi_to_latex_function(    k) {
   for (k = 100; k <= 107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
 }
 
+# The color code that starts text of the color of color_label_key in the output format, for
 # ansi_color_param:
-# == 0: no color
+# == 0: no color ("")
 #  > 0: some color
-#  < 0: reset token  (the user cannot set -1 from outside, see validate_ansi_param())
-function define_color(ansi_color_param, color_label_key) {
+#  < 0: the code that ends a color (the user cannot set -1, see validate_ansi_param())
+function fmt_color_code(ansi_color_param, color_label_key) {
   if (!ansi_color_param) {
     return "" # token for "no color annotation should be applied at all"
   }
@@ -896,7 +898,7 @@ function latex_header(    header) {
   header = header "\n"
   header = header "\\PreviewEnvironment{varwidth}\n"
   header = header "\n"
-  # FG and BG only if they are set (FG is given to each line, see format_documentation)
+  # FG and BG only if they are set (FG is given to each line, see fmt_document)
   if (EXPORT_FG_BG["FG"] != "") {
     header = header latex_definecolor("FG", EXPORT_FG_BG["FG"])
   }
@@ -923,31 +925,67 @@ function latex_header(    header) {
 
 # <, > and & would be interpreted as HTML markup (& first, so that the & of the other
 # replacements is not escaped again; string_replace because & is special in gsub)
-function escape_for_html_output(text) {
-  if (OUTPUT_FORMAT == "HTML") {
-    text = string_replace("&", "&amp;", text)
-    text = string_replace("<", "&lt;", text)
-    text = string_replace(">", "&gt;", text)
-  }
-  return text
+function html_escape(text) {
+  text = string_replace("&", "&amp;", text)
+  text = string_replace("<", "&lt;", text)
+  return string_replace(">", "&gt;", text)
 }
 
 # In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
 # PLACEHOLDER: escaping them first would escape the braces of \textbackslash{}, and
 # escaping them last would escape the backslashes of \{ and \}.
-function escape_for_latex_output(text) {
-  if (OUTPUT_FORMAT == "LATEX") {
-    text = string_replace("\\", PLACEHOLDER, text)
-    gsub(/\{/, "\\{", text)
-    gsub(/\}/, "\\}", text)
-    text = string_replace(PLACEHOLDER, "\\textbackslash{}", text)
+function latex_escape(text) {
+  text = string_replace("\\", PLACEHOLDER, text)
+  gsub(/\{/, "\\{", text)
+  gsub(/\}/, "\\}", text)
+  return string_replace(PLACEHOLDER, "\\textbackslash{}", text)
+}
+
+# ---------------------------------------------------------------------------------------
+# What rendering calls (with fmt_color_code)
+# ---------------------------------------------------------------------------------------
+
+# text with the escapes of the output format (none in ANSI), applied before the colors are
+# added
+function fmt_escape(text) {
+  if (OUTPUT_FORMAT == "HTML") {
+    return html_escape(text)
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    return latex_escape(text)
   }
   return text
 }
 
-# the escapes of the output format (HTML or LaTeX), applied before the colors are added
-function apply_output_specific_formatting(text) {
-  return escape_for_latex_output(escape_for_html_output(text))
+# Color text with color_code (see fmt_color_code), each line on its own (color_code ...
+# COLOR_RESET_CODE), so that no color group crosses a line break: in LaTeX, varwidth cannot
+# crop the page to the text of such a group. Empty lines are not colored. In ANSI, a reset
+# inside text (e.g., after text in backticks) turns off all the colors: color_code is
+# restored after it.
+function fmt_color(text, color_code, #locals
+                   n, lines, k) {
+  if (color_code == "") {
+    return text
+  }
+  if (OUTPUT_FORMAT == "ANSI") {
+    text = string_replace(COLOR_RESET_CODE, COLOR_RESET_CODE color_code, text)
+  }
+  n = split(text, lines, "\n")
+  for (k = 1; k <= n; k++) {
+    if (lines[k] != "") {
+      lines[k] = color_code lines[k] COLOR_RESET_CODE
+    }
+  }
+  return join(lines, n, "\n")
+}
+
+# The document: body between OUTPUT_HEADER and OUTPUT_FOOTER. In LaTeX, the default text
+# color (FG) is given to each line: with one \color for the whole documentation, varwidth
+# would not crop the page to the text.
+function fmt_document(body) {
+  if (OUTPUT_FORMAT == "LATEX" && EXPORT_FG_BG["FG"] != "") {
+    body = fmt_color(body, "\\textcolor{" color_name("FG") "}{")
+  }
+  return OUTPUT_HEADER body OUTPUT_FOOTER
 }
 
 #### Parsing
@@ -1632,20 +1670,6 @@ function get_separator(character, len_anchors) {
                                             length(HEADER_VARIABLES))))
 }
 
-# Color each line of text on its own (color_code ... COLOR_RESET_CODE), so that no color
-# group crosses a line break: in LaTeX, varwidth cannot crop the page to the text of such a
-# group. Empty lines are not colored.
-function color_lines(text, color_code, #locals
-                     n, lines, k) {
-  n = split(text, lines, "\n")
-  for (k = 1; k <= n; k++) {
-    if (lines[k] != "") {
-      lines[k] = color_code lines[k] COLOR_RESET_CODE
-    }
-  }
-  return join(lines, n, "\n")
-}
-
 function substitute_backticks_patterns(string, #locals
                                        before_match, inside_match, after_match) {
   # (gensub with a back-reference would do this in one call, but it is only in gawk)
@@ -1654,7 +1678,7 @@ function substitute_backticks_patterns(string, #locals
     inside_match = substr(string, RSTART + 1, RLENGTH - 2)
     after_match = substr(string, RSTART + RLENGTH)
 
-    string = before_match color_lines(inside_match, COLOR_BACKTICKS_CODE) after_match
+    string = before_match fmt_color(inside_match, COLOR_BACKTICKS_CODE) after_match
   }
   return string
 }
@@ -1684,13 +1708,13 @@ function format_doc(doc, len_anchors, #locals
   n = split(doc, lines, "\n")
   indentation = spaces(OFFSET + len_anchors) # aligned with the first line
   doc = spaces(OFFSET) join(lines, n, "\n" indentation)
-  return colorize_doc_backticks(apply_output_specific_formatting(doc))
+  return colorize_doc_backticks(fmt_escape(doc))
 }
 
 # a section, with the escapes of the output format and the colors of the text in backticks
 function format_section(section) {
   section = strip_trailing_blanks(section)
-  return colorize_doc_backticks(apply_output_specific_formatting(section))
+  return colorize_doc_backticks(fmt_escape(section))
 }
 
 # Return the text that follows the doc of an anchor: the values of its SUB substitution
@@ -1726,7 +1750,7 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
     } else {
       item = item termination
     }
-    item = colorize_doc_backticks(apply_output_specific_formatting(item))
+    item = colorize_doc_backticks(fmt_escape(item))
     if (SUB_PARAM[sub_row, "M"] || k == 1) {
       lines[++n_lines] = item
     } else {
@@ -1753,22 +1777,14 @@ function format_anchor(k, len_anchors, #locals
   output = ""
   section = ((k, "section") in DISPLAY) ? format_section(DISPLAY[k, "section"]) : ""
   if (section) {
-    if (COLOR_SECTION_CODE) {
-      # In ANSI output a reset (e.g., after a backtick region) turns off all colors, so the
-      # section color has to be restored after each reset.
-      if (OUTPUT_FORMAT == "ANSI") {
-        section = string_replace(COLOR_RESET_CODE, COLOR_RESET_CODE COLOR_SECTION_CODE, section)
-      }
-      section = color_lines(section, COLOR_SECTION_CODE)
-    }
-    output = section "\n"
+    output = fmt_color(section, COLOR_SECTION_CODE) "\n"
   }
 
   label = DISPLAY[k, "label"]
-  formatted_anchor = apply_output_specific_formatting(label)
+  formatted_anchor = fmt_escape(label)
   # the padding is measured on the label (an HTML or LaTeX escape is longer than
   # its character), then escaped too (PADDING can be any character)
-  padding = apply_output_specific_formatting(repeated_string(PADDING, len_anchors - length(label)))
+  padding = fmt_escape(repeated_string(PADDING, len_anchors - length(label)))
   color = anchor_color(DISPLAY[k, "tag"])
   if (color) {
     formatted_anchor = color formatted_anchor padding COLOR_RESET_CODE
@@ -1783,7 +1799,7 @@ function format_anchor(k, len_anchors, #locals
 
 # Return the documentation of the DISPLAY records (see prepare_rendering) in the output
 # format: the targets, then the variables, each under a header, all names padded to the
-# longest one, between OUTPUT_HEADER and OUTPUT_FOOTER.
+# longest one (see fmt_document).
 function format_documentation(    k, len_anchors, separator, body) {
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
@@ -1806,13 +1822,7 @@ function format_documentation(    k, len_anchors, separator, body) {
   if (DISPLAY_COUNT > 0) {
     body = body separator "\n"
   }
-
-  # In LaTeX, the default text color (FG) is given to each line: with one \color for the
-  # whole documentation, varwidth would not crop the page to the text
-  if (OUTPUT_FORMAT == "LATEX" && EXPORT_FG_BG["FG"] != "") {
-    body = color_lines(body, "\\textcolor{" color_name("FG") "}{")
-  }
-  return OUTPUT_HEADER body OUTPUT_FOOTER
+  return fmt_document(body)
 }
 
 # Display the documentation (all its output is printed from here): the warnings on stderr,
