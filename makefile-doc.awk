@@ -45,7 +45,7 @@
 #   Options                the options: defaults, checks and derived settings
 #   Output formats         everything that depends on OUTPUT_FORMAT
 #   Parsing                the parser that reads the Makefiles, and its helpers
-#   Rendering              the display of the documentation
+#   Rendering              what is displayed (DISPLAY), then its layout in the output format
 #   Flow                   BEGIN and END
 # A function is in the section that owns the variables it writes: Options writes the
 # settings, Parsing the interface (see init_globals), which Rendering reads. Output formats
@@ -1293,7 +1293,6 @@ function parser_drop_doc(state) {
   state["dn"] = 0
 }
 
-
 # Record a documented anchor in the interface: its doc (the pending doc, or its inline doc),
 # its tag (that of the first line), its place in the file order, and the pending section
 function record_anchor(state, obs, #locals
@@ -1471,6 +1470,18 @@ function display_name(anchor, #locals
   return anchor
 }
 
+# Apply the DSUB substitutions to the text of docs or section titles (those with D:1), in
+# the order given.
+function apply_doc_substitutions(text, #locals
+                                 k) {
+  for (k = 1; k <= DSUB_COUNT; k++) {
+    if (DSUB_IN_DOCS[DSUB_NAMES[k]]) {
+      text = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], text)
+    }
+  }
+  return text
+}
+
 function get_separator(character, len_anchors) {
   return repeated_string(character, max(len_anchors,
                                         max(length(HEADER_TARGETS),
@@ -1530,18 +1541,6 @@ function format_doc(doc, len_anchors, #locals
   indentation = repeated_string("", OFFSET + len_anchors) # aligned with the first line
   doc = repeated_string("", OFFSET) join(lines, "\n" indentation)
   return colorize_doc_backticks(apply_output_specific_formatting(doc))
-}
-
-# Apply the DSUB substitutions to the text of docs or section titles (those with D:1), in
-# the order given.
-function apply_doc_substitutions(text, #locals
-                                 k) {
-  for (k = 1; k <= DSUB_COUNT; k++) {
-    if (DSUB_IN_DOCS[DSUB_NAMES[k]]) {
-      text = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], text)
-    }
-  }
-  return text
 }
 
 # a section, with the escapes of the output format and the colors of the text in backticks
