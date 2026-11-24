@@ -296,28 +296,38 @@ config:
   layout: dagre
   flowchart:
     curve: basis
+    subGraphTitleMargin:
+      top: 5
+      bottom: 20
 ---
 flowchart TD
-    options["Options (-v)"] --> begin["BEGIN<br/>init_globals, process_options"]
-    makefiles["Makefiles (or stdin)"] --> parsing["Parsing"]
+    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>init_globals(), process_options()"]
+    makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_join(), parser_obs(),<br/>parser_step(), record_anchor()"]
     begin -- "constants" --> parsing
     begin --> settings[("Options and settings")]
-    begin -- "constants" --> end_["END<br/>print_documentation"]
 
     settings -. "RECIPEPREFIX" .-> parsing
     parsing --> interface[("Interface variables")]
 
-    interface --> end_
-    settings --> end_
-    end_ --> stdout["Documentation (stdout)"]
-    end_ --> stderr["Warnings (stderr)"]
+    subgraph end_ ["<b>END</b>: print_documentation()"]
+        content["<b>Content</b><br/>prepare_rendering()"] --> display[("DISPLAY")]
+        display --> layout["<b>Layout</b><br/>print_anchor()"]
+    end
+
+    interface --> content
+    settings -- "VARS, DEPRECATED, SUB, DSUB" --> content
+    settings -- "PADDING, OFFSET, colors, OUTPUT_FORMAT" --> layout
+    layout -- "ANSI" --> ansi["Terminal text"]
+    layout -- "HTML" --> html["HTML fragment"]
+    layout -- "LATEX" --> latex["LaTeX document"]
+    interface --> stderr["Warnings (stderr)"]
 ```
 
-Parsing reads no option except `RECIPEPREFIX`, the recipe prefix at the start. A
-Makefile is therefore always parsed the same way, whatever the display options, and gives the same
-interface variables. Everything that depends on the other options is decided when rendering: which
-anchors are displayed, where the sections go, which warnings are printed, and how the output is
-formatted.
+Parsing reads no option except `RECIPEPREFIX`, the recipe prefix at the start. A Makefile is
+therefore always parsed the same way, whatever the display options, and gives the same interface
+variables. Rendering then runs in two stages: `prepare_rendering` decides what is displayed (which
+anchors, under which names, with which docs and sections) and writes the `DISPLAY` records, and the
+layout prints them in the output format. The output goes to stdout in all three formats.
 
 The interface variables are the only data that parsing hands over to rendering:
 
@@ -353,7 +363,8 @@ check: test
 clean:
 ```
 
-the variables hold:
+`ANCHORS` holds one record per row (`ANCHORS[k, "kind"]`, `ANCHORS[k, "name"]`, ...); a field
+that is not set, such as the `section` of record 3, has no key:
 
 | k | `kind`       | `name`    | `tag`   | `doc`                                                 | `section`          |
 |---|--------------|-----------|---------|-------------------------------------------------------|--------------------|
