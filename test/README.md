@@ -45,6 +45,8 @@ each case is a file `test/integration/<name>.test` with the following format:
   for the run, and `stdin` gives a file whose content is the stdin of awk (otherwise, stdin is
   empty). `trace` loads `tools/trace-state.awk` before the script: the expected stdout is then
   the state of the parser after each line of the fixture (see the tool) instead of the help.
+  `timeout` sets the time limit of the run in seconds (30 by default): a case that checks that
+  the script stays fast fails when awk takes longer.
 - The next line holds the awk arguments, in shell syntax.
 - The rest is the expected output: stderr after `#: stderr`, stdout after `#: stdout`, and `#: exit:
   N` when the exit status is not zero.
