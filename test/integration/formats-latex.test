@@ -28,9 +28,9 @@
 \begin{varwidth}{\linewidth}
 
 \begin{alltt}
------------------------
+------------------
 Available targets:
------------------------
+------------------
 
 \textcolor{makefile-doc-section}{ Section with \bgcolor{makefile-doc-backticks}{backticks} and \{braces\}}
 
@@ -39,11 +39,11 @@ Available targets:
 \textcolor{makefile-doc-attention}{t-attention }   An attention target
 t-deprecated   A deprecated target
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 \textcolor{makefile-doc-default}{VAR         }   A variable
------------------------
+------------------
 \end{alltt}
 \end{varwidth}
 \end{document}

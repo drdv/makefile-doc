@@ -3,9 +3,9 @@
 #: stderr
 WARNING: [test/fixtures/Makefile.section-redefine-deprecated:6] redefined docs of target: build
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
  Build
 test   Run the tests
------------------------
+------------------

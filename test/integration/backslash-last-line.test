@@ -3,8 +3,8 @@
 #: stderr
 WARNING: [test/fixtures/Makefile.backslash-last-line] the last line ends with a backslash
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t1   A target
------------------------
+------------------

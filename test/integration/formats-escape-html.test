@@ -10,17 +10,17 @@
 </style>
 <div class="makefile-doc">
 <pre>
------------------------
+------------------
 Available targets:
------------------------
+------------------
  Section with &lt;tags&gt; &amp; ampersands
 test   Run the tests (use AWK=&lt;variant&gt; &amp; co)
 a b&amp;   Grouped targets (displayed with a &amp;)
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 VAR    A variable with a \ backslash and {braces}
------------------------
+------------------
 </pre>
 </div>

@@ -31,9 +31,9 @@
 \pagecolor{makefile-doc-bg}
 
 \begin{alltt}
-\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{------------------}
 \textcolor{makefile-doc-fg}{Available targets:}
-\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{------------------}
 
 \textcolor{makefile-doc-fg}{\emph{ Section with \sout{backticks} and \{braces\}}}
 
@@ -42,11 +42,11 @@
 \textcolor{makefile-doc-fg}{\textbf{t-attention }   An attention target}
 \textcolor{makefile-doc-fg}{\uline{t-deprecated}   A deprecated target}
 
-\textcolor{makefile-doc-fg}{-----------------------}
-\textcolor{makefile-doc-fg}{Command-line arguments:}
-\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{------------------}
+\textcolor{makefile-doc-fg}{Variables:}
+\textcolor{makefile-doc-fg}{------------------}
 \textcolor{makefile-doc-fg}{\textcolor{makefile-doc-default}{VAR         }   A variable}
-\textcolor{makefile-doc-fg}{-----------------------}
+\textcolor{makefile-doc-fg}{------------------}
 \end{alltt}
 \end{varwidth}
 \end{document}

@@ -53,7 +53,7 @@ END {
   print "DSUB_COUNT = " DSUB_COUNT
 
   banner("The interface: written while parsing")
-  dump_records("ANCHORS", ANCHORS, ANCHOR_COUNT, "kind name tag doc section")
+  dump_records("ANCHORS", ANCHORS, ANCHOR_COUNT, "kind name tag doc section override")
   print "ANCHOR_COUNT = " ANCHOR_COUNT
   dump_array("WARNINGS", WARNINGS)
   dump_array("WARNING_KINDS", WARNING_KINDS)
@@ -62,7 +62,7 @@ END {
 
   banner("The state of the rendering: written by prepare_rendering")
   prepare_rendering()
-  dump_records("DISPLAY", DISPLAY, DISPLAY_COUNT, "kind name tag doc section values params")
+  dump_records("DISPLAY", DISPLAY, DISPLAY_COUNT, "kind name tag doc section override values params")
   print "DISPLAY_COUNT = " DISPLAY_COUNT
   print "DOCUMENTED_COUNT = " DOCUMENTED_COUNT
   exit

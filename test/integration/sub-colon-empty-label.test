@@ -1,14 +1,14 @@
 #: desc: An empty SUB label does not rename: the value is what follows the two colons
 -v COLOR=0 -v SUB='$(TARGET)::/a:b' test/fixtures/Makefile.sub
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 $(TARGET)   Some target:
             /a:b
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 AWK         Some variable:
------------------------
+------------------

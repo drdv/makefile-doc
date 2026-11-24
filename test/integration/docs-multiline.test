@@ -1,9 +1,9 @@
 #: desc: Multi-line top docs: indentation, blank lines, comments and empty doc lines
 -v COLOR=0 test/fixtures/Makefile.docs-multiline
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t1   Spaces before the ## token are allowed and stripped
      top docs can have multiple lines
        indentation can be used for emphasis
@@ -13,4 +13,4 @@ t2   Blank lines
 t3   Comment lines between docs are skipped
      and empty doc lines are kept
 
------------------------
+------------------

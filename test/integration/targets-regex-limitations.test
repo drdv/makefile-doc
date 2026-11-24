@@ -2,11 +2,11 @@
 #: issue: 90
 -v COLOR=0 test/fixtures/Makefile.targets-regex-limitations
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 foo\#bar        Escaped #
 foo\:bar        Escaped :
 foo\ bar        Escaped space
 $(SRCS:.c=.o)   Colon in a reference
------------------------
+------------------

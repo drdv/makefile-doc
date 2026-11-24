@@ -148,6 +148,8 @@ The remaining details:
   line that holds only the prefix (an empty recipe line): it discards the doc above it.
 - A multi-line variable (`define NAME` ... `endef`) is documented above its `define` line, not
   inline.
+- A variable set with `override` is displayed with `(fixed)` after its name: `make VAR=value`
+  cannot change it.
 
 ### Sections
 

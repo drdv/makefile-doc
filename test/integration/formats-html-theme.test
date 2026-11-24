@@ -11,9 +11,9 @@
 </style>
 <div class="makefile-doc">
 <pre>
------------------------
+------------------
 Available targets:
------------------------
+------------------
 
 <span class="makefile-doc-section"> Section with <span class="makefile-doc-backticks">backticks</span> and {braces}</span>
 
@@ -22,10 +22,10 @@ Available targets:
 <span class="makefile-doc-attention">t-attention </span>   An attention target
 <span class="makefile-doc-deprecated">t-deprecated</span>   A deprecated target
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 <span class="makefile-doc-default">VAR         </span>   A variable
------------------------
+------------------
 </pre>
 </div>

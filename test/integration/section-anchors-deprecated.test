@@ -1,11 +1,11 @@
 #: desc: A section followed only by hidden deprecated anchors is not displayed
 -v DEPRECATED=0 test/fixtures/Makefile.section-anchors
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 
 [32m------ Section 1 -----[0m
 
 [34mt1[0m   The section is anchored to the next documented target
------------------------
+------------------

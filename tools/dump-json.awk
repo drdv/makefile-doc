@@ -47,7 +47,7 @@ END {
 
   print "  \"anchors\": [" (ANCHOR_COUNT ? "" : "],")
   for (k = 1; k <= ANCHOR_COUNT; k++) {
-    print "    " json_record(ANCHORS, k, "kind name tag doc section") (k < ANCHOR_COUNT ? "," : "")
+    print "    " json_record(ANCHORS, k, "kind name tag doc section override") (k < ANCHOR_COUNT ? "," : "")
   }
   if (ANCHOR_COUNT) {
     print "  ],"
@@ -55,7 +55,7 @@ END {
 
   print "  \"display\": [" (DISPLAY_COUNT ? "" : "],")
   for (k = 1; k <= DISPLAY_COUNT; k++) {
-    record = json_record(DISPLAY, k, "kind name tag doc section")
+    record = json_record(DISPLAY, k, "kind name tag doc section override")
     if (DISPLAY[k, "values"] != "") {
       record = substr(record, 1, length(record) - 1) ", \"values\": " \
                json_words(DISPLAY[k, "values"]) "}"

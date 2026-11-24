@@ -29,18 +29,18 @@
 \begin{varwidth}{\linewidth}
 
 \begin{alltt}
------------------------
+------------------
 Available targets:
------------------------
+------------------
  Section with <tags> & ampersands
 test   Run the tests (use AWK=<variant> & co)
 a b&   Grouped targets (displayed with a &)
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 VAR    A variable with a \textbackslash{} backslash and \{braces\}
------------------------
+------------------
 \end{alltt}
 \end{varwidth}
 \end{document}

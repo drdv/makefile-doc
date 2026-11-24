@@ -2,8 +2,8 @@
 #: issue: 132
 -v COLOR=0 test/fixtures/Makefile.vars-semicolon
 #: stdout
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 X   Variable with a semicolon in its value
------------------------
+------------------

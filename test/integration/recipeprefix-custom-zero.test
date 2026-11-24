@@ -2,14 +2,14 @@
 #: issue: 92
 -v COLOR=0 -v RECIPEPREFIX=0 test/fixtures/Makefile.recipeprefix-custom
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t1     A target
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 +BAR   Shell assignment in recipe (BAR=1) when RECIPEPREFIX=+
        Makefile variable (+BAR=1) otherwise
------------------------
+------------------

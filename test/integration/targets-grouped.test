@@ -1,9 +1,9 @@
 #: desc: Grouped targets are displayed with a & (also for double-colon rules)
 -v COLOR=0 test/fixtures/Makefile.targets-grouped
 #: stdout
------------------------
+--------------------
 Available targets:
------------------------
+--------------------
 
  ----- Independent Targets -----
 
@@ -21,4 +21,4 @@ lonely&                a bit pointless grouping one target
 yes no&~1              two grouped targets with double-colon (recipe 1)
 yes no&~2              two {`grouped`, `targets`, `with`, `double-colon`} (recipe 2)
 yes no&~3              two grouped {targets} with double-colon (recipe 3)
------------------------
+--------------------

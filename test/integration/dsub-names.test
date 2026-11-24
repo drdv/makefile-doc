@@ -1,15 +1,15 @@
 #: desc: With the parameter A:1, DSUB also replaces text in the names of targets and variables
 -v COLOR=0 -v DSUB='<A:1>$(OUT_DIR):out' test/fixtures/Makefile.dsub-names
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 out/a       Write out/a
 out/b       Write b (after out/a)
 plain       A target without the variable in its name
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 out_FLAGS   Flags used for the files in out
------------------------
+------------------

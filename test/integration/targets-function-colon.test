@@ -2,10 +2,10 @@
 #: issue: 142
 -v COLOR=0 test/fixtures/Makefile.targets-function-colon
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 $(T)-a    Docs of a target with a reference
 ${T}-b    Docs of a target with braces and a prerequisite
 $(OBJS)   Docs of a static pattern rule
------------------------
+------------------

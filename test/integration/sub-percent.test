@@ -2,14 +2,14 @@
 #: issue: 68
 -v COLOR=0 -v SUB='$(TARGET):t:%.o' test/fixtures/Makefile.sub
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t     Some target:
       %.o
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 AWK   Some variable:
------------------------
+------------------

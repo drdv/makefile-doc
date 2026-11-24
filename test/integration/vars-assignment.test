@@ -9,9 +9,9 @@ WARNING: [test/fixtures/Makefile.vars-assignment:83] redefined docs of variable:
 WARNING: [test/fixtures/Makefile.vars-assignment:99] redefined docs of variable: f4
 WARNING: [test/fixtures/Makefile.vars-assignment:115] redefined docs of variable: g4
 #: stdout
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 
  ----- recursive assignments
 
@@ -61,4 +61,4 @@ g1   case 1
 g2   case 2
 g3   case 3
 g4      case 5
------------------------
+------------------

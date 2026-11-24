@@ -211,6 +211,11 @@ function test_parser_variable_names() {
         observed("private  override  export override1     ::=     1", "name"), "override1")
   check("variable name: name made of qualifiers",
         observed("private  override  export export_override::=1", "name"), "export_override")
+  check("override: a qualifier", observed("override PREFIX := /usr", "override"), 1)
+  check("override: among other qualifiers", observed("export override V = 1", "override"), 1)
+  check("override: not a qualifier when it is the name", observed("override := 1", "override"), 0)
+  check("override: none", observed("V := 1", "override"), 0)
+  check("override: on a define", observed("override define V", "override"), 1)
   check("variable name: unexport is a directive, not a qualifier",
         observed("override unexport V := 1", "kind"), "other")
 }

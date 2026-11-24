@@ -4,13 +4,13 @@
 WARNING: [test/fixtures/Makefile.multi-file.4] the last line ends with a backslash
 WARNING: [test/fixtures/Makefile.multi-file.5] the last line ends with a backslash
 #: stdout
------------------------
+--------------------
 Available targets:
------------------------
+--------------------
 first                  the first target
 after-doc              not documented with the dangling doc of the previous file
 after-recipe           not swallowed as a recipe continuation
 after-rule             not a recipe line of the last rule of the previous file
 after-comment          not swallowed as a comment continuation
 after-continued-line   not joined with the last line of the previous file
------------------------
+--------------------

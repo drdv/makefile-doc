@@ -2,15 +2,15 @@
 #: issue: 105
 -v COLOR=0 test/fixtures/Makefile.backslash-anchor
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 t   d
 a   after a tab-indented continuation
 z   documented
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 X   v
------------------------
+------------------

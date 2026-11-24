@@ -1,9 +1,9 @@
 #: desc: Text in backticks is colored with COLOR_BACKTICKS (also in sections), one line at a time
 -v COLOR_BACKTICKS=1 test/fixtures/Makefile.backticks
 #: stdout
------------------------
+------------------
 Available targets:
------------------------
+------------------
 [34mb1[0m   {[1mA[0m, [1mset[0m, [1mwith[0m, [1melements[0m}
 [34mb2[0m   [1mAll in backticks[0m
 
@@ -13,8 +13,8 @@ Available targets:
 [34mb4[0m   Text in backticks [1mthat spans[0m
 [1m     two lines[0m (each line is colored on its own)
 
------------------------
-Command-line arguments:
------------------------
+------------------
+Variables:
+------------------
 [34mB [0m   [1ma variable[0m
------------------------
+------------------
