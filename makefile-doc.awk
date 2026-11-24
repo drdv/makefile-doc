@@ -303,6 +303,7 @@ function init_globals() {
   # k = 1..DISPLAY_COUNT, with the fields
   #   kind, tag  as in ANCHORS (of the last definition)
   #   name       the displayed name (see display_name)
+  #   label      the text of the name column: name, with " (fixed)" after it for override
   #   doc        the doc after DSUB
   #   section    the section above it after DSUB (only if there is one, see place_sections)
   #   values     its SUB values, space-separated ("" if none)
@@ -1523,6 +1524,9 @@ function add_display_record(k, key, sections, #locals
   if ((k, "override") in ANCHORS) {
     DISPLAY[DISPLAY_COUNT, "override"] = 1
   }
+  # "(fixed)": the command line cannot change a variable set with override
+  DISPLAY[DISPLAY_COUNT, "label"] = DISPLAY[DISPLAY_COUNT, "name"] \
+                                    (((k, "override") in ANCHORS) ? " (fixed)" : "")
   DISPLAY[DISPLAY_COUNT, "values"] = array_get(SUB_VALUES, name)
   DISPLAY[DISPLAY_COUNT, "sub_row"] = (name in SUB_VALUES) ? name : ""
 }
@@ -1676,16 +1680,10 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
   return output "\n"
 }
 
-# the label of DISPLAY[k]: its displayed name, with "(fixed)" after a variable set with
-# override (the command line cannot change it)
-function display_label(k) {
-  return DISPLAY[k, "name"] (((k, "override") in DISPLAY) ? " (fixed)" : "")
-}
-
 # Lay out DISPLAY[k] after names of width len_anchors: its section, then its name (colored
 # by its tag, padded), its doc and its SUB values
 function print_anchor(k, len_anchors, #locals
-                      section, name, formatted_anchor, padding, color, output) {
+                      section, label, formatted_anchor, padding, color, output) {
   section = ((k, "section") in DISPLAY) ? format_section(DISPLAY[k, "section"]) : ""
   if (section) {
     if (COLOR_SECTION_CODE) {
@@ -1699,11 +1697,11 @@ function print_anchor(k, len_anchors, #locals
     append_output(section "\n")
   }
 
-  name = display_label(k)
-  formatted_anchor = apply_output_specific_formatting(name)
-  # the padding is measured on the displayed name (an HTML or LaTeX escape is longer than
+  label = DISPLAY[k, "label"]
+  formatted_anchor = apply_output_specific_formatting(label)
+  # the padding is measured on the label (an HTML or LaTeX escape is longer than
   # its character), then escaped too (PADDING can be any character)
-  padding = apply_output_specific_formatting(repeated_string(PADDING, len_anchors - length(name)))
+  padding = apply_output_specific_formatting(repeated_string(PADDING, len_anchors - length(label)))
   color = anchor_color(DISPLAY[k, "tag"])
   if (color) {
     formatted_anchor = color formatted_anchor padding COLOR_RESET_CODE
@@ -1727,7 +1725,7 @@ function print_documentation(    k, len_anchors, separator) {
   prepare_rendering()
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
-    len_anchors = max(len_anchors, length(display_label(k)))
+    len_anchors = max(len_anchors, length(DISPLAY[k, "label"]))
   }
   separator = get_separator("-", len_anchors)
   OUTPUT_BODY = ""

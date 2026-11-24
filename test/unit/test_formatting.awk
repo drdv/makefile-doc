@@ -112,6 +112,14 @@ function test_prepare_rendering() {
   prepare_rendering()
   check("prepare_rendering: the displayed name and the SUB values",
         DISPLAY[1, "name"] " " DISPLAY[1, "values"], "T a b")
+  check("prepare_rendering: the label is the displayed name", DISPLAY[1, "label"], "T")
+
+  init_globals()
+  add_anchor("variable", "V", "##", " doc", "")
+  ANCHORS[ANCHOR_COUNT, "override"] = 1
+  prepare_rendering()
+  check("prepare_rendering: the label of a variable set with override",
+        DISPLAY[1, "name"] "|" DISPLAY[1, "label"], "V|V (fixed)")
   init_globals()
   VARS = ""
   DEPRECATED = ""

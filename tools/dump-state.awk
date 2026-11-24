@@ -61,7 +61,7 @@ END {
   banner("The state of the rendering: written by prepare_rendering")
   prepare_rendering()
   dump_records("DISPLAY", DISPLAY, DISPLAY_COUNT,
-               "kind name tag doc section override values sub_row")
+               "kind name label tag doc section override values sub_row")
   print "DISPLAY_COUNT = " DISPLAY_COUNT
   print "DOCUMENTED_COUNT = " DOCUMENTED_COUNT
   exit
