@@ -223,8 +223,6 @@ function init_globals() {
   # v1.29.1 and below, fixed in v1.30.0)
   TAG_REGEX = "^(##!|##%|##)"
 
-  initialize_substitution_parameter_defaults()
-
   # the tables of the HTML and LaTeX output formats
   define_ansi_to_html_attributes()
   define_ansi_to_latex_function()
@@ -247,15 +245,16 @@ function init_globals() {
   # the text before and after the documentation (see initialize_output_format)
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
 
-  # SUB and DSUB (see form_substitutions and set_dsub_scopes)
-  split("", SUB_PARAMS)
+  # SUB and DSUB (see form_substitutions). The parameters of each substitution, with the
+  # defaults filled in, are in the rows of a table: SUB_PARAM[name, key] (keys L, M, N, S, P,
+  # I, T) and DSUB_PARAM[name, key] (keys A, D). The row "" holds the defaults: it is the
+  # row of an anchor without SUB (a name is never empty).
+  set_sub_param_defaults(SUB_PARAM)
   split("", SUB_LABELS)
   split("", SUB_VALUES)
-  split("", DSUB_PARAMS)
+  set_dsub_param_defaults(DSUB_PARAM)
   split("", DSUB_VALUES)
   split("", DSUB_NAMES)
-  split("", DSUB_IN_ANCHORS)
-  split("", DSUB_IN_DOCS)
   DSUB_COUNT = 0 # number of DSUB substitutions
 
   # ---------------------------------------------------------------------------------------
@@ -302,24 +301,32 @@ function init_globals() {
   #   doc        the doc after DSUB
   #   section    the section above it after DSUB (only if there is one, see place_sections)
   #   values     its SUB values, space-separated ("" if none)
-  #   params     its SUB parameters ("" if none)
+  #   sub_row    its row in SUB_PARAM: its name if it has a SUB, "" (the defaults) otherwise
   #   override   1 for a variable set with override (only then; displayed as "(fixed)")
   split("", DISPLAY)
   DISPLAY_COUNT = 0
   DOCUMENTED_COUNT = 0 # the documented anchors, displayed or not
 
-  split("", SUB_PARAMS_CURRENT) # the parameters of the substitution being displayed
   OUTPUT_BODY = "" # the documentation being printed (see append_output)
 }
 
-function initialize_substitution_parameter_defaults() {
-  SUB_PARAMS_DEFAULTS["L"] = 1 # 0: start display on current line, 1: start display on next line
-  SUB_PARAMS_DEFAULTS["M"] = 1 # 1: multi-line display, 0: single-line display
-  SUB_PARAMS_DEFAULTS["N"] = -1 # max number of elements to display (-1 means no limit)
-  SUB_PARAMS_DEFAULTS["S"] = "" # separator
-  SUB_PARAMS_DEFAULTS["P"] = "" # prefix
-  SUB_PARAMS_DEFAULTS["I"] = "" # initial string, e.g., (
-  SUB_PARAMS_DEFAULTS["T"] = "" # termination string, e.g., )
+# Empty a table of SUB parameters, then set its row of defaults, "" (see init_globals)
+function set_sub_param_defaults(table) {
+  split("", table)
+  table["", "L"] = 1 # 0: start display on current line, 1: start display on next line
+  table["", "M"] = 1 # 1: multi-line display, 0: single-line display
+  table["", "N"] = -1 # max number of elements to display (-1 means no limit)
+  table["", "S"] = "" # separator
+  table["", "P"] = "" # prefix
+  table["", "I"] = "" # initial string, e.g., (
+  table["", "T"] = "" # termination string, e.g., )
+}
+
+# Empty a table of DSUB parameters, then set its row of defaults, "" (see init_globals)
+function set_dsub_param_defaults(table) {
+  split("", table)
+  table["", "A"] = 0 # 1: replace in the names of anchors too
+  table["", "D"] = 1 # 1: replace in the docs and section titles
 }
 
 #### Options
@@ -358,10 +365,9 @@ function process_options(    sub_names, dummy_array_labels) {
   }
 
   # (with "", gawk --lint does not warn when the option is not set)
-  form_substitutions(SUB "", SUB_PARAMS, SUB_LABELS, SUB_VALUES, sub_names, 0)
-  form_substitutions(DSUB "", DSUB_PARAMS, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
+  form_substitutions(SUB "", SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names, 0)
+  form_substitutions(DSUB "", DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
-  set_dsub_scopes()
 
   report_assignment_operands()
 
@@ -390,19 +396,24 @@ function report_assignment_operands(    k) {
 }
 
 # Parse spec, the value of SUB or DSUB (items separated by ;, \; is a ; in an item), each
-# with optional parameters <p1:v1,...> (see the validate_*_params functions):
+# with optional parameters <p1:v1,...>, stored in the rows of the table param_table (see
+# init_globals, and the store_*_params functions):
 #   SUB   NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (an empty label is no label)
 #   DSUB  NAME:VALUE (no_labels is set)
 # The value is everything after the last separator, so it can hold colons; for SUB,
 # t::/a:b gives the value /a:b, while t:/a:b gives the label /a and the value b.
-# Empty items are skipped; invalid ones (no colon, no name, invalid parameters, a name
-# given twice) are reported (see option_error) and skipped.
-function form_substitutions(spec, sub_params_array, sub_labels_array,
+# Empty items are skipped; invalid ones (no colon, no name, a name given twice) are reported
+# (see option_error) and skipped, as are invalid parameters.
+function form_substitutions(spec, param_table, sub_labels_array,
                             sub_values_array, sub_names_array, no_labels, #locals
                             split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
                             has_label, n_substitutions, option, placeholder) {
-  split("", sub_params_array)
+  if (no_labels) {
+    set_dsub_param_defaults(param_table)
+  } else {
+    set_sub_param_defaults(param_table)
+  }
   split("", sub_labels_array)
   split("", sub_values_array)
   split("", sub_names_array) # names in the order they are given
@@ -450,19 +461,17 @@ function form_substitutions(spec, sub_params_array, sub_labels_array,
       option_error(sprintf("%s: '%s' has an empty NAME", option, string))
       continue
     }
-    if (no_labels) {
-      validate_dsub_params(name, substitution_params)
-    } else {
-      validate_substitution_params(name, substitution_params)
-    }
-
     if (name in sub_values_array) {
       option_error(sprintf("%s: '%s' is given more than once", option, name))
       continue
     }
+    if (no_labels) {
+      store_dsub_params(param_table, name, substitution_params)
+    } else {
+      store_sub_params(param_table, name, substitution_params)
+    }
 
     sub_names_array[++n] = name
-    sub_params_array[name] = substitution_params
     sub_values_array[name] = values
     if (has_label) {
       sub_labels_array[name] = label
@@ -496,9 +505,26 @@ function parse_substitution_params(string, params, keys, #locals
   return n
 }
 
-# Report the invalid parameters of the substitution of name (see option_error)
-function validate_substitution_params(name, string_with_parameters, #locals
-                                      params, keys, k, n, key, value, seen) {
+# Copy the row of defaults of a table of parameters, "", to the row name (the keys of the row
+# "" are found first: adding elements to an array while looping over it is undefined)
+function copy_param_defaults(table, name, #locals
+                             key, defaults) {
+  for (key in table) {
+    if (index(key, SUBSEP) == 1) {
+      defaults[substr(key, length(SUBSEP) + 1)] = table[key]
+    }
+  }
+  for (key in defaults) {
+    table[name, key] = defaults[key]
+  }
+}
+
+# Store the parameters of the SUB substitution of name in its row of table: the defaults (the
+# row ""), replaced by the valid parameters of string_with_parameters; the invalid ones are
+# reported (see option_error). L, M and N are stored as numbers.
+function store_sub_params(table, name, string_with_parameters, #locals
+                          params, keys, k, n, key, value, seen) {
+  copy_param_defaults(table, name)
   split("", seen)
   n = parse_substitution_params(string_with_parameters, params, keys)
   for (k = 1; k <= n; k++) {
@@ -509,7 +535,7 @@ function validate_substitution_params(name, string_with_parameters, #locals
       continue
     }
     seen[key] = 1
-    if (!(key in SUB_PARAMS_DEFAULTS)) {
+    if (!(("", key) in table)) {
       option_error(sprintf("SUB: unknown parameter %s of %s (use L, M, N, S, P, I or T)",
                            key, name))
     } else if ((key == "L" || key == "M") && !is_bool(value)) {
@@ -517,17 +543,21 @@ function validate_substitution_params(name, string_with_parameters, #locals
     } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
       option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
                            name))
+    } else {
+      # S, P, I and T as given (their blanks are part of them)
+      table[name, key] = (key == "L" || key == "M" || key == "N") ? value + 0 : params[key]
     }
   }
 }
 
-# Report the invalid parameters of the DSUB substitution of name (see option_error):
+# Store the parameters of the DSUB substitution of name in its row of table, as numbers: the
+# defaults (the row ""), replaced by the valid parameters of string_with_parameters; the
+# invalid ones are reported (see option_error):
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
 #   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
-function validate_dsub_params(name, string_with_parameters, #locals
-                              params, keys, k, n, key, value, a, d, seen) {
-  a = 0
-  d = 1
+function store_dsub_params(table, name, string_with_parameters, #locals
+                           params, keys, k, n, key, value, seen) {
+  copy_param_defaults(table, name)
   split("", seen)
   n = parse_substitution_params(string_with_parameters, params, keys)
   for (k = 1; k <= n; k++) {
@@ -538,31 +568,16 @@ function validate_dsub_params(name, string_with_parameters, #locals
       continue
     }
     seen[key] = 1
-    if (key != "A" && key != "D") {
+    if (!(("", key) in table)) {
       option_error(sprintf("DSUB: unknown parameter %s of %s (use A or D)", key, name))
     } else if (!is_bool(value)) {
       option_error(sprintf("DSUB: parameter %s of %s should be 0 or 1", key, name))
-    } else if (key == "A") {
-      a = value + 0
     } else {
-      d = value + 0
+      table[name, key] = value + 0
     }
   }
-  if (!a && !d) {
+  if (!table[name, "A"] && !table[name, "D"]) {
     option_error(sprintf("DSUB: %s is replaced nowhere (A and D are both 0)", name))
-  }
-}
-
-# Set where each name of DSUB is replaced: DSUB_IN_ANCHORS[name] (parameter A, default 0)
-# and DSUB_IN_DOCS[name] (parameter D, default 1), checked by validate_dsub_params
-function set_dsub_scopes(    k, name, params, keys) {
-  split("", DSUB_IN_ANCHORS)
-  split("", DSUB_IN_DOCS)
-  for (k = 1; k <= DSUB_COUNT; k++) {
-    name = DSUB_NAMES[k]
-    parse_substitution_params(array_get(DSUB_PARAMS, name), params, keys)
-    DSUB_IN_ANCHORS[name] = ("A" in params) ? params["A"] + 0 : 0
-    DSUB_IN_DOCS[name] = ("D" in params) ? params["D"] + 0 : 1
   }
 }
 
@@ -1495,7 +1510,7 @@ function add_display_record(k, key, sections, #locals
     DISPLAY[DISPLAY_COUNT, "override"] = 1
   }
   DISPLAY[DISPLAY_COUNT, "values"] = array_get(SUB_VALUES, name)
-  DISPLAY[DISPLAY_COUNT, "params"] = array_get(SUB_PARAMS, name)
+  DISPLAY[DISPLAY_COUNT, "sub_row"] = (name in SUB_VALUES) ? name : ""
 }
 
 # The displayed name of an anchor: its SUB label if it has one, otherwise its name after the
@@ -1508,7 +1523,7 @@ function display_name(anchor, #locals
   }
   for (k = 1; k <= DSUB_COUNT; k++) {
     name = DSUB_NAMES[k]
-    if (DSUB_IN_ANCHORS[name]) {
+    if (DSUB_PARAM[name, "A"]) {
       anchor = string_replace(name, DSUB_VALUES[name], anchor)
     }
   }
@@ -1520,7 +1535,7 @@ function display_name(anchor, #locals
 function apply_doc_substitutions(text, #locals
                                  k) {
   for (k = 1; k <= DSUB_COUNT; k++) {
-    if (DSUB_IN_DOCS[DSUB_NAMES[k]]) {
+    if (DSUB_PARAM[DSUB_NAMES[k], "D"]) {
       text = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], text)
     }
   }
@@ -1594,44 +1609,27 @@ function format_section(section) {
   return colorize_doc_backticks(apply_output_specific_formatting(section))
 }
 
-# Set SUB_PARAMS_CURRENT to the parameters of a substitution (with the defaults for those
-# that are not given)
-function extract_substitution_params(string_with_parameters, #locals
-                                     keys, key) {
-  parse_substitution_params(string_with_parameters, SUB_PARAMS_CURRENT, keys)
-
-  for (key in SUB_PARAMS_DEFAULTS) {
-    if (!(key in SUB_PARAMS_CURRENT)) {
-      SUB_PARAMS_CURRENT[key] = SUB_PARAMS_DEFAULTS[key]
-    }
-  }
-  # L, M and N are used as numbers (the value above is a string, e.g., "0" would be true)
-  SUB_PARAMS_CURRENT["L"] += 0
-  SUB_PARAMS_CURRENT["M"] += 0
-  SUB_PARAMS_CURRENT["N"] += 0
-}
-
 # Return the text that follows the doc of an anchor: the values of its SUB substitution
-# (space-separated, with the parameters in SUB_PARAMS_CURRENT), then a newline. Each value is
-# made into an item (P before it, S after it, I before the first one, T after the last one
-# instead of S); the items are on one line (M=0) or on one line each (M=1). The first line
-# follows the doc (L=0) or starts on the next line (L=1).
-function display_substitutions(sub_values, len_anchors, #locals
+# (space-separated, with the parameters in the row sub_row of SUB_PARAM), then a newline.
+# Each value is made into an item (P before it, S after it, I before the first one, T after
+# the last one instead of S); the items are on one line (M=0) or on one line each (M=1). The
+# first line follows the doc (L=0) or starts on the next line (L=1).
+function display_substitutions(sub_values, sub_row, len_anchors, #locals
                                values, n, k, item, lines, n_lines, initial, prefix,
                                separator, termination, indentation, next_indentation,
                                output) {
   n = split(sub_values, values, " ")
-  if (SUB_PARAMS_CURRENT["N"] >= 0) {
-    n = min(n, SUB_PARAMS_CURRENT["N"])
+  if (SUB_PARAM[sub_row, "N"] >= 0) {
+    n = min(n, SUB_PARAM[sub_row, "N"])
   }
   if (n == 0) {
     return "\n"
   }
 
-  initial = SUB_PARAMS_CURRENT["I"]
-  prefix = SUB_PARAMS_CURRENT["P"]
-  separator = SUB_PARAMS_CURRENT["S"]
-  termination = SUB_PARAMS_CURRENT["T"]
+  initial = SUB_PARAM[sub_row, "I"]
+  prefix = SUB_PARAM[sub_row, "P"]
+  separator = SUB_PARAM[sub_row, "S"]
+  termination = SUB_PARAM[sub_row, "T"]
 
   n_lines = 0
   for (k = 1; k <= n; k++) {
@@ -1645,7 +1643,7 @@ function display_substitutions(sub_values, len_anchors, #locals
       item = item termination
     }
     item = colorize_doc_backticks(apply_output_specific_formatting(item))
-    if (SUB_PARAMS_CURRENT["M"] || k == 1) {
+    if (SUB_PARAM[sub_row, "M"] || k == 1) {
       lines[++n_lines] = item
     } else {
       lines[n_lines] = lines[n_lines] " " item
@@ -1655,7 +1653,7 @@ function display_substitutions(sub_values, len_anchors, #locals
   # the + 1 assumes the usual space after the token (as in `## doc`), so that the values
   # line up with the text of the doc
   indentation = repeated_string("", len_anchors + OFFSET + 1)
-  output = (SUB_PARAMS_CURRENT["L"] ? "\n" indentation : " ") lines[1]
+  output = (SUB_PARAM[sub_row, "L"] ? "\n" indentation : " ") lines[1]
   # the lines after the first are aligned with the first value (after I)
   next_indentation = indentation repeated_string("", length(initial))
   for (k = 2; k <= n_lines; k++) {
@@ -1674,8 +1672,6 @@ function display_label(k) {
 # by its tag, padded), its doc and its SUB values
 function print_anchor(k, len_anchors, #locals
                       section, name, formatted_anchor, padding, color, output) {
-  extract_substitution_params(DISPLAY[k, "params"])
-
   section = ((k, "section") in DISPLAY) ? format_section(DISPLAY[k, "section"]) : ""
   if (section) {
     if (COLOR_SECTION_CODE) {
@@ -1702,7 +1698,7 @@ function print_anchor(k, len_anchors, #locals
   }
 
   output = formatted_anchor format_doc(DISPLAY[k, "doc"], len_anchors) \
-           display_substitutions(DISPLAY[k, "values"], len_anchors)
+           display_substitutions(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors)
   append_output(strip_trailing_blanks(output))
 }
 
