@@ -1,13 +1,13 @@
 function test_form_substitutions_with_labels(    params, labels, values, names) {
   form_substitutions("<L:1,M:0>NAME:LABEL:v1 v2;target:target_renamed:three items here",
                      params, labels, values, names, 0)
-  check("form_substitutions: number of params", length_array_posix(params), 2)
   check("form_substitutions: number of labels", length_array_posix(labels), 2)
   check("form_substitutions: number of values", length_array_posix(values), 2)
-  check("form_substitutions: params", params["NAME"], "L:1,M:0")
+  check("form_substitutions: params", params["NAME", "L"] " " params["NAME", "M"], "1 0")
   check("form_substitutions: label", labels["NAME"], "LABEL")
   check("form_substitutions: values", values["NAME"], "v1 v2")
-  check("form_substitutions: no params", params["target"], "")
+  check("form_substitutions: no params (the defaults)",
+        params["target", "L"] " " params["target", "M"] " " params["target", "N"], "1 1 -1")
   check("form_substitutions: label (2nd substitution)", labels["target"], "target_renamed")
   check("form_substitutions: values (2nd substitution)", values["target"], "three items here")
   check("form_substitutions: names in order", names[1] " " names[2], "NAME target")
@@ -21,7 +21,8 @@ function test_form_substitutions_semicolon(    params, labels, values, names) {
 
 function test_form_substitutions_empty_parts(    params, labels, values, names) {
   form_substitutions("T1:;T2:L2:;T3:V31 V32", params, labels, values, names, 0)
-  check("form_substitutions: number of params", length_array_posix(params), 3)
+  check_true("form_substitutions: a row of params for each substitution",
+             ("T1", "L") in params && ("T2", "L") in params && ("T3", "L") in params)
   check("form_substitutions: number of labels", length_array_posix(labels), 1)
   check("form_substitutions: number of values", length_array_posix(values), 3)
   check_true("form_substitutions: NAME: has no label", !("T1" in labels))
@@ -75,52 +76,58 @@ function test_parse_substitution_params(    params, keys, n) {
         parse_substitution_params("", params, keys), 0)
 }
 
-function test_validate_substitution_params() {
+function test_store_sub_params(    params) {
   init_globals()
-  validate_substitution_params("t", "L:0,M:1,N:-1,S:x,P:y,I:{,T:}")
-  validate_substitution_params("t", "N:12, L : 1 ")
-  check("validate_substitution_params: valid parameters", stderr_text(), "")
+  set_sub_param_defaults(params)
+  store_sub_params(params, "t", "L:0,M:1,N:-1,S:x,P:y,I:{,T:}")
+  store_sub_params(params, "t", "N:12, L : 1 ")
+  check("store_sub_params: valid parameters", stderr_text(), "")
 
-  validate_substitution_params("t", "Z:1")
-  check("validate_substitution_params: unknown parameter",
+  store_sub_params(params, "t", "Z:1")
+  check("store_sub_params: unknown parameter",
         stderr_text(),
         "ERROR: SUB: unknown parameter Z of t (use L, M, N, S, P, I or T)\n")
-  validate_substitution_params("t", "L:2,M:")
-  check("validate_substitution_params: L and M should be 0 or 1",
+  store_sub_params(params, "t", "L:2,M:")
+  check("store_sub_params: L and M should be 0 or 1",
         stderr_text(),
         "ERROR: SUB: parameter L of t should be 0 or 1\n" \
         "ERROR: SUB: parameter M of t should be 0 or 1\n")
-  validate_substitution_params("t", "N:-2")
-  validate_substitution_params("t", "N:1.5")
-  check("validate_substitution_params: N should be -1 or a non-negative integer",
+  check("store_sub_params: an invalid parameter keeps its default", params["t", "L"], 1)
+  store_sub_params(params, "t", "N:-2")
+  store_sub_params(params, "t", "N:1.5")
+  check("store_sub_params: N should be -1 or a non-negative integer",
         stderr_text(),
         "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n" \
         "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n")
-  validate_substitution_params("t", "L:0,M:1,L:1")
-  check("validate_substitution_params: a repeated parameter",
+  store_sub_params(params, "t", "L:0,M:1,L:1")
+  check("store_sub_params: a repeated parameter",
         stderr_text(),
         "ERROR: SUB: parameter L of t is given more than once\n")
-  check("validate_substitution_params: every error is counted", OPTION_ERRORS, 6)
+  check("store_sub_params: every error is counted", OPTION_ERRORS, 6)
 }
 
-function test_extract_substitution_params() {
-  extract_substitution_params("L:0,M:0,N:3,S:\\,,P:--,I:{,T:}")
-  check("extract_substitution_params: L", SUB_PARAMS_CURRENT["L"], 0)
-  check("extract_substitution_params: M", SUB_PARAMS_CURRENT["M"], 0)
-  check("extract_substitution_params: N", SUB_PARAMS_CURRENT["N"], 3)
-  check("extract_substitution_params: S is an escaped comma", SUB_PARAMS_CURRENT["S"], ",")
-  check("extract_substitution_params: P", SUB_PARAMS_CURRENT["P"], "--")
-  check("extract_substitution_params: I", SUB_PARAMS_CURRENT["I"], "{")
-  check("extract_substitution_params: T", SUB_PARAMS_CURRENT["T"], "}")
+function test_store_sub_params_values(    params) {
+  set_sub_param_defaults(params)
+  store_sub_params(params, "t", "L:0,M:0,N:3,S:\\,,P:--,I:{,T:}")
+  check("store_sub_params: L", params["t", "L"], 0)
+  check("store_sub_params: M", params["t", "M"], 0)
+  check("store_sub_params: N", params["t", "N"], 3)
+  check("store_sub_params: S is an escaped comma", params["t", "S"], ",")
+  check("store_sub_params: P", params["t", "P"], "--")
+  check("store_sub_params: I", params["t", "I"], "{")
+  check("store_sub_params: T", params["t", "T"], "}")
+  check_true("store_sub_params: L, M and N are numbers (a string \"0\" would be true)",
+             !params["t", "L"] && !params["t", "M"])
 
-  extract_substitution_params("")
-  check("extract_substitution_params: default L", SUB_PARAMS_CURRENT["L"], 1)
-  check("extract_substitution_params: default M", SUB_PARAMS_CURRENT["M"], 1)
-  check("extract_substitution_params: default N", SUB_PARAMS_CURRENT["N"], -1)
-  check("extract_substitution_params: default S", SUB_PARAMS_CURRENT["S"], "")
-  check("extract_substitution_params: default P", SUB_PARAMS_CURRENT["P"], "")
-  check("extract_substitution_params: default I", SUB_PARAMS_CURRENT["I"], "")
-  check("extract_substitution_params: default T", SUB_PARAMS_CURRENT["T"], "")
+  store_sub_params(params, "u", "")
+  check("store_sub_params: default L", params["u", "L"], 1)
+  check("store_sub_params: default M", params["u", "M"], 1)
+  check("store_sub_params: default N", params["u", "N"], -1)
+  check("store_sub_params: default S", params["u", "S"], "")
+  check("store_sub_params: default P", params["u", "P"], "")
+  check("store_sub_params: default I", params["u", "I"], "")
+  check("store_sub_params: default T", params["u", "T"], "")
+  check("store_sub_params: the defaults are unchanged", params["", "L"] params["", "N"], "1-1")
 }
 
 function test_form_substitutions_colons(    params, labels, values, names) {
@@ -156,7 +163,8 @@ function test_form_substitutions_dsub(    params, labels, values, names) {
         names[1] " " names[2] " " names[3], "$(X) $(Y) $(Z)")
 
   form_substitutions("<A:1>$(X):a:b", params, labels, values, names, 1)
-  check("form_substitutions (DSUB): parameters", params["$(X)"], "A:1")
+  check("form_substitutions (DSUB): parameters", params["$(X)", "A"] " " params["$(X)", "D"],
+        "1 1")
   check("form_substitutions (DSUB): value with colons", values["$(X)"], "a:b")
 }
 
@@ -166,13 +174,13 @@ function test_form_substitutions_name_with_angle_brackets(    params, labels, va
   check("form_substitutions: empty parameters before a NAME that starts with <...>",
         names[1] " " labels["<t>"] " " values["<t>"], "<t> new v")
   check("form_substitutions: parameters before a NAME that starts with <...>",
-        names[2] " " params["<u>"] " " values["<u>"], "<u> L:0 w")
+        names[2] " " params["<u>", "L"] " " values["<u>"], "<u> 0 w")
 
   form_substitutions("<><b>:B;<A:1, D:0><i>:I", params, labels, values, names, 1)
   check("form_substitutions (DSUB): empty parameters before a NAME that starts with <...>",
         names[1] " " values["<b>"], "<b> B")
   check("form_substitutions (DSUB): parameters before a NAME that starts with <...>",
-        names[2] " " params["<i>"] " " values["<i>"], "<i> A:1, D:0 I")
+        names[2] " " params["<i>", "A"] params["<i>", "D"] " " values["<i>"], "<i> 10 I")
   check("form_substitutions: a NAME that starts with <...> is not an error", OPTION_ERRORS, 0)
 }
 
@@ -196,45 +204,45 @@ function test_form_substitutions_repeated(    params, labels, values, names) {
   check("form_substitutions: the same name in SUB and DSUB is not an error", OPTION_ERRORS, 0)
 }
 
-function test_validate_dsub_params() {
+function test_store_dsub_params(    params) {
   init_globals()
-  validate_dsub_params("x", "")
-  validate_dsub_params("x", "A:1")
-  validate_dsub_params("x", " A : 1 , D:0,")
-  check("validate_dsub_params: valid parameters are not errors", OPTION_ERRORS, 0)
+  set_dsub_param_defaults(params)
+  store_dsub_params(params, "x", "")
+  store_dsub_params(params, "x", "A:1")
+  store_dsub_params(params, "x", " A : 1 , D:0,")
+  check("store_dsub_params: valid parameters are not errors", OPTION_ERRORS, 0)
 
-  validate_dsub_params("x", "L:0")
-  check("validate_dsub_params: unknown parameter",
+  store_dsub_params(params, "x", "L:0")
+  check("store_dsub_params: unknown parameter",
         stderr_text(), "ERROR: DSUB: unknown parameter L of x (use A or D)\n")
-  validate_dsub_params("x", "A:yes")
-  check("validate_dsub_params: A should be 0 or 1",
+  store_dsub_params(params, "x", "A:yes")
+  check("store_dsub_params: A should be 0 or 1",
         stderr_text(), "ERROR: DSUB: parameter A of x should be 0 or 1\n")
-  validate_dsub_params("x", "D:0")
-  check("validate_dsub_params: replaced nowhere",
+  store_dsub_params(params, "x", "D:0")
+  check("store_dsub_params: replaced nowhere",
         stderr_text(), "ERROR: DSUB: x is replaced nowhere (A and D are both 0)\n")
-  validate_dsub_params("x", "A:1, A :1")
-  check("validate_dsub_params: a repeated parameter",
+  store_dsub_params(params, "x", "A:1, A :1")
+  check("store_dsub_params: a repeated parameter",
         stderr_text(), "ERROR: DSUB: parameter A of x is given more than once\n")
-  check("validate_dsub_params: every invalid parameter is counted", OPTION_ERRORS, 4)
+  check("store_dsub_params: every invalid parameter is counted", OPTION_ERRORS, 4)
   init_globals()
 }
 
-function test_set_dsub_scopes(    labels) {
+function test_form_substitutions_dsub_params(    labels) {
   form_substitutions("<A:1>b:2;<A:1,D:0>c:3;d:6",
-                     DSUB_PARAMS, labels, DSUB_VALUES, DSUB_NAMES, 1)
-  DSUB_COUNT = length_array_posix(DSUB_NAMES)
-  set_dsub_scopes()
-  check("set_dsub_scopes: default", DSUB_IN_ANCHORS["d"] " " DSUB_IN_DOCS["d"], "0 1")
-  check("set_dsub_scopes: A:1", DSUB_IN_ANCHORS["b"] " " DSUB_IN_DOCS["b"], "1 1")
-  check("set_dsub_scopes: A:1,D:0", DSUB_IN_ANCHORS["c"] " " DSUB_IN_DOCS["c"], "1 0")
+                     DSUB_PARAM, labels, DSUB_VALUES, DSUB_NAMES, 1)
+  check("form_substitutions (DSUB): default A and D",
+        DSUB_PARAM["d", "A"] " " DSUB_PARAM["d", "D"], "0 1")
+  check("form_substitutions (DSUB): A:1", DSUB_PARAM["b", "A"] " " DSUB_PARAM["b", "D"], "1 1")
+  check("form_substitutions (DSUB): A:1,D:0",
+        DSUB_PARAM["c", "A"] " " DSUB_PARAM["c", "D"], "1 0")
   init_globals()
 }
 
 function test_display_name(    labels) {
-  form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", DSUB_PARAMS, labels, DSUB_VALUES,
+  form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", DSUB_PARAM, labels, DSUB_VALUES,
                      DSUB_NAMES, 1)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
-  set_dsub_scopes()
   check("display_name: replaced in the order given", display_name("$(D)/a"), "o/a")
   check("display_name: every occurrence", display_name("$(D)/a $(D)/b"), "o/a o/b")
   check("display_name: a name without the text", display_name("plain"), "plain")
@@ -250,15 +258,15 @@ BEGIN {
   test_form_substitutions_empty_items()
   test_form_substitutions_invalid()
   test_parse_substitution_params()
-  test_validate_substitution_params()
-  test_extract_substitution_params()
+  test_store_sub_params()
+  test_store_sub_params_values()
   test_form_substitutions_colons()
   test_form_substitutions_spaces_in_name()
   test_form_substitutions_dsub()
   test_form_substitutions_name_with_angle_brackets()
   test_form_substitutions_repeated()
-  test_validate_dsub_params()
-  test_set_dsub_scopes()
+  test_store_dsub_params()
+  test_form_substitutions_dsub_params()
   test_display_name()
   done()
 }

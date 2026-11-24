@@ -42,14 +42,12 @@ function dump_records(name, array, count, fields, #locals
 
 END {
   banner("Settings: derived from the options by process_options")
-  dump_array("SUB_PARAMS", SUB_PARAMS)
+  dump_array("SUB_PARAM", SUB_PARAM)
   dump_array("SUB_LABELS", SUB_LABELS)
   dump_array("SUB_VALUES", SUB_VALUES)
-  dump_array("DSUB_PARAMS", DSUB_PARAMS)
+  dump_array("DSUB_PARAM", DSUB_PARAM)
   dump_array("DSUB_VALUES", DSUB_VALUES)
   dump_array("DSUB_NAMES", DSUB_NAMES)
-  dump_array("DSUB_IN_ANCHORS", DSUB_IN_ANCHORS)
-  dump_array("DSUB_IN_DOCS", DSUB_IN_DOCS)
   print "DSUB_COUNT = " DSUB_COUNT
 
   banner("The interface: written while parsing")
@@ -62,7 +60,8 @@ END {
 
   banner("The state of the rendering: written by prepare_rendering")
   prepare_rendering()
-  dump_records("DISPLAY", DISPLAY, DISPLAY_COUNT, "kind name tag doc section override values params")
+  dump_records("DISPLAY", DISPLAY, DISPLAY_COUNT,
+               "kind name tag doc section override values sub_row")
   print "DISPLAY_COUNT = " DISPLAY_COUNT
   print "DOCUMENTED_COUNT = " DOCUMENTED_COUNT
   exit
