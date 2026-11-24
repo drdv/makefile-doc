@@ -1,26 +1,9 @@
 # Check the section Rendering of the script: what is displayed (prepare_rendering), and
 # its layout (format_documentation).
 
-function test_substitute_backticks_patterns() {
-  COLOR_BACKTICKS_CODE = ">>>"
-  COLOR_RESET_CODE = "<<<"
-
-  check("substitute_backticks_patterns: two regions",
-        substitute_backticks_patterns("this `is` a test `x` and"),
-        "this >>>is<<< a test >>>x<<< and")
-  check("substitute_backticks_patterns: regions are paired from the left",
-        substitute_backticks_patterns("`this `is` a test `x` and`"),
-        ">>>this <<<is>>> a test <<<x>>> and<<<")
-  check("substitute_backticks_patterns: inside braces",
-        substitute_backticks_patterns("{`1`, `2`, `3`}"),
-        "{>>>1<<<, >>>2<<<, >>>3<<<}")
-  check("substitute_backticks_patterns: region with a space",
-        substitute_backticks_patterns("empty ` ` region"),
-        "empty >>> <<< region")
-  check("substitute_backticks_patterns: empty region is left as is",
-        substitute_backticks_patterns("empty `` region"),
-        "empty `` region")
-}
+# ---------------------------------------------------------------------------------------
+# interface -> DISPLAY: what is displayed (prepare_rendering)
+# ---------------------------------------------------------------------------------------
 
 # add a record to the interface, as the parser does (section "": none)
 function add_anchor(kind, name, tag, doc, section) {
@@ -96,6 +79,91 @@ function test_prepare_rendering() {
   DEPRECATED = ""
 }
 
+function test_display_name(    labels) {
+  form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", DSUB_PARAM, labels, DSUB_VALUES,
+                     DSUB_NAMES, 1)
+  DSUB_COUNT = length_array_posix(DSUB_NAMES)
+  check("display_name: replaced in the order given", display_name("$(D)/a"), "o/a")
+  check("display_name: every occurrence", display_name("$(D)/a $(D)/b"), "o/a o/b")
+  check("display_name: a name without the text", display_name("plain"), "plain")
+  SUB_LABELS["$(D)/a"] = "label"
+  check("display_name: a SUB label wins", display_name("$(D)/a"), "label")
+  init_globals()
+}
+
+# ---------------------------------------------------------------------------------------
+# DISPLAY -> text: the layout (format_documentation)
+# ---------------------------------------------------------------------------------------
+
+function test_substitute_backticks_patterns() {
+  COLOR_BACKTICKS_CODE = ">>>"
+  COLOR_RESET_CODE = "<<<"
+
+  check("substitute_backticks_patterns: two regions",
+        substitute_backticks_patterns("this `is` a test `x` and"),
+        "this >>>is<<< a test >>>x<<< and")
+  check("substitute_backticks_patterns: regions are paired from the left",
+        substitute_backticks_patterns("`this `is` a test `x` and`"),
+        ">>>this <<<is>>> a test <<<x>>> and<<<")
+  check("substitute_backticks_patterns: inside braces",
+        substitute_backticks_patterns("{`1`, `2`, `3`}"),
+        "{>>>1<<<, >>>2<<<, >>>3<<<}")
+  check("substitute_backticks_patterns: region with a space",
+        substitute_backticks_patterns("empty ` ` region"),
+        "empty >>> <<< region")
+  check("substitute_backticks_patterns: empty region is left as is",
+        substitute_backticks_patterns("empty `` region"),
+        "empty `` region")
+}
+
+# display_substitutions: the values of a SUB, with the parameters of its row of SUB_PARAM
+function test_display_substitutions(    labels, values, names) {
+  init_globals()
+  OFFSET = 2
+  check("display_substitutions: no values", display_substitutions("", "", 1), "\n")
+  check("display_substitutions: the defaults (one value per line, on the next lines)",
+        display_substitutions("a b", "", 1), "\n    a\n    b\n")
+  form_substitutions("<L:0,M:0,I:{,T:},S:\\,>t:a b c;<N:2>u:a b c", SUB_PARAM, labels, values,
+                     names, 0)
+  check("display_substitutions: L:0, M:0, I, T and S", display_substitutions("a b c", "t", 1),
+        " {a, b, c}\n")
+  check("display_substitutions: N", display_substitutions("a b c", "u", 1), "\n    a\n    b\n")
+  OFFSET = ""
+  init_globals()
+}
+
+# one DISPLAY record (no section, no SUB values)
+function display_record(label, tag, doc) {
+  DISPLAY_COUNT = 1
+  DISPLAY[1, "label"] = label
+  DISPLAY[1, "tag"] = tag
+  DISPLAY[1, "doc"] = doc
+  DISPLAY[1, "values"] = ""
+  DISPLAY[1, "sub_row"] = ""
+}
+
+# format_anchor: one DISPLAY record in, its text out (no colors)
+function test_format_anchor() {
+  init_globals()
+  OFFSET = 2
+  PADDING = "."
+  display_record("t", "##", " doc")
+  check("format_anchor: the label padded to the width, then the doc", format_anchor(1, 3),
+        "t..   doc\n")
+  DISPLAY[1, "doc"] = " line 1\n line 2"
+  check("format_anchor: the next lines of the doc are aligned with the first one",
+        format_anchor(1, 3), "t..   line 1\n      line 2\n")
+  DISPLAY[1, "section"] = " S"
+  DISPLAY[1, "doc"] = " doc"
+  check("format_anchor: the section above", format_anchor(1, 3), " S\nt..   doc\n")
+  DISPLAY[1, "values"] = "a b"
+  delete DISPLAY[1, "section"]
+  check("format_anchor: the SUB values after the doc", format_anchor(1, 3),
+        "t..   doc\n      a\n      b\n")
+  OFFSET = PADDING = ""
+  init_globals()
+}
+
 function test_format_documentation() {
   init_globals()
   VARS = 1
@@ -124,22 +192,15 @@ function test_format_documentation() {
   VARS = DEPRECATED = OFFSET = PADDING = ""
 }
 
-function test_display_name(    labels) {
-  form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", DSUB_PARAM, labels, DSUB_VALUES,
-                     DSUB_NAMES, 1)
-  DSUB_COUNT = length_array_posix(DSUB_NAMES)
-  check("display_name: replaced in the order given", display_name("$(D)/a"), "o/a")
-  check("display_name: every occurrence", display_name("$(D)/a $(D)/b"), "o/a o/b")
-  check("display_name: a name without the text", display_name("plain"), "plain")
-  SUB_LABELS["$(D)/a"] = "label"
-  check("display_name: a SUB label wins", display_name("$(D)/a"), "label")
-  init_globals()
-}
-
 BEGIN {
-  test_substitute_backticks_patterns()
+  # interface -> DISPLAY: what is displayed (prepare_rendering)
   test_prepare_rendering()
-  test_format_documentation()
   test_display_name()
+
+  # DISPLAY -> text: the layout (format_documentation)
+  test_substitute_backticks_patterns()
+  test_display_substitutions()
+  test_format_anchor()
+  test_format_documentation()
   done()
 }

@@ -1,5 +1,10 @@
-# Check the functions of the parser (the parser_* functions of the script): against the
-# examples of test/parser.spec, and line by line.
+# Check the functions of the parser (the parser_* functions of the script), stage by stage:
+# the observation (against the examples of test/parser.spec), the step, the data and the
+# record (against the equations of misc/docs/parser-model.tex), then the whole parser.
+
+# ---------------------------------------------------------------------------------------
+# line -> obs: the questions of the observation, the lexical layer
+# ---------------------------------------------------------------------------------------
 
 # Read the blocks of a spec file into blocks[k, key] (k = 1..n) and return n. A value in
 # brackets keeps its spaces (the first [ and the last ] of the line delimit it); a line that
@@ -87,6 +92,318 @@ function test_parser_reference_end() {
         parser_reference_end("$(a {b) c}", 1), 7)
   check("parser_reference_end: not closed", parser_reference_end("x $(a (b) c", 3), 11)
 }
+
+# a field of the observation of a line without state (parser_observe), "" if not set
+function observed(line, field, #locals
+                  obs) {
+  parser_observe(line, obs)
+  return array_get(obs, field)
+}
+
+function test_parser_special_rules() {
+  check("special rule: .PHONY", observed(".PHONY: t", "kind"), "special rule")
+  check("special rule: .SILENT", observed(".SILENT: t", "kind"), "special rule")
+  check("special rule: .IGNORE", observed(".IGNORE: t", "kind"), "special rule")
+  check("special rule: .SECONDARY", observed(".SECONDARY: t", "kind"), "special rule")
+  check("special rule: .INTERMEDIATE", observed(".INTERMEDIATE: t", "kind"), "special rule")
+  check("special rule: .PRECIOUS", observed(".PRECIOUS: t", "kind"), "special rule")
+  check("special rule: leading whitespace and spaces before :",
+        observed(" \t.PHONY  : t", "kind"), "special rule")
+  check("special rule: tab before :", observed(".PHONY\t: t", "kind"), "special rule")
+  check("special rule: .SECONDEXPANSION without prerequisites",
+        observed(".SECONDEXPANSION:", "kind"), "special rule")
+  check("special rule: .DELETE_ON_ERROR", observed(".DELETE_ON_ERROR:", "kind"), "special rule")
+  check("special rule: .SUFFIXES", observed(".SUFFIXES:", "kind"), "special rule")
+  check("special rule: .DEFAULT", observed(".DEFAULT:", "kind"), "special rule")
+  check("special rule: .NOTINTERMEDIATE", observed(".NOTINTERMEDIATE: t", "kind"),
+        "special rule")
+  check("special rule: .LOW_RESOLUTION_TIME", observed(".LOW_RESOLUTION_TIME: t", "kind"),
+        "special rule")
+  check("special rule: .EXPORT_ALL_VARIABLES", observed(".EXPORT_ALL_VARIABLES:", "kind"),
+        "special rule")
+  check("special rule: .NOTPARALLEL", observed(".NOTPARALLEL:", "kind"), "special rule")
+  check("special rule: .ONESHELL", observed(".ONESHELL:", "kind"), "special rule")
+  check("special rule: .POSIX", observed(".POSIX:", "kind"), "special rule")
+  check("special rule: a suffix rule is a rule", observed(".c.o:", "kind"), "rule")
+  check("special rule: a hidden file is a rule", observed(".venv/.sentinel:", "kind"), "rule")
+  check("special rule: a name with lower-case letters is a rule",
+        observed(".PHONYx: t", "kind"), "rule")
+  check("special rule: an upper-case name that is not special is a rule",
+        observed(".ENV:", "kind"), "rule")
+  check("special rule: a special name with a suffix is a rule",
+        observed(".PHONY_ALL:", "kind"), "rule")
+  check("special rule: .PHONY as a prerequisite is a rule", observed("t: .PHONY", "kind"), "rule")
+}
+
+function test_parser_variable_names() {
+  check("variable name: := without spaces", observed("VAR2_1:=1##comment", "name"), "VAR2_1")
+  check("variable name: ?= with spaces", observed("var2_1   ?=  1##comment", "name"), "var2_1")
+  check("variable name: :::=", observed("x   :::=fsws", "name"), "x")
+  check("variable name: += without value", observed("__a__   +=", "name"), "__a__")
+  check("variable name: = with inline doc", observed("X = ## doc", "name"), "X")
+  check("variable name: ::= with value and inline doc",
+        observed("this_is_A_VARIABLE ::= this is a value ## doc", "name"), "this_is_A_VARIABLE")
+  check("variable name: ?= with inline doc and no value", observed("x4?=## doc", "name"), "x4")
+  check("variable name: repeated qualifiers",
+        observed("override private  override     private  export _w::=", "name"), "_w")
+  check("variable name: name starting with a qualifier",
+        observed("private  override  export override1     ::=     1", "name"), "override1")
+  check("variable name: name made of qualifiers",
+        observed("private  override  export export_override::=1", "name"), "export_override")
+  check("override: a qualifier", observed("override PREFIX := /usr", "override"), 1)
+  check("override: among other qualifiers", observed("export override V = 1", "override"), 1)
+  check("override: not a qualifier when it is the name", observed("override := 1", "override"), 0)
+  check("override: none", observed("V := 1", "override"), 0)
+  check("override: on a define", observed("override define V", "override"), 1)
+  check("variable name: unexport is a directive, not a qualifier",
+        observed("override unexport V := 1", "kind"), "other")
+}
+
+# the inline doc of a line outside a rule (parser_obs), or "<none>"
+function inline_doc(line, #locals
+                    state, data, obs) {
+  parser_init(state, data, "")
+  parser_obs(line, state, obs)
+  return obs["inline"] ? obs["comment"] : "<none>"
+}
+
+function test_parser_inline_docs() {
+  check("inline doc: ## (a ; in the doc is kept)",
+        inline_doc("target: ## some ;description"), "## some ;description")
+  check("inline doc: ##! (a ; in the doc is kept)",
+        inline_doc("target: ##! some description;"), "##! some description;")
+  check("inline doc: ##%", inline_doc("target: ##% some description"), "##% some description")
+  check("inline doc: after deps without a space",
+        inline_doc("target: deps1 deps2 | deps3## some description"), "## some description")
+  check("inline doc: none after an empty inline recipe",
+        inline_doc("target:; ## some description"), "<none>")
+  check("inline doc: none after an inline recipe",
+        inline_doc("target:; @echo 1 ##! some description"), "<none>")
+  check("inline doc: none after an inline recipe with two commands",
+        inline_doc("target: ; @echo 1 ; echo 2 ##% some description"), "<none>")
+  check("inline doc: none after deps and an inline recipe",
+        inline_doc("target: deps1 deps2 | deps3 ; echo 1 ## some description"), "<none>")
+  check("inline doc: none without a doc", inline_doc("target: "), "<none>")
+  check("inline doc: none after deps without a doc",
+        inline_doc("target: deps1 deps2 | deps3"), "<none>")
+  check("inline doc: none for an inline ##@ (a section is not inline)",
+        inline_doc("target: ##@ some text"), "<none>")
+  check("inline doc: none for an inline ##@ on a variable",
+        inline_doc("X := 1 ##@ some text"), "<none>")
+  check("inline doc: variable with a ; in its value", inline_doc("X := a;b ## doc"), "## doc")
+  check("inline doc: none in an ordinary comment",
+        inline_doc("target: deps # a comment ## text"), "<none>")
+  check("inline doc: none in an ordinary comment on a variable",
+        inline_doc("X := 1 # a comment ## text"), "<none>")
+  check("inline doc: after an escaped # in a value", inline_doc("X := a\\#b ## doc"), "## doc")
+  check("inline doc: none after an escaped backslash (\\\\ then a comment)",
+        inline_doc("X := a\\\\# note ## text"), "<none>")
+  check("inline doc: after an escaped backslash and an escaped #",
+        inline_doc("X := a\\\\\\#b ## doc"), "## doc")
+  check("inline doc: a ## in the doc is kept", inline_doc("target: ## a ## b"), "## a ## b")
+}
+
+function test_parser_double_colon() {
+  check("double colon: ::", observed("t::", "double"), 1)
+  check("double colon: :", observed("t:", "double"), 0)
+  check("double colon: :: with a target variable", observed("t:: A:=1", "double"), 1)
+  check("double colon: grouped", observed("a b &::", "double"), 1)
+  check("double colon: :: in the recipe of a : rule",
+        observed("t: ; @echo \"a::b\"", "double"), 0)
+}
+
+function test_get_doc_tag() {
+  check("get_doc_tag: ##", get_doc_tag("##   doc"), "##")
+  check("get_doc_tag: ##!", get_doc_tag("##!   doc"), "##!")
+  check("get_doc_tag: ##%", get_doc_tag("##%   doc"), "##%")
+  check("get_doc_tag: ##Z is ##", get_doc_tag("##Z   doc"), "##")
+  check("get_doc_tag: no tag", get_doc_tag("!#   doc"), "")
+}
+
+# ---------------------------------------------------------------------------------------
+# (state, obs) -> state, data and record: the equations of the note (section Model)
+# ---------------------------------------------------------------------------------------
+
+# The step table of the note (section Step): r_i, d_i and s_i for each kind, where r, d and s
+# are the values before the line (r_bar_{i-1}, d_bar_{i-1}, s_{i-1}) and s!e is s_{i-1} and
+# not e_i
+function step_table(table) {
+  table["recipe"] = "1 0 s"
+  table["neutral"] = "r d s"
+  table["doc"] = "r 1 s"
+  table["section"] = "r d 1"
+  table["banner"] = "r 0 s"
+  table["rule"] = "1 0 s!e"
+  table["special rule"] = "1 d s"
+  table["assignment"] = "0 0 s!e"
+  table["other"] = "0 0 s"
+}
+
+# the value of an entry of step_table, from the state before the line and e_i
+function step_entry(entry, r, d, s, e) {
+  if (entry == "r") {
+    return r
+  } else if (entry == "d") {
+    return d
+  } else if (entry == "s") {
+    return s
+  } else if (entry == "s!e") {
+    return (s && !e) ? 1 : 0
+  }
+  return entry + 0
+}
+
+# parser_step against the step table, for every kind and every state before the line (and
+# with and without an inline doc for an anchor), with e_i as in the note
+function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, state, obs,
+                              got, want, failures) {
+  step_table(table)
+  n_kinds = split("recipe|neutral|doc|section|banner|rule|special rule|assignment|other",
+                  kinds, "|")
+  for (j = 1; j <= n_kinds; j++) {
+    kind = kinds[j]
+    split(table[kind], cols, " ")
+    failures = ""
+    for (r = 0; r <= 1; r++) {
+      for (d = 0; d <= 1; d++) {
+        for (s = 0; s <= 1; s++) {
+          for (a = 0; a <= 1; a++) {
+            if (a && kind != "rule" && kind != "assignment") {
+              continue # only an anchor has an inline doc
+            }
+            split("", state)
+            state["r"] = r
+            state["d"] = d
+            state["s"] = s
+            state["c"] = "\t"
+            split("", obs)
+            obs["kind"] = kind
+            obs["inline"] = a
+            obs["prefix"] = ">"
+            e = ((kind == "rule" || kind == "assignment") && (d || a)) ? 1 : 0
+            want = step_entry(cols[1], r, d, s, e) step_entry(cols[2], r, d, s, e) \
+                   step_entry(cols[3], r, d, s, e) " e=" e " c=>"
+            got = parser_step(state, obs)
+            got = state["r"] state["d"] state["s"] " e=" (got ? 1 : 0) " c=" state["c"]
+            if (got != want) {
+              failures = failures sprintf(" [rds=%d%d%d a=%d: got %s, want %s]", r, d, s, a,
+                                          got, want)
+            }
+          }
+        }
+      }
+    }
+    check("parser_step: " kind " (every state before the line)", failures, "")
+  }
+}
+
+# the pending text, as D/S (the lines of each joined by +) and the tag of D
+function data_text(data, #locals
+                   text) {
+  text = data_lines(data, "doc", data["dn"]) "/" data_lines(data, "section", data["sn"]) \
+         "/" (data["dn"] ? data["doc_tag"] : "")
+  gsub(/\n/, "+", text)
+  return text
+}
+
+# the data of one doc line (a) and one section line (s), and a state with d_i and s_i
+function carry_setup(data, state, d, s) {
+  split("", data)
+  data["dn"] = 1
+  data["doc", 1] = "a"
+  data["doc_tag"] = "##"
+  data["sn"] = 1
+  data["section", 1] = "s"
+  split("", state)
+  state["d"] = d
+  state["s"] = s
+}
+
+# parser_carry against the equations of the data (D_i and S_i)
+function test_parser_carry(    data, state, obs) {
+  carry_setup(data, state, 1, 1)
+  obs["kind"] = "doc"
+  obs["text"] = "b"
+  obs["tag"] = "##!"
+  parser_carry(data, state, obs)
+  check("parser_carry: a doc line adds its text (the tag stays that of the first line)",
+        data_text(data), "a+b/s/##")
+
+  data["dn"] = 0
+  parser_carry(data, state, obs)
+  check("parser_carry: the first line of a doc gives its tag", data_text(data), "b/s/##!")
+
+  carry_setup(data, state, 1, 1)
+  obs["kind"] = "section"
+  obs["text"] = "t"
+  parser_carry(data, state, obs)
+  check("parser_carry: a section line adds its text", data_text(data), "a/s+t/##")
+
+  carry_setup(data, state, 0, 1)
+  obs["kind"] = "rule"
+  parser_carry(data, state, obs)
+  check("parser_carry: d_i = 0 drops the doc text", data_text(data), "/s/")
+
+  carry_setup(data, state, 1, 0)
+  parser_carry(data, state, obs)
+  check("parser_carry: s_i = 0 drops the section text", data_text(data), "a//##")
+
+  carry_setup(data, state, 1, 1)
+  obs["kind"] = "neutral"
+  parser_carry(data, state, obs)
+  check("parser_carry: otherwise the text is kept", data_text(data), "a/s/##")
+}
+
+# the doc, tag and section (or <none>) of the last record
+function last_record() {
+  return ANCHORS[ANCHOR_COUNT, "doc"] "|" ANCHORS[ANCHOR_COUNT, "tag"] "|" \
+         (((ANCHOR_COUNT, "section") in ANCHORS) ? ANCHORS[ANCHOR_COUNT, "section"] : "<none>")
+}
+
+# record_anchor against the equations of the record, and the warning about a redefined doc
+function test_record_anchor(    context, obs, before, data) {
+  init_globals()
+  carry_setup(data, before, 1, 1)
+  data["dn"] = 2
+  data["doc", 2] = "b"
+  obs["anchor"] = "variable"
+  obs["name"] = "V"
+  obs["inline_doc"] = "i"
+  obs["tag"] = "##%"
+  context["file"] = "f"
+  record_anchor(context, obs, before, data, 7)
+  check("record_anchor: d_bar = 1: the pending doc and its tag; s = 1: the section",
+        last_record(), "a\nb|##|s")
+
+  before["d"] = 0
+  before["s"] = 0
+  record_anchor(context, obs, before, data, 9)
+  check("record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
+        last_record(), "i|##%|<none>")
+  check("record_anchor: a redefined doc is reported with its file and line",
+        WARNINGS[WARNING_COUNT], "[f:9] redefined docs of variable: V")
+  init_globals()
+}
+
+function test_form_target_name(    context, obs) {
+  init_globals()
+  obs["name"] = "a \t b"
+  obs["grouped"] = 0
+  obs["double"] = 0
+  check("form_target_name: blanks collapsed", form_target_name(context, obs), "a b")
+  obs["grouped"] = 1
+  check("form_target_name: grouped", form_target_name(context, obs), "a b&")
+
+  obs["name"] = "t"
+  obs["grouped"] = 0
+  obs["double"] = 1
+  check("form_target_name: first double-colon rule", form_target_name(context, obs), "t~1")
+  check("form_target_name: second double-colon rule", form_target_name(context, obs), "t~2")
+}
+
+# ---------------------------------------------------------------------------------------
+# lines -> state, data and records: the whole parser, from lines of text
+# ---------------------------------------------------------------------------------------
 
 # The states after each physical line of text (lines separated by |), as "rds" (1/0 for
 # r, d, s), or "+" for a line that continues on the next one
@@ -207,11 +524,10 @@ function recorded(text, #locals
       parser_process(state, data, context, obs, joiner["line"], joiner["start"])
     }
   }
-  return ANCHORS[ANCHOR_COUNT, "doc"] "|" ANCHORS[ANCHOR_COUNT, "tag"] "|" \
-         (((ANCHOR_COUNT, "section") in ANCHORS) ? ANCHORS[ANCHOR_COUNT, "section"] : "<none>")
+  return last_record()
 }
 
-function test_record_anchor() {
+function test_parser_records() {
   check("record: the pending doc, with the tag of its first line, and the section",
         recorded("##@ s|##! d1|## d2|t:"), " d1\n d2|##!| s")
   check("record: the pending doc wins over the inline doc", recorded("## d|t: ##% i"),
@@ -221,161 +537,26 @@ function test_record_anchor() {
   init_globals()
 }
 
-# a field of the observation of a line without state (parser_observe), "" if not set
-function observed(line, field, #locals
-                  obs) {
-  parser_observe(line, obs)
-  return array_get(obs, field)
-}
-
-# the inline doc of a line outside a rule (parser_obs), or "<none>"
-function inline_doc(line, #locals
-                    state, data, obs) {
-  parser_init(state, data, "")
-  parser_obs(line, state, obs)
-  return obs["inline"] ? obs["comment"] : "<none>"
-}
-
-function test_parser_special_rules() {
-  check("special rule: .PHONY", observed(".PHONY: t", "kind"), "special rule")
-  check("special rule: .SILENT", observed(".SILENT: t", "kind"), "special rule")
-  check("special rule: .IGNORE", observed(".IGNORE: t", "kind"), "special rule")
-  check("special rule: .SECONDARY", observed(".SECONDARY: t", "kind"), "special rule")
-  check("special rule: .INTERMEDIATE", observed(".INTERMEDIATE: t", "kind"), "special rule")
-  check("special rule: .PRECIOUS", observed(".PRECIOUS: t", "kind"), "special rule")
-  check("special rule: leading whitespace and spaces before :",
-        observed(" \t.PHONY  : t", "kind"), "special rule")
-  check("special rule: tab before :", observed(".PHONY\t: t", "kind"), "special rule")
-  check("special rule: .SECONDEXPANSION without prerequisites",
-        observed(".SECONDEXPANSION:", "kind"), "special rule")
-  check("special rule: .DELETE_ON_ERROR", observed(".DELETE_ON_ERROR:", "kind"), "special rule")
-  check("special rule: .SUFFIXES", observed(".SUFFIXES:", "kind"), "special rule")
-  check("special rule: .DEFAULT", observed(".DEFAULT:", "kind"), "special rule")
-  check("special rule: .NOTINTERMEDIATE", observed(".NOTINTERMEDIATE: t", "kind"),
-        "special rule")
-  check("special rule: .LOW_RESOLUTION_TIME", observed(".LOW_RESOLUTION_TIME: t", "kind"),
-        "special rule")
-  check("special rule: .EXPORT_ALL_VARIABLES", observed(".EXPORT_ALL_VARIABLES:", "kind"),
-        "special rule")
-  check("special rule: .NOTPARALLEL", observed(".NOTPARALLEL:", "kind"), "special rule")
-  check("special rule: .ONESHELL", observed(".ONESHELL:", "kind"), "special rule")
-  check("special rule: .POSIX", observed(".POSIX:", "kind"), "special rule")
-  check("special rule: a suffix rule is a rule", observed(".c.o:", "kind"), "rule")
-  check("special rule: a hidden file is a rule", observed(".venv/.sentinel:", "kind"), "rule")
-  check("special rule: a name with lower-case letters is a rule",
-        observed(".PHONYx: t", "kind"), "rule")
-  check("special rule: an upper-case name that is not special is a rule",
-        observed(".ENV:", "kind"), "rule")
-  check("special rule: a special name with a suffix is a rule",
-        observed(".PHONY_ALL:", "kind"), "rule")
-  check("special rule: .PHONY as a prerequisite is a rule", observed("t: .PHONY", "kind"), "rule")
-}
-
-function test_parser_variable_names() {
-  check("variable name: := without spaces", observed("VAR2_1:=1##comment", "name"), "VAR2_1")
-  check("variable name: ?= with spaces", observed("var2_1   ?=  1##comment", "name"), "var2_1")
-  check("variable name: :::=", observed("x   :::=fsws", "name"), "x")
-  check("variable name: += without value", observed("__a__   +=", "name"), "__a__")
-  check("variable name: = with inline doc", observed("X = ## doc", "name"), "X")
-  check("variable name: ::= with value and inline doc",
-        observed("this_is_A_VARIABLE ::= this is a value ## doc", "name"), "this_is_A_VARIABLE")
-  check("variable name: ?= with inline doc and no value", observed("x4?=## doc", "name"), "x4")
-  check("variable name: repeated qualifiers",
-        observed("override private  override     private  export _w::=", "name"), "_w")
-  check("variable name: name starting with a qualifier",
-        observed("private  override  export override1     ::=     1", "name"), "override1")
-  check("variable name: name made of qualifiers",
-        observed("private  override  export export_override::=1", "name"), "export_override")
-  check("override: a qualifier", observed("override PREFIX := /usr", "override"), 1)
-  check("override: among other qualifiers", observed("export override V = 1", "override"), 1)
-  check("override: not a qualifier when it is the name", observed("override := 1", "override"), 0)
-  check("override: none", observed("V := 1", "override"), 0)
-  check("override: on a define", observed("override define V", "override"), 1)
-  check("variable name: unexport is a directive, not a qualifier",
-        observed("override unexport V := 1", "kind"), "other")
-}
-
-function test_parser_inline_docs() {
-  check("inline doc: ## (a ; in the doc is kept)",
-        inline_doc("target: ## some ;description"), "## some ;description")
-  check("inline doc: ##! (a ; in the doc is kept)",
-        inline_doc("target: ##! some description;"), "##! some description;")
-  check("inline doc: ##%", inline_doc("target: ##% some description"), "##% some description")
-  check("inline doc: after deps without a space",
-        inline_doc("target: deps1 deps2 | deps3## some description"), "## some description")
-  check("inline doc: none after an empty inline recipe",
-        inline_doc("target:; ## some description"), "<none>")
-  check("inline doc: none after an inline recipe",
-        inline_doc("target:; @echo 1 ##! some description"), "<none>")
-  check("inline doc: none after an inline recipe with two commands",
-        inline_doc("target: ; @echo 1 ; echo 2 ##% some description"), "<none>")
-  check("inline doc: none after deps and an inline recipe",
-        inline_doc("target: deps1 deps2 | deps3 ; echo 1 ## some description"), "<none>")
-  check("inline doc: none without a doc", inline_doc("target: "), "<none>")
-  check("inline doc: none after deps without a doc",
-        inline_doc("target: deps1 deps2 | deps3"), "<none>")
-  check("inline doc: none for an inline ##@ (a section is not inline)",
-        inline_doc("target: ##@ some text"), "<none>")
-  check("inline doc: none for an inline ##@ on a variable",
-        inline_doc("X := 1 ##@ some text"), "<none>")
-  check("inline doc: variable with a ; in its value", inline_doc("X := a;b ## doc"), "## doc")
-  check("inline doc: none in an ordinary comment",
-        inline_doc("target: deps # a comment ## text"), "<none>")
-  check("inline doc: none in an ordinary comment on a variable",
-        inline_doc("X := 1 # a comment ## text"), "<none>")
-  check("inline doc: after an escaped # in a value", inline_doc("X := a\\#b ## doc"), "## doc")
-  check("inline doc: none after an escaped backslash (\\\\ then a comment)",
-        inline_doc("X := a\\\\# note ## text"), "<none>")
-  check("inline doc: after an escaped backslash and an escaped #",
-        inline_doc("X := a\\\\\\#b ## doc"), "## doc")
-  check("inline doc: a ## in the doc is kept", inline_doc("target: ## a ## b"), "## a ## b")
-}
-
-function test_parser_double_colon() {
-  check("double colon: ::", observed("t::", "double"), 1)
-  check("double colon: :", observed("t:", "double"), 0)
-  check("double colon: :: with a target variable", observed("t:: A:=1", "double"), 1)
-  check("double colon: grouped", observed("a b &::", "double"), 1)
-  check("double colon: :: in the recipe of a : rule",
-        observed("t: ; @echo \"a::b\"", "double"), 0)
-}
-
-function test_get_doc_tag() {
-  check("get_doc_tag: ##", get_doc_tag("##   doc"), "##")
-  check("get_doc_tag: ##!", get_doc_tag("##!   doc"), "##!")
-  check("get_doc_tag: ##%", get_doc_tag("##%   doc"), "##%")
-  check("get_doc_tag: ##Z is ##", get_doc_tag("##Z   doc"), "##")
-  check("get_doc_tag: no tag", get_doc_tag("!#   doc"), "")
-}
-
-function test_form_target_name(    context, obs) {
-  init_globals()
-  obs["name"] = "a \t b"
-  obs["grouped"] = 0
-  obs["double"] = 0
-  check("form_target_name: blanks collapsed", form_target_name(context, obs), "a b")
-  obs["grouped"] = 1
-  check("form_target_name: grouped", form_target_name(context, obs), "a b&")
-
-  obs["name"] = "t"
-  obs["grouped"] = 0
-  obs["double"] = 1
-  check("form_target_name: first double-colon rule", form_target_name(context, obs), "t~1")
-  check("form_target_name: second double-colon rule", form_target_name(context, obs), "t~2")
-}
-
 BEGIN {
+  # line -> obs: the questions of the observation, the lexical layer
+  test_parser_observe()
+  test_parser_mask()
+  test_parser_reference_end()
   test_parser_special_rules()
   test_parser_variable_names()
   test_parser_inline_docs()
   test_parser_double_colon()
-  test_parser_mask()
-  test_parser_reference_end()
-  test_parser_observe()
+  test_get_doc_tag()
+
+  # (state, obs) -> state, data and record: the equations of the note (section Model)
+  test_parser_step()
+  test_parser_carry()
+  test_record_anchor()
+  test_form_target_name()
+
+  # lines -> state, data and records: the whole parser, from lines of text
   test_parser_states()
   test_parser_data()
-  test_record_anchor()
-  test_get_doc_tag()
-  test_form_target_name()
+  test_parser_records()
   done()
 }
