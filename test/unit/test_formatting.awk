@@ -125,6 +125,34 @@ function test_prepare_rendering() {
   DEPRECATED = ""
 }
 
+function test_format_documentation() {
+  init_globals()
+  VARS = 1
+  DEPRECATED = 1
+  OFFSET = 2
+  PADDING = "."
+  add_anchor("variable", "VAR", "##", " v", " S")
+  add_anchor("target", "t", "##", " doc", "")
+  prepare_rendering()
+  check("format_documentation: the targets, then the variables (no colors)",
+        format_documentation(),
+        "------------------\n" \
+        "Available targets:\n" \
+        "------------------\n" \
+        "t..   doc\n" \
+        "\n" \
+        "------------------\n" \
+        "Variables:\n" \
+        "------------------\n" \
+        " S\n" \
+        "VAR   v\n" \
+        "------------------\n")
+
+  init_globals()
+  check("format_documentation: nothing displayed", format_documentation(), "")
+  VARS = DEPRECATED = OFFSET = PADDING = ""
+}
+
 # initialize the colors as init_globals() and process_options() do (with the default color
 # options)
 function setup_colors(output_format, export_theme) {
@@ -266,6 +294,7 @@ BEGIN {
   test_escape_for_latex_output()
   test_escape_for_html_output()
   test_prepare_rendering()
+  test_format_documentation()
   test_default_color_option()
   test_validate_ansi_param()
   test_is_bool_is_hex_color()
