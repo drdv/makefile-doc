@@ -23,7 +23,7 @@ function test_repeated_string() {
   check("spaces", spaces(3), "   ")
 }
 
-function test_length_array_posix(    arr) {
+function test_length_array_posix(arr) { #locals
   check("length_array_posix: empty array", length_array_posix(arr), 0)
 
   arr["k1"] = "this"
@@ -33,7 +33,7 @@ function test_length_array_posix(    arr) {
   check("length_array_posix: 4 elements", length_array_posix(arr), 4)
 }
 
-function test_array_get(    arr) {
+function test_array_get(arr) { #locals
   arr["k"] = "value"
   arr["empty"] = ""
   check("array_get: existing key", array_get(arr, "k"), "value")
@@ -43,7 +43,7 @@ function test_array_get(    arr) {
   check("array_get: the array is unchanged", length_array_posix(arr), 2)
 }
 
-function test_join(    arr, n) {
+function test_join(arr, n) { #locals
   n = split("this is another test", arr, " ")
   check("join: colon delimiter", join(arr, n, ":"), "this:is:another:test")
 
@@ -61,7 +61,7 @@ function test_join(    arr, n) {
   check("join: empty array", join(arr, 0, "\n"), "")
 }
 
-function test_string_replace(    text, parts) {
+function test_string_replace(text, parts) { #locals
   text = "this is my text and this also is text not end"
   check("string_replace: two matches in the middle",
         string_replace("text", "X", text),

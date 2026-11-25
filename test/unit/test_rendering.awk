@@ -18,7 +18,7 @@ function add_anchor(kind, name, tag, doc, section) {
 }
 
 # the displayed names, in order, separated by spaces
-function displayed_names(    k, names) {
+function displayed_names(k, names) { #locals
   for (k = 1; k <= DISPLAY_COUNT; k++) {
     names = k == 1 ? DISPLAY[k, "name"] : names " " DISPLAY[k, "name"]
   }
@@ -79,7 +79,7 @@ function test_prepare_rendering() {
   DEPRECATED = ""
 }
 
-function test_display_name(    labels) {
+function test_display_name(labels) { #locals
   form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", 1, DSUB_PARAM, labels, DSUB_VALUES,
                      DSUB_NAMES)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
@@ -117,7 +117,7 @@ function test_substitute_backticks_patterns() {
 }
 
 # display_substitutions: the values of a SUB, with the parameters of its row of SUB_PARAM
-function test_display_substitutions(    labels, values, names) {
+function test_display_substitutions(labels, values, names) { #locals
   init_globals()
   OFFSET = 2
   check("display_substitutions: no values", display_substitutions("", "", 1), "\n")

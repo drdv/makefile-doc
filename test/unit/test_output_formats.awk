@@ -84,7 +84,7 @@ function test_default_color_option() {
   delete ENVIRON["NO_COLOR"]
 }
 
-function test_validate_ansi_param(    message) {
+function test_validate_ansi_param(message) { #locals
   init_globals()
   setup_colors("ANSI", "")
   check("validate_ansi_param: color", validate_ansi_param("COLOR_X", 34), 34)

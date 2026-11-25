@@ -19,8 +19,8 @@
 
 # make control characters visible in the diagnostics (no gsub: the meaning of backslashes
 # in the replacement string differs between awk implementations)
-function harness_escape(string, #locals
-                        k, c, out) {
+function harness_escape(string,
+                        k, c, out) { #locals
   out = ""
   for (k = 1; k <= length(string); k++) {
     c = substr(string, k, 1)
@@ -75,7 +75,7 @@ function check_bug(name, got, want, issue) {
 
 # Return what the code under test has written to STDERR since the last call, and empty the
 # file. STDERR must be a regular file (the test runner passes one with -v STDERR=...).
-function stderr_text(    line, text) {
+function stderr_text(line, text) { #locals
   if (STDERR == "/dev/stderr") {
     printf("Bail out! STDERR must be a regular file: pass -v STDERR=<file>\n")
     exit 2
