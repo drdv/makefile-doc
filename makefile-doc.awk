@@ -28,11 +28,15 @@
 #   stdin), and README.md describes them, with examples. The checks are in process_options().
 
 #### Code conventions
-#   * Locals are declared as extra parameters (awk has no other way): after a `#locals`
-#     comment on the next line, or after four spaces when there are no parameters (awk
-#     accepts no comment right after the parenthesis):
-#             function f(x, y, #locals          function g(    k, n) {
-#                        k, n) {
+#   * The parameters of a function are in groups, in this order: the inputs, the arrays that
+#     it updates (#update), the arrays that it fills (#fill: what they held before the call
+#     does not matter) and the locals (#locals: awk declares them as extra parameters). Each
+#     group is on its own line, followed by its marker (none for the inputs); the last group
+#     closes the parenthesis, and its marker follows the { (awk accepts no newline before
+#     the parenthesis). A signature with a single group is on one line:
+#             function f(x, y,                  function g(k, n) { #locals
+#                        out, #fill
+#                        k, n) { #locals
 #   * Globals are upper case (a global in lower case is a local that was not declared).
 #   * Only POSIX awk, for all the major awks: no match() with an array, no arrays of arrays,
 #     no gensub. Groups are read with RSTART and RLENGTH.
@@ -89,8 +93,8 @@ function min(x, y) {
 # string repeated n times. n must be a non-negative integer (the only n that comes from the
 # user, OFFSET, is checked by process_options). (A loop, not gsub, which would need & and \
 # escaped.)
-function repeated_string(string, n, #locals
-                         s, k) {
+function repeated_string(string, n,
+                         s, k) { #locals
   s = ""
   for (k = 1; k <= n; k++) {
     s = s string
@@ -103,8 +107,8 @@ function repeated_string(string, n, #locals
 # (mawk, busybox, gawk in the C locale, goawk): there, the continuation bytes (\200 to \277)
 # of the multi-byte characters are not counted. They are compared one by one: a regex such as
 # [\200-\277] is rejected by goawk (its regexes match UTF-8 characters, not bytes).
-function text_length(text, #locals
-                     n, i, count, c) {
+function text_length(text,
+                     n, i, count, c) { #locals
   n = length(text)
   if (length("\303\251") == 1) { # the two bytes of an e with an acute accent
     return n
@@ -125,8 +129,9 @@ function spaces(n) {
 }
 
 # copy the elements of the array from to the array to (emptied first)
-function copy_array(from, to, #locals
-                    key) {
+function copy_array(from,
+                    to, #fill
+                    key) { #locals
   split("", to)
   for (key in from) {
     to[key] = from[key]
@@ -139,8 +144,8 @@ function array_get(array, key) {
 }
 
 # in POSIX-compliant AWK the length function works on strings but not on arrays
-function length_array_posix(array, #locals
-                            key, n) {
+function length_array_posix(array,
+                            key, n) { #locals
   n = 0
   for (key in array) {
     n++
@@ -149,8 +154,8 @@ function length_array_posix(array, #locals
 }
 
 # join the elements 1..n of an array (e.g., n and the array of split())
-function join(array, n, delimiter, #locals
-              string, k) {
+function join(array, n, delimiter,
+              string, k) { #locals
   string = ""
   for (k = 1; k <= n; k++) {
     if (k == 1) {
@@ -166,8 +171,8 @@ function join(array, n, delimiter, #locals
 # With gsub, the characters that are special in a regex (in string) or in a replacement
 # (& and \) would have to be escaped; here string comes from the user (DSUB) and
 # replacement contains & and \ (HTML and LaTeX escapes).
-function string_replace(string, replacement, text, #locals
-                        k, len, result) {
+function string_replace(string, replacement, text,
+                        k, len, result) { #locals
   if (string == "") { # not `if (!string)`: a string that looks like 0 is false
     return text
   }
@@ -190,8 +195,8 @@ function strip_start_end_spaces_tabs(string) {
 # Remove spaces and tabs at the end of each line (e.g., the padding and the offset of an
 # empty doc). No regex: on the long runs of spaces of the padding, a regex such
 # as /[ \t]+\n/ takes time quadratic in their length.
-function strip_trailing_blanks(text, #locals
-                               n, lines, k, line, last) {
+function strip_trailing_blanks(text,
+                               n, lines, k, line, last) { #locals
   last = substr(text, length(text), 1) # lint: ignore[substr: start index] ("" for an empty text)
   if (!index(text, " \n") && !index(text, "\t\n") && last != " " && last != "\t") {
     return text # nothing to strip (the usual case)
@@ -209,8 +214,8 @@ function strip_trailing_blanks(text, #locals
 }
 
 # true if the string ends with an odd number of backslashes (a line continuation)
-function has_odd_terminal_backslashes(string, #locals
-                                      n, k) {
+function has_odd_terminal_backslashes(string,
+                                      n, k) { #locals
   n = 0
   for (k = length(string); k > 0 && substr(string, k, 1) == "\\"; k--) {
     n++
@@ -370,7 +375,7 @@ function init_globals() {
 }
 
 # Empty a table of SUB parameters, then set its row of defaults, "" (see init_globals)
-function set_sub_param_defaults(table) {
+function set_sub_param_defaults(table) { #fill
   split("", table)
   table["", "L"] = 1 # 0: start display on current line, 1: start display on next line
   table["", "M"] = 1 # 1: multi-line display, 0: single-line display
@@ -382,7 +387,7 @@ function set_sub_param_defaults(table) {
 }
 
 # Empty a table of DSUB parameters, then set its row of defaults, "" (see init_globals)
-function set_dsub_param_defaults(table) {
+function set_dsub_param_defaults(table) { #fill
   split("", table)
   table["", "A"] = 0 # 1: replace in the names of anchors too
   table["", "D"] = 1 # 1: replace in the docs and section titles
@@ -394,7 +399,7 @@ function set_dsub_param_defaults(table) {
 
 # Check the options and derive the settings. All the invalid options are reported (see
 # option_error); return their number (BEGIN exits when it is not 0).
-function process_options(    sub_names, dummy_array_labels) {
+function process_options(sub_names, dummy_array_labels) { #locals
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
     option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
@@ -441,7 +446,7 @@ function option_error(message) {
 
 # Report the operands that are assignments, e.g., VARS=0: awk makes them after BEGIN, too
 # late for the options, which must be given with -v (see option_error)
-function report_assignment_operands(    k) {
+function report_assignment_operands(k) { #locals
   for (k = 1; k < ARGC; k++) {
     if (ARGV[k] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
       option_error(sprintf("'%s' is an assignment: give options with -v (-v %s)",
@@ -451,20 +456,28 @@ function report_assignment_operands(    k) {
 }
 
 # Parse spec, the value of SUB or DSUB (items separated by ;, \; is a ; in an item), each
-# with optional parameters <p1:v1,...>, stored in the rows of the table param_table (see
-# init_globals, and the store_*_params functions):
+# with optional parameters <p1:v1,...>:
 #   SUB   NAME:VALUES, NAME:LABEL:VALUES or NAME::VALUES (an empty label is no label)
 #   DSUB  NAME:VALUE (no_labels is set)
+#
 # The separators are the first colon (DSUB) or the first two colons (SUB): the value is
 # everything after them, so it can hold colons. For SUB, t::/a:b gives the value /a:b, while
 # t:/a:b gives the label /a and the value b.
+#
 # Empty items are skipped; invalid ones (no colon, no name, a name given twice) are reported
 # (see option_error) and skipped, as are invalid parameters.
-function form_substitutions(spec, no_labels, param_table, sub_labels_array,
-                            sub_values_array, sub_names_array, #locals
-                            split_substitutions, k, n, string, substitution_params,
-                            substitution_rest, name, label, values, colon,
-                            has_label, n_substitutions, option) {
+#
+# Fill:
+#   param_table       the parameters, in the rows of the table (see init_globals, and the
+#                     store_*_params functions)
+#   sub_labels_array  sub_labels_array[NAME] = LABEL (only for a name with a label)
+#   sub_values_array  sub_values_array[NAME] = VALUES
+#   sub_names_array   sub_names_array[1..n], the names in the order given
+function form_substitutions(spec, no_labels,
+                            param_table, sub_labels_array, sub_values_array, sub_names_array, #fill
+                            split_substitutions, k, n, string, substitution_params, #locals
+                            substitution_rest, name, label, values, colon, has_label, #locals
+                            n_substitutions, option) { #locals
   if (no_labels) {
     set_dsub_param_defaults(param_table)
   } else {
@@ -534,11 +547,15 @@ function form_substitutions(spec, no_labels, param_table, sub_labels_array,
   }
 }
 
-# Split the parameters of a substitution, "k1:v1,k2:v2,...", into params[key] = value and
-# keys[1..n] (the keys in the order given); return n. In a pair, only the first colon is a
-# separator, and a comma in a value is written \,
-function parse_substitution_params(string, params, keys, #locals
-                                   k, n, n_pairs, key_values, pair, key) {
+# Split the parameters of a substitution, "k1:v1,k2:v2,...", and return their number n. In a
+# pair, only the first colon is a separator, and a comma in a value is written \,
+#
+# Fill:
+#   params  params[key] = value
+#   keys    keys[1..n], the keys in the order given
+function parse_substitution_params(string,
+                                   params, keys, #fill
+                                   k, n, n_pairs, key_values, pair, key) { #locals
   split("", params)
   split("", keys)
 
@@ -561,8 +578,9 @@ function parse_substitution_params(string, params, keys, #locals
 
 # Copy the row of defaults of a table of parameters, "", to the row name (the keys of the row
 # "" are found first: adding elements to an array while looping over it is undefined)
-function copy_param_defaults(name, table, #locals
-                             key, defaults) {
+function copy_param_defaults(name,
+                             table, #update
+                             key, defaults) { #locals
   for (key in table) {
     if (index(key, SUBSEP) == 1) {
       defaults[substr(key, length(SUBSEP) + 1)] = table[key]
@@ -573,14 +591,21 @@ function copy_param_defaults(name, table, #locals
   }
 }
 
-# Start the row name of table with the defaults (see copy_param_defaults), and parse its
-# parameters, string_with_parameters (see parse_substitution_params). Report the repeated
-# parameters and the unknown ones (allowed: the known keys, as written in the message, e.g.,
-# "A or D"; see option_error), and return the others: keys[1..n] in the order given and
-# params[key] their values. option is SUB or DSUB.
-function checked_params(option, allowed, name, string_with_parameters, table, params,
-                        keys, #locals
-                        all_params, all_keys, k, n, n_all, key, seen) {
+# Parse the parameters of name, string_with_parameters (see parse_substitution_params).
+# Report the repeated parameters and the unknown ones (allowed: the known keys, as written in
+# the message, e.g., "A or D"; see option_error), and return the number n of the others.
+# option is SUB or DSUB.
+#
+# Update:
+#   table   the row name starts with the defaults (see copy_param_defaults)
+#
+# Fill:
+#   params  params[key] = value, for the other parameters
+#   keys    keys[1..n], their keys in the order given
+function checked_params(option, allowed, name, string_with_parameters,
+                        table, #update
+                        params, keys, #fill
+                        all_params, all_keys, k, n, n_all, key, seen) { #locals
   copy_param_defaults(name, table)
   split("", params)
   split("", keys)
@@ -607,8 +632,9 @@ function checked_params(option, allowed, name, string_with_parameters, table, pa
 # Store the parameters of the SUB substitution of name in its row of table: the defaults (the
 # row ""), replaced by the valid parameters of string_with_parameters; the invalid ones are
 # reported (see option_error). L, M and N are stored as numbers.
-function store_sub_params(name, string_with_parameters, table, #locals
-                          params, keys, k, n, key, value) {
+function store_sub_params(name, string_with_parameters,
+                          table, #update
+                          params, keys, k, n, key, value) { #locals
   n = checked_params("SUB", "L, M, N, S, P, I or T", name, string_with_parameters, table,
                      params, keys)
   for (k = 1; k <= n; k++) {
@@ -631,8 +657,9 @@ function store_sub_params(name, string_with_parameters, table, #locals
 # invalid ones are reported (see option_error):
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
 #   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
-function store_dsub_params(name, string_with_parameters, table, #locals
-                           params, keys, k, n, key, value) {
+function store_dsub_params(name, string_with_parameters,
+                           table, #update
+                           params, keys, k, n, key, value) { #locals
   n = checked_params("DSUB", "A or D", name, string_with_parameters, table, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
@@ -739,7 +766,7 @@ function validate_ansi_param(option, ansi_param) {
 #                          100-107); the solarized theme is used by default
 #                          https://github.com/altercation/solarized?tab=readme-ov-file#the-values
 #   EXPORT_FG_BG[FG|BG]    the colors of the text and of the background ("" if not set)
-function define_ansi_to_html_colors(    k) {
+function define_ansi_to_html_colors(k) { #locals
   EXPORT_FG_BG["FG"] = ""
   EXPORT_FG_BG["BG"] = ""
 
@@ -767,8 +794,8 @@ function define_ansi_to_html_colors(    k) {
 
 # Apply EXPORT_THEME, ANSI_PARAM:HEX_COLOR[,...]: the colors of the parameters 30-37, 40-47,
 # 90-97 and 100-107, and FG and BG (invalid entries are reported, see option_error)
-function set_user_defined_color_theme(    html_colors_split, k, n, ansi_html_map,
-                                          ansi_param, html_color_code) {
+function set_user_defined_color_theme(html_colors_split, k, n, ansi_html_map, ansi_param, #locals
+                                      html_color_code) { #locals
   n = split(EXPORT_THEME, html_colors_split, ",")
   for (k = 1; k <= n; k++) {
     if (html_colors_split[k] ~ /^[ \t]*$/) {
@@ -793,7 +820,7 @@ function set_user_defined_color_theme(    html_colors_split, k, n, ansi_html_map
 
 # The CSS property of each ANSI parameter, and the value of the attributes (the colors are
 # in EXPORT_PALETTE)
-function define_ansi_to_html_attributes(    k) {
+function define_ansi_to_html_attributes(k) { #locals
   ANSI_TO_HTML_VALUE[0] = ""
   ANSI_TO_HTML_VALUE[1] = "bold"
   ANSI_TO_HTML_VALUE[3] = "italic"
@@ -812,7 +839,7 @@ function define_ansi_to_html_attributes(    k) {
   for (k = 100; k <= 107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
-function define_ansi_to_latex_function(    k) {
+function define_ansi_to_latex_function(k) { #locals
   ANSI_TO_LATEX_FUN[0] = ""
   ANSI_TO_LATEX_FUN[1] = "\\textbf"
   ANSI_TO_LATEX_FUN[3] = "\\emph"
@@ -861,8 +888,8 @@ function fmt_color_code(ansi_color_param, color_label_key) {
 }
 
 # Return the CSS rule (one line) for a color option, or "" if there is nothing to style
-function ansi_color_param_to_html_style(ansi_color_param, label, #locals
-                                        value) {
+function ansi_color_param_to_html_style(ansi_color_param, label,
+                                        value) { #locals
   if (!ansi_color_param) {
     return ""
   }
@@ -877,7 +904,7 @@ function ansi_color_param_to_html_style(ansi_color_param, label, #locals
 
 # the CSS rule (one line) of the element with the class makefile-doc: as wide as its text (a
 # div is as wide as the page, which a background shows), with FG and BG if they are set
-function html_box_style(    style) {
+function html_box_style(style) { #locals
   style = "display: inline-block;"
   if (EXPORT_FG_BG["FG"] != "") {
     style = style " color: #" EXPORT_FG_BG["FG"] ";"
@@ -920,7 +947,7 @@ function latex_hex_color(ansi_color_param) {
 }
 
 # the preamble of the LaTeX output, up to the start of the documentation
-function latex_header(    header) {
+function latex_header(header) { #locals
   header = "\\documentclass{article}\n"
   header = header "\\usepackage[utf8]{inputenc}\n"
   header = header "\\usepackage{xcolor}\n"
@@ -999,8 +1026,8 @@ function fmt_escape(text) {
 # crop the page to the text of such a group. Empty lines are not colored. In ANSI, a reset
 # inside text (e.g., after text in backticks) turns off all the colors: color_code is
 # restored after it.
-function fmt_color(text, color_code, #locals
-                   n, lines, k) {
+function fmt_color(text, color_code,
+                   n, lines, k) { #locals
   if (color_code == "") {
     return text
   }
@@ -1063,7 +1090,9 @@ function get_doc_tag(string) {
   return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
 }
 
-# The structure of a line. Fill obs with:
+# The structure of a line.
+#
+# Fill:
 #   obs["line_kind"]    the kind of the line as if no rule were open:
 #                       assignment, rule, special rule, neutral, banner, section, doc, other
 #   obs["anchor_kind"]  target or variable for an assignment or a rule line, "" otherwise
@@ -1075,8 +1104,9 @@ function get_doc_tag(string) {
 #
 # See the examples in test/parser.spec (and test/unit/test_parser.awk).
 # See parser_observe for additional observations.
-function parser_structure(line, obs, #locals
-                          first_word, define_name, qualifiers) {
+function parser_structure(line,
+                          obs, #fill
+                          first_word, define_name, qualifiers) { #locals
   split("", obs)
   obs["line_kind"] = ""
   obs["anchor_kind"] = ""
@@ -1122,7 +1152,8 @@ function parser_structure(line, obs, #locals
   }
 }
 
-function parser_clear(line_kind, obs) {
+function parser_clear(line_kind,
+                      obs) { #update
   obs["line_kind"] = line_kind
   obs["anchor_kind"] = ""
   obs["anchor_name"] = ""
@@ -1131,8 +1162,9 @@ function parser_clear(line_kind, obs) {
 
 # the name of the variable of a define line (e.g., `override define V :=`), "" if not one;
 # qualifiers["override"] is set to 1 if override comes before define (see parser_qualifiers)
-function parser_define_name(line, qualifiers, #locals
-                            rest) {
+function parser_define_name(line,
+                            qualifiers, #fill
+                            rest) { #locals
   rest = substr(line, parser_qualifiers(line, qualifiers))
   if (rest !~ /^define[ \t]+[^ \t]/) {
     return ""
@@ -1145,19 +1177,23 @@ function parser_define_name(line, qualifiers, #locals
 
 # The searches of the lexical layer: on the masked line, find whether line is an assignment
 # or a rule, and cut the fields from line.
-# Fill obs with:
+#
+# Update:
 #   obs["line_kind"]    assignment (also target-specific), rule, or unchanged ("") if neither
 #   obs["anchor_kind"]  variable or target
 #   obs["anchor_name"]  the name of the anchor
 #   obs["comment"]      from the # to the end of the line ("" if none)
+#
 # for an assignment to a variable:
 #   obs["override"], obs["operator"]
 #   obs["value"] (leading blanks and comment removed)
+#
 # for a rule:
 #   obs["double"], obs["grouped"]
-function parser_scan(line, obs, #locals
-                     masked, p, c, q, start, end, after, rest, hit, name, left, name_start,
-                     qualifiers) {
+function parser_scan(line,
+                     obs, #update
+                     masked, p, c, q, start, end, after, rest, hit, name, left, name_start, #locals
+                     qualifiers) { #locals
   masked = parser_mask(line)
   p = match(masked, /[#=:]/)
   if (!p) {
@@ -1228,8 +1264,8 @@ function parser_scan(line, obs, #locals
 #   is_target_specific = 0  the first # starts the comment
 #   is_target_specific = 1  the same, unless a ; comes first: then there is no comment, as
 #                           GNU Make takes everything after the ;, # included, into the value
-function parser_comment_after(line, masked, p, is_target_specific, #locals
-                          rest, k) {
+function parser_comment_after(line, masked, p, is_target_specific,
+                              rest, k) { #locals
   rest = substr(masked, p + 1)
   k = match(rest, is_target_specific ? "[#;]" : "#")
   return (k && substr(rest, k, 1) == "#") ? substr(line, p + k) : ""
@@ -1241,8 +1277,9 @@ function parser_comment_after(line, masked, p, is_target_specific, #locals
 #
 # Fill:
 #   qualifiers["override"]  1 if override is among them, 0 otherwise
-function parser_qualifiers(text, qualifiers, #locals
-                           len) {
+function parser_qualifiers(text,
+                           qualifiers, #fill
+                           len) { #locals
   split("", qualifiers)
   sub(/[ \t]+$/, "", text) # a last word followed only by blanks is not a qualifier
   match(text, /^[ \t]*((export|override|private)[ \t]+)*/)
@@ -1256,8 +1293,8 @@ function parser_qualifiers(text, qualifiers, #locals
 #   $c              a one-character reference
 #   \\ \# \: \;     an escape pair
 # See the examples in test_parser_mask (test/unit/test_parser.awk).
-function parser_mask(line, #locals
-                     n, k, c, next_char, end, out, rest) {
+function parser_mask(line,
+                     n, k, c, next_char, end, out, rest) { #locals
   if (!index(line, "$") && !index(line, "\\")) {
     return line # nothing to mask (the usual case)
   }
@@ -1301,8 +1338,8 @@ function parser_mask(line, #locals
 #
 # The characters are read one by one, as nested brackets have to be counted (a regex cannot
 # match them); and anyway, a reference is short.
-function parser_reference_end(line, k, #locals
-                              n, opening, closing, depth, c) {
+function parser_reference_end(line, k,
+                              n, opening, closing, depth, c) { #locals
   n = length(line)
   opening = substr(line, k + 1, 1)
   closing = opening == "(" ? ")" : "}"
@@ -1339,8 +1376,13 @@ function parser_reference_end(line, k, #locals
 # The reset at the first line of a file is applied to state and memory (see parser_file_start).
 # ---------------------------------------------------------------------------------------
 
-# x_0 = (0, 0, 0, p_0), D_0 = S_0 = empty (p_0: the RECIPEPREFIX option, a tab by default)
-function parser_init(prefix, state, memory) {
+# The initial state and memory, from prefix (p_0: the RECIPEPREFIX option, a tab by default).
+#
+# Fill:
+#   state   x_0 = (0, 0, 0, p_0)
+#   memory  D_0 = S_0 = empty
+function parser_init(prefix,
+                     state, memory) { #fill
   split("", state)
   state["r"] = 0
   state["d"] = 0
@@ -1353,17 +1395,20 @@ function parser_init(prefix, state, memory) {
 
 # The reset at the first line of a file (b_i = 1): no rule is open and no doc is pending; the
 # section and the recipe prefix carry over.
+#
 # Update:
 #   state["r"], state["d"]  0
 #   memory["dn"]            0 (D is emptied)
-function parser_file_start(state, memory) {
+function parser_file_start(state, memory) { #update
   state["r"] = 0
   state["d"] = 0
   memory["dn"] = 0
 }
 
 # O_i = obs(L_i): the observations of a line, a pure function of the line (it reads neither
-# the state nor the memory). Besides the fields of parser_structure, obs gets:
+# the state nor the memory).
+#
+# Fill (besides the fields of parser_structure):
 #   obs["first_char"]  the first character of the line ("" for an empty line)
 #   obs["inline"]      1 if the line has an anchor and its comment starts with ## but not
 #                      ##@: an inline doc
@@ -1372,7 +1417,8 @@ function parser_file_start(state, memory) {
 #                      section line ("" otherwise)
 #   obs["tag"]         the token of a doc line or of the inline doc: ##, ##! or ##% ("" otherwise)
 #   obs["prefix"]      the prefix that the line assigns to .RECIPEPREFIX ("" otherwise).
-function parser_observe(line, obs) {
+function parser_observe(line,
+                        obs) { #fill
   parser_structure(line, obs)
   obs["first_char"] = substr(line, 1, 1)
   obs["inline"] = obs["anchor_kind"] != "" && obs["comment"] ~ /^##/ &&
@@ -1441,10 +1487,12 @@ function parser_kind(state, obs) {
 }
 
 # The state transition, from the kind of the line k and the observations obs. Return e_i.
+#
 # Update:
 #   state  x_{i-1} (after the reset) becomes x_i
-function parser_step(obs, k, state, #locals
-                     e) {
+function parser_step(obs, k,
+                     state, #update
+                     e) { #locals
   # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or O_i[inline] = 1), 0 otherwise
   e = (k == "rule" || k == "assignment") && (state["d"] || obs["inline"])
   if (k == "recipe" || k == "rule" || k == "special rule") {
@@ -1474,9 +1522,11 @@ function parser_step(obs, k, state, #locals
 }
 
 # The memory transition, from the kind of the line k, the observations obs and the new state x_i.
+#
 # Update:
 #   memory  D_bar_{i-1} and S_{i-1} become D_i and S_i
-function parser_carry(state, obs, k, memory) {
+function parser_carry(state, obs, k,
+                      memory) { #update
   if (k == "doc") {
     if (memory["dn"] == 0) {
       memory["doc_tag"] = obs["tag"]               # the tag of D_i: O_i[tag]
@@ -1497,11 +1547,14 @@ function parser_carry(state, obs, k, memory) {
 # Update:
 #   state, memory  x_{i-1} and D_bar_{i-1}, S_{i-1} become x_i and D_i, S_i
 #   context        the anchors documented so far (see record_anchor)
+#
 # Fill:
 #   obs            the observations O_i (see parser_observe)
 #   derived        derived["k"] (k_i) and derived["e"] (e_i)
-function parser_process(line, line_number, state, memory, context, obs, derived, #locals
-                        before, k, e) {
+function parser_process(line, line_number,
+                        state, memory, context, #update
+                        obs, derived, #fill
+                        before, k, e) { #locals
   parser_observe(line, obs)          # O_i = obs(L_i)
   k = parser_kind(state, obs)        # k_i
   copy_array(state, before)          # x_{i-1}
@@ -1522,11 +1575,14 @@ function parser_process(line, line_number, state, memory, context, obs, derived,
 #   A_n[tag]       the tag of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[tag] otherwise
 #   A_n[section]   S_{i-1} if s_{i-1} = 1, absent otherwise
 #   A_n[override]  1 if O_i[override] = 1, absent otherwise
+#
 # A redefined doc is reported (see add_warning), with line_number.
+#
 # Update:
 #   context  the anchors documented so far
-function record_anchor(obs, before, memory, line_number, context, #locals
-                       kind, name) {
+function record_anchor(obs, before, memory, line_number,
+                       context, #update
+                       kind, name) { #locals
   kind = obs["anchor_kind"]
   name = kind == "target" ? form_target_name(obs, context) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
@@ -1553,8 +1609,8 @@ function record_anchor(obs, before, memory, line_number, context, #locals
 }
 
 # the lines memory[key, 1..n] joined with \n
-function memory_lines(memory, key, n, #locals
-                      k, lines) {
+function memory_lines(memory, key, n,
+                      k, lines) { #locals
   lines = ""
   for (k = 1; k <= n; k++) {
     lines = k == 1 ? memory[key, k] : lines "\n" memory[key, k]
@@ -1565,8 +1621,9 @@ function memory_lines(memory, key, n, #locals
 # The name of a documented target as displayed: blanks collapsed (GNU Make reads any run of
 # blanks between names as one separator), & after grouped targets, ~N after the Nth
 # documented rule of a double-colon target (counted across files, in context)
-function form_target_name(obs, context, #locals
-                          name) {
+function form_target_name(obs,
+                          context, #update
+                          name) { #locals
   name = obs["anchor_name"]
   gsub(/[ \t]+/, " ", name)
   if (obs["grouped"]) {
@@ -1589,7 +1646,7 @@ function form_target_name(obs, context, #locals
 # ---------------------------------------------------------------------------------------
 
 # At the first line of a file: a line continued at the end of the previous file is dropped
-function parser_join_init(joiner) {
+function parser_join_init(joiner) { #fill
   split("", joiner)
   joiner["joining"] = 0
   joiner["pending"] = ""
@@ -1609,8 +1666,9 @@ function parser_join_init(joiner) {
 #           c.c
 # it returns 0, 0, 0, then 1 with joiner["line"] = "SRCS := a.c b.c c.c" (joiner["pending"]
 # is "SRCS := a.c", then "SRCS := a.c b.c" twice).
-function parser_join(physical, line_number, joiner, #locals
-                     stripped) {
+function parser_join(physical, line_number,
+                     joiner, #update
+                     stripped) { #locals
   sub(/\r$/, "", physical) # CRLF line endings
   if (!joiner["joining"]) {
     joiner["start"] = line_number
@@ -1663,7 +1721,7 @@ FNR == 1 {
 
 # Print the warnings recorded while parsing, except those about variables with VARS=0 (they
 # are not displayed)
-function print_warnings(    k) {
+function print_warnings(k) { #locals
   for (k = 1; k <= WARNING_COUNT; k++) {
     if (!(WARNING_KINDS[k] == "variable" && !VARS)) {
       printf("WARNING: %s\n", WARNINGS[k]) > STDERR
@@ -1673,7 +1731,7 @@ function print_warnings(    k) {
 
 # Fill DISPLAY from the interface and the settings: each displayed anchor once, at its first
 # definition, with the doc and tag of its last one; the targets, then the variables
-function prepare_rendering(    k, key, n, order, last, sections, kind) {
+function prepare_rendering(k, key, n, order, last, sections, kind) { #locals
   split("", order)
   split("", last)
   split("", sections)
@@ -1707,8 +1765,9 @@ function is_displayed(k) {
 # with last[key] the last definition of each anchor. Sections with no displayed anchor after
 # them are dropped, consecutive ones are merged, and a later section of the same anchor
 # replaces an earlier one.
-function place_sections(last, sections, #locals
-                        k, key, has_section, section) {
+function place_sections(last,
+                        sections, #update
+                        k, key, has_section, section) { #locals
   has_section = 0
   for (k = 1; k <= ANCHOR_COUNT; k++) {
     if ((k, "section") in ANCHORS) {
@@ -1726,8 +1785,8 @@ function place_sections(last, sections, #locals
 # Add the record of an anchor to DISPLAY (k: its last definition in ANCHORS, key: its key in
 # sections), with what will be displayed: its displayed name, its doc and section after DSUB,
 # and its SUB values and parameters
-function add_display_record(k, key, sections, #locals
-                            name) {
+function add_display_record(k, key, sections,
+                            name) { #locals
   name = ANCHORS[k, "name"]
   DISPLAY_COUNT++
   DISPLAY[DISPLAY_COUNT, "kind"] = ANCHORS[k, "kind"]
@@ -1750,8 +1809,8 @@ function add_display_record(k, key, sections, #locals
 # The displayed name of an anchor: its SUB label if it has one, otherwise its name after the
 # DSUB substitutions with A:1, in order. SUB is looked up with the name as written, so DSUB
 # never changes which SUB applies.
-function display_name(anchor, #locals
-                      k, name) {
+function display_name(anchor,
+                      k, name) { #locals
   if (anchor in SUB_LABELS) {
     return SUB_LABELS[anchor]
   }
@@ -1766,8 +1825,8 @@ function display_name(anchor, #locals
 
 # Apply the DSUB substitutions to the text of docs or section titles (those with D:1), in
 # the order given.
-function apply_doc_substitutions(text, #locals
-                                 k) {
+function apply_doc_substitutions(text,
+                                 k) { #locals
   for (k = 1; k <= DSUB_COUNT; k++) {
     if (DSUB_PARAM[DSUB_NAMES[k], "D"]) {
       text = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], text)
@@ -1782,8 +1841,8 @@ function get_separator(character, len_anchors) {
                                             length(HEADER_VARIABLES))))
 }
 
-function substitute_backticks_patterns(string, #locals
-                                       before_match, inside_match, after_match) {
+function substitute_backticks_patterns(string,
+                                       before_match, inside_match, after_match) { #locals
   # (gensub with a back-reference would do this in one call, but it is only in gawk)
   while (match(string, /`([^`]+)`/)) {
     before_match = substr(string, 1, RSTART - 1)
@@ -1815,8 +1874,8 @@ function anchor_color(tag) {
 # A doc laid out after names of width len_anchors: the first line offset from the name, the
 # next lines aligned with it, with the escapes of the output format and the colors of the
 # text in backticks
-function format_doc(doc, len_anchors, #locals
-                    n, lines) {
+function format_doc(doc, len_anchors,
+                    n, lines) { #locals
   # colored before the lines are indented: a span in backticks that continues on the next
   # line does not color the indentation
   doc = colorize_doc_backticks(fmt_escape(doc))
@@ -1835,10 +1894,10 @@ function format_section(section) {
 # Each value is made into an item (P before it, S after it, I before the first one, T after
 # the last one instead of S); the items are on one line (M=0) or on one line each (M=1). The
 # first line follows the doc (L=0) or starts on the next line (L=1).
-function display_substitutions(sub_values, sub_row, len_anchors, #locals
-                               values, n, k, item, lines, n_lines, initial, prefix,
-                               separator, termination, indentation, next_indentation,
-                               output) {
+function display_substitutions(sub_values, sub_row, len_anchors,
+                               values, n, k, item, lines, n_lines, initial, prefix, #locals
+                               separator, termination, indentation, next_indentation, #locals
+                               output) { #locals
   n = split(sub_values, values, " ")
   if (SUB_PARAM[sub_row, "N"] >= 0) {
     n = min(n, SUB_PARAM[sub_row, "N"])
@@ -1885,8 +1944,8 @@ function display_substitutions(sub_values, sub_row, len_anchors, #locals
 
 # Return the text of DISPLAY[k], after names of width len_anchors: its section, then its name
 # (colored by its tag, padded), its doc and its SUB values
-function format_anchor(k, len_anchors, #locals
-                       section, label, formatted_anchor, padding, color, output) {
+function format_anchor(k, len_anchors,
+                       section, label, formatted_anchor, padding, color, output) { #locals
   output = ""
   if ((k, "section") in DISPLAY) { # (an empty section is a blank line)
     section = format_section(DISPLAY[k, "section"])
@@ -1913,7 +1972,7 @@ function format_anchor(k, len_anchors, #locals
 # Return the documentation of the DISPLAY records (see prepare_rendering) in the output
 # format: the targets, then the variables, each under a header, all names padded to the
 # longest one (see fmt_document).
-function format_documentation(    k, len_anchors, separator, body) {
+function format_documentation(k, len_anchors, separator, body) { #locals
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
     len_anchors = max(len_anchors, text_length(DISPLAY[k, "label"]))
@@ -1940,7 +1999,7 @@ function format_documentation(    k, len_anchors, separator, body) {
 
 # Display the documentation (all its output is printed from here): the warnings on stderr,
 # then the documentation on stdout.
-function print_documentation(    document) {
+function print_documentation(document) { #locals
   prepare_rendering()
   print_warnings() # (on stderr, before the docs)
   document = format_documentation()

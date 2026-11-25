@@ -39,7 +39,7 @@ function test_process_options_errors() {
   init_globals()
 }
 
-function test_form_substitutions_with_labels(    params, labels, values, names) {
+function test_form_substitutions_with_labels(params, labels, values, names) { #locals
   form_substitutions("<L:1,M:0>NAME:LABEL:v1 v2;target:target_renamed:three items here", 0,
                      params, labels, values, names)
   check("form_substitutions: number of labels", length_array_posix(labels), 2)
@@ -54,13 +54,13 @@ function test_form_substitutions_with_labels(    params, labels, values, names) 
   check("form_substitutions: names in order", names[1] " " names[2], "NAME target")
 }
 
-function test_form_substitutions_semicolon(    params, labels, values, names) {
+function test_form_substitutions_semicolon(params, labels, values, names) { #locals
   form_substitutions("$(S):cd b\\; cmake ..;T:x", 1, params, labels, values, names)
   check("form_substitutions: an escaped ; is part of the value", values["$(S)"], "cd b; cmake ..")
   check("form_substitutions: an unescaped ; separates items", names[1] " " names[2], "$(S) T")
 }
 
-function test_form_substitutions_empty_parts(    params, labels, values, names) {
+function test_form_substitutions_empty_parts(params, labels, values, names) { #locals
   form_substitutions("T1:;T2:L2:;T3:V31 V32", 0, params, labels, values, names)
   check_true("form_substitutions: a row of params for each substitution",
              ("T1", "L") in params && ("T2", "L") in params && ("T3", "L") in params)
@@ -73,7 +73,7 @@ function test_form_substitutions_empty_parts(    params, labels, values, names) 
   check("form_substitutions: NAME:VALUES", values["T3"], "V31 V32")
 }
 
-function test_form_substitutions_empty_items(    params, labels, values, names) {
+function test_form_substitutions_empty_items(params, labels, values, names) { #locals
   init_globals()
   form_substitutions(";T1:a; \t;T2:b;", 0, params, labels, values, names)
   check("form_substitutions: empty items are skipped", length_array_posix(names), 2)
@@ -81,7 +81,7 @@ function test_form_substitutions_empty_items(    params, labels, values, names) 
   check("form_substitutions: empty items are not errors", OPTION_ERRORS, 0)
 }
 
-function test_form_substitutions_invalid(    params, labels, values, names) {
+function test_form_substitutions_invalid(params, labels, values, names) { #locals
   init_globals()
   form_substitutions("T1", 0, params, labels, values, names)
   check("form_substitutions: name only is an error",
@@ -105,7 +105,7 @@ function test_form_substitutions_invalid(    params, labels, values, names) {
   check("form_substitutions: every invalid item is counted", OPTION_ERRORS, 4)
 }
 
-function test_parse_substitution_params(    params, keys, n) {
+function test_parse_substitution_params(params, keys, n) { #locals
   n = parse_substitution_params(" L :0,S:\\,,P:x:y,,T:}", params, keys)
   check("parse_substitution_params: number of pairs (empty ones are skipped)", n, 4)
   check("parse_substitution_params: keys in order (blanks removed)",
@@ -117,7 +117,7 @@ function test_parse_substitution_params(    params, keys, n) {
         parse_substitution_params("", params, keys), 0)
 }
 
-function test_checked_params(    table, params, keys, n) {
+function test_checked_params(table, params, keys, n) { #locals
   init_globals()
   set_dsub_param_defaults(table)
   n = checked_params("DSUB", "A or D", "x", "D:0,Z:1,D:1,A:1", table, params, keys)
@@ -133,7 +133,7 @@ function test_checked_params(    table, params, keys, n) {
   init_globals()
 }
 
-function test_store_sub_params(    params) {
+function test_store_sub_params(params) { #locals
   init_globals()
   set_sub_param_defaults(params)
   store_sub_params("t", "L:0,M:1,N:-1,S:x,P:y,I:{,T:}", params)
@@ -163,7 +163,7 @@ function test_store_sub_params(    params) {
   check("store_sub_params: every error is counted", OPTION_ERRORS, 6)
 }
 
-function test_store_sub_params_values(    params) {
+function test_store_sub_params_values(params) { #locals
   set_sub_param_defaults(params)
   store_sub_params("t", "L:0,M:0,N:3,S:\\,,P:--,I:{,T:}", params)
   check("store_sub_params: L", params["t", "L"], 0)
@@ -187,7 +187,7 @@ function test_store_sub_params_values(    params) {
   check("store_sub_params: the defaults are unchanged", params["", "L"] params["", "N"], "1-1")
 }
 
-function test_form_substitutions_colons(    params, labels, values, names) {
+function test_form_substitutions_colons(params, labels, values, names) { #locals
   init_globals()
   form_substitutions("t:t:/a:b;u:/a:b;v::/a:b;w::", 0, params, labels, values, names)
   check("form_substitutions: value with colons after a label", values["t"], "/a:b")
@@ -200,7 +200,7 @@ function test_form_substitutions_colons(    params, labels, values, names) {
   check("form_substitutions: without a label, the rest is the value", values["u"], "b")
 }
 
-function test_form_substitutions_spaces_in_name(    params, labels, values, names) {
+function test_form_substitutions_spaces_in_name(params, labels, values, names) { #locals
   form_substitutions(" \tt :v", 0, params, labels, values, names)
   check("form_substitutions: spaces around the name are removed", names[1], "t")
   check("form_substitutions: value of a name with spaces", values["t"], "v")
@@ -211,7 +211,7 @@ function test_form_substitutions_spaces_in_name(    params, labels, values, name
   check("form_substitutions: value after a blank label", values["u"], "w")
 }
 
-function test_form_substitutions_dsub(    params, labels, values, names) {
+function test_form_substitutions_dsub(params, labels, values, names) { #locals
   form_substitutions("$(X):a:b;$(Y):;$(Z):c", 1, params, labels, values, names)
   check("form_substitutions (DSUB): no labels", length_array_posix(labels), 0)
   check("form_substitutions (DSUB): the value is everything after the 1st colon",
@@ -225,7 +225,7 @@ function test_form_substitutions_dsub(    params, labels, values, names) {
   check("form_substitutions (DSUB): value with colons", values["$(X)"], "a:b")
 }
 
-function test_form_substitutions_name_with_angle_brackets(    params, labels, values, names) {
+function test_form_substitutions_name_with_angle_brackets(params, labels, values, names) { #locals
   init_globals()
   form_substitutions("<><t>:new:v;<L:0><u>:w", 0, params, labels, values, names)
   check("form_substitutions: empty parameters before a NAME that starts with <...>",
@@ -241,7 +241,7 @@ function test_form_substitutions_name_with_angle_brackets(    params, labels, va
   check("form_substitutions: a NAME that starts with <...> is not an error", OPTION_ERRORS, 0)
 }
 
-function test_form_substitutions_repeated(    params, labels, values, names) {
+function test_form_substitutions_repeated(params, labels, values, names) { #locals
   init_globals()
   form_substitutions("t:a;u:b;t:c;t:a", 0, params, labels, values, names)
   check("form_substitutions: a repeated name is an error (also an identical repeat)",
@@ -261,7 +261,7 @@ function test_form_substitutions_repeated(    params, labels, values, names) {
   check("form_substitutions: the same name in SUB and DSUB is not an error", OPTION_ERRORS, 0)
 }
 
-function test_store_dsub_params(    params) {
+function test_store_dsub_params(params) { #locals
   init_globals()
   set_dsub_param_defaults(params)
   store_dsub_params("x", "", params)
@@ -285,7 +285,7 @@ function test_store_dsub_params(    params) {
   init_globals()
 }
 
-function test_form_substitutions_dsub_params(    labels) {
+function test_form_substitutions_dsub_params(labels) { #locals
   form_substitutions("<A:1>b:2;<A:1,D:0>c:3;d:6", 1, DSUB_PARAM, labels, DSUB_VALUES, DSUB_NAMES)
   check("form_substitutions (DSUB): default A and D",
         DSUB_PARAM["d", "A"] " " DSUB_PARAM["d", "D"], "0 1")

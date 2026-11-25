@@ -53,7 +53,7 @@ BEGIN {
   }
 }
 
-function trace_print(    k, joined, prefix) {
+function trace_print(k, joined, prefix) { #locals
   joined = PARSER_JOINER["joining"] ? 1 : 0
   prefix = PARSER_STATE["p"] == "\t" ? "\\t" : PARSER_STATE["p"]
   printf("%4d %d %d %2d %2d %-2s |%s\n",
@@ -79,8 +79,8 @@ function trace_print(    k, joined, prefix) {
   TRACE_ANCHOR_INDEX = ANCHOR_COUNT
 }
 
-function trace_print_obs(obs, k, #locals
-                         line) {
+function trace_print_obs(obs, k,
+                         line) { #locals
   if (k == "neutral") {
     return
   }

@@ -10,8 +10,9 @@
 # Read the blocks of a spec file into blocks[k, key] (k = 1..n) and return n. A value in
 # brackets keeps its spaces (the first [ and the last ] of the line delimit it); a line that
 # starts with # is a comment, a blank line ends a block.
-function read_spec(path, blocks, #locals
-                   line, n, in_block, colon, key, value) {
+function read_spec(path,
+                   blocks, #fill
+                   line, n, in_block, colon, key, value) { #locals
   n = 0
   in_block = 0
   while ((getline line < path) > 0) {
@@ -36,7 +37,7 @@ function read_spec(path, blocks, #locals
   return n
 }
 
-function test_parser_observe(    spec, n, k, obs, id) {
+function test_parser_observe(spec, n, k, obs, id) { #locals
   n = read_spec("test/parser.spec", spec)
   check_true("read_spec: test/parser.spec has blocks", n > 0)
   for (k = 1; k <= n; k++) {
@@ -96,8 +97,8 @@ function test_parser_reference_end() {
 
 # what follows the qualifiers of text (see parser_qualifiers), in brackets, then the override
 # flag, e.g., "[CFLAGS] 1"
-function after_qualifiers(text, #locals
-                          qualifiers, p) {
+function after_qualifiers(text,
+                          qualifiers, p) { #locals
   p = parser_qualifiers(text, qualifiers)
   return "[" substr(text, p) "] " qualifiers["override"]
 }
@@ -120,8 +121,8 @@ function test_parser_qualifiers() {
 }
 
 # a field of the observation of a line without state (parser_observe), "" if not set
-function observed(line, field, #locals
-                  obs) {
+function observed(line, field,
+                  obs) { #locals
   parser_observe(line, obs)
   return array_get(obs, field)
 }
@@ -191,8 +192,8 @@ function test_parser_variable_names() {
 }
 
 # the inline doc of a line (parser_observe), or "<none>"
-function inline_doc(line, #locals
-                    obs) {
+function inline_doc(line,
+                    obs) { #locals
   parser_observe(line, obs)
   return obs["inline"] ? obs["comment"] : "<none>"
 }
@@ -257,7 +258,7 @@ function test_get_doc_tag() {
 # The step table of the note (section Step): r_i, d_i and s_i for each kind, where r, d and s
 # are the values before the line (r_bar_{i-1}, d_bar_{i-1}, s_{i-1}) and s!e is s_{i-1} and
 # not e_i
-function step_table(table) {
+function step_table(table) { #fill
   table["recipe"] = "1 0 s"
   table["neutral"] = "r d s"
   table["doc"] = "r 1 s"
@@ -286,8 +287,8 @@ function step_entry(entry, r, d, s, e) {
 # parser_step against the step table, for every kind of line and every state before the line
 # (and with and without an inline doc for an anchor), with e_i as in the note, and p_i (a
 # recipe line does not change the prefix)
-function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, state, obs,
-                              got, want, failures) {
+function test_parser_step(table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, state, obs, #locals
+                          got, want, failures) { #locals
   step_table(table)
   n_kinds = split("recipe|neutral|doc|section|banner|rule|special rule|assignment|other",
                   kinds, "|")
@@ -329,8 +330,8 @@ function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, 
 }
 
 # the pending text, as D/S (the lines of each joined by +) and the tag of D
-function memory_text(memory, #locals
-                   text) {
+function memory_text(memory,
+                     text) { #locals
   text = memory_lines(memory, "doc", memory["dn"]) "/" \
          memory_lines(memory, "section", memory["sn"]) \
          "/" (memory["dn"] ? memory["doc_tag"] : "")
@@ -339,7 +340,8 @@ function memory_text(memory, #locals
 }
 
 # the memory of one doc line (a) and one section line (s), and a state with d_i and s_i
-function carry_setup(d, s, memory, state) {
+function carry_setup(d, s,
+                     memory, state) { #fill
   split("", memory)
   memory["dn"] = 1
   memory["doc", 1] = "a"
@@ -352,7 +354,7 @@ function carry_setup(d, s, memory, state) {
 }
 
 # parser_carry against the equations of the memory (D_i and S_i)
-function test_parser_carry(    memory, state, obs, k) {
+function test_parser_carry(memory, state, obs, k) { #locals
   carry_setup(1, 1, memory, state)
   k = "doc"
   obs["text"] = "b"
@@ -393,7 +395,7 @@ function last_record() {
 }
 
 # record_anchor against the equations of the record, and the warning about a redefined doc
-function test_record_anchor(    context, obs, before, memory) {
+function test_record_anchor(context, obs, before, memory) { #locals
   init_globals()
   carry_setup(1, 1, memory, before)
   memory["dn"] = 2
@@ -417,7 +419,7 @@ function test_record_anchor(    context, obs, before, memory) {
   init_globals()
 }
 
-function test_form_target_name(    context, obs) {
+function test_form_target_name(context, obs) { #locals
   init_globals()
   obs["anchor_name"] = "a \t b"
   obs["grouped"] = 0
@@ -439,8 +441,8 @@ function test_form_target_name(    context, obs) {
 
 # The states after each physical line of text (lines separated by |), as "rds" (1/0 for
 # r, d, s), or "+" for a line that continues on the next one
-function trace_lines(text, prefix, #locals
-                     state, memory, joiner, context, lines, n, k, obs, derived, out) {
+function trace_lines(text, prefix,
+                     state, memory, joiner, context, lines, n, k, obs, derived, out) { #locals
   parser_init(prefix, state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
@@ -456,7 +458,7 @@ function trace_lines(text, prefix, #locals
   return substr(out, 2)
 }
 
-function test_parser_states(    state, memory, joiner, context, obs, derived) {
+function test_parser_states(state, memory, joiner, context, obs, derived) { #locals
   check("states: the example of the model",
         trace_lines("##@ Build|## Compile the app|build: main.c|\tcc -o app main.c||" \
                     "## The version|V := 1", ""), "001 011 100 100 100 110 000")
@@ -527,8 +529,8 @@ function test_parser_states(    state, memory, joiner, context, obs, derived) {
 
 # the pending text (D and S) after each physical line of text (lines separated by |), as
 # D/S with the lines of each joined by +
-function trace_memory(text, #locals
-                    state, memory, joiner, context, lines, n, k, obs, derived, out) {
+function trace_memory(text,
+                      state, memory, joiner, context, lines, n, k, obs, derived, out) { #locals
   parser_init("", state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
@@ -560,8 +562,8 @@ function test_parser_memory() {
 
 # the doc, tag and section (or <none>) of the last anchor recorded from the lines of text
 # (separated by |)
-function recorded(text, #locals
-                  state, memory, joiner, context, lines, n, k, obs, derived) {
+function recorded(text,
+                  state, memory, joiner, context, lines, n, k, obs, derived) { #locals
   init_globals()
   parser_init("", state, memory)
   parser_join_init(joiner)
