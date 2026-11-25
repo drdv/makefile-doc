@@ -89,8 +89,8 @@ text.
 \begin{tabular}{@{}lP{0.68\textwidth}@{}}
   \toprule
   $L_i$ & the $i$-th logical line, over all files \\
-  $D_i$ & the pending doc after line $i$: its lines, each with its text and tag
-          ($\varnothing$ when empty) \\
+  $D_i$ & the pending doc after line $i$: its lines (their texts) and the tag of its first
+          line ($\varnothing$ when empty) \\
   $S_i$ & the pending section after line $i$: its lines ($\varnothing$ when empty) \\
   \midrule
   $b_i \in \{0,1\}$ & $L_i$ is the first line of a file \\
@@ -412,7 +412,8 @@ it).
 \begin{equation}
   D_i =
   \begin{cases}
-    \bar D_{i-1} + (\Obs{text}, \Obs{tag}) & \text{if } k_i = \kind{doc}\\
+    \bar D_{i-1} + \Obs{text} & \text{if } k_i = \kind{doc}
+                                \text{ (with the tag of its first line)}\\
     \varnothing & \text{if } d_i = 0\\
     \bar D_{i-1} & \text{otherwise}
   \end{cases}
@@ -449,7 +450,7 @@ When $e_i = 1$, the anchor of $L_i$ is recorded as the next anchor record $\math
                   \Obs{inline\_doc} & \text{otherwise}
                 \end{cases}\\[12pt]
     \Acr{tag} & \begin{cases}
-                  \text{the tag of the first line of } \bar D_{i-1} &
+                  \text{the tag of } \bar D_{i-1} &
                     \text{if } \bar d_{i-1} = 1\\
                   \Obs{tag} & \text{otherwise}
                 \end{cases}\\[12pt]

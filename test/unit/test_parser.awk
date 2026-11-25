@@ -422,7 +422,7 @@ function trace_lines(text, prefix, #locals
   out = ""
   for (k = 1; k <= n; k++) {
     if (parser_join(joiner, lines[k], k)) {
-      parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
+      parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
       out = out " " state["r"] state["d"] state["s"]
     } else {
       out = out " +"
@@ -489,9 +489,9 @@ function test_parser_states(    state, memory, joiner, context, obs, derived) {
   parser_init(state, memory, "")
   parser_join_init(joiner)
   parser_join(joiner, "##@ s", 1)
-  parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
+  parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
   parser_join(joiner, "## d", 2)
-  parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
+  parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
   parser_join(joiner, "t: \\", 3)
   parser_join_init(joiner)
   parser_file_start(state, memory)
@@ -510,7 +510,7 @@ function trace_memory(text, #locals
   out = ""
   for (k = 1; k <= n; k++) {
     if (parser_join(joiner, lines[k], k)) {
-      parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
+      parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
       out = out " " memory_lines(memory, "doc", memory["dn"]) "/" \
             memory_lines(memory, "section", memory["sn"])
     }
@@ -543,7 +543,7 @@ function recorded(text, #locals
   n = split(text, lines, "|")
   for (k = 1; k <= n; k++) {
     if (parser_join(joiner, lines[k], k)) {
-      parser_process(state, memory, context, obs, derived, joiner["line"], joiner["start"])
+      parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
     }
   }
   return last_record()

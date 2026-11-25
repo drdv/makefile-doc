@@ -1,39 +1,47 @@
-# Print the state and the memory of the parser of makefile-doc.awk after each input line,
-# instead of the help. Load it before the script, so that its rule sees each line before the
-# script parses it, i.e., with the state and the memory that the previous line left (its END
-# runs first, and its exit skips the END of the script):
-#   awk -f tools/trace-state.awk -f makefile-doc.awk Makefile
-# This assumes that the script reads its input only through the main loop of awk (no
-# getline): a line read otherwise would not be seen here.
+# Print, after each input line (see misc/docs/parser-model.tex):
+#  1. its line number in the file
+#  2. whether the line is joined with the next one
+#  3. whether a rule is open, i.e.,
+#     a line that starts with the recipe prefix is a recipe line (r_i)
+#  4. the number of lines in the pending doc D_i
+#  5. the number of lines in the pending section S_i
+#  6. the recipe prefix (p_i)
+#  7. the text of the line
+# followed by:
+#  - the observations of the line (when -v TRACE_OBS=1 is set)
+#  - the anchor that the line documented, if any
 #
-# The fields follow the model of the parser (misc/docs/parser-model.tex): R and P are from its
-# state, D and S are the sizes of its memory, and J is from the joining of lines (outside the
-# model). They are in terms of Make, not of the variables of the script, so that another
-# parser can produce the same trace. Each file starts with a header line
-#   == FILE
-# (stdin is -; an empty file has no line, so it has no header), then one line per physical
-# input line:
-#   LINE J R D S P | TEXT
-# with the values from the line on (the effect of the line included):
-#   J     1 if the line is joined with the next one (a backslash continuation, recipe lines
-#         included: the joined line takes effect at its last physical line), 0 otherwise
-#   R     1 if a rule is open (a line that starts with the recipe prefix is a recipe line),
-#         0 otherwise
-#   D     the number of pending doc lines (waiting for their anchor)
-#   S     the number of pending section lines
-#   P     the recipe prefix (a tab is shown as \t)
-#   TEXT  the input line (a tab is shown as \t, a final \r is dropped); for an empty line,
-#         nothing follows the | (no trailing space)
-# Each anchor that the line documents follows it on a line of its own:
-#   LINE ============ => KIND:[NAME]
-# where KIND is target or variable, with " +section" when the pending section is placed
-# before the anchor. `grep -e '^==' -e '=>'` lists the documented anchors of each file.
-# With -v TRACE_OBS=1, the observations of the structure of each logical line (but neutral
-# ones) follow its last physical line, with the kind of the line (k_i: recipe for a recipe
-# line, whose observations are not shown); the observations added by parser_observe (e.g.,
-# the tag and the text of a doc line) are not shown:
-#   LINE ============ -> <KIND> key:[value]... flags
-# e.g., `-> <assignment> variable:[SRCS] operator:[:=] value:[s.c]`.
+# trace-state.awk should be loaded before the script, so that its rule sees each line before the
+# script parses it, i.e., with the state and the memory that the previous line left (its END runs
+# first, and its exit skips the END of makefile-doc.awk):
+#
+#   awk -f tools/trace-state.awk -f makefile-doc.awk Makefile
+#
+# This assumes that makefile-doc.awk reads its input only through the main loop of awk (no
+# getline) -- which is the case.
+#
+# Fields 3 and 6 are part of the state of the parser, fields 4 and 5 are the sizes of its memory,
+# and field 2 is outside the model (the joining of lines).
+#
+# The anchor that a line documents follows it on a line of its own:
+#
+#   ... ============ => KIND:[NAME]
+#
+# where KIND is target or variable, followed by +section when the pending section is placed before
+# the anchor. Each file starts with a header line (stdin is -).
+#
+#  `grep -e '^==' -e '=>'`
+#
+# lists the documented anchors of each file.
+#
+# With -v TRACE_OBS=1, the observations of a logical line follow its last physical line, on a
+# line of their own:
+#
+#   ... ============ -> <KIND> key:[value]... flags
+#
+# where KIND is the kind of the line (k_i). Only the observations of the structure are shown (not
+# those added by parser_observe, e.g., the tag and the text of a doc line); none for a neutral line,
+# and only <recipe> for a recipe line.
 
 BEGIN {
   TRACE_PENDING = 0 # a line is waiting to be printed (at the next line, or at the end)
@@ -45,28 +53,32 @@ BEGIN {
   }
 }
 
-# print the waiting line, with the state and the memory that the script left after parsing
-# it, its observations (with TRACE_OBS) and the anchors that it documented
 function trace_print(    k, joined, prefix) {
   joined = PARSER_JOINER["joining"] ? 1 : 0
   prefix = PARSER_STATE["p"] == "\t" ? "\\t" : PARSER_STATE["p"]
-  printf("%4d %d %d %2d %2d %-2s |%s\n", TRACE_LINE, joined, PARSER_STATE["r"],
-         PARSER_MEMORY["dn"], PARSER_MEMORY["sn"], prefix,
+  printf("%4d %d %d %2d %2d %-2s |%s\n",
+         TRACE_LINE,
+         joined,
+         PARSER_STATE["r"],
+         PARSER_MEMORY["dn"],
+         PARSER_MEMORY["sn"],
+         prefix,
          TRACE_TEXT == "" ? "" : " " TRACE_TEXT)
+
   if (TRACE_OBS && !joined) {
     trace_print_obs(PARSER_OBS, PARSER_DERIVED["k"])
   }
 
-  for (k = TRACE_ANCHOR_INDEX + 1; k <= ANCHOR_COUNT; k++) {
-    printf("%4d ============ => %s:[%s]%s\n", TRACE_LINE, ANCHORS[k, "kind"],
-           ANCHORS[k, "name"], ((k, "section") in ANCHORS) ? " +section" : "")
+  if (ANCHOR_COUNT > TRACE_ANCHOR_INDEX) {
+    printf("%4d ============ => %s:[%s]%s\n",
+           TRACE_LINE,
+           ANCHORS[ANCHOR_COUNT, "kind"],
+           ANCHORS[ANCHOR_COUNT, "name"],
+           ((ANCHOR_COUNT, "section") in ANCHORS) ? " +section" : "")
   }
   TRACE_ANCHOR_INDEX = ANCHOR_COUNT
 }
 
-# print the observations of a line of kind k (not for neutral lines): <k>, then their string
-# fields as key:[value] in the order of the line (the kind of the anchor is the key of its
-# name), then their flags; for a recipe line, only <recipe>
 function trace_print_obs(obs, k, #locals
                          line) {
   if (k == "neutral") {
@@ -101,7 +113,6 @@ function trace_print_obs(obs, k, #locals
   print line
 }
 
-# a field of an observation, as key:[value] (tabs shown as \t)
 function trace_field(key, value) {
   return " " key ":[" string_replace("\t", "\\t", value) "]"
 }
@@ -109,12 +120,12 @@ function trace_field(key, value) {
 {
   if (TRACE_PENDING) {
     trace_print()
-  } else {
-    TRACE_ANCHOR_INDEX = ANCHOR_COUNT # the first line: nothing documented yet
   }
+
   if (FNR == 1) {
     print "== " (FILENAME == "" ? "-" : FILENAME)
   }
+
   TRACE_LINE = FNR
   TRACE_TEXT = $0
   sub(/\r$/, "", TRACE_TEXT)

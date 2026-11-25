@@ -1014,16 +1014,21 @@ function fmt_document(body) {
 }
 
 #### Parsing
-# The parser follows misc/docs/parser-model.tex, whose names the comments use (in ASCII: L_i
-# is the logical line i, r_bar the bar over r, O_i[x] the observation x of L_i, ...). A
-# physical line is joined with the next ones while it ends with a backslash (parser_join);
-# each logical line is then processed by parser_process: observed (parser_observe), its kind
-# derived (parser_kind), the state updated (parser_step), a documented anchor recorded in the
-# interface variables (record_anchor, see init_globals), and the memory updated
-# (parser_carry). The rules at the end of the section run it.
+# The parser follows misc/docs/parser-model.tex, whose names the comments use. In ASCII:
+# L_i is the logical line i, r_bar the bar over r, O_i[x] the observation x of L_i, ...
+#
+# At the first line of each file, the state and the memory are reset (parser_file_start). A
+# physical line is joined with the next ones while it ends with an odd number of backslashes
+# (parser_join), and each logical line is then processed by parser_process:
+#  1. its observations are computed (parser_observe)
+#  2. its kind is derived (parser_kind)
+#  3. the state is updated (parser_step)
+#  4. a documented anchor is recorded in the interface variables (record_anchor, see init_globals)
+#  5. the memory is updated (parser_carry)
+# The rules at the end of the section run it.
 
-# Record a warning about the Makefiles (printed before the docs). kind is "target",
-# "variable" or "file".
+# Record a warning about the Makefiles (printed before the docs).
+# kind is: "target", "variable" or "file".
 function add_warning(kind, message) {
   WARNINGS[++WARNING_COUNT] = message
   WARNING_KINDS[WARNING_COUNT] = kind
@@ -1045,18 +1050,20 @@ function get_doc_tag(string) {
   return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
 }
 
-# The structure of a line (the questions of the kind of a line, and the searches of the
-# lexical layer; see parser_observe). Fill obs with:
-#   obs["line_kind"]    the kind of the line as if no rule were open: assignment, rule,
-#                       special rule, neutral, banner, section, doc, other
-#   obs["anchor_kind"]  target or variable (assignment and rule), "" otherwise
-#   obs["anchor_name"]  the name of the anchor, as written in the line
-#   obs["comment"]      the comment, from its # to the end of the line ("" if none)
-# and, depending on the line, obs["override"], obs["operator"], obs["value"], obs["double"]
-# and obs["grouped"] (see parser_scan). The examples are in test/parser.spec (see
-# test/unit/test_parser.awk).
+# The structure of a line. Fill obs with:
+#   obs["line_kind"]    the kind of the line as if no rule were open:
+#                       assignment, rule, special rule, neutral, banner, section, doc, other
+#   obs["anchor_kind"]  target or variable for an assignment or a rule line, "" otherwise
+#   obs["anchor_name"]  the (stripped) name of the anchor, "" if no anchor
+#   obs["comment"]      the comment after the anchor, from its # to the end of the line ("" if none)
+#
+# and, depending on the line:
+#   obs["override"], obs["operator"], obs["value"], obs["double"], obs["grouped"]
+#
+# See the examples in test/parser.spec (and test/unit/test_parser.awk).
+# See parser_observe for additional observations.
 function parser_structure(line, obs, #locals
-                          first_word, define_name) {
+                          first_word, define_name, qualifiers) {
   split("", obs)
   obs["line_kind"] = ""
   obs["anchor_kind"] = ""
@@ -1082,7 +1089,7 @@ function parser_structure(line, obs, #locals
   first_word = line
   sub(/^[ \t]+/, "", first_word)
   sub(/[ \t(].*$/, "", first_word)
-  define_name = parser_define_name(line)
+  define_name = parser_define_name(line, qualifiers)
   # question 4: a keyword
   if (first_word ~ /^(ifeq|ifneq|ifdef|ifndef|else|endif)$/) {
     parser_clear(obs, "neutral")
@@ -1090,8 +1097,7 @@ function parser_structure(line, obs, #locals
     parser_clear(obs, "assignment")
     obs["anchor_kind"] = "variable"
     obs["anchor_name"] = define_name
-    match(line, /^[ \t]*((export|override|private)[ \t]+)*/)
-    obs["override"] = (" " substr(line, 1, RLENGTH)) ~ /[ \t]override[ \t]/
+    obs["override"] = qualifiers["override"]
   } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
     parser_clear(obs, "other")
   } else if (obs["line_kind"] == "rule") { # question 6: special targets
@@ -1103,7 +1109,6 @@ function parser_structure(line, obs, #locals
   }
 }
 
-# set the kind of obs, without anchor, name and comment
 function parser_clear(obs, line_kind) {
   obs["line_kind"] = line_kind
   obs["anchor_kind"] = ""
@@ -1111,11 +1116,11 @@ function parser_clear(obs, line_kind) {
   obs["comment"] = ""
 }
 
-# the name of the variable of a define line (e.g., `override define V :=`), "" if not one
-function parser_define_name(line, #locals
+# the name of the variable of a define line (e.g., `override define V :=`), "" if not one;
+# qualifiers["override"] is set to 1 if override comes before define (see parser_qualifiers)
+function parser_define_name(line, qualifiers, #locals
                             rest) {
-  rest = line
-  sub(/^[ \t]*((export|override|private)[ \t]+)*/, "", rest)
+  rest = substr(line, parser_qualifiers(line, qualifiers))
   if (rest !~ /^define[ \t]+[^ \t]/) {
     return ""
   }
@@ -1125,14 +1130,21 @@ function parser_define_name(line, #locals
   return rest
 }
 
-# Fill obs with the structure of a line (the searches of the lexical layer):
-# obs["line_kind"] is assignment, rule or "" (neither), with obs["anchor_kind"],
-# obs["anchor_name"] and obs["comment"]; for
-# an assignment to a variable, also obs["operator"] and obs["value"] (without its comment,
-# leading blanks removed). The searches run on the masked line; the texts are cut from the
-# line.
+# The searches of the lexical layer: on the masked line, find whether line is an assignment
+# or a rule, and cut the fields from line.
+# Fill obs with:
+#   obs["line_kind"]    assignment (also target-specific), rule, or unchanged ("") if neither
+#   obs["anchor_kind"]  variable or target
+#   obs["anchor_name"]  the name of the anchor
+#   obs["comment"]      from the # to the end of the line ("" if none)
+# for an assignment to a variable:
+#   obs["override"], obs["operator"]
+#   obs["value"] (leading blanks and comment removed)
+# for a rule:
+#   obs["double"], obs["grouped"]
 function parser_scan(line, obs, #locals
-                     masked, p, c, q, start, end, after, rest, hit, name) {
+                     masked, p, c, q, start, end, after, rest, hit, name, left, name_start,
+                     qualifiers) {
   masked = parser_mask(line)
   p = match(masked, /[#=:]/)
   if (!p) {
@@ -1149,14 +1161,19 @@ function parser_scan(line, obs, #locals
   }
   if (c == "=" || substr(masked, q + 1, 1) == "=") { # an operator before any separating colon
     start = (c == "=" && p > 1 && substr(masked, p - 1, 1) ~ /[?+!]/) ? p - 1 : p
-    name = parser_variable_name(substr(line, 1, start - 1), substr(masked, 1, start - 1))
-    if (name != "") {
+    # the left side: the qualifiers, then the name, a single word (a reference is part of a
+    # word, hence the masked line; the name is cut from line)
+    left = substr(masked, 1, start - 1)
+    name_start = parser_qualifiers(left, qualifiers)
+    rest = substr(left, name_start)
+    sub(/[ \t]+$/, "", rest)
+    if (rest != "" && rest !~ /[ \t]/) {
       end = c == "=" ? p : q + 1 # the = of the operator
       obs["line_kind"] = "assignment"
       obs["anchor_kind"] = "variable"
-      obs["anchor_name"] = name
-      obs["override"] = parser_has_override(substr(masked, 1, start - 1))
-      obs["comment"] = parser_rest_from(line, masked, end, "#")
+      obs["anchor_name"] = substr(line, name_start, length(rest))
+      obs["override"] = qualifiers["override"]
+      obs["comment"] = parser_comment_after(line, masked, end, 0)
       obs["operator"] = substr(line, start, end - start + 1)
       obs["value"] = substr(line, end + 1, length(line) - end - length(obs["comment"]))
       sub(/^[ \t]+/, "", obs["value"])
@@ -1189,58 +1206,43 @@ function parser_scan(line, obs, #locals
     obs["comment"] = substr(line, hit)
   } else if (c == "=") { # a target-specific assignment: after its operator, ; hides #
     obs["line_kind"] = "assignment"
-    obs["comment"] = parser_rest_from(line, masked, hit, "#;")
+    obs["comment"] = parser_comment_after(line, masked, hit, 1)
   }
 }
 
-# The comment of line after position p: from the first character of chars found in masked
-# after p, if it is a #; "" otherwise. (One match, not a loop over the characters: in some
-# awks, e.g., the one true awk and wak, substr and length take time linear in the length of
-# the string, so such a loop is quadratic.)
-function parser_rest_from(line, masked, p, chars, #locals
+# The comment that follows position p in line, from its # to the end of the line, "" if none.
+# The search runs on masked after p:
+#   is_target_specific = 0  the first # starts the comment
+#   is_target_specific = 1  the same, unless a ; comes first: then there is no comment, as
+#                           GNU Make takes everything after the ;, # included, into the value
+function parser_comment_after(line, masked, p, is_target_specific, #locals
                           rest, k) {
   rest = substr(masked, p + 1)
-  k = match(rest, chars == "#" ? "#" : "[#;]")
+  k = match(rest, is_target_specific ? "[#;]" : "#")
   return (k && substr(rest, k, 1) == "#") ? substr(line, p + k) : ""
 }
 
-# true if the left side of an assignment has the qualifier override (before its name, the
-# last word)
-function parser_has_override(text) {
-  sub(/[ \t]*[^ \t]+[ \t]*$/, "", text)
-  return (" " text " ") ~ /[ \t]override[ \t]/
+# Read the qualifiers (export, override, private) at the start of text, the left side of an
+# assignment or a define line, and return the position of the first character after them
+# and their blanks (1 if there are no qualifiers and no leading blanks).
+#
+# Fill:
+#   qualifiers["override"]  1 if override is among them, 0 otherwise
+function parser_qualifiers(text, qualifiers, #locals
+                           len) {
+  split("", qualifiers)
+  sub(/[ \t]+$/, "", text) # a last word followed only by blanks is not a qualifier
+  match(text, /^[ \t]*((export|override|private)[ \t]+)*/)
+  len = RLENGTH
+  qualifiers["override"] = (" " substr(text, 1, len)) ~ /[ \t]override[ \t]/
+  return len + 1
 }
 
-# The variable of the left side of an assignment, with its qualifiers (export, override,
-# private): the single word after them, "" if there is not exactly one word. The words are
-# found in masked (a reference is part of a word), the name is cut from text.
-function parser_variable_name(text, masked, #locals
-                              word_start, before, n, words, k) {
-  if (!match(masked, /[^ \t]+[ \t]*$/)) {
-    return ""
-  }
-  word_start = RSTART
-  before = substr(masked, 1, word_start - 1)
-  n = split(before, words, /[ \t]+/)
-  for (k = 1; k <= n; k++) {
-    if (words[k] != "" && words[k] !~ /^(export|override|private)$/) {
-      return ""
-    }
-  }
-  text = substr(text, word_start)
-  sub(/[ \t]+$/, "", text)
-  return text
-}
-
-# The line with what GNU Make does not read as syntax replaced by _, so that the searches can
-# look for #, :, = and ; directly. The masked line has the same length as the line (the
-# positions are the same). Masked:
-#   * a reference: from $( or ${ to its matching bracket (only the same kind of bracket
-#     nests), or to the end of the line if it is not closed
-#   * $ and any other character that follows it: a one-character reference (e.g., $@, $#;
-#     $$ is a literal $)
-#   * the escape pairs \\, \#, \: and \; (read from left to right: in a run of backslashes,
-#     only an odd last one escapes the character that follows)
+# Return line with its references and escape pairs replaced by _ (the result has the same length):
+#   $(...) ${...}   a reference, up to its matching bracket
+#   $c              a one-character reference
+#   \\ \# \: \;     an escape pair
+# See the examples in test_parser_mask (test/unit/test_parser.awk).
 function parser_mask(line, #locals
                      n, k, c, next_char, end, out, rest) {
   if (!index(line, "$") && !index(line, "\\")) {
@@ -1250,7 +1252,11 @@ function parser_mask(line, #locals
   out = ""
   k = 1
   while (k <= n) {
-    # the characters up to the next $ or \ are copied in one piece (see parser_rest_from)
+    # the characters up to the next $ or \ are copied in one piece, not one by one: in awks
+    # that count UTF-8 characters without an index (the one true awk, wak), substr takes time
+    # linear in the position (the string is walked from its start), so a loop over the
+    # characters would be quadratic; in awks that count bytes, and in gawk (which keeps a
+    # wide-character copy of the string), it takes constant time
     rest = substr(line, k)
     if (!match(rest, /[$\\]/)) {
       return out rest
@@ -1277,11 +1283,11 @@ function parser_mask(line, #locals
   return out
 }
 
-# The end of the reference $( or ${ at position k of line: the position of its matching
-# bracket (only the same kind of bracket nests), or the end of the line if it is not closed.
-# (match could jump from bracket to bracket instead of reading each character, but there is
-# no point: a reference is short, so it would be faster only on lines of thousands of
-# references, which Makefiles do not have.)
+# Return the position of the bracket that closes the reference whose $ is at position k of
+# line, or the length of line if it is not closed.
+#
+# The characters are read one by one, as nested brackets have to be counted (a regex cannot
+# match them); and anyway, a reference is short.
 function parser_reference_end(line, k, #locals
                               n, opening, closing, depth, c) {
   n = length(line)
@@ -1303,16 +1309,21 @@ function parser_reference_end(line, k, #locals
 }
 
 # ---------------------------------------------------------------------------------------
-# The model (misc/docs/parser-model.tex): its arrays are
-#   state    the state x_i: state["r"] (a rule is open), state["d"] (a doc is pending),
-#            state["s"] (a section is pending), state["p"] (the recipe prefix)
-#   memory   the pending text: memory["doc", k], k = 1..memory["dn"] (D_i, memory["doc_tag"]
-#            the tag of its first line) and memory["section", k], k = 1..memory["sn"] (S_i).
-#            dn and sn are the lengths of D_i and S_i: D_i is not empty if and only if
-#            d_i = 1 (and S_i if and only if s_i = 1)
-#   obs      the observations of L_i (see parser_observe)
-#   derived  the derived quantities of L_i: derived["k"] (k_i) and derived["e"] (e_i); the
-#            reset at a new file is applied to state and memory (see parser_file_start)
+# The model (misc/docs/parser-model.tex). Its arrays:
+#   state                the state x_i
+#     state["r"]           r_i: a rule is open
+#     state["d"]           d_i: a doc is pending
+#     state["s"]           s_i: a section is pending
+#     state["p"]           p_i: the recipe prefix
+#   memory               the memory D_i and S_i
+#     memory["doc", k]     the lines of D_i, k = 1..memory["dn"]
+#     memory["doc_tag"]    the tag of the first line of D_i
+#     memory["section", k] the lines of S_i, k = 1..memory["sn"]
+#   obs                  the observations O_i (see parser_observe)
+#   derived              the derived quantities of L_i
+#     derived["k"]         k_i
+#     derived["e"]         e_i
+# The reset at the first line of a file is applied to state and memory (see parser_file_start).
 # ---------------------------------------------------------------------------------------
 
 # x_0 = (0, 0, 0, p_0), D_0 = S_0 = empty (p_0: the RECIPEPREFIX option, a tab by default)
@@ -1327,12 +1338,11 @@ function parser_init(state, memory, prefix) {
   memory["sn"] = 0
 }
 
-# At the first line of a file (b_i = 1), no rule is open and no doc is pending: r and d of
-# the state are reset to 0, and the pending doc D in the memory is emptied (the section and
-# the recipe prefix carry over):
-#   r_bar_{i-1} = 0 if b_i = 1, r_{i-1} otherwise
-#   d_bar_{i-1} = 0 if b_i = 1, d_{i-1} otherwise
-#   D_bar_{i-1} = empty if b_i = 1, D_{i-1} otherwise
+# The reset at the first line of a file (b_i = 1): no rule is open and no doc is pending; the
+# section and the recipe prefix carry over.
+# Update:
+#   state["r"], state["d"]  0
+#   memory["dn"]            0 (D is emptied)
 function parser_file_start(state, memory) {
   state["r"] = 0
   state["d"] = 0
@@ -1347,9 +1357,8 @@ function parser_file_start(state, memory) {
 #   obs["inline_doc"]  that comment without its token ("" if there is none)
 #   obs["text"]        the line without its leading blanks and its token, for a doc or
 #                      section line ("" otherwise)
-#   obs["tag"]         the token of a doc line or of the inline doc: ##, ##! or ##%
-#   obs["prefix"]      the prefix that the line assigns to .RECIPEPREFIX, when the value is
-#                      written on the line ("" if none: see parser_new_prefix)
+#   obs["tag"]         the token of a doc line or of the inline doc: ##, ##! or ##% ("" otherwise)
+#   obs["prefix"]      the prefix that the line assigns to .RECIPEPREFIX ("" otherwise).
 function parser_observe(line, obs) {
   parser_structure(line, obs)
   obs["first_char"] = substr(line, 1, 1)
@@ -1372,18 +1381,36 @@ function parser_observe(line, obs) {
     sub(TAG_REGEX, "", obs["inline_doc"])
   }
   obs["prefix"] = ""
-  # (a define has no operator: its value is on the next lines)
+  # obs["prefix"] is set only when the assignement to .RECIPEPREFIX appears on the line itself. We
+  # cannot handle correctly:
+  #   define .RECIPEPREFIX
+  #   >
+  #   endef
+  # because its value is on the next lines (even though GNU Make would change the prefix to >).
+  # We handle correctly a target-specific assignment (t: .RECIPEPREFIX = >) -- it doesn't change
+  # the prefix (as in GNU Make). For handling various operators, see parser_new_prefix.
   if (obs["line_kind"] == "assignment" && obs["anchor_kind"] == "variable" &&
       obs["anchor_name"] == ".RECIPEPREFIX" && ("operator" in obs)) {
     obs["prefix"] = parser_new_prefix(obs["operator"], obs["value"])
   }
 }
 
-# The prefix that an assignment to .RECIPEPREFIX gives, when its value is written on the
-# line: the first character of the value (a tab if it is empty), with = or with := or ::=
-# and no reference in the value. "" (none) otherwise: with += the first character does not
-# change; with ?= nothing changes (.RECIPEPREFIX is always defined, with origin default);
-# with != or an expanded reference, the value is not known.
+# The prefix that an assignment to .RECIPEPREFIX gives (operator and value on the same line),
+# "" for no change. An empty value gives a tab.
+#
+# As GNU Make:
+#   =         the first character of the value, as written (GNU Make does not expand it), e.g.,
+#             .RECIPEPREFIX = $a changes the prefix to $
+#   :=, ::=   the first character of the value, when it has no reference ($)
+#   ?=        "": .RECIPEPREFIX is always defined (origin default), so nothing changes
+#   +=        "", when .RECIPEPREFIX has a value: its first character does not change
+#
+# Unlike GNU Make (we return ""):
+#   :=, ::=   with a reference: GNU Make expands it (its value is not known from the line)
+#   !=        GNU Make runs the command (its output is not known from the line)
+#   +=        when .RECIPEPREFIX is empty (the default), GNU Make takes the first character
+#             (handling it would need the state of the parser; by design, the observations
+#             are a pure function of the line)
 function parser_new_prefix(operator, value) {
   if (operator == "+=" || operator == "?=" || operator == "!=" ||
       (operator ~ /^:+=$/ && index(value, "$") > 0)) {
@@ -1392,16 +1419,17 @@ function parser_new_prefix(operator, value) {
   return value == "" ? "\t" : substr(value, 1, 1)
 }
 
-# k_i, the kind of the line: a line is a recipe line if a rule is open and the line starts
-# with the prefix; otherwise its kind is observed. state holds x_{i-1} (after the reset)
+# Return k_i, the kind of the line, from the state x_{i-1} (after the reset) and the
+# observations O_i:
 #   k_i = recipe           if r_bar_{i-1} = 1 and O_i[first_char] = p_{i-1}
 #         O_i[line_kind]   otherwise
 function parser_kind(state, obs) {
   return (state["r"] && obs["first_char"] == state["p"]) ? "recipe" : obs["line_kind"]
 }
 
-# The state transition: state holds x_{i-1} (after the reset) and becomes x_i, from the kind
-# of the line k and the observations; return e_i. The step never reads the text of the line.
+# The state transition, from the kind of the line k and the observations obs. Return e_i.
+# Update:
+#   state  x_{i-1} (after the reset) becomes x_i
 function parser_step(state, obs, k, #locals
                      e) {
   # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or O_i[inline] = 1), 0 otherwise
@@ -1432,12 +1460,13 @@ function parser_step(state, obs, k, #locals
   return e
 }
 
-# The memory transition: memory holds D_bar_{i-1} and S_{i-1}, and becomes D_i and S_i, from
-# the kind of the line k, the observations, and the new state x_i.
+# The memory transition, from the kind of the line k, the observations obs and the new state x_i.
+# Update:
+#   memory  D_bar_{i-1} and S_{i-1} become D_i and S_i
 function parser_carry(memory, state, obs, k) {
   if (k == "doc") {
     if (memory["dn"] == 0) {
-      memory["doc_tag"] = obs["tag"]               # the tag of the doc: that of its first line
+      memory["doc_tag"] = obs["tag"]               # the tag of D_i: O_i[tag]
     }
     memory["doc", ++memory["dn"]] = obs["text"]    # D_i = D_bar_{i-1} + O_i[text]  if k_i = doc
   } else if (!state["d"]) {
@@ -1450,12 +1479,15 @@ function parser_carry(memory, state, obs, k) {
   }                                                 #       S_{i-1}              otherwise
 }
 
-# Process the logical line L_i (line, from the physical line line_number of the file), in the
-# order of the note: state and memory hold x_{i-1} and D_bar_{i-1}, S_{i-1} (after
-# parser_file_start at the first line of a file), and become x_i and D_i, S_i; derived gets
-# k_i and e_i. The record of a documented anchor reads the state before the transition
-# (x_{i-1}, kept in before) and the memory before its transition.
-function parser_process(state, memory, context, obs, derived, line, line_number, #locals
+# Process the logical line L_i: line, which starts at the physical line line_number of its file.
+#
+# Update:
+#   state, memory  x_{i-1} and D_bar_{i-1}, S_{i-1} become x_i and D_i, S_i
+#   context        the anchors documented so far (see record_anchor)
+# Fill:
+#   obs            the observations O_i (see parser_observe)
+#   derived        derived["k"] (k_i) and derived["e"] (e_i)
+function parser_process(line, line_number, state, memory, context, obs, derived, #locals
                         before, k, e) {
   parser_observe(line, obs)          # O_i = obs(L_i)
   k = parser_kind(state, obs)        # k_i
@@ -1469,17 +1501,17 @@ function parser_process(state, memory, context, obs, derived, line, line_number,
   derived["e"] = e
 }
 
-# Record a documented anchor (e_i = 1) as the next anchor record A_n, the entry n of ANCHORS
-# (before is x_{i-1}; memory holds D_bar_{i-1} and S_{i-1}):
+# Record a documented anchor (e_i = 1) as the next anchor record A_n, the entry n of ANCHORS,
+# from obs, before (x_{i-1}) and memory (D_bar_{i-1}, S_{i-1}):
 #   A_n[kind]      O_i[anchor_kind]
 #   A_n[name]      O_i[anchor_name] (for a target, see form_target_name)
 #   A_n[doc]       the texts of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[inline_doc] otherwise
-#   A_n[tag]       the tag of the first line of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[tag]
-#                  otherwise
+#   A_n[tag]       the tag of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[tag] otherwise
 #   A_n[section]   S_{i-1} if s_{i-1} = 1, absent otherwise
 #   A_n[override]  1 if O_i[override] = 1, absent otherwise
-# Outside the model: the name of a target (see form_target_name), and the warning about a
-# redefined doc (context holds the file and the anchors already documented).
+# A redefined doc is reported (see add_warning), with line_number.
+# Update:
+#   context  the anchors documented so far
 function record_anchor(context, obs, before, memory, line_number, #locals
                        kind, name) {
   kind = obs["anchor_kind"]
@@ -1509,7 +1541,7 @@ function record_anchor(context, obs, before, memory, line_number, #locals
 
 # the lines memory[key, 1..n] joined with \n
 function memory_lines(memory, key, n, #locals
-                    k, lines) {
+                      k, lines) {
   lines = ""
   for (k = 1; k <= n; k++) {
     lines = k == 1 ? memory[key, k] : lines "\n" memory[key, k]
@@ -1535,10 +1567,12 @@ function form_target_name(context, obs, #locals
 }
 
 # ---------------------------------------------------------------------------------------
-# The input of the model: the logical lines. joiner holds the line being joined:
-# joiner["joining"] (a line continues on the next one), joiner["pending"] (its text so far),
-# joiner["start"] (the number of its first physical line) and, when it is complete,
-# joiner["line"].
+# The input of the model: the logical lines, joined from the physical lines. joiner holds
+# the line being joined:
+#   joiner["joining"]  1 if the last physical line continues on the next one, 0 otherwise
+#   joiner["pending"]  the text joined so far
+#   joiner["start"]    the number of the first physical line of the logical line
+#   joiner["line"]     the logical line, once it is complete
 # ---------------------------------------------------------------------------------------
 
 # At the first line of a file: a line continued at the end of the previous file is dropped
@@ -1548,12 +1582,20 @@ function parser_join_init(joiner) {
   joiner["pending"] = ""
 }
 
-# Add a physical line (number line_number in its file): return 1 when a logical line is
-# complete (in joiner["line"], from the physical line joiner["start"]), 0 when the line
-# continues on the next one (an odd number of final backslashes, recipe lines included). As
-# in GNU Make, the backslash, the newline and the blanks around them become one space. The
-# searches run on the physical line only, not on the text joined so far (see
-# parser_rest_from): a continued line of only blanks adds nothing.
+# Add a physical line (number line_number in its file) to the logical line being joined:
+#   return 1  the logical line is complete: joiner["line"], which starts at the physical line
+#             joiner["start"]
+#   return 0  the line continues on the next one (it ends with an odd number of backslashes,
+#             recipe lines included): it is kept in joiner["pending"] for the next call
+# A final \r is removed (CRLF line endings). As in GNU Make, a backslash, the newline and the
+# blanks around them become one space, and a line of only blanks adds nothing. E.g., called
+# with each of the four physical lines
+#   SRCS := a.c   \
+#           b.c \
+#       \
+#           c.c
+# it returns 0, 0, 0, then 1 with joiner["line"] = "SRCS := a.c b.c c.c" (joiner["pending"]
+# is "SRCS := a.c", then "SRCS := a.c b.c" twice).
 function parser_join(joiner, physical, line_number, #locals
                      stripped) {
   sub(/\r$/, "", physical) # CRLF line endings
@@ -1596,8 +1638,8 @@ FNR == 1 {
 
 {
   if (parser_join(PARSER_JOINER, $0, FNR)) {
-    parser_process(PARSER_STATE, PARSER_MEMORY, PARSER_CONTEXT, PARSER_OBS, PARSER_DERIVED,
-                   PARSER_JOINER["line"], PARSER_JOINER["start"])
+    parser_process(PARSER_JOINER["line"], PARSER_JOINER["start"], PARSER_STATE, PARSER_MEMORY,
+                   PARSER_CONTEXT, PARSER_OBS, PARSER_DERIVED)
   }
 }
 
