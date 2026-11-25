@@ -53,9 +53,22 @@
 # not use them.
 
 #### Terminology
-#   * Rule: `targets [&]:[:] [prerequisites] [; inline recipe]` or
-#     `targets [&]:[:] variable assignment`, then its recipe lines. The parser and its terms
-#     are described in misc/docs/parser-model.tex.
+#   * A Makefile rule (without patterns) can take one of the following forms:
+#     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
+#         [recipe]
+#
+#     target-name [...] [&]:[:] [variable assignment]
+#         [recipe]
+#
+#     where:
+#       variable assignment: a single variable can be assigned per rule
+#       prerequisites := normal-prerequisites | order-only-prerequisites
+#       inline recipe := [command] [; command ...]
+#       recipe := [command]
+#                 [...]
+#
+#     with normal-prerequisites and order-only-prerequisites being space separated lists
+#     of target names.
 #   * A single-colon target has one recipe, so one doc (the last one wins); a double-colon
 #     target has a recipe per rule, so a doc per documented rule (t~1, t~2, ...).
 
