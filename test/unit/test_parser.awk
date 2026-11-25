@@ -314,7 +314,7 @@ function test_parser_step(    table, kinds, n_kinds, j, kind, cols, r, d, s, a, 
             want = step_entry(cols[1], r, d, s, e) step_entry(cols[2], r, d, s, e) \
                    step_entry(cols[3], r, d, s, e) " e=" e \
                    " p=" (kind == "recipe" ? "\t" : ">")
-            got = parser_step(state, obs, kind)
+            got = parser_step(obs, kind, state)
             got = state["r"] state["d"] state["s"] " e=" (got ? 1 : 0) " p=" state["p"]
             if (got != want) {
               failures = failures sprintf(" [rds=%d%d%d a=%d: got %s, want %s]", r, d, s, a,
@@ -339,7 +339,7 @@ function memory_text(memory, #locals
 }
 
 # the memory of one doc line (a) and one section line (s), and a state with d_i and s_i
-function carry_setup(memory, state, d, s) {
+function carry_setup(d, s, memory, state) {
   split("", memory)
   memory["dn"] = 1
   memory["doc", 1] = "a"
@@ -353,36 +353,36 @@ function carry_setup(memory, state, d, s) {
 
 # parser_carry against the equations of the memory (D_i and S_i)
 function test_parser_carry(    memory, state, obs, k) {
-  carry_setup(memory, state, 1, 1)
+  carry_setup(1, 1, memory, state)
   k = "doc"
   obs["text"] = "b"
   obs["tag"] = "##!"
-  parser_carry(memory, state, obs, k)
+  parser_carry(state, obs, k, memory)
   check("parser_carry: a doc line adds its text (the tag stays that of the first line)",
         memory_text(memory), "a+b/s/##")
 
   memory["dn"] = 0
-  parser_carry(memory, state, obs, k)
+  parser_carry(state, obs, k, memory)
   check("parser_carry: the first line of a doc gives its tag", memory_text(memory), "b/s/##!")
 
-  carry_setup(memory, state, 1, 1)
+  carry_setup(1, 1, memory, state)
   k = "section"
   obs["text"] = "t"
-  parser_carry(memory, state, obs, k)
+  parser_carry(state, obs, k, memory)
   check("parser_carry: a section line adds its text", memory_text(memory), "a/s+t/##")
 
-  carry_setup(memory, state, 0, 1)
+  carry_setup(0, 1, memory, state)
   k = "rule"
-  parser_carry(memory, state, obs, k)
+  parser_carry(state, obs, k, memory)
   check("parser_carry: d_i = 0 drops the doc text", memory_text(memory), "/s/")
 
-  carry_setup(memory, state, 1, 0)
-  parser_carry(memory, state, obs, k)
+  carry_setup(1, 0, memory, state)
+  parser_carry(state, obs, k, memory)
   check("parser_carry: s_i = 0 drops the section text", memory_text(memory), "a//##")
 
-  carry_setup(memory, state, 1, 1)
+  carry_setup(1, 1, memory, state)
   k = "neutral"
-  parser_carry(memory, state, obs, k)
+  parser_carry(state, obs, k, memory)
   check("parser_carry: otherwise the text is kept", memory_text(memory), "a/s/##")
 }
 
@@ -395,7 +395,7 @@ function last_record() {
 # record_anchor against the equations of the record, and the warning about a redefined doc
 function test_record_anchor(    context, obs, before, memory) {
   init_globals()
-  carry_setup(memory, before, 1, 1)
+  carry_setup(1, 1, memory, before)
   memory["dn"] = 2
   memory["doc", 2] = "b"
   obs["anchor_kind"] = "variable"
@@ -403,13 +403,13 @@ function test_record_anchor(    context, obs, before, memory) {
   obs["inline_doc"] = "i"
   obs["tag"] = "##%"
   context["file"] = "f"
-  record_anchor(context, obs, before, memory, 7)
+  record_anchor(obs, before, memory, 7, context)
   check("record_anchor: d_bar = 1: the pending doc and its tag; s = 1: the section",
         last_record(), "a\nb|##|s")
 
   before["d"] = 0
   before["s"] = 0
-  record_anchor(context, obs, before, memory, 9)
+  record_anchor(obs, before, memory, 9, context)
   check("record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
         last_record(), "i|##%|<none>")
   check("record_anchor: a redefined doc is reported with its file and line",
@@ -422,15 +422,15 @@ function test_form_target_name(    context, obs) {
   obs["anchor_name"] = "a \t b"
   obs["grouped"] = 0
   obs["double"] = 0
-  check("form_target_name: blanks collapsed", form_target_name(context, obs), "a b")
+  check("form_target_name: blanks collapsed", form_target_name(obs, context), "a b")
   obs["grouped"] = 1
-  check("form_target_name: grouped", form_target_name(context, obs), "a b&")
+  check("form_target_name: grouped", form_target_name(obs, context), "a b&")
 
   obs["anchor_name"] = "t"
   obs["grouped"] = 0
   obs["double"] = 1
-  check("form_target_name: first double-colon rule", form_target_name(context, obs), "t~1")
-  check("form_target_name: second double-colon rule", form_target_name(context, obs), "t~2")
+  check("form_target_name: first double-colon rule", form_target_name(obs, context), "t~1")
+  check("form_target_name: second double-colon rule", form_target_name(obs, context), "t~2")
 }
 
 # ---------------------------------------------------------------------------------------
@@ -441,12 +441,12 @@ function test_form_target_name(    context, obs) {
 # r, d, s), or "+" for a line that continues on the next one
 function trace_lines(text, prefix, #locals
                      state, memory, joiner, context, lines, n, k, obs, derived, out) {
-  parser_init(state, memory, prefix)
+  parser_init(prefix, state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
   out = ""
   for (k = 1; k <= n; k++) {
-    if (parser_join(joiner, lines[k], k)) {
+    if (parser_join(lines[k], k, joiner)) {
       parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
       out = out " " state["r"] state["d"] state["s"]
     } else {
@@ -511,13 +511,13 @@ function test_parser_states(    state, memory, joiner, context, obs, derived) {
   parser_observe("\tV := 1", obs)
   check("parser_kind: no rule is open", parser_kind(state, obs), "assignment")
 
-  parser_init(state, memory, "")
+  parser_init("", state, memory)
   parser_join_init(joiner)
-  parser_join(joiner, "##@ s", 1)
+  parser_join("##@ s", 1, joiner)
   parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
-  parser_join(joiner, "## d", 2)
+  parser_join("## d", 2, joiner)
   parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
-  parser_join(joiner, "t: \\", 3)
+  parser_join("t: \\", 3, joiner)
   parser_join_init(joiner)
   parser_file_start(state, memory)
   check("file start: the doc is dropped, with its text, the section carries over",
@@ -529,12 +529,12 @@ function test_parser_states(    state, memory, joiner, context, obs, derived) {
 # D/S with the lines of each joined by +
 function trace_memory(text, #locals
                     state, memory, joiner, context, lines, n, k, obs, derived, out) {
-  parser_init(state, memory, "")
+  parser_init("", state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
   out = ""
   for (k = 1; k <= n; k++) {
-    if (parser_join(joiner, lines[k], k)) {
+    if (parser_join(lines[k], k, joiner)) {
       parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
       out = out " " memory_lines(memory, "doc", memory["dn"]) "/" \
             memory_lines(memory, "section", memory["sn"])
@@ -563,11 +563,11 @@ function test_parser_memory() {
 function recorded(text, #locals
                   state, memory, joiner, context, lines, n, k, obs, derived) {
   init_globals()
-  parser_init(state, memory, "")
+  parser_init("", state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
   for (k = 1; k <= n; k++) {
-    if (parser_join(joiner, lines[k], k)) {
+    if (parser_join(lines[k], k, joiner)) {
       parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
     }
   }

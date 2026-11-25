@@ -424,8 +424,8 @@ function process_options(    sub_names, dummy_array_labels) {
   }
 
   # (with "", gawk --lint does not warn when the option is not set)
-  form_substitutions(SUB "", SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names, 0)
-  form_substitutions(DSUB "", DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES, 1)
+  form_substitutions(SUB "", 0, SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names)
+  form_substitutions(DSUB "", 1, DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
   report_assignment_operands()
@@ -460,8 +460,8 @@ function report_assignment_operands(    k) {
 # t:/a:b gives the label /a and the value b.
 # Empty items are skipped; invalid ones (no colon, no name, a name given twice) are reported
 # (see option_error) and skipped, as are invalid parameters.
-function form_substitutions(spec, param_table, sub_labels_array,
-                            sub_values_array, sub_names_array, no_labels, #locals
+function form_substitutions(spec, no_labels, param_table, sub_labels_array,
+                            sub_values_array, sub_names_array, #locals
                             split_substitutions, k, n, string, substitution_params,
                             substitution_rest, name, label, values, colon,
                             has_label, n_substitutions, option) {
@@ -521,9 +521,9 @@ function form_substitutions(spec, param_table, sub_labels_array,
       continue
     }
     if (no_labels) {
-      store_dsub_params(param_table, name, substitution_params)
+      store_dsub_params(name, substitution_params, param_table)
     } else {
-      store_sub_params(param_table, name, substitution_params)
+      store_sub_params(name, substitution_params, param_table)
     }
 
     sub_names_array[++n] = name
@@ -561,7 +561,7 @@ function parse_substitution_params(string, params, keys, #locals
 
 # Copy the row of defaults of a table of parameters, "", to the row name (the keys of the row
 # "" are found first: adding elements to an array while looping over it is undefined)
-function copy_param_defaults(table, name, #locals
+function copy_param_defaults(name, table, #locals
                              key, defaults) {
   for (key in table) {
     if (index(key, SUBSEP) == 1) {
@@ -578,10 +578,10 @@ function copy_param_defaults(table, name, #locals
 # parameters and the unknown ones (allowed: the known keys, as written in the message, e.g.,
 # "A or D"; see option_error), and return the others: keys[1..n] in the order given and
 # params[key] their values. option is SUB or DSUB.
-function checked_params(option, allowed, table, name, string_with_parameters, params,
+function checked_params(option, allowed, name, string_with_parameters, table, params,
                         keys, #locals
                         all_params, all_keys, k, n, n_all, key, seen) {
-  copy_param_defaults(table, name)
+  copy_param_defaults(name, table)
   split("", params)
   split("", keys)
   split("", seen)
@@ -607,9 +607,9 @@ function checked_params(option, allowed, table, name, string_with_parameters, pa
 # Store the parameters of the SUB substitution of name in its row of table: the defaults (the
 # row ""), replaced by the valid parameters of string_with_parameters; the invalid ones are
 # reported (see option_error). L, M and N are stored as numbers.
-function store_sub_params(table, name, string_with_parameters, #locals
+function store_sub_params(name, string_with_parameters, table, #locals
                           params, keys, k, n, key, value) {
-  n = checked_params("SUB", "L, M, N, S, P, I or T", table, name, string_with_parameters,
+  n = checked_params("SUB", "L, M, N, S, P, I or T", name, string_with_parameters, table,
                      params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
@@ -631,9 +631,9 @@ function store_sub_params(table, name, string_with_parameters, #locals
 # invalid ones are reported (see option_error):
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
 #   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
-function store_dsub_params(table, name, string_with_parameters, #locals
+function store_dsub_params(name, string_with_parameters, table, #locals
                            params, keys, k, n, key, value) {
-  n = checked_params("DSUB", "A or D", table, name, string_with_parameters, params, keys)
+  n = checked_params("DSUB", "A or D", name, string_with_parameters, table, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
@@ -1105,24 +1105,24 @@ function parser_structure(line, obs, #locals
   define_name = parser_define_name(line, qualifiers)
   # question 4: a keyword
   if (first_word ~ /^(ifeq|ifneq|ifdef|ifndef|else|endif)$/) {
-    parser_clear(obs, "neutral")
+    parser_clear("neutral", obs)
   } else if (define_name != "") { # before the directives: `export define V`
-    parser_clear(obs, "assignment")
+    parser_clear("assignment", obs)
     obs["anchor_kind"] = "variable"
     obs["anchor_name"] = define_name
     obs["override"] = qualifiers["override"]
   } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
-    parser_clear(obs, "other")
+    parser_clear("other", obs)
   } else if (obs["line_kind"] == "rule") { # question 6: special targets
     if ((obs["anchor_name"] ":") ~ SPECIAL_TARGETS_REGEX) {
-      parser_clear(obs, "special rule")
+      parser_clear("special rule", obs)
     }
   } else {
-    parser_clear(obs, "other")
+    parser_clear("other", obs)
   }
 }
 
-function parser_clear(obs, line_kind) {
+function parser_clear(line_kind, obs) {
   obs["line_kind"] = line_kind
   obs["anchor_kind"] = ""
   obs["anchor_name"] = ""
@@ -1340,7 +1340,7 @@ function parser_reference_end(line, k, #locals
 # ---------------------------------------------------------------------------------------
 
 # x_0 = (0, 0, 0, p_0), D_0 = S_0 = empty (p_0: the RECIPEPREFIX option, a tab by default)
-function parser_init(state, memory, prefix) {
+function parser_init(prefix, state, memory) {
   split("", state)
   state["r"] = 0
   state["d"] = 0
@@ -1443,7 +1443,7 @@ function parser_kind(state, obs) {
 # The state transition, from the kind of the line k and the observations obs. Return e_i.
 # Update:
 #   state  x_{i-1} (after the reset) becomes x_i
-function parser_step(state, obs, k, #locals
+function parser_step(obs, k, state, #locals
                      e) {
   # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or O_i[inline] = 1), 0 otherwise
   e = (k == "rule" || k == "assignment") && (state["d"] || obs["inline"])
@@ -1476,7 +1476,7 @@ function parser_step(state, obs, k, #locals
 # The memory transition, from the kind of the line k, the observations obs and the new state x_i.
 # Update:
 #   memory  D_bar_{i-1} and S_{i-1} become D_i and S_i
-function parser_carry(memory, state, obs, k) {
+function parser_carry(state, obs, k, memory) {
   if (k == "doc") {
     if (memory["dn"] == 0) {
       memory["doc_tag"] = obs["tag"]               # the tag of D_i: O_i[tag]
@@ -1505,11 +1505,11 @@ function parser_process(line, line_number, state, memory, context, obs, derived,
   parser_observe(line, obs)          # O_i = obs(L_i)
   k = parser_kind(state, obs)        # k_i
   copy_array(state, before)          # x_{i-1}
-  e = parser_step(state, obs, k)     # x_i and e_i
+  e = parser_step(obs, k, state)     # x_i and e_i
   if (e) {
-    record_anchor(context, obs, before, memory, line_number)
+    record_anchor(obs, before, memory, line_number, context)
   }
-  parser_carry(memory, state, obs, k) # (D_i, S_i)
+  parser_carry(state, obs, k, memory) # (D_i, S_i)
   derived["k"] = k
   derived["e"] = e
 }
@@ -1525,10 +1525,10 @@ function parser_process(line, line_number, state, memory, context, obs, derived,
 # A redefined doc is reported (see add_warning), with line_number.
 # Update:
 #   context  the anchors documented so far
-function record_anchor(context, obs, before, memory, line_number, #locals
+function record_anchor(obs, before, memory, line_number, context, #locals
                        kind, name) {
   kind = obs["anchor_kind"]
-  name = kind == "target" ? form_target_name(context, obs) : obs["anchor_name"]
+  name = kind == "target" ? form_target_name(obs, context) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
     add_warning(kind, sprintf("[%s:%s] redefined docs of %s: %s", context["file"],
                               line_number, kind, name))
@@ -1565,7 +1565,7 @@ function memory_lines(memory, key, n, #locals
 # The name of a documented target as displayed: blanks collapsed (GNU Make reads any run of
 # blanks between names as one separator), & after grouped targets, ~N after the Nth
 # documented rule of a double-colon target (counted across files, in context)
-function form_target_name(context, obs, #locals
+function form_target_name(obs, context, #locals
                           name) {
   name = obs["anchor_name"]
   gsub(/[ \t]+/, " ", name)
@@ -1609,7 +1609,7 @@ function parser_join_init(joiner) {
 #           c.c
 # it returns 0, 0, 0, then 1 with joiner["line"] = "SRCS := a.c b.c c.c" (joiner["pending"]
 # is "SRCS := a.c", then "SRCS := a.c b.c" twice).
-function parser_join(joiner, physical, line_number, #locals
+function parser_join(physical, line_number, joiner, #locals
                      stripped) {
   sub(/\r$/, "", physical) # CRLF line endings
   if (!joiner["joining"]) {
@@ -1650,7 +1650,7 @@ FNR == 1 {
 }
 
 {
-  if (parser_join(PARSER_JOINER, $0, FNR)) {
+  if (parser_join($0, FNR, PARSER_JOINER)) {
     parser_process(PARSER_JOINER["line"], PARSER_JOINER["start"], PARSER_STATE, PARSER_MEMORY,
                    PARSER_CONTEXT, PARSER_OBS, PARSER_DERIVED)
   }
@@ -1967,7 +1967,7 @@ BEGIN {
       ABORT = 1
       exit 1
     }
-    parser_init(PARSER_STATE, PARSER_MEMORY, RECIPEPREFIX)
+    parser_init(RECIPEPREFIX, PARSER_STATE, PARSER_MEMORY)
   }
 }
 
