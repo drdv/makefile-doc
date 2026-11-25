@@ -94,6 +94,31 @@ function test_parser_reference_end() {
   check("parser_reference_end: not closed", parser_reference_end("x $(a (b) c", 3), 11)
 }
 
+# what follows the qualifiers of text (see parser_qualifiers), in brackets, then the override
+# flag, e.g., "[CFLAGS] 1"
+function after_qualifiers(text, #locals
+                          qualifiers, p) {
+  p = parser_qualifiers(text, qualifiers)
+  return "[" substr(text, p) "] " qualifiers["override"]
+}
+
+function test_parser_qualifiers() {
+  check("parser_qualifiers: none", after_qualifiers("CFLAGS "), "[CFLAGS ] 0")
+  check("parser_qualifiers: override among them", after_qualifiers("export override CFLAGS "),
+        "[CFLAGS ] 1")
+  check("parser_qualifiers: repeated, with runs of blanks",
+        after_qualifiers("private  override \t export X"), "[X] 1")
+  check("parser_qualifiers: leading blanks", after_qualifiers("  private X"), "[X] 0")
+  check("parser_qualifiers: a qualifier as the name", after_qualifiers("export "), "[export ] 0")
+  check("parser_qualifiers: a qualifier as the name, after one",
+        after_qualifiers("override export "), "[export ] 1")
+  check("parser_qualifiers: a name that starts with a qualifier",
+        after_qualifiers("export override1 "), "[override1 ] 0")
+  check("parser_qualifiers: a define line", after_qualifiers("override define V :="),
+        "[define V :=] 1")
+  check("parser_qualifiers: empty", after_qualifiers(""), "[] 0")
+}
+
 # a field of the observation of a line without state (parser_observe), "" if not set
 function observed(line, field, #locals
                   obs) {
@@ -565,6 +590,7 @@ BEGIN {
   test_parser_mask()
   test_parser_reference_end()
   test_parser_special_rules()
+  test_parser_qualifiers()
   test_parser_variable_names()
   test_parser_inline_docs()
   test_parser_double_colon()
