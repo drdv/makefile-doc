@@ -8,7 +8,8 @@
 #  6. the recipe prefix (p_i)
 #  7. the text of the line
 # followed by:
-#  - the observations of the line (when -v TRACE_OBS=1 is set)
+#  - the observations of the line, when -v TRACE_OBS=N is given (N > 0): its non-empty fields,
+#    N per row (a flag is shown only when it is on)
 #  - the anchor that the line documented, if any
 #
 # trace-state.awk should be loaded before the script, so that its rule sees each line before the
@@ -34,7 +35,7 @@
 #
 # lists the documented anchors of each file.
 #
-# With -v TRACE_OBS=1, the observations of a logical line follow its last physical line, on a
+# With -v TRACE_OBS=N (N>0), the observations of a logical line follow its last physical line, on a
 # line of their own:
 #
 #   ... ============ -> <KIND> key:[value]... flags
@@ -51,6 +52,14 @@ BEGIN {
   if (TRACE_OBS == "") {
     TRACE_OBS = 0
   }
+
+  # ------------------------------------------------------------------------------------------------
+  # the observations defined in parser_structure
+  # in addition parser_observe defines: "first_char" "inline" "inline_doc" "text" "tag" "prefix"
+  # ------------------------------------------------------------------------------------------------
+  TRACE_STRUCTURE_COUNT = split("line_kind anchor_kind anchor_name comment override " \
+                                "operator value double grouped", TRACE_STRUCTURE_FIELDS, " ")
+  # ------------------------------------------------------------------------------------------------
 }
 
 function trace_print(k, joined, prefix) { #locals
@@ -65,7 +74,7 @@ function trace_print(k, joined, prefix) { #locals
          prefix,
          TRACE_TEXT == "" ? "" : " " TRACE_TEXT)
 
-  if (TRACE_OBS && !joined) {
+  if (TRACE_OBS > 0 && !joined) {
     trace_print_obs(PARSER_OBS, PARSER_DERIVED["k"])
   }
 
@@ -80,41 +89,36 @@ function trace_print(k, joined, prefix) { #locals
 }
 
 function trace_print_obs(obs, k,
-                         line) { #locals
-  if (k == "neutral") {
+                         line, j, key, n, numb_obs_per_line) { #locals
+  if (k == "neutral" || k == "recipe") {
     return
   }
-  line = sprintf("%4d ============ -> <%s>", TRACE_LINE, k)
-  if (k == "recipe") {
-    print line
-    return
+
+  # show the observations in batches of TRACE_OBS
+  line = ""
+  n = 0
+  for (j = 1; j <= TRACE_STRUCTURE_COUNT; j++) {
+    key = TRACE_STRUCTURE_FIELDS[j]
+    if (array_get(obs, key) == "" ||
+        (key ~ /^(inline|double|grouped|override)$/ && obs[key] == 0)) {
+      continue # empty, or a flag that is off
+    }
+
+    line = trace_obj_field(line, key, obs[key])
+    if (++n % TRACE_OBS == 0) {
+      printf("%4d ============ ->%s\n", TRACE_LINE, line)
+      line = ""
+    }
   }
-  if (obs["anchor_kind"] != "") {
-    line = line trace_field(obs["anchor_kind"], obs["anchor_name"])
+
+  # print the last row when it has fewer than TRACE_OBS fields
+  if (line != "") {
+    printf("%4d ============ ->%s\n", TRACE_LINE, line)
   }
-  if (obs["operator"] != "") {
-    line = line trace_field("operator", obs["operator"]) trace_field("value", obs["value"])
-  }
-  if (obs["comment"] != "") {
-    line = line trace_field("comment", obs["comment"])
-  }
-  if (obs["double"]) {
-    line = line " double"
-  }
-  if (obs["grouped"]) {
-    line = line " grouped"
-  }
-  if (obs["inline"]) {
-    line = line " inline"
-  }
-  if (("override" in obs) && obs["override"]) {
-    line = line " override"
-  }
-  print line
 }
 
-function trace_field(key, value) {
-  return " " key ":[" string_replace("\t", "\\t", value) "]"
+function trace_obj_field(line, key, value) {
+  return line " " key ":[" string_replace("\t", "\\t", value) "]"
 }
 
 {
