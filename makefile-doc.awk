@@ -231,6 +231,17 @@ function has_odd_terminal_backslashes(string,
   return n % 2
 }
 
+# the words of a space-separated list, joined with commas and a final "or" (e.g., "a, b or c")
+function or_list(words,
+                 n, list, k, text) { #locals
+  n = split(words, list, " ")
+  text = list[1]
+  for (k = 2; k <= n; k++) {
+    text = text (k < n ? ", " : " or ") list[k]
+  }
+  return text
+}
+
 function is_bool(value) {
   return value ~ /^[01]$/
 }
@@ -269,6 +280,7 @@ function init_globals() {
   # ---------------------------------------------------------------------------------------
 
   VERSION = "v2.1" # the source of truth for the version (tools/release.py updates it)
+  OUTPUT_FORMATS = "ANSI HTML LATEX" # the values of OUTPUT_FORMAT (see fmt_init)
   PROGRAM = "makefile-doc" # the name at the start of the warnings
 
   # The special built-in targets of GNU Make (see parser_observe). Suffix rules, which
@@ -283,13 +295,13 @@ function init_globals() {
   TAG_REGEX = "^(##!|##%|##)"
 
   # stands in for a character during a split or a replacement (see opt_form_substitutions,
-  # opt_parse_substitution_params, latex_escape); assumed absent from options and
+  # opt_parse_substitution_params, fmt_latex_escape); assumed absent from options and
   # docs. Not SUBSEP, though it has the same default value.
   PLACEHOLDER = "\034"
 
   # the tables of the HTML and LaTeX output formats
-  define_ansi_to_html_attributes()
-  define_ansi_to_latex_function()
+  fmt_define_html_attributes()
+  fmt_define_latex_functions()
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Variables:"
@@ -300,14 +312,16 @@ function init_globals() {
   # ---------------------------------------------------------------------------------------
 
   # the colors of the HTML and LaTeX output (opt_export_theme applies EXPORT_THEME)
-  define_ansi_to_html_colors()
+  fmt_define_export_palette()
 
-  # the color codes of each kind of text (see initialize_color_codes)
+  # the settings of the output format (see fmt_init): the color codes of each kind of text,
+  # the text before and after the documentation, the color code given to each line of the
+  # documentation ("" for none), and whether a color must be restored after a reset
   COLOR_DEFAULT_CODE = COLOR_ATTENTION_CODE = COLOR_DEPRECATED_CODE = ""
   COLOR_SECTION_CODE = COLOR_BACKTICKS_CODE = COLOR_RESET_CODE = ""
-
-  # the text before and after the documentation (see initialize_output_format)
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
+  FMT_LINE_COLOR = ""
+  FMT_RESTORE_AFTER_RESET = 0
 
   # SUB and DSUB (see opt_form_substitutions). The parameters of each substitution, with the
   # defaults filled in, are in the rows of a table: SUB_PARAM[name, key] (keys L, M, N, S, P,
@@ -416,14 +430,13 @@ function set_dsub_param_defaults(table) { #fill
 # opt_error); return their number (BEGIN exits when it is not 0).
 function opt_process(sub_names, dummy_array_labels) { #locals
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
-  if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    opt_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
+  if (!index(" " OUTPUT_FORMATS " ", " " OUTPUT_FORMAT " ")) {
+    opt_error("OUTPUT_FORMAT should be " or_list(OUTPUT_FORMATS))
     OUTPUT_FORMAT = "ANSI"
   }
 
   opt_colors()
-  initialize_color_codes()
-  initialize_output_format()
+  fmt_init()
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
 
@@ -709,7 +722,7 @@ function opt_print_help() {
   opt_print_option("OFFSET", "spaces between names and docs", OFFSET)
   opt_print_option("WARN", "print warnings on stderr (0 or 1)", WARN)
   opt_print_option("COLOR", "use colors (0 or 1)", COLOR)
-  opt_print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
+  opt_print_option("OUTPUT_FORMAT", or_list(OUTPUT_FORMATS), OUTPUT_FORMAT)
   # (EXPORT_THEME, SUB and DSUB have no default: with "", gawk --lint does not warn about them)
   opt_print_option("EXPORT_THEME", "colors of the HTML and LaTeX output", EXPORT_THEME "")
   opt_print_option("SUB", "rename anchors and list values", SUB "")
@@ -771,26 +784,25 @@ function opt_ansi_param(option, ansi_param) {
 
 # Apply EXPORT_THEME, ANSI_PARAM:HEX_COLOR[,...]: the colors of the parameters 30-37, 40-47,
 # 90-97 and 100-107, and FG and BG (invalid entries are reported, see opt_error)
-function opt_export_theme(html_colors_split, k, n, ansi_html_map, ansi_param, #locals
-                          html_color_code) { #locals
-  n = split(EXPORT_THEME, html_colors_split, ",")
+function opt_export_theme(entries, k, n, entry, ansi_param, hex_color) { #locals
+  n = split(EXPORT_THEME, entries, ",")
   for (k = 1; k <= n; k++) {
-    if (html_colors_split[k] ~ /^[ \t]*$/) {
+    if (entries[k] ~ /^[ \t]*$/) {
       continue # an empty entry, e.g., after a trailing comma
     }
-    split(html_colors_split[k], ansi_html_map, ":")
-    ansi_param = ansi_html_map[1]
-    html_color_code = array_get(ansi_html_map, 2) # "" if there is no colon
+    split(entries[k], entry, ":")
+    ansi_param = entry[1]
+    hex_color = array_get(entry, 2) # "" if there is no colon
     if (ansi_param != "FG" && ansi_param != "BG" && !(ansi_param in EXPORT_PALETTE)) {
       opt_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
-                        html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
-    } else if (!is_hex_color(html_color_code)) {
+                        entries[k], "30-37, 40-47, 90-97, 100-107"))
+    } else if (!is_hex_color(hex_color)) {
       opt_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
-                        html_colors_split[k]))
+                        entries[k]))
     } else if (ansi_param in EXPORT_PALETTE) {
-      EXPORT_PALETTE[ansi_param] = html_color_code
+      EXPORT_PALETTE[ansi_param] = hex_color
     } else {
-      EXPORT_FG_BG[ansi_param] = html_color_code
+      EXPORT_FG_BG[ansi_param] = hex_color
     }
   }
 }
@@ -799,25 +811,14 @@ function opt_export_theme(html_colors_split, k, n, ansi_html_map, ansi_param, #l
 # Everything that depends on OUTPUT_FORMAT (ANSI, HTML, LATEX): color codes, escapes, header
 # and footer (the color options are checked in Options). Rendering does not read
 # OUTPUT_FORMAT: it calls the functions fmt_* (fmt_escape, fmt_color, fmt_document), and uses
-# the color codes of fmt_color_code.
-
-# The color codes of each kind of text in the output format (see fmt_color_code), from the
-# COLOR_* options (checked by opt_colors)
-function initialize_color_codes() {
-  COLOR_DEFAULT_CODE = fmt_color_code(COLOR_DEFAULT, "DEFAULT")
-  COLOR_ATTENTION_CODE = fmt_color_code(COLOR_ATTENTION, "ATTENTION")
-  COLOR_DEPRECATED_CODE = fmt_color_code(COLOR_DEPRECATED, "DEPRECATED")
-  COLOR_SECTION_CODE = fmt_color_code(COLOR_SECTION, "SECTION")
-  COLOR_BACKTICKS_CODE = fmt_color_code(COLOR_BACKTICKS, "BACKTICKS")
-  COLOR_RESET_CODE = fmt_color_code(-1)
-}
+# the settings that fmt_init sets (the color codes, see init_globals).
 
 # The colors of the HTML and LaTeX output (EXPORT_THEME can change them):
 #   EXPORT_PALETTE[param]  the hex color of an ANSI color parameter (30-37, 40-47, 90-97,
 #                          100-107); the solarized theme is used by default
 #                          https://github.com/altercation/solarized?tab=readme-ov-file#the-values
 #   EXPORT_FG_BG[FG|BG]    the colors of the text and of the background ("" if not set)
-function define_ansi_to_html_colors(k) { #locals
+function fmt_define_export_palette(k) { #locals
   EXPORT_FG_BG["FG"] = ""
   EXPORT_FG_BG["BG"] = ""
 
@@ -845,7 +846,7 @@ function define_ansi_to_html_colors(k) { #locals
 
 # The CSS property of each ANSI parameter, and the value of the attributes (the colors are
 # in EXPORT_PALETTE)
-function define_ansi_to_html_attributes(k) { #locals
+function fmt_define_html_attributes(k) { #locals
   ANSI_TO_HTML_VALUE[0] = ""
   ANSI_TO_HTML_VALUE[1] = "bold"
   ANSI_TO_HTML_VALUE[3] = "italic"
@@ -864,7 +865,7 @@ function define_ansi_to_html_attributes(k) { #locals
   for (k = 100; k <= 107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
-function define_ansi_to_latex_function(k) { #locals
+function fmt_define_latex_functions(k) { #locals
   ANSI_TO_LATEX_FUN[0] = ""
   ANSI_TO_LATEX_FUN[1] = "\\textbf"
   ANSI_TO_LATEX_FUN[3] = "\\emph"
@@ -913,8 +914,8 @@ function fmt_color_code(ansi_color_param, color_label_key) {
 }
 
 # Return the CSS rule (one line) for a color option, or "" if there is nothing to style
-function ansi_color_param_to_html_style(ansi_color_param, label,
-                                        value) { #locals
+function fmt_html_style(ansi_color_param, label,
+                        value) { #locals
   if (!ansi_color_param) {
     return ""
   }
@@ -929,7 +930,7 @@ function ansi_color_param_to_html_style(ansi_color_param, label,
 
 # the CSS rule (one line) of the element with the class makefile-doc: as wide as its text (a
 # div is as wide as the page, which a background shows), with FG and BG if they are set
-function html_box_style(style) { #locals
+function fmt_html_box_style(style) { #locals
   style = "display: inline-block;"
   if (EXPORT_FG_BG["FG"] != "") {
     style = style " color: #" EXPORT_FG_BG["FG"] ";"
@@ -940,39 +941,55 @@ function html_box_style(style) { #locals
   return "  .makefile-doc { " style " }\n"
 }
 
-# Set OUTPUT_HEADER and OUTPUT_FOOTER, printed around the documentation (each ends with a
-# newline; empty for ANSI). Called after opt_colors, whose colors it uses.
-function initialize_output_format() {
-  OUTPUT_HEADER = OUTPUT_FOOTER = ""
-  if (OUTPUT_FORMAT == "HTML") {
-    OUTPUT_FOOTER = "</pre>\n</div>\n"
+# Set the settings of the output format (see init_globals), from OUTPUT_FORMAT and the color
+# options (checked by opt_colors). This is the only place, with fmt_color_code and fmt_escape,
+# that depends on OUTPUT_FORMAT.
+function fmt_init() {
+  OUTPUT_HEADER = OUTPUT_FOOTER = FMT_LINE_COLOR = ""
+  FMT_RESTORE_AFTER_RESET = 0
+  if (OUTPUT_FORMAT == "ANSI") {
+    FMT_RESTORE_AFTER_RESET = 1 # a reset turns off all the colors (see fmt_color)
+  } else if (OUTPUT_FORMAT == "HTML") {
     # an HTML fragment (to paste into a page): the styles, then the documentation
     OUTPUT_HEADER = "<style>\n" \
-        ansi_color_param_to_html_style(COLOR_ATTENTION, "ATTENTION") \
-        ansi_color_param_to_html_style(COLOR_SECTION, "SECTION") \
-        ansi_color_param_to_html_style(COLOR_DEPRECATED, "DEPRECATED") \
-        ansi_color_param_to_html_style(COLOR_DEFAULT, "DEFAULT") \
-        ansi_color_param_to_html_style(COLOR_BACKTICKS, "BACKTICKS") \
-        html_box_style() \
+        fmt_html_style(COLOR_ATTENTION, "ATTENTION") \
+        fmt_html_style(COLOR_SECTION, "SECTION") \
+        fmt_html_style(COLOR_DEPRECATED, "DEPRECATED") \
+        fmt_html_style(COLOR_DEFAULT, "DEFAULT") \
+        fmt_html_style(COLOR_BACKTICKS, "BACKTICKS") \
+        fmt_html_box_style() \
         "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
+    OUTPUT_FOOTER = "</pre>\n</div>\n"
   } else if (OUTPUT_FORMAT == "LATEX") {
+    OUTPUT_HEADER = fmt_latex_header() "\n"
     OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
-    OUTPUT_HEADER = latex_header() "\n"
+    # the default text color (FG) is given to each line: with one \color for the whole
+    # documentation, varwidth would not crop the page to the text
+    if (EXPORT_FG_BG["FG"] != "") {
+      FMT_LINE_COLOR = "\\textcolor{" color_name("FG") "}{"
+    }
   }
+
+  COLOR_DEFAULT_CODE = fmt_color_code(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = fmt_color_code(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = fmt_color_code(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_SECTION_CODE = fmt_color_code(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = fmt_color_code(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = fmt_color_code(-1)
 }
 
 # a \definecolor line: the color of label (see color_name) is hex_color
-function latex_definecolor(label, hex_color) {
+function fmt_latex_definecolor(label, hex_color) {
   return sprintf("\\definecolor{%s}{HTML}{%s}\n", color_name(label), hex_color)
 }
 
 # the hex color of an ANSI parameter (black for an attribute, e.g., bold, or for no color)
-function latex_hex_color(ansi_color_param) {
+function fmt_latex_hex_color(ansi_color_param) {
   return (ansi_color_param in EXPORT_PALETTE) ? EXPORT_PALETTE[ansi_color_param] : "000000"
 }
 
 # the preamble of the LaTeX output, up to the start of the documentation
-function latex_header(header) { #locals
+function fmt_latex_header(header) { #locals
   header = "\\documentclass{article}\n"
   header = header "\\usepackage[utf8]{inputenc}\n"
   header = header "\\usepackage{xcolor}\n"
@@ -990,16 +1007,16 @@ function latex_header(header) { #locals
   header = header "\n"
   # FG and BG only if they are set (FG is given to each line, see fmt_document)
   if (EXPORT_FG_BG["FG"] != "") {
-    header = header latex_definecolor("FG", EXPORT_FG_BG["FG"])
+    header = header fmt_latex_definecolor("FG", EXPORT_FG_BG["FG"])
   }
   if (EXPORT_FG_BG["BG"] != "") {
-    header = header latex_definecolor("BG", EXPORT_FG_BG["BG"])
+    header = header fmt_latex_definecolor("BG", EXPORT_FG_BG["BG"])
   }
-  header = header latex_definecolor("ATTENTION", latex_hex_color(COLOR_ATTENTION))
-  header = header latex_definecolor("SECTION", latex_hex_color(COLOR_SECTION))
-  header = header latex_definecolor("DEPRECATED", latex_hex_color(COLOR_DEPRECATED))
-  header = header latex_definecolor("DEFAULT", latex_hex_color(COLOR_DEFAULT))
-  header = header latex_definecolor("BACKTICKS", latex_hex_color(COLOR_BACKTICKS))
+  header = header fmt_latex_definecolor("ATTENTION", fmt_latex_hex_color(COLOR_ATTENTION))
+  header = header fmt_latex_definecolor("SECTION", fmt_latex_hex_color(COLOR_SECTION))
+  header = header fmt_latex_definecolor("DEPRECATED", fmt_latex_hex_color(COLOR_DEPRECATED))
+  header = header fmt_latex_definecolor("DEFAULT", fmt_latex_hex_color(COLOR_DEFAULT))
+  header = header fmt_latex_definecolor("BACKTICKS", fmt_latex_hex_color(COLOR_BACKTICKS))
   header = header "\n"
   header = header "\\pagestyle{empty}\n"
   header = header "\\begin{document}\n"
@@ -1015,7 +1032,7 @@ function latex_header(header) { #locals
 
 # <, > and & would be interpreted as HTML markup (& first, so that the & of the other
 # replacements is not escaped again; string_replace because & is special in gsub)
-function html_escape(text) {
+function fmt_html_escape(text) {
   text = string_replace("&", "&amp;", text)
   text = string_replace("<", "&lt;", text)
   return string_replace(">", "&gt;", text)
@@ -1024,7 +1041,7 @@ function html_escape(text) {
 # In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
 # PLACEHOLDER: escaping them first would escape the braces of \textbackslash{}, and
 # escaping them last would escape the backslashes of \{ and \}.
-function latex_escape(text) {
+function fmt_latex_escape(text) {
   text = string_replace("\\", PLACEHOLDER, text)
   gsub(/\{/, "\\{", text)
   gsub(/\}/, "\\}", text)
@@ -1032,31 +1049,31 @@ function latex_escape(text) {
 }
 
 # ---------------------------------------------------------------------------------------
-# What rendering calls (with fmt_color_code)
+# What rendering calls
 # ---------------------------------------------------------------------------------------
 
 # text with the escapes of the output format (none in ANSI), applied before the colors are
 # added
 function fmt_escape(text) {
   if (OUTPUT_FORMAT == "HTML") {
-    return html_escape(text)
+    return fmt_html_escape(text)
   } else if (OUTPUT_FORMAT == "LATEX") {
-    return latex_escape(text)
+    return fmt_latex_escape(text)
   }
   return text
 }
 
 # Color text with color_code (see fmt_color_code), each line on its own (color_code ...
 # COLOR_RESET_CODE), so that no color group crosses a line break: in LaTeX, varwidth cannot
-# crop the page to the text of such a group. Empty lines are not colored. In ANSI, a reset
-# inside text (e.g., after text in backticks) turns off all the colors: color_code is
-# restored after it.
+# crop the page to the text of such a group. Empty lines are not colored. Where a reset inside
+# text (e.g., after text in backticks) turns off all the colors (FMT_RESTORE_AFTER_RESET, in
+# ANSI), color_code is restored after it.
 function fmt_color(text, color_code,
                    n, lines, k) { #locals
   if (color_code == "") {
     return text
   }
-  if (OUTPUT_FORMAT == "ANSI") {
+  if (FMT_RESTORE_AFTER_RESET) {
     text = string_replace(COLOR_RESET_CODE, COLOR_RESET_CODE color_code, text)
   }
   n = split(text, lines, "\n")
@@ -1068,12 +1085,11 @@ function fmt_color(text, color_code,
   return join(lines, n, "\n")
 }
 
-# The document: body between OUTPUT_HEADER and OUTPUT_FOOTER. In LaTeX, the default text
-# color (FG) is given to each line: with one \color for the whole documentation, varwidth
-# would not crop the page to the text.
+# The document: body between OUTPUT_HEADER and OUTPUT_FOOTER, each line in FMT_LINE_COLOR
+# if it is set (see fmt_init)
 function fmt_document(body) {
-  if (OUTPUT_FORMAT == "LATEX" && EXPORT_FG_BG["FG"] != "") {
-    body = fmt_color(body, "\\textcolor{" color_name("FG") "}{")
+  if (FMT_LINE_COLOR != "") {
+    body = fmt_color(body, FMT_LINE_COLOR)
   }
   return OUTPUT_HEADER body OUTPUT_FOOTER
 }
@@ -1934,7 +1950,7 @@ function substitute_backticks_patterns(string,
 }
 
 function colorize_doc_backticks(doc) {
-  if (COLOR_BACKTICKS) {
+  if (COLOR_BACKTICKS_CODE != "") {
     return substitute_backticks_patterns(doc)
   }
   return doc
