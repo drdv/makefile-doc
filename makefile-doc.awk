@@ -317,8 +317,8 @@ function init_globals() {
   DSUB_COUNT = 0 # number of DSUB substitutions
 
   # ---------------------------------------------------------------------------------------
-  # The interface between parsing and rendering: written while parsing (see record_anchor
-  # and add_warning), read when rendering (see prepare_rendering)
+  # The interface between parsing and rendering: written while parsing (see parser_record_anchor
+  # and parser_add_warning), read when rendering (see prepare_rendering)
   # ---------------------------------------------------------------------------------------
 
   # every definition of a documented anchor, in file order (a redefinition too):
@@ -332,7 +332,7 @@ function init_globals() {
   split("", ANCHORS)
   ANCHOR_COUNT = 0
 
-  # the warnings about the Makefiles (see add_warning):
+  # the warnings about the Makefiles (see parser_add_warning):
   # WARNINGS[k, field], k = 1..WARNING_COUNT, with the fields
   #   file     the file the warning is about
   #   line     the line in that file ("" if none)
@@ -356,9 +356,10 @@ function init_globals() {
   #   PARSER_JOINER   the physical lines joined into the next logical line (see parser_join)
   #   PARSER_CONTEXT  for the names and the warnings, PARSER_CONTEXT[key] with the keys
   #                     file                the file being read
-  #                     "seen", kind, name  1 if the anchor is documented so far (see record_anchor)
+  #                     "seen", kind, name  1 if the anchor is documented so far (see
+  #                                         parser_record_anchor)
   #                     "dc", name          the number of documented rules so far of the
-  #                                         double-colon target name (see form_target_name)
+  #                                         double-colon target name (see parser_form_target_name)
   split("", PARSER_STATE)
   split("", PARSER_MEMORY)
   split("", PARSER_OBS)
@@ -1077,7 +1078,7 @@ function fmt_document(body) {
 # (parser_join), and each logical line is then processed by parser_process:
 #  1. observations       (parser_observe)
 #  2. kind, and e_i      (parser_kind, parser_documented)
-#  3. anchor record      (record_anchor, see init_globals)
+#  3. anchor record      (parser_record_anchor, see init_globals)
 #  4. state transition   (parser_step)
 #  5. memory transition  (parser_carry)
 # Step 3 reads the state and the memory before steps 4 and 5 change them.
@@ -1085,7 +1086,7 @@ function fmt_document(body) {
 
 # Record a warning about line of file ("" for none), printed before the docs (see
 # print_warnings).
-function add_warning(file, line, message) {
+function parser_add_warning(file, line, message) {
   WARNING_COUNT++
   WARNINGS[WARNING_COUNT, "file"] = file
   WARNINGS[WARNING_COUNT, "line"] = line
@@ -1095,16 +1096,16 @@ function add_warning(file, line, message) {
 # A last line that ends with a backslash cannot be joined, so it is not parsed. awk has no
 # hook at the end of a file: this is called at the next file and in END. A continued recipe
 # line is not reported (its rule ends with the file anyway).
-function warn_about_continued_last_line() {
+function parser_warn_about_continued_last_line() {
   if (PARSER_JOINER["joining"] &&
       !(PARSER_STATE["r"] && substr(PARSER_JOINER["pending"], 1, 1) == PARSER_STATE["p"])) {
-    add_warning(PARSER_CONTEXT["file"], PARSER_JOINER["start"],
-                "the last line ends with a backslash")
+    parser_add_warning(PARSER_CONTEXT["file"], PARSER_JOINER["start"],
+                       "the last line ends with a backslash")
   }
 }
 
 # the tag of a doc line (##, ##! or ##%), or "" if it does not start with one
-function get_doc_tag(string) {
+function parser_get_doc_tag(string) {
   return match(string, TAG_REGEX) ? substr(string, 1, RLENGTH) : ""
 }
 
@@ -1447,14 +1448,14 @@ function parser_observe(line,
   if (obs["line_kind"] == "doc") {
     obs["text"] = line
     sub(/^[ \t]+/, "", obs["text"])
-    obs["tag"] = get_doc_tag(obs["text"])
+    obs["tag"] = parser_get_doc_tag(obs["text"])
     sub(TAG_REGEX, "", obs["text"])
   } else if (obs["line_kind"] == "section") {
     obs["text"] = line
     sub(/^[ \t]*##@/, "", obs["text"])
   } else if (obs["inline"]) {
     obs["inline_doc"] = obs["comment"]
-    obs["tag"] = get_doc_tag(obs["inline_doc"])
+    obs["tag"] = parser_get_doc_tag(obs["inline_doc"])
     sub(TAG_REGEX, "", obs["inline_doc"])
   }
   obs["prefix"] = ""
@@ -1569,7 +1570,7 @@ function parser_carry(state, obs, k,
 #
 # Update:
 #   state, memory: x_{i-1} and D_bar_{i-1}, S_{i-1} become x_i and D_i, S_i
-#   context:       the anchors documented so far (see record_anchor)
+#   context:       the anchors documented so far (see parser_record_anchor)
 #
 # Fill:
 #   obs: the observations O_i (see parser_observe)
@@ -1583,7 +1584,7 @@ function parser_process(line, line_number,
   k = parser_kind(state, obs)                               # k_i
   e = parser_documented(state, obs, k)                      # e_i
   if (e) {
-    record_anchor(obs, state, memory, line_number, context) # A_n
+    parser_record_anchor(obs, state, memory, line_number, context) # A_n
   }
   parser_step(obs, k, e, state)                             # x_i
   parser_carry(state, obs, k, memory)                       # (D_i, S_i)
@@ -1595,37 +1596,38 @@ function parser_process(line, line_number,
 # from obs, state (x_{i-1}, after the reset) and memory (D_bar_{i-1}, S_{i-1}), before their
 # transitions:
 #   A_n[kind]      O_i[anchor_kind]
-#   A_n[name]      O_i[anchor_name] (for a target, see form_target_name)
+#   A_n[name]      O_i[anchor_name] (for a target, see parser_form_target_name)
 #   A_n[doc]       the texts of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[inline_doc] otherwise
 #   A_n[tag]       the tag of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[tag] otherwise
 #   A_n[section]   S_{i-1} if s_{i-1} = 1, absent otherwise
 #   A_n[override]  1 if O_i[override] = 1, absent otherwise
 #
-# A redefined doc is reported (see add_warning), with line_number.
+# A redefined doc is reported (see parser_add_warning), with line_number.
 #
 # Update:
 #   context: the anchors documented so far
-function record_anchor(obs, state, memory, line_number,
-                       context, #update
-                       kind, name) { #locals
+function parser_record_anchor(obs, state, memory, line_number,
+                              context, #update
+                              kind, name) { #locals
   kind = obs["anchor_kind"]
-  name = kind == "target" ? form_target_name(obs, context) : obs["anchor_name"]
+  name = kind == "target" ? parser_form_target_name(obs, context) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
-    add_warning(context["file"], line_number, sprintf("redefined docs of %s '%s'", kind, name))
+    parser_add_warning(context["file"], line_number,
+                       sprintf("redefined docs of %s '%s'", kind, name))
   }
   context["seen", kind, name] = 1
   ANCHOR_COUNT++
   ANCHORS[ANCHOR_COUNT, "kind"] = kind
   ANCHORS[ANCHOR_COUNT, "name"] = name
   if (state["d"]) {
-    ANCHORS[ANCHOR_COUNT, "doc"] = memory_lines(memory, "doc", memory["dn"])
+    ANCHORS[ANCHOR_COUNT, "doc"] = parser_memory_lines(memory, "doc", memory["dn"])
     ANCHORS[ANCHOR_COUNT, "tag"] = memory["doc_tag"]
   } else {
     ANCHORS[ANCHOR_COUNT, "doc"] = obs["inline_doc"]
     ANCHORS[ANCHOR_COUNT, "tag"] = obs["tag"]
   }
   if (state["s"]) {
-    ANCHORS[ANCHOR_COUNT, "section"] = memory_lines(memory, "section", memory["sn"])
+    ANCHORS[ANCHOR_COUNT, "section"] = parser_memory_lines(memory, "section", memory["sn"])
   }
   if (("override" in obs) && obs["override"]) { # the command line cannot change it
     ANCHORS[ANCHOR_COUNT, "override"] = 1
@@ -1633,8 +1635,8 @@ function record_anchor(obs, state, memory, line_number,
 }
 
 # the lines memory[key, 1..n] joined with \n
-function memory_lines(memory, key, n,
-                      k, lines) { #locals
+function parser_memory_lines(memory, key, n,
+                             k, lines) { #locals
   lines = ""
   for (k = 1; k <= n; k++) {
     lines = k == 1 ? memory[key, k] : lines "\n" memory[key, k]
@@ -1645,9 +1647,9 @@ function memory_lines(memory, key, n,
 # The name of a documented target as displayed: blanks collapsed (GNU Make reads any run of
 # blanks between names as one separator), & after grouped targets, ~N after the Nth
 # documented rule of a double-colon target (counted across files, in context)
-function form_target_name(obs,
-                          context, #update
-                          name) { #locals
+function parser_form_target_name(obs,
+                                 context, #update
+                                 name) { #locals
   name = obs["anchor_name"]
   gsub(/[ \t]+/, " ", name)
   if (obs["grouped"]) {
@@ -1724,7 +1726,7 @@ function parser_join(physical, line_number,
 
 # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
 FNR == 1 {
-  warn_about_continued_last_line()
+  parser_warn_about_continued_last_line()
   parser_join_init(PARSER_JOINER)
   parser_file_start(PARSER_STATE, PARSER_MEMORY) # b_i = 1
   PARSER_CONTEXT["file"] = FILENAME == "" ? "-" : FILENAME
@@ -2106,7 +2108,7 @@ END {
       print_help()
       exit 1
     }
-    warn_about_continued_last_line()
+    parser_warn_about_continued_last_line()
     print_documentation()
   }
 }
