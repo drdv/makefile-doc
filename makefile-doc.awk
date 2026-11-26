@@ -373,7 +373,6 @@ function init_globals() {
   #   override   1 for a variable set with override (only then; displayed as "(fixed)")
   split("", DISPLAY)
   DISPLAY_COUNT = 0
-  DOCUMENTED_COUNT = 0 # the documented anchors, displayed or not
 }
 
 # Empty a table of SUB parameters, then set its row of defaults, "" (see init_globals)
@@ -1747,7 +1746,6 @@ function prepare_rendering(k, key, n, order, last, sections, anchor_kinds, i) { 
   # order[1..n]  the key of each distinct anchor, in the order of its first definition
   # last[key]    the index in ANCHORS of the last definition of the anchor
 
-  DOCUMENTED_COUNT = n
   place_sections(last, sections)
   # Together (order, last, sections) give the rule: the last definition of an anchor decides
   # whether it is displayed; if so, only once,
@@ -2033,7 +2031,7 @@ function print_documentation(document) { #locals
   print_warnings() # (on stderr, before the docs)
   document = format_documentation()
   if (DISPLAY_COUNT == 0 && FILES_PROCESSED != "") {
-    if (DOCUMENTED_COUNT > 0) {
+    if (ANCHOR_COUNT > 0) {
       printf("WARNING: all documented targets/variables are hidden in %s\n",
              FILES_PROCESSED) > STDERR
     } else {
