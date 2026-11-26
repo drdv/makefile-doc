@@ -23,14 +23,14 @@ function test_repeated_string() {
   check("spaces", spaces(3), "   ")
 }
 
-function test_length_array_posix(arr) { #locals
-  check("length_array_posix: empty array", length_array_posix(arr), 0)
+function test_array_length(arr) { #locals
+  check("array_length: empty array", array_length(arr), 0)
 
   arr["k1"] = "this"
   arr["k2"] = "is"
   arr["k3"] = "a"
   arr["k4"] = "test"
-  check("length_array_posix: 4 elements", length_array_posix(arr), 4)
+  check("array_length: 4 elements", array_length(arr), 4)
 }
 
 function test_array_get(arr) { #locals
@@ -40,7 +40,7 @@ function test_array_get(arr) { #locals
   check("array_get: key with an empty value", array_get(arr, "empty"), "")
   check("array_get: missing key", array_get(arr, "missing"), "")
   check_true("array_get: a missing key is not created", !("missing" in arr))
-  check("array_get: the array is unchanged", length_array_posix(arr), 2)
+  check("array_get: the array is unchanged", array_length(arr), 2)
 }
 
 function test_join(arr, n) { #locals
@@ -122,11 +122,11 @@ function test_strip_trailing_blanks() {
         strip_trailing_blanks("a \n\n\nb\n"), "a\n\n\nb\n")
 }
 
-function test_strip_start_end_spaces_tabs() {
-  check("strip_start_end_spaces_tabs: spaces",
-        strip_start_end_spaces_tabs("   a test string   "), "a test string")
-  check("strip_start_end_spaces_tabs: spaces and tabs",
-        strip_start_end_spaces_tabs(" \t   a test string \t   "), "a test string")
+function test_strip_blanks() {
+  check("strip_blanks: spaces",
+        strip_blanks("   a test string   "), "a test string")
+  check("strip_blanks: spaces and tabs",
+        strip_blanks(" \t   a test string \t   "), "a test string")
 }
 
 function test_is_bool_is_hex_color() {
@@ -168,11 +168,11 @@ BEGIN {
   test_max_min()
   test_text_length()
   test_repeated_string()
-  test_length_array_posix()
+  test_array_length()
   test_array_get()
   test_join()
   test_string_replace()
-  test_strip_start_end_spaces_tabs()
+  test_strip_blanks()
   test_strip_trailing_blanks()
   test_is_bool_is_hex_color()
   test_has_odd_terminal_backslashes()

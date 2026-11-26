@@ -42,8 +42,8 @@ function test_process_options_errors() {
 function test_form_substitutions_with_labels(params, labels, values, names) { #locals
   opt_form_substitutions("<L:1,M:0>NAME:LABEL:v1 v2;target:target_renamed:three items here", 0,
                          params, labels, values, names)
-  check("opt_form_substitutions: number of labels", length_array_posix(labels), 2)
-  check("opt_form_substitutions: number of values", length_array_posix(values), 2)
+  check("opt_form_substitutions: number of labels", array_length(labels), 2)
+  check("opt_form_substitutions: number of values", array_length(values), 2)
   check("opt_form_substitutions: params", params["NAME", "L"] " " params["NAME", "M"], "1 0")
   check("opt_form_substitutions: label", labels["NAME"], "LABEL")
   check("opt_form_substitutions: values", values["NAME"], "v1 v2")
@@ -65,8 +65,8 @@ function test_form_substitutions_empty_parts(params, labels, values, names) { #l
   opt_form_substitutions("T1:;T2:L2:;T3:V31 V32", 0, params, labels, values, names)
   check_true("opt_form_substitutions: a row of params for each substitution",
              ("T1", "L") in params && ("T2", "L") in params && ("T3", "L") in params)
-  check("opt_form_substitutions: number of labels", length_array_posix(labels), 1)
-  check("opt_form_substitutions: number of values", length_array_posix(values), 3)
+  check("opt_form_substitutions: number of labels", array_length(labels), 1)
+  check("opt_form_substitutions: number of values", array_length(values), 3)
   check_true("opt_form_substitutions: NAME: has no label", !("T1" in labels))
   check("opt_form_substitutions: NAME: has empty values", values["T1"], "")
   check("opt_form_substitutions: NAME:LABEL: has a label", labels["T2"], "L2")
@@ -77,7 +77,7 @@ function test_form_substitutions_empty_parts(params, labels, values, names) { #l
 function test_form_substitutions_empty_items(params, labels, values, names) { #locals
   init_globals()
   opt_form_substitutions(";T1:a; \t;T2:b;", 0, params, labels, values, names)
-  check("opt_form_substitutions: empty items are skipped", length_array_posix(names), 2)
+  check("opt_form_substitutions: empty items are skipped", array_length(names), 2)
   check("opt_form_substitutions: names stay in order", names[1] " " names[2], "T1 T2")
   check("opt_form_substitutions: empty items are not errors", OPTION_ERRORS, 0)
 }
@@ -88,7 +88,7 @@ function test_form_substitutions_invalid(params, labels, values, names) { #local
   check("opt_form_substitutions: name only is an error",
         stderr_text(),
         "ERROR: SUB: 'T1' should be NAME:[[LABEL]:][VALUES]\n")
-  check("opt_form_substitutions: name only is not kept", length_array_posix(names), 0)
+  check("opt_form_substitutions: name only is not kept", array_length(names), 0)
 
   opt_form_substitutions("T1", 1, params, labels, values, names)
   check("opt_form_substitutions (DSUB): name only is an error that names DSUB",
@@ -214,7 +214,7 @@ function test_form_substitutions_spaces_in_name(params, labels, values, names) {
 
 function test_form_substitutions_dsub(params, labels, values, names) { #locals
   opt_form_substitutions("$(X):a:b;$(Y):;$(Z):c", 1, params, labels, values, names)
-  check("opt_form_substitutions (DSUB): no labels", length_array_posix(labels), 0)
+  check("opt_form_substitutions (DSUB): no labels", array_length(labels), 0)
   check("opt_form_substitutions (DSUB): the value is everything after the 1st colon",
         values["$(Y)"], "")
   check("opt_form_substitutions (DSUB): names in the order given",

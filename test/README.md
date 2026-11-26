@@ -119,7 +119,7 @@ END {
   ...
   if (!UNIT_TEST) {
     ...
-    print_documentation()              # skipped
+    render_print_documentation()       # skipped
   }
 }
 
@@ -316,9 +316,9 @@ flowchart TD
     settings -. "RECIPEPREFIX" .-> parsing
     parsing --> interface[("Interface variables")]
 
-    subgraph end_ ["<b>END</b>: print_documentation()"]
-        content["<b>Content</b><br/>prepare_rendering()"] --> display[("DISPLAY")]
-        display --> layout["<b>Layout</b><br/>format_documentation()"]
+    subgraph end_ ["<b>END</b>: render_print_documentation()"]
+        content["<b>Content</b><br/>render_prepare()"] --> display[("DISPLAY")]
+        display --> layout["<b>Layout</b><br/>render_documentation()"]
         layout --> formats["<b>Output formats</b><br/>fmt_*()"]
     end
 
@@ -334,7 +334,7 @@ flowchart TD
 
 Parsing reads no option except `RECIPEPREFIX`, the recipe prefix at the start. A Makefile is
 therefore always parsed the same way, whatever the display options, and gives the same interface
-variables. Rendering then runs in two stages: `prepare_rendering` decides what is displayed (which
+variables. Rendering then runs in two stages: `render_prepare` decides what is displayed (which
 anchors, under which names, with which docs and sections) and writes the `DISPLAY` records, and the
 layout prints them in the output format. The output goes to stdout in all three formats.
 
