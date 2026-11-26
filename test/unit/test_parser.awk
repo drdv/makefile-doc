@@ -243,12 +243,12 @@ function test_parser_double_colon() {
         observed("t: ; @echo \"a::b\"", "double"), 0)
 }
 
-function test_get_doc_tag() {
-  check("get_doc_tag: ##", get_doc_tag("##   doc"), "##")
-  check("get_doc_tag: ##!", get_doc_tag("##!   doc"), "##!")
-  check("get_doc_tag: ##%", get_doc_tag("##%   doc"), "##%")
-  check("get_doc_tag: ##Z is ##", get_doc_tag("##Z   doc"), "##")
-  check("get_doc_tag: no tag", get_doc_tag("!#   doc"), "")
+function test_parser_get_doc_tag() {
+  check("parser_get_doc_tag: ##", parser_get_doc_tag("##   doc"), "##")
+  check("parser_get_doc_tag: ##!", parser_get_doc_tag("##!   doc"), "##!")
+  check("parser_get_doc_tag: ##%", parser_get_doc_tag("##%   doc"), "##%")
+  check("parser_get_doc_tag: ##Z is ##", parser_get_doc_tag("##Z   doc"), "##")
+  check("parser_get_doc_tag: no tag", parser_get_doc_tag("!#   doc"), "")
 }
 
 # ---------------------------------------------------------------------------------------
@@ -333,8 +333,8 @@ function test_parser_step(table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, s
 # the pending text, as D/S (the lines of each joined by +) and the tag of D
 function memory_text(memory,
                      text) { #locals
-  text = memory_lines(memory, "doc", memory["dn"]) "/" \
-         memory_lines(memory, "section", memory["sn"]) \
+  text = parser_memory_lines(memory, "doc", memory["dn"]) "/" \
+         parser_memory_lines(memory, "section", memory["sn"]) \
          "/" (memory["dn"] ? memory["doc_tag"] : "")
   gsub(/\n/, "+", text)
   return text
@@ -395,8 +395,8 @@ function last_record() {
          (((ANCHOR_COUNT, "section") in ANCHORS) ? ANCHORS[ANCHOR_COUNT, "section"] : "<none>")
 }
 
-# record_anchor against the equations of the record, and the warning about a redefined doc
-function test_record_anchor(context, obs, state, memory) { #locals
+# parser_record_anchor against the equations of the record, and the warning about a redefined doc
+function test_parser_record_anchor(context, obs, state, memory) { #locals
   init_globals()
   carry_setup(1, 1, memory, state)
   memory["dn"] = 2
@@ -406,35 +406,37 @@ function test_record_anchor(context, obs, state, memory) { #locals
   obs["inline_doc"] = "i"
   obs["tag"] = "##%"
   context["file"] = "f"
-  record_anchor(obs, state, memory, 7, context)
-  check("record_anchor: d_bar = 1: the pending doc and its tag; s = 1: the section",
+  parser_record_anchor(obs, state, memory, 7, context)
+  check("parser_record_anchor: d_bar = 1: the pending doc and its tag; s = 1: the section",
         last_record(), "a\nb|##|s")
 
   state["d"] = 0
   state["s"] = 0
-  record_anchor(obs, state, memory, 9, context)
-  check("record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
+  parser_record_anchor(obs, state, memory, 9, context)
+  check("parser_record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
         last_record(), "i|##%|<none>")
-  check("record_anchor: a redefined doc is reported with its file and line",
+  check("parser_record_anchor: a redefined doc is reported with its file and line",
         WARNINGS[WARNING_COUNT, "file"] ":" WARNINGS[WARNING_COUNT, "line"] ":" \
         WARNINGS[WARNING_COUNT, "message"], "f:9:redefined docs of variable 'V'")
   init_globals()
 }
 
-function test_form_target_name(context, obs) { #locals
+function test_parser_form_target_name(context, obs) { #locals
   init_globals()
   obs["anchor_name"] = "a \t b"
   obs["grouped"] = 0
   obs["double"] = 0
-  check("form_target_name: blanks collapsed", form_target_name(obs, context), "a b")
+  check("parser_form_target_name: blanks collapsed", parser_form_target_name(obs, context), "a b")
   obs["grouped"] = 1
-  check("form_target_name: grouped", form_target_name(obs, context), "a b&")
+  check("parser_form_target_name: grouped", parser_form_target_name(obs, context), "a b&")
 
   obs["anchor_name"] = "t"
   obs["grouped"] = 0
   obs["double"] = 1
-  check("form_target_name: first double-colon rule", form_target_name(obs, context), "t~1")
-  check("form_target_name: second double-colon rule", form_target_name(obs, context), "t~2")
+  check("parser_form_target_name: first double-colon rule",
+        parser_form_target_name(obs, context), "t~1")
+  check("parser_form_target_name: second double-colon rule",
+        parser_form_target_name(obs, context), "t~2")
 }
 
 # ---------------------------------------------------------------------------------------
@@ -540,8 +542,8 @@ function trace_memory(text,
   for (k = 1; k <= n; k++) {
     if (parser_join(lines[k], k, joiner)) {
       parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
-      out = out " " memory_lines(memory, "doc", memory["dn"]) "/" \
-            memory_lines(memory, "section", memory["sn"])
+      out = out " " parser_memory_lines(memory, "doc", memory["dn"]) "/" \
+            parser_memory_lines(memory, "section", memory["sn"])
     }
   }
   gsub(/\n/, "+", out)
@@ -598,13 +600,13 @@ BEGIN {
   test_parser_variable_names()
   test_parser_inline_docs()
   test_parser_double_colon()
-  test_get_doc_tag()
+  test_parser_get_doc_tag()
 
   # (state, obs) -> state, memory and record: the equations of the note
   test_parser_step()
   test_parser_carry()
-  test_record_anchor()
-  test_form_target_name()
+  test_parser_record_anchor()
+  test_parser_form_target_name()
 
   # lines -> state, memory and records: the whole parser, from lines of text
   test_parser_states()
