@@ -381,8 +381,9 @@ has not renamed: it never changes `SUB` labels and values.
 `-v OUTPUT_FORMAT=html` and `-v OUTPUT_FORMAT=latex` (the value is case-insensitive) print the
 documentation as HTML or LaTeX. The HTML output is a fragment to paste into a page: a `<style>`
 element followed by a `<div class="makefile-doc">`, and the names of all its classes start with
-`makefile-doc`. The LaTeX output is a complete document, cropped to the text, to compile with, e.g.,
-`tectonic`.
+`makefile-doc`. The LaTeX output is a complete document, cropped to the text, to compile with
+`pdflatex`, `xelatex`, `lualatex` or `tectonic`. `pdflatex` handles Latin text only; the other
+engines handle any Unicode text that the monospace font has (Latin Modern Mono by default).
 
 The ANSI colors are mapped to the
 [Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) dark palette by

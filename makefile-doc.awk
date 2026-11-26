@@ -991,7 +991,15 @@ function fmt_latex_hex_color(ansi_color_param) {
 # the preamble of the LaTeX output, up to the start of the documentation
 function fmt_latex_header(header) { #locals
   header = "\\documentclass{article}\n"
-  header = header "\\usepackage[utf8]{inputenc}\n"
+  # pdflatex: Latin Modern in T1, which has a bold monospace (\\textbf); xelatex, lualatex,
+  # tectonic: fontspec, for any Unicode text that the monospace font has
+  header = header "\\usepackage{iftex}\n"
+  header = header "\\ifPDFTeX\n"
+  header = header "  \\usepackage[T1]{fontenc}\n"
+  header = header "  \\usepackage{lmodern}\n"
+  header = header "\\else\n"
+  header = header "  \\usepackage{fontspec}\n"
+  header = header "\\fi\n"
   header = header "\\usepackage{xcolor}\n"
   header = header "\\usepackage{alltt}\n"
   header = header "\\usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}\n"
