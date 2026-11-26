@@ -202,10 +202,10 @@ Table~\ref{tab:obs} lists them.
   $\Obs{override}$ & 1 if a variable is set with the qualifier \code{override} \\
   $\Obs{inline}$ & 1 if $L_i$ has an anchor and its comment (section~\ref{sec:lexical})
                    starts with \code{\#\#} but not \code{\#\#@}: an inline doc \\
-  $\Obs{inline\_doc}$ & that comment without its token (empty if there is none) \\
-  $\Obs{text}$ & $L_i$ without its leading blanks and its token, if $\Obs{line\_kind}$ is
+  $\Obs{inline\_doc}$ & that comment without its tag (empty if there is none) \\
+  $\Obs{text}$ & $L_i$ without its leading blanks and its tag, if $\Obs{line\_kind}$ is
                  \kind{doc} or \kind{section} (empty otherwise) \\
-  $\Obs{tag}$ & the token of a doc line, or of the inline doc: \code{\#\#}, \code{\#\#!} or
+  $\Obs{tag}$ & the tag of a doc line, or of the inline doc: \code{\#\#}, \code{\#\#!} or
                 \code{\#\#\%} (empty otherwise) \\
   $\Obs{prefix}$ & the prefix that $L_i$ assigns to \code{.RECIPEPREFIX}, when the value is
                    written on the line: the first character of the value (a tab if it is

@@ -16,7 +16,7 @@
 #### Docs
 #   * Targets and variables are called anchors.
 #   * The docs of an anchor are comments placed above it or inline (the inline docs are
-#     ignored if there are docs above). They start with one of the tokens:
+#     ignored if there are docs above). They start with one of the tags:
 #       ##   a default anchor (displayed in COLOR_DEFAULT)
 #       ##!  an anchor that needs attention (displayed in COLOR_ATTENTION)
 #       ##%  a deprecated anchor (displayed in COLOR_DEPRECATED)
@@ -354,7 +354,11 @@ function init_globals() {
   #   PARSER_DERIVED  its derived quantities: k_i and e_i
   # and outside the model:
   #   PARSER_JOINER   the physical lines joined into the next logical line (see parser_join)
-  #   PARSER_CONTEXT  the file being read, and what names and warnings need (see record_anchor)
+  #   PARSER_CONTEXT  for the names and the warnings, PARSER_CONTEXT[key] with the keys
+  #                     file                the file being read
+  #                     "seen", kind, name  1 if the anchor is documented so far (see record_anchor)
+  #                     "dc", name          the number of documented rules so far of the
+  #                                         double-colon target name (see form_target_name)
   split("", PARSER_STATE)
   split("", PARSER_MEMORY)
   split("", PARSER_OBS)
@@ -1426,10 +1430,10 @@ function parser_file_start(state, memory) { #update
 #   obs["first_char"]: the first character of the line ("" for an empty line)
 #   obs["inline"]:     1 if the line has an anchor and its comment starts with ## but not
 #                      ##@ (an inline doc)
-#   obs["inline_doc"]: that comment without its token ("" if there is none)
-#   obs["text"]:       the line without its leading blanks and its token, for a doc or
+#   obs["inline_doc"]: that comment without its tag ("" if there is none)
+#   obs["text"]:       the line without its leading blanks and its tag, for a doc or
 #                      section line ("" otherwise)
-#   obs["tag"]:        the token of a doc line or of the inline doc (##, ##! or ##%), "" otherwise
+#   obs["tag"]:        the tag of a doc line or of the inline doc (##, ##! or ##%), "" otherwise
 #   obs["prefix"]:     the prefix that the line assigns to .RECIPEPREFIX ("" otherwise)
 function parser_observe(line,
                         obs) { #fill
@@ -1991,7 +1995,7 @@ function display_substitutions(sub_values, sub_row, len_anchors,
     }
   }
 
-  # the + 1 assumes the usual space after the token (as in `## doc`), so that the values
+  # the + 1 assumes the usual space after the tag (as in `## doc`), so that the values
   # line up with the text of the doc
   indentation = spaces(len_anchors + OFFSET + 1)
   output = (SUB_PARAM[sub_row, "L"] ? "\n" indentation : " ") lines[1]

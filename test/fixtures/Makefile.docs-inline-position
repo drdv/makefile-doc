@@ -18,7 +18,7 @@ t7:; echo 1
 ## Also with prerequisites before the inline recipe
 t8: t0; echo 1
 
-t-no-docs-section: ##@ An inline section token is not a doc
+t-no-docs-section: ##@ An inline section tag is not a doc
 
 # for Make, the comment starts at the first #: a ## later in it is not a doc
 t-no-docs-comment: t0 # an ordinary comment ## is not a doc

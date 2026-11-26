@@ -97,10 +97,10 @@ Git for Windows, e.g., in Git Bash, or a native gawk); all three are tested in C
 
 ## Writing docs
 
-makefile-doc reads comments that start with one of four tokens. A doc is attached to a target or a
+makefile-doc reads comments that start with one of four tags. A doc is attached to a target or a
 variable, which we call an _anchor_. A section is displayed above the anchors that follow it.
 
-| Token | Meaning                          | Default color |
+| Tag   | Meaning                          | Default color |
 |-------|----------------------------------|---------------|
 | `##`  | doc of a target or a variable    | blue          |
 | `##!` | doc of an anchor that needs care | red           |
@@ -135,7 +135,7 @@ doc whose text starts with `#`.
 
 The remaining details:
 
-- In a multi-line doc, only the first line needs the `##!` or `##%` token; the other lines can start
+- In a multi-line doc, only the first line needs the `##!` or `##%` tag; the other lines can start
   with `##`.
 - Deprecated anchors (`##%`) can be hidden with `-v DEPRECATED=0`.
 - As in GNU Make, a doc or a comment that ends with a backslash continues on the next line,
@@ -155,7 +155,7 @@ The remaining details:
 
 - A section is one or more lines that start with `##@`; an empty `##@` line displays a blank line,
   e.g., to separate the section from the anchors around it. Every line of a multi-line section needs
-  the token; blank lines between them are ignored.
+  the tag; blank lines between them are ignored.
 - The kind of a section is the kind (target or variable) of the first documented anchor after
   it. It depends only on the Makefile: hiding anchors (variables with `VARS=0`, deprecated
   anchors with `DEPRECATED=0`) does not change it.

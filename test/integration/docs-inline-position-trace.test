@@ -31,7 +31,7 @@ test/fixtures/Makefile.docs-inline-position
   19 0 1  0  0 \t | t8: t0; echo 1
   19 ============ => target:[t8]
   20 0 1  0  0 \t |
-  21 0 1  0  0 \t | t-no-docs-section: ##@ An inline section token is not a doc
+  21 0 1  0  0 \t | t-no-docs-section: ##@ An inline section tag is not a doc
   22 0 1  0  0 \t |
   23 0 1  0  0 \t | # for Make, the comment starts at the first #: a ## later in it is not a doc
   24 0 1  0  0 \t | t-no-docs-comment: t0 # an ordinary comment ## is not a doc
