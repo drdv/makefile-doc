@@ -213,8 +213,12 @@ class Platform(BaseModel):
             if self.build:
                 self._export_binary()
             self._verify_awk()
-            yield Awk(awk=self.awk_argv, engine=self.engine, crlf=self.crlf,
-                      ansi_args=self.ansi_args)
+            yield Awk(
+                awk=self.awk_argv,
+                engine=self.engine,
+                crlf=self.crlf,
+                ansi_args=self.ansi_args,
+            )
             return
 
         mounts = [f"--volume={ROOT}:{ROOT}:ro,z"] + [
