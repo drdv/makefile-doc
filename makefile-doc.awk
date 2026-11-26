@@ -281,7 +281,7 @@ function init_globals() {
 
   VERSION = "v2.2" # the source of truth for the version (tools/release.py updates it)
   OUTPUT_FORMATS = "ANSI HTML LATEX" # the values of OUTPUT_FORMAT (see fmt_init)
-  PROGRAM = "makefile-doc" # the name at the start of the warnings
+  PROGRAM = "makefile-doc" # the name at the start of the warnings and the errors
 
   # The special built-in targets of GNU Make (see parser_all_special). Suffix rules, which
   # GNU Make also counts as special targets, are not among them: they are displayed.
@@ -473,7 +473,7 @@ function opt_process(sub_names, dummy_array_labels) { #locals
 # Report an invalid value of an option. The script goes on, so that all the invalid options
 # are reported, and stops after opt_process() (see BEGIN).
 function opt_error(message) {
-  printf("ERROR: %s\n", message) > STDERR
+  printf("%s: error: %s\n", PROGRAM, message) > STDERR
   OPTION_ERRORS++
 }
 
@@ -1805,14 +1805,14 @@ function render_print_warnings(k, location) { #locals
   }
 }
 
-# Print a warning on stderr unless WARN is 0, in the GNU format: "program: location: warning:
+# Print a warning on stderr unless WARN is 0, in the GNU format: "program:location: warning:
 # message", or "program: warning: message" when location is ""
 function render_print_warning(location, message) {
   if (!WARN) {
     return
   }
   if (location != "") {
-    printf("%s: %s: warning: %s\n", PROGRAM, location, message) > STDERR
+    printf("%s:%s: warning: %s\n", PROGRAM, location, message) > STDERR
   } else {
     printf("%s: warning: %s\n", PROGRAM, message) > STDERR
   }

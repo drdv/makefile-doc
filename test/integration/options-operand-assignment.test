@@ -1,6 +1,6 @@
 #: desc: An option given as an operand (without -v) is an error, before any input is read
 -v COLOR=0 VARS=0 OFFSET=x test/fixtures/Makefile.options
 #: stderr
-ERROR: 'VARS=0' is an assignment: give options with -v (-v VARS=0)
-ERROR: 'OFFSET=x' is an assignment: give options with -v (-v OFFSET=x)
+makefile-doc: error: 'VARS=0' is an assignment: give options with -v (-v VARS=0)
+makefile-doc: error: 'OFFSET=x' is an assignment: give options with -v (-v OFFSET=x)
 #: exit: 1

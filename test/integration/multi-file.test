@@ -1,8 +1,8 @@
 #: desc: Parser state (docs, rule, continued recipe/line) is reset at each new file
 -v COLOR=0 test/fixtures/Makefile.multi-file test/fixtures/Makefile.multi-file.2 test/fixtures/Makefile.multi-file.3 test/fixtures/Makefile.multi-file.4 test/fixtures/Makefile.multi-file.5 test/fixtures/Makefile.multi-file.6
 #: stderr
-makefile-doc: test/fixtures/Makefile.multi-file.4:3: warning: the last line ends with a backslash
-makefile-doc: test/fixtures/Makefile.multi-file.5:3: warning: the last line ends with a backslash
+makefile-doc:test/fixtures/Makefile.multi-file.4:3: warning: the last line ends with a backslash
+makefile-doc:test/fixtures/Makefile.multi-file.5:3: warning: the last line ends with a backslash
 #: stdout
 --------------------
 Available targets:

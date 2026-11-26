@@ -199,15 +199,15 @@ help: ## Show this help
 | `RECIPEPREFIX`    | one character (tab)                     | the recipe prefix at the start            |
 
 Warnings, e.g., about redefined docs, are printed on stderr in the GNU format
-`makefile-doc: FILE:LINE: warning: MESSAGE`. They depend only on the Makefiles, not on `VARS` or
+`makefile-doc:FILE:LINE: warning: MESSAGE`. They depend only on the Makefiles, not on `VARS` or
 `DEPRECATED`; `WARN=0` turns them off.
 
 `COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty value (see
-[no-color.org](https://no-color.org)). An invalid value is an error: all the invalid options are
-reported, nothing else is printed and the exit status is 1. An option given as an operand, without
-`-v` (e.g., `awk -f makefile-doc.awk VARS=0 Makefile`), is an error too: awk would set it only
-after the options are checked and used. As in GNU Make, only the first character of `RECIPEPREFIX`
-is used.
+[no-color.org](https://no-color.org)). An invalid value is an error (`makefile-doc: error: MESSAGE`
+on stderr): all the invalid options are reported, nothing else is printed and the exit status is 1.
+An option given as an operand, without `-v` (e.g., `awk -f makefile-doc.awk VARS=0 Makefile`), is an
+error too: awk would set it only after the options are checked and used. As in GNU Make, only the
+first character of `RECIPEPREFIX` is used.
 
 The assignments to `.RECIPEPREFIX` in the Makefiles are followed, with a few exceptions (see the
 Limits section of [misc/docs/parser-model.tex](misc/docs/parser-model.tex)): the prefix changes for

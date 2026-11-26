@@ -1,7 +1,7 @@
 #: desc: With VARS=0, redefining the docs of a hidden variable is reported (its sections are hidden)
 -v COLOR=0 -v VARS=0 test/fixtures/Makefile.vars-disabled-redefined
 #: stderr
-makefile-doc: test/fixtures/Makefile.vars-disabled-redefined:7: warning: redefined docs of variable 'V'
+makefile-doc:test/fixtures/Makefile.vars-disabled-redefined:7: warning: redefined docs of variable 'V'
 #: stdout
 ------------------
 Available targets:

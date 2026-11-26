@@ -1,7 +1,7 @@
 #: desc: A last line that ends with a backslash gives a warning (it cannot be joined)
 -v COLOR=0 test/fixtures/Makefile.backslash-last-line
 #: stderr
-makefile-doc: test/fixtures/Makefile.backslash-last-line:4: warning: the last line ends with a backslash
+makefile-doc:test/fixtures/Makefile.backslash-last-line:4: warning: the last line ends with a backslash
 #: stdout
 ------------------
 Available targets:

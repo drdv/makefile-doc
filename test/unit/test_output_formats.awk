@@ -91,7 +91,7 @@ function test_opt_ansi_param(message) { #locals
   check("opt_ansi_param: 0 (no color)", opt_ansi_param("COLOR_X", 0), 0)
   check("opt_ansi_param: valid parameters are not errors", OPTION_ERRORS, 0)
 
-  message = "ERROR: COLOR_X should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107\n"
+  message = "makefile-doc: error: COLOR_X should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107\n"
   check("opt_ansi_param: unsupported attribute", opt_ansi_param("COLOR_X", 2), 0)
   check("opt_ansi_param: unsupported attribute is an error", stderr_text(), message)
   check("opt_ansi_param: out of range", opt_ansi_param("COLOR_X", 108), 0)
@@ -143,11 +143,11 @@ function test_export_theme() {
   setup_colors("HTML", "3:ffffff,5:123456,34:fff")
   check("export theme: invalid entries are errors",
         stderr_text(),
-        "ERROR: EXPORT_THEME: '3:ffffff' should start with FG, BG or one of " \
+        "makefile-doc: error: EXPORT_THEME: '3:ffffff' should start with FG, BG or one of " \
         "30-37, 40-47, 90-97, 100-107\n" \
-        "ERROR: EXPORT_THEME: '5:123456' should start with FG, BG or one of " \
+        "makefile-doc: error: EXPORT_THEME: '5:123456' should start with FG, BG or one of " \
         "30-37, 40-47, 90-97, 100-107\n" \
-        "ERROR: EXPORT_THEME: '34:fff' should end with a color of 6 hex digits\n")
+        "makefile-doc: error: EXPORT_THEME: '34:fff' should end with a color of 6 hex digits\n")
   check("export theme: attributes (0-9) cannot be changed", ANSI_TO_HTML_VALUE[3], "italic")
   check_true("export theme: unsupported parameters are not added", !(5 in EXPORT_PALETTE))
   check("export theme: an invalid entry keeps the default", EXPORT_PALETTE[34], "268bd2")

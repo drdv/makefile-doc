@@ -1,11 +1,11 @@
 #: desc: With VARS=0 and only variables documented, a warning says they are all hidden
 -v VARS=0 test/fixtures/Makefile.vars-assignment
 #: stderr
-makefile-doc: test/fixtures/Makefile.vars-assignment:19: warning: redefined docs of variable 'a4'
-makefile-doc: test/fixtures/Makefile.vars-assignment:35: warning: redefined docs of variable 'b4'
-makefile-doc: test/fixtures/Makefile.vars-assignment:51: warning: redefined docs of variable 'c4'
-makefile-doc: test/fixtures/Makefile.vars-assignment:67: warning: redefined docs of variable 'd4'
-makefile-doc: test/fixtures/Makefile.vars-assignment:83: warning: redefined docs of variable 'e4'
-makefile-doc: test/fixtures/Makefile.vars-assignment:99: warning: redefined docs of variable 'f4'
-makefile-doc: test/fixtures/Makefile.vars-assignment:115: warning: redefined docs of variable 'g4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:19: warning: redefined docs of variable 'a4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:35: warning: redefined docs of variable 'b4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:51: warning: redefined docs of variable 'c4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:67: warning: redefined docs of variable 'd4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:83: warning: redefined docs of variable 'e4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:99: warning: redefined docs of variable 'f4'
+makefile-doc:test/fixtures/Makefile.vars-assignment:115: warning: redefined docs of variable 'g4'
 makefile-doc: warning: all documented targets/variables are hidden in test/fixtures/Makefile.vars-assignment
