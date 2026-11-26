@@ -440,6 +440,50 @@ function test_parser_form_target_name(context, obs) { #locals
 }
 
 # ---------------------------------------------------------------------------------------
+# physical lines -> logical lines: the input of the model
+# ---------------------------------------------------------------------------------------
+
+# What parser_join gives for each physical line of text (lines separated by |): +[pending]
+# while the logical line continues, start:[line] when it is complete
+function joined(text,
+                joiner, lines, n, k, out) { #locals
+  parser_join_init(joiner)
+  n = split(text, lines, "|")
+  out = ""
+  for (k = 1; k <= n; k++) {
+    if (parser_join(lines[k], k, joiner)) {
+      out = out " " joiner["start"] ":[" joiner["line"] "]"
+    } else {
+      out = out " +[" joiner["pending"] "]"
+    }
+  }
+  return substr(out, 2)
+}
+
+function test_parser_join() {
+  check("parser_join: the example of its comment",
+        joined("SRCS := a.c   \\|          b.c \\|      \\|          c.c"),
+        "+[SRCS := a.c] +[SRCS := a.c b.c] +[SRCS := a.c b.c] 1:[SRCS := a.c b.c c.c]")
+  check("parser_join: a line that is not continued is unchanged (blanks included)",
+        joined("  t: dep  "), "1:[  t: dep  ]")
+  check("parser_join: an empty line", joined("a||b"), "1:[a] 2:[] 3:[b]")
+  check("parser_join: the start is the first physical line of the logical line",
+        joined("a|b \\|c|d"), "1:[a] +[b] 2:[b c] 4:[d]")
+  check("parser_join: the leading blanks of the first line are kept",
+        joined("  ## doc \\|more"), "+[  ## doc] 1:[  ## doc more]")
+  check("parser_join: tabs around the backslash are blanks too",
+        joined("a\t\\|\tb"), "+[a] 1:[a b]")
+  check("parser_join: an even number of backslashes does not continue the line",
+        joined("a \\\\|b"), "1:[a \\\\] 2:[b]")
+  check("parser_join: an odd number does, the other backslashes are kept",
+        joined("a \\\\\\|b"), "+[a \\\\] 1:[a \\\\ b]")
+  check("parser_join: CRLF line endings", joined("a \\\r|b\r"), "+[a] 1:[a b]")
+  check("parser_join: a recipe line of only its prefix keeps the prefix",
+        joined("t:|\t\\|  echo"), "1:[t:] +[\t] 2:[\t echo]")
+  check("parser_join: a continued last line stays pending", joined("a \\"), "+[a]")
+}
+
+# ---------------------------------------------------------------------------------------
 # lines -> state, memory and records: the whole parser, from lines of text
 # ---------------------------------------------------------------------------------------
 
@@ -609,6 +653,9 @@ BEGIN {
   test_parser_carry()
   test_parser_record_anchor()
   test_parser_form_target_name()
+
+  # physical lines -> logical lines: the input of the model
+  test_parser_join()
 
   # lines -> state, memory and records: the whole parser, from lines of text
   test_parser_states()
