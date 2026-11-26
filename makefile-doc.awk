@@ -63,15 +63,11 @@
 # not use them.
 
 #### Terminology
-#   * A Makefile rule (without patterns) can take one of the following forms:
-#     target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
-#         [recipe]
-#
-#     target-name [...] [&]:[:] [variable assignment]
-#         [recipe]
+#   * A Makefile rule (without patterns) has the form
+#       target-name [...] [&]:[:] [prerequisites] [;] [inline recipe]
+#           [recipe]
 #
 #     where:
-#       variable assignment: a single variable can be assigned per rule
 #       prerequisites := normal-prerequisites | order-only-prerequisites
 #       inline recipe := [command] [; command ...]
 #       recipe := [command]
@@ -79,9 +75,20 @@
 #
 #     with normal-prerequisites and order-only-prerequisites being space separated lists
 #     of target names.
+#
+#   * A target-specific variable assignment has the form
+#       target-name [...] [&]:[:] variable assignment
+#
+#     It sets a single variable and has no recipe: it is not a rule (it closes the open
+#     rule, if any). A target can have any number of them, before or after its rule, but
+#     not between the rule and its recipe:
+#       t: CFLAGS := -O2
+#       t: LDFLAGS := -s
+#       t: dep
+#           recipe
+#
 #   * A single-colon target has one recipe, so one doc (the last one wins); a double-colon
 #     target has a recipe per rule, so a doc per documented rule (t~1, t~2, ...).
-
 
 ### Code
 
