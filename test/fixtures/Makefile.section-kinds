@@ -1,0 +1,21 @@
+##@ Build
+## Number of jobs (the section belongs to the variables)
+JOBS := 4
+
+## Compile
+build:
+
+##@ Test
+##% Use `make check` (the section belongs to the targets)
+test:
+
+## Run the tests
+check:
+
+##@ Release
+##% Deprecated, and alone in its section
+publish:
+
+##@ Install
+## Install the binaries
+install:

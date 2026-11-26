@@ -1,0 +1,15 @@
+#: desc: With VARS=0, the sections of variables are hidden and the targets are unchanged
+-v COLOR=0 -v VARS=0 test/fixtures/Makefile.section-kinds
+#: stdout
+------------------
+Available targets:
+------------------
+build     Compile
+ Test
+test      Use `make check` (the section belongs to the targets)
+check     Run the tests
+ Release
+publish   Deprecated, and alone in its section
+ Install
+install   Install the binaries
+------------------

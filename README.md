@@ -156,9 +156,12 @@ The remaining details:
 - A section is one or more lines that start with `##@`; an empty `##@` line displays a blank line,
   e.g., to separate the section from the anchors around it. Every line of a multi-line section needs
   the token; blank lines between them are ignored.
-- A section is displayed above the next displayed anchor: hidden anchors (variables with `VARS=0`,
-  deprecated anchors with `DEPRECATED=0`) are skipped. A section with no displayed anchor after it
-  is not displayed.
+- The kind of a section is the kind (target or variable) of the first documented anchor after
+  it. It depends only on the Makefile: hiding anchors (variables with `VARS=0`, deprecated
+  anchors with `DEPRECATED=0`) does not change it.
+- A section is displayed above the first displayed anchor of its kind, before the next section;
+  if there is none, it is not displayed. So `VARS=0` hides the sections of variables and leaves
+  the list of targets unchanged.
 
 ### Special kinds of targets
 
