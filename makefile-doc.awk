@@ -283,12 +283,12 @@ function init_globals() {
   OUTPUT_FORMATS = "ANSI HTML LATEX" # the values of OUTPUT_FORMAT (see fmt_init)
   PROGRAM = "makefile-doc" # the name at the start of the warnings
 
-  # The special built-in targets of GNU Make (see parser_observe). Suffix rules, which
+  # The special built-in targets of GNU Make (see parser_all_special). Suffix rules, which
   # GNU Make also counts as special targets, are not among them: they are displayed.
-  SPECIAL_TARGETS_REGEX = "^[ \t]*\\.(PHONY|SUFFIXES|DEFAULT|PRECIOUS|INTERMEDIATE|" \
+  SPECIAL_TARGETS_REGEX = "^\\.(PHONY|SUFFIXES|DEFAULT|PRECIOUS|INTERMEDIATE|" \
                           "NOTINTERMEDIATE|SECONDARY|SECONDEXPANSION|DELETE_ON_ERROR|" \
                           "IGNORE|LOW_RESOLUTION_TIME|SILENT|EXPORT_ALL_VARIABLES|" \
-                          "NOTPARALLEL|ONESHELL|POSIX)[ \t]*:"
+                          "NOTPARALLEL|ONESHELL|POSIX)$"
 
   # the tag at the start of a doc line (the order of the alternatives matters for goawk
   # v1.29.1 and below, fixed in v1.30.0)
@@ -1196,12 +1196,24 @@ function parser_structure(line,
   } else if (first_word ~ /^(include|-include|sinclude|vpath|export|unexport|undefine|endef)$/) {
     parser_clear("other", obs)
   } else if (obs["line_kind"] == "rule") { # question 6: special targets
-    if ((obs["anchor_name"] ":") ~ SPECIAL_TARGETS_REGEX) {
+    if (parser_all_special(obs["anchor_name"])) {
       parser_clear("special rule", obs)
     }
   } else {
     parser_clear("other", obs)
   }
+}
+
+# 1 if every target of names is a special target (e.g., `.PHONY .SILENT`), 0 otherwise
+function parser_all_special(names,
+                            words, n, k) { #locals
+  n = split(names, words, " ")
+  for (k = 1; k <= n; k++) {
+    if (words[k] !~ SPECIAL_TARGETS_REGEX) {
+      return 0
+    }
+  }
+  return n > 0
 }
 
 function parser_clear(line_kind,

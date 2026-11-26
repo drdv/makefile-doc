@@ -8,6 +8,7 @@ t0                (t0) Ignore .SECONDEXPANSION and .DELETE_ON_ERROR
 .c.o              A suffix rule is a target
 t1                (t1) Ignore .PHONY
 t2                (t2) Ignore .PHONY and .SILENT
+t2b               (t2b) Ignore .PHONY and .SILENT on one line
 t3                (t3) Ignore .SECONDARY
 t4                (t4) Ignore .INTERMEDIATE
 t5                (t5) Ignore .INTERMEDIATE and .PRECIOUS

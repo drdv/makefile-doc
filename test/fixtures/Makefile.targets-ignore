@@ -15,6 +15,10 @@ t1:
 .SILENT: t2 ## BAD
 t2:
 
+## (t2b) Ignore .PHONY and .SILENT on one line
+.PHONY .SILENT: t2b
+t2b:
+
 ## (t3) Ignore .SECONDARY
 .SECONDARY: t3 ## BAD
 t3:
