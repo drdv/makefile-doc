@@ -1,0 +1,14 @@
+#: desc: WARN=0 turns off the warnings about the Makefiles
+-v COLOR=0 -v WARN=0 test/fixtures/Makefile.vars-disabled-redefined
+#: stdout
+------------------
+Available targets:
+------------------
+t   A target
+
+------------------
+Variables:
+------------------
+ Section 2
+V   Second docs
+------------------

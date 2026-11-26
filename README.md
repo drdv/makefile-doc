@@ -193,11 +193,16 @@ help: ## Show this help
 | `DEPRECATED`      | `0`, (`1`)                              | show deprecated anchors                   |
 | `PADDING`         | one character (space)                   | fills the gap between anchors and docs    |
 | `OFFSET`          | `0`, `1`, (`2`), ...                    | number of spaces between anchors and docs |
+| `WARN`            | `0`, (`1`)                              | print warnings on stderr                  |
 | `COLOR`           | `0`, (`1`)                              | `0` turns off all colors                  |
 | `OUTPUT_FORMAT`   | (`ANSI`), `HTML`, `LATEX`               | format of the output                      |
 | `EXPORT_THEME`    | see [export](#export-to-html-and-latex) | colors of the HTML and LaTeX output       |
 | `SUB`, `DSUB`     | see [Substitutions](#substitutions)     | substitutions in names and docs           |
 | `RECIPEPREFIX`    | one character (tab)                     | the recipe prefix at the start            |
+
+Warnings, e.g., about redefined docs, are printed on stderr in the GNU format
+`makefile-doc: FILE:LINE: warning: MESSAGE`. They depend only on the Makefiles, not on `VARS` or
+`DEPRECATED`; `WARN=0` turns them off.
 
 `COLOR` defaults to `0` when the environment variable `NO_COLOR` is set to a non-empty value (see
 [no-color.org](https://no-color.org)). An invalid value is an error: all the invalid options are

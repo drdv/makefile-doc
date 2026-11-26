@@ -9,6 +9,7 @@ Options (current values):
   DEPRECATED        show deprecated anchors (0 or 1)     "1"
   PADDING           character between anchors and docs   " "
   OFFSET            spaces between anchors and docs      "2"
+  WARN              print warnings on stderr (0 or 1)    "1"
   COLOR             use colors (0 or 1)                  "1"
   OUTPUT_FORMAT     ANSI, HTML or LATEX                  "ANSI"
   EXPORT_THEME      colors of the HTML and LaTeX output  ""

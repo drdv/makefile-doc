@@ -1,5 +1,7 @@
 #: desc: VARS=0 hides the variables (and their sections: the targets are unchanged)
 -v COLOR=0 -v VARS=0 test/fixtures/Makefile.vars
+#: stderr
+makefile-doc: test/fixtures/Makefile.vars:33: warning: redefined docs of variable 'VAR6'
 #: stdout
 ------------------
 Available targets:
