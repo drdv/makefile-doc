@@ -128,10 +128,9 @@ Some lines can appear between a doc and its anchor: blank lines, comments, condi
 targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html) of GNU Make such
 as `.PHONY: target` or `.ONESHELL:` (other targets whose names start with a dot, e.g., `.ENV:`, are
 regular targets). Any other line discards the doc: `include`, `vpath`, `endef`, an `export`
-without an assignment, a function call such as `$(info ...)`, or a comment banner (a line of three
-or more `#` only, e.g., `###`). An `unexport` line discards the doc too, with or without names
-after it (it is a directive, not an assignment). A line such as `### text` is not a banner: it is a
-doc whose text starts with `#`.
+without an assignment, a function call such as `$(info ...)`, or a comment banner (a comment that
+starts with three or more `#`, e.g., `###` or `### Build ###`). An `unexport` line discards the doc
+too, with or without names after it (it is a directive, not an assignment).
 
 The remaining details:
 

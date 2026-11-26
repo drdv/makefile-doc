@@ -1137,7 +1137,7 @@ function parser_structure(line,
     return
   }
   if (line ~ /^[ \t]*#/) {                    # question 2: a comment
-    obs["line_kind"] = line ~ /^[ \t]*###+[ \t]*$/ ? "banner" : \
+    obs["line_kind"] = line ~ /^[ \t]*###/ ? "banner" : \
                        line ~ /^[ \t]*##@/ ? "section" : \
                        line ~ /^[ \t]*##/ ? "doc" : "neutral"
     return

@@ -160,7 +160,8 @@ take the pending doc.
   \kind{doc} & a comment that starts with \code{\#\#}, \code{\#\#!} or \code{\#\#\%},
                and is neither a \kind{section} nor a \kind{banner} \\
   \kind{section} & a comment that starts with \code{\#\#@} \\
-  \kind{banner} & a comment of \code{\#} only, at least three \\
+  \kind{banner} & a comment that starts with at least three \code{\#}, e.g., \code{\#\#\#} or
+                  \code{\#\#\# Build} \\
   \kind{rule} & \code{t: dep}, \code{t::}, \code{t1 t2 \&: dep}, \code{\%.o: \%.c},
                 \code{\$(OBJS): \%.o: \%.c} \\
   \kind{special rule} & a rule of a special target: \code{.PHONY: t}, \code{.DEFAULT:},
