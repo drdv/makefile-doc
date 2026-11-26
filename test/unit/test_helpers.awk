@@ -156,7 +156,15 @@ function test_has_odd_terminal_backslashes() {
         has_odd_terminal_backslashes("a\\ b"), 0)
 }
 
+
+function test_or_list() {
+  check("or_list: one word", or_list("a"), "a")
+  check("or_list: two words", or_list("a b"), "a or b")
+  check("or_list: three words", or_list("ANSI HTML LATEX"), "ANSI, HTML or LATEX")
+}
+
 BEGIN {
+  test_or_list()
   test_max_min()
   test_text_length()
   test_repeated_string()
