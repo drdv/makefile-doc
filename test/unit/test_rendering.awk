@@ -1,8 +1,8 @@
-# Check the section Rendering of the script: what is displayed (prepare_rendering), and
-# its layout (format_documentation).
+# Check the section Rendering of the script: what is displayed (render_prepare), and
+# its layout (render_documentation).
 
 # ---------------------------------------------------------------------------------------
-# interface -> DISPLAY: what is displayed (prepare_rendering)
+# interface -> DISPLAY: what is displayed (render_prepare)
 # ---------------------------------------------------------------------------------------
 
 # add a record to the interface, as the parser does (section "": none)
@@ -33,26 +33,26 @@ function add_anchors() {
   add_anchor("target", "t", "##!", " second", "")
 }
 
-function test_prepare_rendering() {
+function test_render_prepare() {
   init_globals()
   VARS = 1
   DEPRECATED = 1
   add_anchors()
-  prepare_rendering()
-  check("prepare_rendering: the targets, then the variables, each once, in file order",
+  render_prepare()
+  check("render_prepare: the targets, then the variables, each once, in file order",
         displayed_names(), "t old V")
-  check("prepare_rendering: the last definition gives the doc and tag",
+  check("render_prepare: the last definition gives the doc and tag",
         DISPLAY[1, "doc"] " " DISPLAY[1, "tag"], " second ##!")
-  check("prepare_rendering: a section goes to the next displayed anchor",
+  check("render_prepare: a section goes to the next displayed anchor",
         DISPLAY[3, "section"] DISPLAY[2, "section"], " S1 S2")
 
   init_globals()
   VARS = 0
   DEPRECATED = 0
   add_anchors()
-  prepare_rendering()
-  check("prepare_rendering: hidden anchors are left out", displayed_names(), "t")
-  check("prepare_rendering: a section skips hidden anchors of its kind, not other kinds",
+  render_prepare()
+  check("render_prepare: hidden anchors are left out", displayed_names(), "t")
+  check("render_prepare: a section skips hidden anchors of its kind, not other kinds",
         DISPLAY[1, "section"], " S2")
 
   init_globals()
@@ -60,8 +60,8 @@ function test_prepare_rendering() {
   DEPRECATED = 1
   add_anchor("variable", "V", "##", " v", " S")
   add_anchor("target", "t", "##", " doc", "")
-  prepare_rendering()
-  check("prepare_rendering: the section of a hidden variable does not go to a target",
+  render_prepare()
+  check("render_prepare: the section of a hidden variable does not go to a target",
         ("1", "section") in DISPLAY, 0)
 
   init_globals()
@@ -70,8 +70,8 @@ function test_prepare_rendering() {
   add_anchor("target", "old", "##%", " deprecated", " S1")
   add_anchor("target", "t1", "##", " one", " S2")
   add_anchor("target", "t2", "##", " two", "")
-  prepare_rendering()
-  check("prepare_rendering: a section with no displayed anchor before the next one is dropped",
+  render_prepare()
+  check("render_prepare: a section with no displayed anchor before the next one is dropped",
         DISPLAY[1, "section"] "|" (("2", "section") in DISPLAY), " S2|0")
 
   init_globals()
@@ -80,87 +80,87 @@ function test_prepare_rendering() {
   SUB_LABELS["t"] = "T"
   SUB_VALUES["t"] = "a b"
   add_anchor("target", "t", "##", " doc", "")
-  prepare_rendering()
-  check("prepare_rendering: the displayed name and the SUB values",
+  render_prepare()
+  check("render_prepare: the displayed name and the SUB values",
         DISPLAY[1, "name"] " " DISPLAY[1, "values"], "T a b")
-  check("prepare_rendering: the label is the displayed name", DISPLAY[1, "label"], "T")
+  check("render_prepare: the label is the displayed name", DISPLAY[1, "label"], "T")
 
   init_globals()
   add_anchor("variable", "V", "##", " doc", "")
   ANCHORS[ANCHOR_COUNT, "override"] = 1
-  prepare_rendering()
-  check("prepare_rendering: the label of a variable set with override",
+  render_prepare()
+  check("render_prepare: the label of a variable set with override",
         DISPLAY[1, "name"] "|" DISPLAY[1, "label"], "V|V (fixed)")
   init_globals()
   VARS = ""
   DEPRECATED = ""
 }
 
-function test_display_name(labels) { #locals
+function test_render_display_name(labels) { #locals
   opt_form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", 1, DSUB_PARAM, labels, DSUB_VALUES,
                          DSUB_NAMES)
-  DSUB_COUNT = length_array_posix(DSUB_NAMES)
-  check("display_name: replaced in the order given", display_name("$(D)/a"), "o/a")
-  check("display_name: every occurrence", display_name("$(D)/a $(D)/b"), "o/a o/b")
-  check("display_name: a name without the text", display_name("plain"), "plain")
+  DSUB_COUNT = array_length(DSUB_NAMES)
+  check("render_display_name: replaced in the order given", render_display_name("$(D)/a"), "o/a")
+  check("render_display_name: every occurrence", render_display_name("$(D)/a $(D)/b"), "o/a o/b")
+  check("render_display_name: a name without the text", render_display_name("plain"), "plain")
   SUB_LABELS["$(D)/a"] = "label"
-  check("display_name: a SUB label wins", display_name("$(D)/a"), "label")
+  check("render_display_name: a SUB label wins", render_display_name("$(D)/a"), "label")
   init_globals()
 }
 
 # ---------------------------------------------------------------------------------------
-# DISPLAY -> text: the layout (format_documentation)
+# DISPLAY -> text: the layout (render_documentation)
 # ---------------------------------------------------------------------------------------
 
-function test_substitute_backticks_patterns() {
+function test_render_substitute_backticks() {
   COLOR_BACKTICKS_CODE = ">>>"
   COLOR_RESET_CODE = "<<<"
 
-  check("substitute_backticks_patterns: two regions",
-        substitute_backticks_patterns("this `is` a test `x` and"),
+  check("render_substitute_backticks: two regions",
+        render_substitute_backticks("this `is` a test `x` and"),
         "this >>>is<<< a test >>>x<<< and")
-  check("substitute_backticks_patterns: regions are paired from the left",
-        substitute_backticks_patterns("`this `is` a test `x` and`"),
+  check("render_substitute_backticks: regions are paired from the left",
+        render_substitute_backticks("`this `is` a test `x` and`"),
         ">>>this <<<is>>> a test <<<x>>> and<<<")
-  check("substitute_backticks_patterns: inside braces",
-        substitute_backticks_patterns("{`1`, `2`, `3`}"),
+  check("render_substitute_backticks: inside braces",
+        render_substitute_backticks("{`1`, `2`, `3`}"),
         "{>>>1<<<, >>>2<<<, >>>3<<<}")
-  check("substitute_backticks_patterns: region with a space",
-        substitute_backticks_patterns("empty ` ` region"),
+  check("render_substitute_backticks: region with a space",
+        render_substitute_backticks("empty ` ` region"),
         "empty >>> <<< region")
-  check("substitute_backticks_patterns: empty region is left as is",
-        substitute_backticks_patterns("empty `` region"),
+  check("render_substitute_backticks: empty region is left as is",
+        render_substitute_backticks("empty `` region"),
         "empty `` region")
 }
 
-# display_substitutions: the values of a SUB, with the parameters of its row of SUB_PARAM
-function test_display_substitutions(labels, values, names) { #locals
+# render_sub_values: the values of a SUB, with the parameters of its row of SUB_PARAM
+function test_render_sub_values(labels, values, names) { #locals
   init_globals()
   OFFSET = 3
-  check("display_substitutions: no values", display_substitutions("", "", 1), "\n")
-  check("display_substitutions: the defaults (one value per line, on the next lines)",
-        display_substitutions("a b", "", 1), "\n    a\n    b\n")
+  check("render_sub_values: no values", render_sub_values("", "", 1), "\n")
+  check("render_sub_values: the defaults (one value per line, on the next lines)",
+        render_sub_values("a b", "", 1), "\n    a\n    b\n")
   opt_form_substitutions("<L:0,M:0,I:{,T:},S:\\,>t:a b c;<N:2>u:a b c", 0, SUB_PARAM, labels,
                          values, names)
-  check("display_substitutions: L:0, M:0, I, T and S", display_substitutions("a b c", "t", 1),
+  check("render_sub_values: L:0, M:0, I, T and S", render_sub_values("a b c", "t", 1),
         " {a, b, c}\n")
-  check("display_substitutions: N", display_substitutions("a b c", "u", 1), "\n    a\n    b\n")
+  check("render_sub_values: N", render_sub_values("a b c", "u", 1), "\n    a\n    b\n")
   OFFSET = ""
   init_globals()
 }
 
-# format_doc: the doc after the name, its lines aligned
-function test_format_doc() {
+# render_doc: the doc after the name, its lines aligned
+function test_render_doc() {
   init_globals()
   OFFSET = 3
-  check("format_doc: the lines aligned with the first one (width 1)",
-        format_doc("a\nb", 1), "   a\n    b")
+  check("render_doc: the lines aligned with the first one (width 1)",
+        render_doc("a\nb", 1), "   a\n    b")
   OUTPUT_FORMAT = "HTML"
   COLOR_BACKTICKS = 1
   COLOR_BACKTICKS_CODE = "<b>"
   COLOR_RESET_CODE = "</b>"
-  check("format_doc: a span in backticks across lines does not color the indentation",
-        format_doc("see `foo\nbar` here", 1), "   see <b>foo</b>\n    <b>bar</b> here")
+  check("render_doc: a span in backticks across lines does not color the indentation",
+        render_doc("see `foo\nbar` here", 1), "   see <b>foo</b>\n    <b>bar</b> here")
   OFFSET = OUTPUT_FORMAT = COLOR_BACKTICKS = ""
   init_globals()
 }
@@ -175,32 +175,32 @@ function display_record(label, tag, doc) {
   DISPLAY[1, "sub_row"] = ""
 }
 
-# format_anchor: one DISPLAY record in, its text out (no colors)
-function test_format_anchor() {
+# render_anchor: one DISPLAY record in, its text out (no colors)
+function test_render_anchor() {
   init_globals()
   OFFSET = 3
   PADDING = "."
   display_record("t", "##", "doc")
-  check("format_anchor: the label padded to the width, then the doc", format_anchor(1, 3),
+  check("render_anchor: the label padded to the width, then the doc", render_anchor(1, 3),
         "t..   doc\n")
   DISPLAY[1, "doc"] = "line 1\nline 2"
-  check("format_anchor: the next lines of the doc are aligned with the first one",
-        format_anchor(1, 3), "t..   line 1\n      line 2\n")
+  check("render_anchor: the next lines of the doc are aligned with the first one",
+        render_anchor(1, 3), "t..   line 1\n      line 2\n")
   DISPLAY[1, "section"] = "S"
   DISPLAY[1, "doc"] = "doc"
-  check("format_anchor: the section above", format_anchor(1, 3), "S\nt..   doc\n")
+  check("render_anchor: the section above", render_anchor(1, 3), "S\nt..   doc\n")
   DISPLAY[1, "section"] = ""
-  check("format_anchor: an empty section is a blank line", format_anchor(1, 3),
+  check("render_anchor: an empty section is a blank line", render_anchor(1, 3),
         "\nt..   doc\n")
   DISPLAY[1, "values"] = "a b"
   delete DISPLAY[1, "section"]
-  check("format_anchor: the SUB values after the doc", format_anchor(1, 3),
+  check("render_anchor: the SUB values after the doc", render_anchor(1, 3),
         "t..   doc\n      a\n      b\n")
   OFFSET = PADDING = ""
   init_globals()
 }
 
-function test_format_documentation() {
+function test_render_documentation() {
   init_globals()
   VARS = 1
   DEPRECATED = 1
@@ -208,9 +208,9 @@ function test_format_documentation() {
   PADDING = "."
   add_anchor("variable", "VAR", "##", "v", "S")
   add_anchor("target", "t", "##", "doc", "")
-  prepare_rendering()
-  check("format_documentation: the targets, then the variables (no colors)",
-        format_documentation(),
+  render_prepare()
+  check("render_documentation: the targets, then the variables (no colors)",
+        render_documentation(),
         "------------------\n" \
         "Available targets:\n" \
         "------------------\n" \
@@ -224,20 +224,20 @@ function test_format_documentation() {
         "------------------\n")
 
   init_globals()
-  check("format_documentation: nothing displayed", format_documentation(), "")
+  check("render_documentation: nothing displayed", render_documentation(), "")
   VARS = DEPRECATED = OFFSET = PADDING = ""
 }
 
 BEGIN {
-  # interface -> DISPLAY: what is displayed (prepare_rendering)
-  test_prepare_rendering()
-  test_display_name()
+  # interface -> DISPLAY: what is displayed (render_prepare)
+  test_render_prepare()
+  test_render_display_name()
 
-  # DISPLAY -> text: the layout (format_documentation)
-  test_substitute_backticks_patterns()
-  test_format_doc()
-  test_display_substitutions()
-  test_format_anchor()
-  test_format_documentation()
+  # DISPLAY -> text: the layout (render_documentation)
+  test_render_substitute_backticks()
+  test_render_doc()
+  test_render_sub_values()
+  test_render_anchor()
+  test_render_documentation()
   done()
 }

@@ -152,8 +152,8 @@ function array_get(array, key) {
 }
 
 # in POSIX-compliant AWK the length function works on strings but not on arrays
-function length_array_posix(array,
-                            key, n) { #locals
+function array_length(array,
+                      key, n) { #locals
   n = 0
   for (key in array) {
     n++
@@ -194,7 +194,7 @@ function string_replace(string, replacement, text,
   return result text
 }
 
-function strip_start_end_spaces_tabs(string) {
+function strip_blanks(string) {
   sub(/^[ \t]*/, "", string)
   sub(/[ \t]*$/, "", string)
   return string
@@ -337,7 +337,7 @@ function init_globals() {
 
   # ---------------------------------------------------------------------------------------
   # The interface between parsing and rendering: written while parsing (see parser_record_anchor
-  # and parser_add_warning), read when rendering (see prepare_rendering)
+  # and parser_add_warning), read when rendering (see render_prepare)
   # ---------------------------------------------------------------------------------------
 
   # every definition of a documented anchor, in file order (a redefinition too):
@@ -387,16 +387,16 @@ function init_globals() {
   split("", PARSER_CONTEXT)
 
   # ---------------------------------------------------------------------------------------
-  # The state of the rendering: written by prepare_rendering (what is displayed)
+  # The state of the rendering: written by render_prepare (what is displayed)
   # ---------------------------------------------------------------------------------------
 
   # the anchors to display, in order (the targets, then the variables): DISPLAY[k, field],
   # k = 1..DISPLAY_COUNT, with the fields
   #   kind, tag  as in ANCHORS (of the last definition)
-  #   name       the displayed name (see display_name)
+  #   name       the displayed name (see render_display_name)
   #   label      the text of the name column: name, with " (fixed)" after it for override
   #   doc        the doc after DSUB
-  #   section    the section above it after DSUB (only if there is one, see place_sections)
+  #   section    the section above it after DSUB (only if there is one, see render_place_sections)
   #   values     its SUB values, space-separated ("" if none)
   #   sub_row    its row in SUB_PARAM: its name if it has a SUB, "" (the defaults) otherwise
   #   override   1 for a variable set with override (only then; displayed as "(fixed)")
@@ -464,7 +464,7 @@ function opt_process(sub_names, dummy_array_labels) { #locals
   # (with "", gawk --lint does not warn when the option is not set)
   opt_form_substitutions(SUB "", 0, SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names)
   opt_form_substitutions(DSUB "", 1, DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
-  DSUB_COUNT = length_array_posix(DSUB_NAMES)
+  DSUB_COUNT = array_length(DSUB_NAMES)
 
   opt_report_assignment_operands()
   return OPTION_ERRORS
@@ -553,11 +553,11 @@ function opt_form_substitutions(spec, no_labels,
     colon = no_labels ? 0 : index(values, ":")
     if (colon > 0) {
       label = substr(values, 1, colon - 1)
-      label = strip_start_end_spaces_tabs(label)
+      label = strip_blanks(label)
       values = substr(values, colon + 1)
       has_label = (label != "") # NAME::VALUES (or a blank label) has no label
     }
-    name = strip_start_end_spaces_tabs(name)
+    name = strip_blanks(name)
 
     if (name == "") {
       opt_error(sprintf("%s: '%s' has an empty NAME", option, string))
@@ -603,7 +603,7 @@ function opt_parse_substitution_params(string,
     }
     gsub(PLACEHOLDER, ",", key_values[k]) # restore commas
     split(key_values[k], pair, ":")
-    key = strip_start_end_spaces_tabs(pair[1])
+    key = strip_blanks(pair[1])
     params[key] = substr(key_values[k], length(pair[1]) + 2) # after the first colon
     keys[++n] = key
   }
@@ -673,7 +673,7 @@ function opt_store_sub_params(name, string_with_parameters,
                          params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
-    value = strip_start_end_spaces_tabs(params[key])
+    value = strip_blanks(params[key])
     if ((key == "L" || key == "M") && !is_bool(value)) {
       opt_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
     } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
@@ -697,7 +697,7 @@ function opt_store_dsub_params(name, string_with_parameters,
   n = opt_checked_params("DSUB", "A or D", name, string_with_parameters, table, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
-    value = strip_start_end_spaces_tabs(params[key])
+    value = strip_blanks(params[key])
     if (!is_bool(value)) {
       opt_error(sprintf("DSUB: parameter %s of %s should be 0 or 1", key, name))
     } else {
@@ -1110,7 +1110,7 @@ function fmt_document(body) {
 # The rules FNR == 1 and { ... } at the end of the section run the reset and the steps.
 
 # Record a warning about line of file ("" for none), printed before the docs (see
-# print_warnings).
+# render_print_warnings).
 function parser_add_warning(file, line, message) {
   WARNING_COUNT++
   WARNINGS[WARNING_COUNT, "file"] = file
@@ -1769,25 +1769,25 @@ FNR == 1 {
 }
 
 #### Rendering
-# The display of the documentation, in two stages: prepare_rendering decides what is
-# displayed (the DISPLAY records), then format_documentation lays it out in the output format
-# (print_documentation runs both and prints the result).
+# The display of the documentation, in two stages: render_prepare decides what is
+# displayed (the DISPLAY records), then render_documentation lays it out in the output format
+# (render_print_documentation runs both and prints the result).
 
 # Print the warnings recorded while parsing. They depend only on the Makefiles: hidden
 # anchors (VARS, DEPRECATED) are reported too.
-function print_warnings(k, location) { #locals
+function render_print_warnings(k, location) { #locals
   for (k = 1; k <= WARNING_COUNT; k++) {
     location = WARNINGS[k, "file"]
     if (WARNINGS[k, "line"] != "") {
       location = location ":" WARNINGS[k, "line"]
     }
-    print_warning(location, WARNINGS[k, "message"])
+    render_print_warning(location, WARNINGS[k, "message"])
   }
 }
 
 # Print a warning on stderr unless WARN is 0, in the GNU format: "program: location: warning:
 # message", or "program: warning: message" when location is ""
-function print_warning(location, message) {
+function render_print_warning(location, message) {
   if (!WARN) {
     return
   }
@@ -1799,7 +1799,7 @@ function print_warning(location, message) {
 }
 
 # Fill DISPLAY from ANCHORS (parser's output) and VARS, DEPRECATED, SUB, DSUB (the settings)
-function prepare_rendering(k, key, n, order, last, sections, anchor_kinds, i) { #locals
+function render_prepare(k, key, n, order, last, sections, anchor_kinds, i) { #locals
   split("", order)
   split("", last)
 
@@ -1814,7 +1814,7 @@ function prepare_rendering(k, key, n, order, last, sections, anchor_kinds, i) { 
   # order[1..n]  the key of each distinct anchor, in the order of its first definition
   # last[key]    the index in ANCHORS of the last definition of the anchor
 
-  place_sections(last, sections)
+  render_place_sections(last, sections)
   # Together (order, last, sections) give the rule: the last definition of an anchor decides
   # whether it is displayed; if so, only once,
   #   - at the position of its first definition
@@ -1825,8 +1825,8 @@ function prepare_rendering(k, key, n, order, last, sections, anchor_kinds, i) { 
   for (i = 1; i <= 2; i++) {
     for (k = 1; k <= n; k++) {
       key = order[k]
-      if (ANCHORS[last[key], "kind"] == anchor_kinds[i] && is_displayed(last[key])) {
-        add_display_record(last[key], key, sections)
+      if (ANCHORS[last[key], "kind"] == anchor_kinds[i] && render_is_displayed(last[key])) {
+        render_add_display_record(last[key], key, sections)
       }
     }
   }
@@ -1835,7 +1835,7 @@ function prepare_rendering(k, key, n, order, last, sections, anchor_kinds, i) { 
 # Whether the anchor of record k is displayed:
 #   variables are hidden when VARS is 0
 #   deprecated anchors (tag ##%) when DEPRECATED is 0.
-function is_displayed(k) {
+function render_is_displayed(k) {
   if (!VARS && ANCHORS[k, "kind"] == "variable") {
     return 0
   }
@@ -1856,9 +1856,9 @@ function is_displayed(k) {
 #
 # Fill:
 #   sections[key]: the section displayed above the anchor
-function place_sections(last,
-                        sections, #fill
-                        k, key, kind, has_section, section, section_kind) { #locals
+function render_place_sections(last,
+                               sections, #fill
+                               k, key, kind, has_section, section, section_kind) { #locals
   split("", sections)
   has_section = 0
   for (k = 1; k <= ANCHOR_COUNT; k++) {
@@ -1870,7 +1870,7 @@ function place_sections(last,
     }
 
     key = kind SUBSEP ANCHORS[k, "name"]
-    if (has_section && kind == section_kind && is_displayed(last[key])) {
+    if (has_section && kind == section_kind && render_is_displayed(last[key])) {
       sections[key] = section
       has_section = 0
     }
@@ -1880,16 +1880,16 @@ function place_sections(last,
 # Add the record of an anchor to DISPLAY (k: its last definition in ANCHORS, key: its key in
 # sections), with what will be displayed: its displayed name, its doc and section after DSUB,
 # and its SUB values and parameters
-function add_display_record(k, key, sections,
-                            name) { #locals
+function render_add_display_record(k, key, sections,
+                                   name) { #locals
   name = ANCHORS[k, "name"]
   DISPLAY_COUNT++
   DISPLAY[DISPLAY_COUNT, "kind"] = ANCHORS[k, "kind"]
-  DISPLAY[DISPLAY_COUNT, "name"] = display_name(name)
+  DISPLAY[DISPLAY_COUNT, "name"] = render_display_name(name)
   DISPLAY[DISPLAY_COUNT, "tag"] = ANCHORS[k, "tag"]
-  DISPLAY[DISPLAY_COUNT, "doc"] = apply_doc_substitutions(ANCHORS[k, "doc"])
+  DISPLAY[DISPLAY_COUNT, "doc"] = render_apply_doc_substitutions(ANCHORS[k, "doc"])
   if (key in sections) {
-    DISPLAY[DISPLAY_COUNT, "section"] = apply_doc_substitutions(sections[key])
+    DISPLAY[DISPLAY_COUNT, "section"] = render_apply_doc_substitutions(sections[key])
   }
   if ((k, "override") in ANCHORS) {
     DISPLAY[DISPLAY_COUNT, "override"] = 1
@@ -1904,8 +1904,8 @@ function add_display_record(k, key, sections,
 # The displayed name of an anchor: its SUB label if it has one, otherwise its name after the
 # DSUB substitutions with A:1, in order. SUB is looked up with the name as written, so DSUB
 # never changes which SUB applies.
-function display_name(anchor,
-                      k, name) { #locals
+function render_display_name(anchor,
+                             k, name) { #locals
   if (anchor in SUB_LABELS) {
     return SUB_LABELS[anchor]
   }
@@ -1920,8 +1920,8 @@ function display_name(anchor,
 
 # Apply the DSUB substitutions to the text of docs or section titles (those with D:1), in
 # the order given.
-function apply_doc_substitutions(text,
-                                 k) { #locals
+function render_apply_doc_substitutions(text,
+                                        k) { #locals
   for (k = 1; k <= DSUB_COUNT; k++) {
     if (DSUB_PARAM[DSUB_NAMES[k], "D"]) {
       text = string_replace(DSUB_NAMES[k], DSUB_VALUES[DSUB_NAMES[k]], text)
@@ -1930,14 +1930,14 @@ function apply_doc_substitutions(text,
   return text
 }
 
-function get_separator(character, len_anchors) {
+function render_separator(character, len_anchors) {
   return repeated_string(character, max(len_anchors,
                                         max(length(HEADER_TARGETS),
                                             length(HEADER_VARIABLES))))
 }
 
-function substitute_backticks_patterns(string,
-                                       before_match, inside_match, after_match) { #locals
+function render_substitute_backticks(string,
+                                     before_match, inside_match, after_match) { #locals
   # (gensub with a back-reference would do this in one call, but it is only in gawk)
   while (match(string, /`([^`]+)`/)) {
     before_match = substr(string, 1, RSTART - 1)
@@ -1949,15 +1949,15 @@ function substitute_backticks_patterns(string,
   return string
 }
 
-function colorize_doc_backticks(doc) {
+function render_backticks(doc) {
   if (COLOR_BACKTICKS_CODE != "") {
-    return substitute_backticks_patterns(doc)
+    return render_substitute_backticks(doc)
   }
   return doc
 }
 
 # the color code of an anchor, given by the tag of its doc
-function anchor_color(tag) {
+function render_anchor_color(tag) {
   if (tag == "##!") {
     return COLOR_ATTENTION_CODE
   } else if (tag == "##%") {
@@ -1969,19 +1969,19 @@ function anchor_color(tag) {
 # A doc laid out after names of width len_anchors: the first line offset from the name, the
 # next lines aligned with it, with the escapes of the output format and the colors of the
 # text in backticks
-function format_doc(doc, len_anchors,
+function render_doc(doc, len_anchors,
                     n, lines) { #locals
   # colored before the lines are indented: a span in backticks that continues on the next
   # line does not color the indentation
-  doc = colorize_doc_backticks(fmt_escape(doc))
+  doc = render_backticks(fmt_escape(doc))
   n = split(doc, lines, "\n")
   return spaces(OFFSET) join(lines, n, "\n" spaces(OFFSET + len_anchors)) # aligned lines
 }
 
 # a section, with the escapes of the output format and the colors of the text in backticks
-function format_section(section) {
+function render_section(section) {
   section = strip_trailing_blanks(section)
-  return colorize_doc_backticks(fmt_escape(section))
+  return render_backticks(fmt_escape(section))
 }
 
 # Return the text that follows the doc of an anchor: the values of its SUB substitution
@@ -1989,10 +1989,10 @@ function format_section(section) {
 # Each value is made into an item (P before it, S after it, I before the first one, T after
 # the last one instead of S); the items are on one line (M=0) or on one line each (M=1). The
 # first line follows the doc (L=0) or starts on the next line (L=1).
-function display_substitutions(sub_values, sub_row, len_anchors,
-                               values, n, k, item, lines, n_lines, initial, prefix, #locals
-                               separator, termination, indentation, next_indentation, #locals
-                               output) { #locals
+function render_sub_values(sub_values, sub_row, len_anchors,
+                           values, n, k, item, lines, n_lines, initial, prefix, #locals
+                           separator, termination, indentation, next_indentation, #locals
+                           output) { #locals
   n = split(sub_values, values, " ")
   if (SUB_PARAM[sub_row, "N"] >= 0) {
     n = min(n, SUB_PARAM[sub_row, "N"])
@@ -2017,7 +2017,7 @@ function display_substitutions(sub_values, sub_row, len_anchors,
     } else {
       item = item termination
     }
-    item = colorize_doc_backticks(fmt_escape(item))
+    item = render_backticks(fmt_escape(item))
     if (SUB_PARAM[sub_row, "M"] || k == 1) {
       lines[++n_lines] = item
     } else {
@@ -2038,11 +2038,11 @@ function display_substitutions(sub_values, sub_row, len_anchors,
 
 # Return the text of DISPLAY[k], after names of width len_anchors: its section, then its name
 # (colored by its tag, padded), its doc and its SUB values
-function format_anchor(k, len_anchors,
+function render_anchor(k, len_anchors,
                        section, label, formatted_anchor, padding, color, output) { #locals
   output = ""
   if ((k, "section") in DISPLAY) { # (an empty section is a blank line)
-    section = format_section(DISPLAY[k, "section"])
+    section = render_section(DISPLAY[k, "section"])
     output = fmt_color(section, COLOR_SECTION_CODE) "\n"
   }
 
@@ -2051,27 +2051,27 @@ function format_anchor(k, len_anchors,
   # the padding is measured on the label (an HTML or LaTeX escape is longer than
   # its character), then escaped too (PADDING can be any character)
   padding = fmt_escape(repeated_string(PADDING, len_anchors - text_length(label)))
-  color = anchor_color(DISPLAY[k, "tag"])
+  color = render_anchor_color(DISPLAY[k, "tag"])
   if (color) {
     formatted_anchor = color formatted_anchor padding COLOR_RESET_CODE
   } else {
     formatted_anchor = formatted_anchor padding
   }
 
-  output = output formatted_anchor format_doc(DISPLAY[k, "doc"], len_anchors) \
-           display_substitutions(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors)
+  output = output formatted_anchor render_doc(DISPLAY[k, "doc"], len_anchors) \
+           render_sub_values(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors)
   return strip_trailing_blanks(output)
 }
 
-# Return the documentation of the DISPLAY records (see prepare_rendering) in the output
+# Return the documentation of the DISPLAY records (see render_prepare) in the output
 # format: the targets, then the variables, each under a header, all names padded to the
 # longest one (see fmt_document).
-function format_documentation(k, len_anchors, separator, body) { #locals
+function render_documentation(k, len_anchors, separator, body) { #locals
   len_anchors = 0
   for (k = 1; k <= DISPLAY_COUNT; k++) {
     len_anchors = max(len_anchors, text_length(DISPLAY[k, "label"]))
   }
-  separator = get_separator("-", len_anchors)
+  separator = render_separator("-", len_anchors)
 
   body = ""
   for (k = 1; k <= DISPLAY_COUNT; k++) {
@@ -2083,7 +2083,7 @@ function format_documentation(k, len_anchors, separator, body) { #locals
              (DISPLAY[k, "kind"] == "target" ? HEADER_TARGETS : HEADER_VARIABLES) "\n" \
              separator "\n"
     }
-    body = body format_anchor(k, len_anchors)
+    body = body render_anchor(k, len_anchors)
   }
   if (DISPLAY_COUNT > 0) {
     body = body separator "\n"
@@ -2093,15 +2093,15 @@ function format_documentation(k, len_anchors, separator, body) { #locals
 
 # Display the documentation (all its output is printed from here): the warnings on stderr,
 # then the documentation on stdout.
-function print_documentation(document) { #locals
-  prepare_rendering()
-  print_warnings() # (on stderr, before the docs)
-  document = format_documentation()
+function render_print_documentation(document) { #locals
+  render_prepare()
+  render_print_warnings() # (on stderr, before the docs)
+  document = render_documentation()
   if (DISPLAY_COUNT == 0 && FILES_PROCESSED != "") {
     if (ANCHOR_COUNT > 0) {
-      print_warning("", "all documented targets/variables are hidden in " FILES_PROCESSED)
+      render_print_warning("", "all documented targets/variables are hidden in " FILES_PROCESSED)
     } else {
-      print_warning("", "no documented targets/variables in " FILES_PROCESSED)
+      render_print_warning("", "no documented targets/variables in " FILES_PROCESSED)
     }
   }
   printf("%s", document)
@@ -2136,7 +2136,7 @@ END {
       exit 1
     }
     parser_warn_about_continued_last_line()
-    print_documentation()
+    render_print_documentation()
   }
 }
 
