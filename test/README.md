@@ -168,8 +168,8 @@ BEGIN {
 A test that changes the global state can call `init_globals()` to reset it.
 
 `STDERR` sends the messages of the script to a file instead of `/dev/stderr`. A test reads them with
-`stderr_text()`, typically to check them, e.g., `check("bad option", stderr_text(), "ERROR:
-...\n")`. A message left unread fails the test file, so that no error or warning goes unnoticed.
+`stderr_text()`, typically to check them, e.g., `check("bad option", stderr_text(),
+"makefile-doc: error: ...\n")`. A message left unread fails the test file, so that no error or warning goes unnoticed.
 
 The output of the harness is in [TAP](https://testanything.org) format, a plain-text format with one
 line per check, ending with the number of checks:

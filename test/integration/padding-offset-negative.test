@@ -2,5 +2,5 @@
 #: issue: 103
 -v OFFSET=-1 test/fixtures/Makefile.padding
 #: stderr
-ERROR: OFFSET should be a non-negative integer
+makefile-doc: error: OFFSET should be a non-negative integer
 #: exit: 1

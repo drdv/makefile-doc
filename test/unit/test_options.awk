@@ -30,10 +30,10 @@ function test_process_options_errors() {
   check("opt_process: returns the number of invalid options", opt_process(), 4)
   check("opt_process: reports every invalid option",
         stderr_text(),
-        "ERROR: OUTPUT_FORMAT should be ANSI, HTML or LATEX\n" \
-        "ERROR: VARS should be 0 or 1\n" \
-        "ERROR: PADDING should have length 1\n" \
-        "ERROR: OFFSET should be a non-negative integer\n")
+        "makefile-doc: error: OUTPUT_FORMAT should be ANSI, HTML or LATEX\n" \
+        "makefile-doc: error: VARS should be 0 or 1\n" \
+        "makefile-doc: error: PADDING should have length 1\n" \
+        "makefile-doc: error: OFFSET should be a non-negative integer\n")
   check("opt_process: does not stop the script (BEGIN does)", ABORT, 0)
   clear_options()
   init_globals()
@@ -87,18 +87,18 @@ function test_form_substitutions_invalid(params, labels, values, names) { #local
   opt_form_substitutions("T1", 0, params, labels, values, names)
   check("opt_form_substitutions: name only is an error",
         stderr_text(),
-        "ERROR: SUB: 'T1' should be NAME:[[LABEL]:][VALUES]\n")
+        "makefile-doc: error: SUB: 'T1' should be NAME:[[LABEL]:][VALUES]\n")
   check("opt_form_substitutions: name only is not kept", array_length(names), 0)
 
   opt_form_substitutions("T1", 1, params, labels, values, names)
   check("opt_form_substitutions (DSUB): name only is an error that names DSUB",
         stderr_text(),
-        "ERROR: DSUB: 'T1' should be NAME:VALUE\n")
+        "makefile-doc: error: DSUB: 'T1' should be NAME:VALUE\n")
 
   opt_form_substitutions(":v", 0, params, labels, values, names)
   check("opt_form_substitutions: empty name is an error",
         stderr_text(),
-        "ERROR: SUB: ':v' has an empty NAME\n")
+        "makefile-doc: error: SUB: ':v' has an empty NAME\n")
 
   opt_form_substitutions(":v;T3:w", 0, params, labels, values, names)
   stderr_text()
@@ -129,8 +129,8 @@ function test_opt_checked_params(table, params, keys, n) { #locals
         "01")
   check("opt_checked_params: unknown and repeated parameters are reported",
         stderr_text(),
-        "ERROR: DSUB: unknown parameter Z of x (use A or D)\n" \
-        "ERROR: DSUB: parameter D of x is given more than once\n")
+        "makefile-doc: error: DSUB: unknown parameter Z of x (use A or D)\n" \
+        "makefile-doc: error: DSUB: parameter D of x is given more than once\n")
   init_globals()
 }
 
@@ -144,23 +144,23 @@ function test_opt_store_sub_params(params) { #locals
   opt_store_sub_params("t", "Z:1", params)
   check("opt_store_sub_params: unknown parameter",
         stderr_text(),
-        "ERROR: SUB: unknown parameter Z of t (use L, M, N, S, P, I or T)\n")
+        "makefile-doc: error: SUB: unknown parameter Z of t (use L, M, N, S, P, I or T)\n")
   opt_store_sub_params("t", "L:2,M:", params)
   check("opt_store_sub_params: L and M should be 0 or 1",
         stderr_text(),
-        "ERROR: SUB: parameter L of t should be 0 or 1\n" \
-        "ERROR: SUB: parameter M of t should be 0 or 1\n")
+        "makefile-doc: error: SUB: parameter L of t should be 0 or 1\n" \
+        "makefile-doc: error: SUB: parameter M of t should be 0 or 1\n")
   check("opt_store_sub_params: an invalid parameter keeps its default", params["t", "L"], 1)
   opt_store_sub_params("t", "N:-2", params)
   opt_store_sub_params("t", "N:1.5", params)
   check("opt_store_sub_params: N should be -1 or a non-negative integer",
         stderr_text(),
-        "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n" \
-        "ERROR: SUB: parameter N of t should be -1 or a non-negative integer\n")
+        "makefile-doc: error: SUB: parameter N of t should be -1 or a non-negative integer\n" \
+        "makefile-doc: error: SUB: parameter N of t should be -1 or a non-negative integer\n")
   opt_store_sub_params("t", "L:0,M:1,L:1", params)
   check("opt_store_sub_params: a repeated parameter",
         stderr_text(),
-        "ERROR: SUB: parameter L of t is given more than once\n")
+        "makefile-doc: error: SUB: parameter L of t is given more than once\n")
   check("opt_store_sub_params: every error is counted", OPTION_ERRORS, 6)
 }
 
@@ -247,14 +247,14 @@ function test_form_substitutions_repeated(params, labels, values, names) { #loca
   opt_form_substitutions("t:a;u:b;t:c;t:a", 0, params, labels, values, names)
   check("opt_form_substitutions: a repeated name is an error (also an identical repeat)",
         stderr_text(),
-        "ERROR: SUB: 't' is given more than once\n" \
-        "ERROR: SUB: 't' is given more than once\n")
+        "makefile-doc: error: SUB: 't' is given more than once\n" \
+        "makefile-doc: error: SUB: 't' is given more than once\n")
   check("opt_form_substitutions: every repeat is counted", OPTION_ERRORS, 2)
 
   opt_form_substitutions("$(X):a;$(X):b", 1, params, labels, values, names)
   check("opt_form_substitutions (DSUB): a repeated name is an error",
         stderr_text(),
-        "ERROR: DSUB: '$(X)' is given more than once\n")
+        "makefile-doc: error: DSUB: '$(X)' is given more than once\n")
 
   init_globals()
   opt_form_substitutions("t:a", 0, params, labels, values, names)
@@ -272,16 +272,16 @@ function test_opt_store_dsub_params(params) { #locals
 
   opt_store_dsub_params("x", "L:0", params)
   check("opt_store_dsub_params: unknown parameter",
-        stderr_text(), "ERROR: DSUB: unknown parameter L of x (use A or D)\n")
+        stderr_text(), "makefile-doc: error: DSUB: unknown parameter L of x (use A or D)\n")
   opt_store_dsub_params("x", "A:yes", params)
   check("opt_store_dsub_params: A should be 0 or 1",
-        stderr_text(), "ERROR: DSUB: parameter A of x should be 0 or 1\n")
+        stderr_text(), "makefile-doc: error: DSUB: parameter A of x should be 0 or 1\n")
   opt_store_dsub_params("x", "D:0", params)
   check("opt_store_dsub_params: replaced nowhere",
-        stderr_text(), "ERROR: DSUB: x is replaced nowhere (A and D are both 0)\n")
+        stderr_text(), "makefile-doc: error: DSUB: x is replaced nowhere (A and D are both 0)\n")
   opt_store_dsub_params("x", "A:1, A :1", params)
   check("opt_store_dsub_params: a repeated parameter",
-        stderr_text(), "ERROR: DSUB: parameter A of x is given more than once\n")
+        stderr_text(), "makefile-doc: error: DSUB: parameter A of x is given more than once\n")
   check("opt_store_dsub_params: every invalid parameter is counted", OPTION_ERRORS, 4)
   init_globals()
 }

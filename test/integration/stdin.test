@@ -2,7 +2,7 @@
 #: stdin: test/fixtures/Makefile.docs-precedence
 -v COLOR=0
 #: stderr
-makefile-doc: -:8: warning: redefined docs of target 't3'
+makefile-doc:-:8: warning: redefined docs of target 't3'
 #: stdout
 ------------------
 Available targets:

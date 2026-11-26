@@ -1,7 +1,7 @@
 #: desc: Top docs take precedence over inline docs; the last rule with docs defines them
 -v COLOR=0 test/fixtures/Makefile.docs-precedence
 #: stderr
-makefile-doc: test/fixtures/Makefile.docs-precedence:8: warning: redefined docs of target 't3'
+makefile-doc:test/fixtures/Makefile.docs-precedence:8: warning: redefined docs of target 't3'
 #: stdout
 ------------------
 Available targets:
