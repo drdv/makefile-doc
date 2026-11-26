@@ -119,6 +119,8 @@ def params() -> list[pytest.ParameterSet]:
 
 @pytest.mark.parametrize("case", params())
 def test_case(awk: Awk, case: Case, request: pytest.FixtureRequest) -> None:
+    if awk.ansi_args and not all(arg.isascii() for arg in case.args):
+        pytest.skip("awk gets its arguments in the ANSI code page, not in UTF-8")
     program = ("-f", TRACER, "-f", SCRIPT) if case.trace else ("-f", SCRIPT)
     try:
         proc = awk(*program, *case.args, env=case.env, stdin=case.stdin, timeout=case.timeout)

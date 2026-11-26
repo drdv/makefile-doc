@@ -44,6 +44,7 @@ awk = "gawk"
 host = true
 explicit = true
 crlf = true
+ansi_args = true
 awk = "C:/ProgramData/chocolatey/bin/gawk.exe"
 
 [host-gawk-posix]

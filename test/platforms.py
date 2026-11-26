@@ -62,6 +62,7 @@ class Awk(BaseModel):
     engine: str = ENGINE
 
     crlf: bool = False  # awk writes \r\n: the output is compared with \n
+    ansi_args: bool = False  # awk gets its arguments in the ANSI code page, not in UTF-8
 
     def _get_host_args(
         self, awk_exec_cmd: list[str], env: dict[str, str]
@@ -148,6 +149,7 @@ class Platform(BaseModel):
     ci: StrictBool = False  # also run in CI
     explicit: StrictBool = False  # selected only by its name, not by a pattern
     crlf: StrictBool = False  # awk writes \r\n (e.g., a native Windows awk)
+    ansi_args: StrictBool = False  # awk gets its arguments in the ANSI code page (native Windows)
 
     engine: str = ENGINE
 
@@ -211,7 +213,8 @@ class Platform(BaseModel):
             if self.build:
                 self._export_binary()
             self._verify_awk()
-            yield Awk(awk=self.awk_argv, engine=self.engine, crlf=self.crlf)
+            yield Awk(awk=self.awk_argv, engine=self.engine, crlf=self.crlf,
+                      ansi_args=self.ansi_args)
             return
 
         mounts = [f"--volume={ROOT}:{ROOT}:ro,z"] + [
