@@ -1,5 +1,4 @@
-SHELL := bash
-MAKEFLAGS := --no-print-directory --warn-undefined-variables
+MAKEFLAGS += --no-print-directory --warn-undefined-variables
 
 TEST_DIR := test
 MAKEFILE_DOC := makefile-doc.awk
