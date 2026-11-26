@@ -306,8 +306,8 @@ config:
       bottom: 20
 ---
 flowchart TD
-    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>init_globals(), process_options()"]
-    makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_join(), parser_observe(),<br/>parser_kind(), parser_documented(),<br/>parser_record_anchor(), parser_step(),<br/>parser_carry()"]
+    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>process_options()"]
+    makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_* (see the parser note)"]
     begin -- "constants" --> parsing
     begin --> settings[("Options and settings")]
 
@@ -316,8 +316,8 @@ flowchart TD
 
     subgraph end_ ["<b>END</b>: print_documentation()"]
         content["<b>Content</b><br/>prepare_rendering()"] --> display[("DISPLAY")]
-        display --> layout["<b>Layout</b><br/>format_documentation(),<br/>format_anchor()"]
-        layout --> formats["<b>Output formats</b><br/>fmt_escape(), fmt_color(),<br/>fmt_document()"]
+        display --> layout["<b>Layout</b><br/>format_documentation()"]
+        layout --> formats["<b>Output formats</b><br/>fmt_*()"]
     end
 
     interface --> content

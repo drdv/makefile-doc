@@ -89,7 +89,9 @@ path.
 
 ### Compatibility
 
-makefile-doc works with GNU Make 3.81 or later and with all the major awks (gawk, mawk, the one true
+makefile-doc runs with GNU Make 3.81 or later (3.81 is the version that ships with macOS), and its
+parser follows the syntax of GNU Make 4.4 (e.g., `:::=`, grouped targets `&:`), so Makefiles that
+use newer features are documented too. It works with all the major awks (gawk, mawk, the one true
 awk, busybox awk, wak and goawk), in versions spanning 30 years: from mawk 1.3.3 (1996) and gawk
 3.1.7 to the latest releases. The tested versions are listed as platforms in
 [test/containers.toml](test/containers.toml). It runs on Linux, macOS and Windows (with the awk of
@@ -123,14 +125,12 @@ target2: ## inline doc
 A doc goes either **above** its anchor, on one or more lines, or **inline**, after it[^inline]. If
 an anchor has both, the doc above is used.
 
-Some lines can appear between a doc and its anchor: blank lines, comments, conditionals (`ifeq` ...
-`endif`) and the [special
-targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html) of GNU Make such
-as `.PHONY: target` or `.ONESHELL:` (other targets whose names start with a dot, e.g., `.ENV:`, are
-regular targets). Any other line discards the doc: `include`, `vpath`, `endef`, an `export`
-without an assignment, a function call such as `$(info ...)`, or a comment banner (a comment that
-starts with three or more `#`, e.g., `###` or `### Build ###`). An `unexport` line discards the doc
-too, with or without names after it (it is a directive, not an assignment).
+Blank lines, comments, conditionals (`ifeq` ... `endif`) and [special
+targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html) such as
+`.PHONY: target` can appear between a doc and its anchor. Most other lines discard the doc, e.g.,
+`include`, `$(info ...)` or a comment banner (a comment that starts with three or more `#`, such as
+`### Build ###`). The full list is in the kinds of lines of
+[misc/docs/parser-model.tex](misc/docs/parser-model.tex).
 
 The remaining details:
 
@@ -139,14 +139,11 @@ The remaining details:
 - One blank after the tag is not part of the text: `## text` and `##text` are the same doc. More
   blanks are kept, e.g., to indent a line of a multi-line doc. The same holds for sections.
 - Deprecated anchors (`##%`) can be hidden with `-v DEPRECATED=0`.
-- As in GNU Make, a doc or a comment that ends with a backslash continues on the next line,
-  whatever that line is: the two are joined with a space. For example, a target on the next
-  line becomes part of the doc (Make does not see the target either).
-- On a target line, a `##` after an inline recipe (`target: ; command ## text`) is part of the
-  recipe, not a doc.
 - Docs and sections can be indented with spaces or tabs. In a rule, a line that starts with the
-  recipe prefix (a tab by default) is a recipe line, not a doc. As in GNU Make, this includes a
-  line that holds only the prefix (an empty recipe line): it discards the doc above it.
+  recipe prefix (a tab by default) is a recipe line, not a doc.
+- The edge cases of the syntax (a doc continued with a backslash, a `##` after an inline recipe,
+  an empty recipe line) follow GNU Make; see
+  [misc/docs/parser-model.tex](misc/docs/parser-model.tex).
 - A multi-line variable (`define NAME` ... `endef`) is documented above its `define` line, not
   inline.
 - A variable set with `override` is displayed with `(fixed)` after its name: `make VAR=value`
@@ -212,13 +209,11 @@ reported, nothing else is printed and the exit status is 1. An option given as a
 after the options are checked and used. As in GNU Make, only the first character of `RECIPEPREFIX`
 is used.
 
-The assignments to `.RECIPEPREFIX` in the Makefiles are followed: the prefix changes for the lines
-after them. `RECIPEPREFIX` is the prefix at the start, so it is needed only when the prefix is set
-where makefile-doc does not see it (on the command line of `make`, or in a file that is not passed
-to the script). A value that is not written on the line (`:=` with a reference, as in
-`.RECIPEPREFIX := $(P)`, `!=`, or a `define`) is not followed: the prefix keeps its previous value.
-With `=`, the value is used as written, and `?=` changes nothing, as in GNU Make (where
-`.RECIPEPREFIX` is always defined).
+The assignments to `.RECIPEPREFIX` in the Makefiles are followed, with a few exceptions (see the
+Limits section of [misc/docs/parser-model.tex](misc/docs/parser-model.tex)): the prefix changes for
+the lines after them. `RECIPEPREFIX` is the prefix at the start, so it is needed only when the
+prefix is set where makefile-doc does not see it (on the command line of `make`, or in a file that
+is not passed to the script).
 
 Without a Makefile, the script reads one from stdin, e.g., `cat Makefile | awk -f makefile-doc.awk`
 (in messages, stdin is named `-`). If stdin is empty, e.g., `awk -f makefile-doc.awk < /dev/null`

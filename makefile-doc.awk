@@ -35,10 +35,14 @@
 #     does not matter) and the locals (#locals: awk declares them as extra parameters). Each
 #     group is on its own line, followed by its marker (none for the inputs); the last group
 #     closes the parenthesis, and its marker follows the { (awk accepts no newline before
-#     the parenthesis). A signature with a single group is on one line:
-#             function f(x, y,                  function g(k, n) { #locals
-#                        out, #fill
-#                        k, n) { #locals
+#     the parenthesis). For example:
+#       function f(x, y,
+#                  out, #fill
+#                  k, n) { #locals
+#
+#     A signature with a single group is on one line:
+#       function g(k, n) { #locals
+#
 #   * A function comment lists the arrays that it updates and fills under Update: and Fill:,
 #     as name[key] = VALUE when the content is written as code (VALUE: a placeholder), and as
 #     name[key]: description otherwise. Within a list, the descriptions (and the lines that
@@ -103,9 +107,9 @@ function min(x, y) {
   return (x <= y) ? x : y
 }
 
-# string repeated n times. n must be a non-negative integer (the only n that comes from the
-# user, OFFSET, is checked by process_options). (A loop, not gsub, which would need & and \
-# escaped.)
+# string repeated n times, with n a non-negative integer. The only n that comes from the
+# user, OFFSET, is checked by process_options. A loop is used rather than gsub, whose
+# replacement would need & and \ escaped.
 function repeated_string(string, n,
                          s, k) { #locals
   s = ""
@@ -115,11 +119,12 @@ function repeated_string(string, n,
   return s
 }
 
-# The number of characters of a UTF-8 text, as wide as a column each (a wide character, e.g.,
-# Japanese, takes two columns on most terminals: it is not counted so). Some awks count bytes
-# (mawk, busybox, gawk in the C locale, goawk): there, the continuation bytes (\200 to \277)
-# of the multi-byte characters are not counted. They are compared one by one: a regex such as
-# [\200-\277] is rejected by goawk (its regexes match UTF-8 characters, not bytes).
+# The number of characters of a UTF-8 text, one column each.
+#   - A wide character (e.g., Japanese) takes two columns on most terminals, but counts as one.
+#   - Some awks count bytes (mawk, busybox, gawk in the C locale, goawk). There, the
+#     continuation bytes (\200 to \277) of the multi-byte characters are not counted.
+#   - The bytes are compared one by one: goawk rejects a regex such as [\200-\277], because
+#     its regexes match UTF-8 characters, not bytes.
 function text_length(text,
                      n, i, count, c) { #locals
   n = length(text)
@@ -1321,11 +1326,10 @@ function parser_mask(line,
   out = ""
   k = 1
   while (k <= n) {
-    # the characters up to the next $ or \ are copied in one piece, not one by one: in awks
-    # that count UTF-8 characters without an index (the one true awk, wak), substr takes time
-    # linear in the position (the string is walked from its start), so a loop over the
-    # characters would be quadratic; in awks that count bytes, and in gawk (which keeps a
-    # wide-character copy of the string), it takes constant time
+    # Copy the characters up to the next $ or \ in one piece, not one by one. In awks that
+    # count UTF-8 characters without an index (the one true awk, wak), substr walks the string
+    # from its start, so a loop over the characters would take quadratic time. In awks that
+    # count bytes, and in gawk (which keeps a wide-character copy), substr takes constant time.
     rest = substr(line, k)
     if (!match(rest, /[$\\]/)) {
       return out rest
@@ -1462,14 +1466,15 @@ function parser_observe(line,
     sub(/^[ \t]/, "", obs["inline_doc"])           # the one blank after the tag
   }
   obs["prefix"] = ""
-  # obs["prefix"] is set only when the assignement to .RECIPEPREFIX appears on the line itself. We
-  # cannot handle correctly:
-  #   define .RECIPEPREFIX
-  #   >
-  #   endef
-  # because its value is on the next lines (even though GNU Make would change the prefix to >).
-  # We handle correctly a target-specific assignment (t: .RECIPEPREFIX = >) -- it doesn't change
-  # the prefix (as in GNU Make). For handling various operators, see parser_new_prefix.
+  # obs["prefix"] is set only when the assignment to .RECIPEPREFIX is on the line itself.
+  #   - A define is not followed, because its value is on the next lines: after
+  #       define .RECIPEPREFIX
+  #       >
+  #       endef
+  #     GNU Make uses the prefix >, and the parser keeps the previous one.
+  #   - A target-specific assignment (t: .RECIPEPREFIX = >) does not change the prefix, as in
+  #     GNU Make.
+  # The operators are handled by parser_new_prefix.
   if (obs["line_kind"] == "assignment" && obs["anchor_kind"] == "variable" &&
       obs["anchor_name"] == ".RECIPEPREFIX" && ("operator" in obs)) {
     obs["prefix"] = parser_new_prefix(obs["operator"], obs["value"])
