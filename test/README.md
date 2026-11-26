@@ -111,7 +111,7 @@ BEGIN {                                # BEGIN #2
       ABORT = 1
       exit 1
     }
-    parser_init(PARSER_STATE, PARSER_MEMORY, RECIPEPREFIX)   # skipped
+    parser_init(RECIPEPREFIX, PARSER_STATE, PARSER_MEMORY)   # skipped
   }
 }
 ...                                    # rules that parse a Makefile (never run)
@@ -337,7 +337,5 @@ therefore always parsed the same way, whatever the display options, and gives th
 variables. Rendering then runs in two stages: `render_prepare` decides what is displayed (which
 anchors, under which names, with which docs and sections) and writes the `DISPLAY` records, and the
 layout prints them in the output format. The output goes to stdout in all three formats.
-
-The interface variables are the only data that parsing hands over to rendering:
 
 [^1]: `--update` takes one platform only and never rewrites a known-bug case.
