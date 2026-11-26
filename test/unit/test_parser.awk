@@ -415,7 +415,8 @@ function test_record_anchor(context, obs, before, memory) { #locals
   check("record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
         last_record(), "i|##%|<none>")
   check("record_anchor: a redefined doc is reported with its file and line",
-        WARNINGS[WARNING_COUNT], "[f:9] redefined docs of variable: V")
+        WARNINGS[WARNING_COUNT, "file"] ":" WARNINGS[WARNING_COUNT, "line"] ":" \
+        WARNINGS[WARNING_COUNT, "message"], "f:9:redefined docs of variable 'V'")
   init_globals()
 }
 

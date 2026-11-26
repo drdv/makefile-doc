@@ -2,4 +2,4 @@
 #: issue: 124
 -v COLOR=0 -v DEPRECATED=0 -v VARS=0 test/fixtures/Makefile.docs-tags-hidden-targets
 #: stderr
-WARNING: all documented targets/variables are hidden in test/fixtures/Makefile.docs-tags-hidden-targets
+makefile-doc: warning: all documented targets/variables are hidden in test/fixtures/Makefile.docs-tags-hidden-targets

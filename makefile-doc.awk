@@ -267,6 +267,7 @@ function init_globals() {
   # ---------------------------------------------------------------------------------------
 
   VERSION = "v2.1" # the source of truth for the version (tools/release.py updates it)
+  PROGRAM = "makefile-doc" # the name at the start of the warnings
 
   # The special built-in targets of GNU Make (see parser_observe). Suffix rules, which
   # GNU Make also counts as special targets, are not among them: they are displayed.
@@ -334,9 +335,12 @@ function init_globals() {
   split("", ANCHORS)
   ANCHOR_COUNT = 0
 
-  # the warnings about the Makefiles: index -> message and kind (see add_warning)
+  # the warnings about the Makefiles (see add_warning):
+  # WARNINGS[k, field], k = 1..WARNING_COUNT, with the fields
+  #   file     the file the warning is about
+  #   line     the line in that file ("" if none)
+  #   message  the text of the warning
   split("", WARNINGS)
-  split("", WARNING_KINDS)
   WARNING_COUNT = 0
 
   FILES_PROCESSED = "" # the names of the files read, separated by spaces
@@ -420,6 +424,7 @@ function process_options(sub_names, dummy_array_labels) { #locals
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
   OFFSET = OFFSET == "" ? 2 : OFFSET
+  WARN = WARN == "" ? 1 : WARN
   if (!is_bool(VARS)) {
     option_error("VARS should be 0 or 1")
   }
@@ -431,6 +436,9 @@ function process_options(sub_names, dummy_array_labels) { #locals
   }
   if (OFFSET !~ /^[0-9]+$/) {
     option_error("OFFSET should be a non-negative integer")
+  }
+  if (!is_bool(WARN)) {
+    option_error("WARN should be 0 or 1")
   }
 
   # (with "", gawk --lint does not warn when the option is not set)
@@ -691,6 +699,7 @@ function print_help() {
   print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
   print_option("PADDING", "character between anchors and docs", PADDING)
   print_option("OFFSET", "spaces between anchors and docs", OFFSET)
+  print_option("WARN", "print warnings on stderr (0 or 1)", WARN)
   print_option("COLOR", "use colors (0 or 1)", COLOR)
   print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
   # (EXPORT_THEME, SUB and DSUB have no default: with "", gawk --lint does not warn about them)
@@ -1072,11 +1081,13 @@ function fmt_document(body) {
 #  5. the memory is updated (parser_carry)
 # The rules at the end of the section run it.
 
-# Record a warning about the Makefiles (printed before the docs).
-# kind is: "target", "variable" or "file".
-function add_warning(kind, message) {
-  WARNINGS[++WARNING_COUNT] = message
-  WARNING_KINDS[WARNING_COUNT] = kind
+# Record a warning about line of file ("" for none), printed before the docs (see
+# print_warnings).
+function add_warning(file, line, message) {
+  WARNING_COUNT++
+  WARNINGS[WARNING_COUNT, "file"] = file
+  WARNINGS[WARNING_COUNT, "line"] = line
+  WARNINGS[WARNING_COUNT, "message"] = message
 }
 
 # A last line that ends with a backslash cannot be joined, so it is not parsed. awk has no
@@ -1085,8 +1096,8 @@ function add_warning(kind, message) {
 function warn_about_continued_last_line() {
   if (PARSER_JOINER["joining"] &&
       !(PARSER_STATE["r"] && substr(PARSER_JOINER["pending"], 1, 1) == PARSER_STATE["p"])) {
-    add_warning("file", sprintf("[%s] the last line ends with a backslash",
-                                PARSER_CONTEXT["file"]))
+    add_warning(PARSER_CONTEXT["file"], PARSER_JOINER["start"],
+                "the last line ends with a backslash")
   }
 }
 
@@ -1592,8 +1603,7 @@ function record_anchor(obs, before, memory, line_number,
   kind = obs["anchor_kind"]
   name = kind == "target" ? form_target_name(obs, context) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
-    add_warning(kind, sprintf("[%s:%s] redefined docs of %s: %s", context["file"],
-                              line_number, kind, name))
+    add_warning(context["file"], line_number, sprintf("redefined docs of %s '%s'", kind, name))
   }
   context["seen", kind, name] = 1
   ANCHOR_COUNT++
@@ -1725,13 +1735,28 @@ FNR == 1 {
 # displayed (the DISPLAY records), then format_documentation lays it out in the output format
 # (print_documentation runs both and prints the result).
 
-# Print the warnings recorded while parsing, except those about variables with VARS=0 (they
-# are not displayed)
-function print_warnings(k) { #locals
+# Print the warnings recorded while parsing. They depend only on the Makefiles: hidden
+# anchors (VARS, DEPRECATED) are reported too.
+function print_warnings(k, location) { #locals
   for (k = 1; k <= WARNING_COUNT; k++) {
-    if (!(WARNING_KINDS[k] == "variable" && !VARS)) {
-      printf("WARNING: %s\n", WARNINGS[k]) > STDERR
+    location = WARNINGS[k, "file"]
+    if (WARNINGS[k, "line"] != "") {
+      location = location ":" WARNINGS[k, "line"]
     }
+    print_warning(location, WARNINGS[k, "message"])
+  }
+}
+
+# Print a warning on stderr unless WARN is 0, in the GNU format: "program: location: warning:
+# message", or "program: warning: message" when location is ""
+function print_warning(location, message) {
+  if (!WARN) {
+    return
+  }
+  if (location != "") {
+    printf("%s: %s: warning: %s\n", PROGRAM, location, message) > STDERR
+  } else {
+    printf("%s: warning: %s\n", PROGRAM, message) > STDERR
   }
 }
 
@@ -2037,10 +2062,9 @@ function print_documentation(document) { #locals
   document = format_documentation()
   if (DISPLAY_COUNT == 0 && FILES_PROCESSED != "") {
     if (ANCHOR_COUNT > 0) {
-      printf("WARNING: all documented targets/variables are hidden in %s\n",
-             FILES_PROCESSED) > STDERR
+      print_warning("", "all documented targets/variables are hidden in " FILES_PROCESSED)
     } else {
-      printf("WARNING: no documented targets/variables in %s\n", FILES_PROCESSED) > STDERR
+      print_warning("", "no documented targets/variables in " FILES_PROCESSED)
     }
   }
   printf("%s", document)

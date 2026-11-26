@@ -1,0 +1,2 @@
+#: desc: WARN=0 turns off the warning that there are no documented targets or variables
+-v COLOR=0 -v WARN=0 test/fixtures/Makefile.docs-none

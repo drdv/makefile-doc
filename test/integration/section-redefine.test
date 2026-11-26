@@ -1,7 +1,7 @@
 #: desc: Redefining the docs and the section of a target gives a warning; the last ones are used
 -v COLOR=0 test/fixtures/Makefile.section-redefine
 #: stderr
-WARNING: [test/fixtures/Makefile.section-redefine:11] redefined docs of target: t1
+makefile-doc: test/fixtures/Makefile.section-redefine:11: warning: redefined docs of target 't1'
 #: stdout
 ------------------
 Available targets:
