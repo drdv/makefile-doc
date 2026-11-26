@@ -552,15 +552,15 @@ function trace_memory(text,
 
 function test_parser_memory() {
   check("memory: doc and section lines are added without their tags",
-        trace_memory("##@ s1|## d1|##! d2|##@ s2"), "/ s1  d1/ s1  d1+ d2/ s1  d1+ d2/ s1+ s2")
+        trace_memory("##@ s1|## d1|##! d2|##@ s2"), "/s1 d1/s1 d1+d2/s1 d1+d2/s1+s2")
   check("memory: a directive drops the doc, an undocumented anchor keeps the section",
-        trace_memory("##@ s|## d|include x|t:"), "/ s  d/ s / s / s")
+        trace_memory("##@ s|## d|include x|t:"), "/s d/s /s /s")
   check("memory: a special rule keeps the doc",
-        trace_memory("## d|.PHONY: t"), " d/  d/")
+        trace_memory("## d|.PHONY: t"), "d/ d/")
   check("memory: a documented anchor takes the doc and the section",
-        trace_memory("##@ s|## d|t:"), "/ s  d/ s /")
+        trace_memory("##@ s|## d|t:"), "/s d/s /")
   check("memory: an inline doc takes the section, not the text of the doc",
-        trace_memory("##@ s|t: ## i"), "/ s /")
+        trace_memory("##@ s|t: ## i"), "/s /")
   init_globals()
 }
 
@@ -582,11 +582,13 @@ function recorded(text,
 
 function test_parser_records() {
   check("record: the pending doc, with the tag of its first line, and the section",
-        recorded("##@ s|##! d1|## d2|t:"), " d1\n d2|##!| s")
+        recorded("##@ s|##! d1|## d2|t:"), "d1\nd2|##!|s")
   check("record: the pending doc wins over the inline doc", recorded("## d|t: ##% i"),
-        " d|##|<none>")
-  check("record: the inline doc, without a pending doc", recorded("t: ##% i"), " i|##%|<none>")
-  check("record: an empty section is a section", recorded("##@|t: ## i"), " i|##|")
+        "d|##|<none>")
+  check("record: the inline doc, without a pending doc", recorded("t: ##% i"), "i|##%|<none>")
+  check("record: an empty section is a section", recorded("##@|t: ## i"), "i|##|")
+  check("record: the one blank after the tag is removed, with or without it the same text",
+        recorded("##d1|## d2|t: ##i") "/" recorded("##   d|t:"), "d1\nd2|##|<none>/  d|##|<none>")
   init_globals()
 }
 

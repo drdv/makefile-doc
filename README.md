@@ -137,6 +137,8 @@ The remaining details:
 
 - In a multi-line doc, only the first line needs the `##!` or `##%` tag; the other lines can start
   with `##`.
+- One blank after the tag is not part of the text: `## text` and `##text` are the same doc. More
+  blanks are kept, e.g., to indent a line of a multi-line doc. The same holds for sections.
 - Deprecated anchors (`##%`) can be hidden with `-v DEPRECATED=0`.
 - As in GNU Make, a doc or a comment that ends with a backslash continues on the next line,
   whatever that line is: the two are joined with a space. For example, a target on the next
@@ -192,7 +194,7 @@ help: ## Show this help
 | `VARS`            | `0`, (`1`)                              | show documented variables                 |
 | `DEPRECATED`      | `0`, (`1`)                              | show deprecated anchors                   |
 | `PADDING`         | one character (space)                   | fills the gap between anchors and docs    |
-| `OFFSET`          | `0`, `1`, (`2`), ...                    | number of spaces between anchors and docs |
+| `OFFSET`          | `0`, `1`, `2`, (`3`), ...               | spaces between the longest name and docs  |
 | `WARN`            | `0`, (`1`)                              | print warnings on stderr                  |
 | `COLOR`           | `0`, (`1`)                              | `0` turns off all colors                  |
 | `OUTPUT_FORMAT`   | (`ANSI`), `HTML`, `LATEX`               | format of the output                      |

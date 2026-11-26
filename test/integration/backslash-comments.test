@@ -13,7 +13,7 @@ t-three-backslashes   A doc that ends with three backslashes (continued) \\ on t
 t-after-target        A continued doc swallows the next line, a target t-swallowed:
 t-after-variable      A continued doc swallows the next line, a variable V_SWALLOWED := 1 ## part of the doc above
 t-plain-comment       A doc kept above a continued plain comment
- A section continued
+A section continued
 t-section             A doc below the section
 t-doc-doc             A doc ## continued with a doc line
 -------------------

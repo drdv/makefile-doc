@@ -6,5 +6,5 @@
 Available targets:
 ------------------
 t2   Docs below a banner
-t4  # Docs starting with three # (kept)
+t4   # Docs starting with three # (kept)
 ------------------

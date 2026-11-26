@@ -13,49 +13,49 @@ makefile-doc: test/fixtures/Makefile.vars-assignment:115: warning: redefined doc
 Variables:
 ------------------
 
- ----- recursive assignments
+----- recursive assignments
 
 a1   case 1
 a2   case 2
 a3   case 3
 a4      case 5
 
- ----- simply expanded variables with :=
+----- simply expanded variables with :=
 
 b1   case 1
 b2   case 2
 b3   case 3
 b4      case 5
 
- ----- simply expanded variables with ::=
+----- simply expanded variables with ::=
 
 c1   case 1
 c2   case 2
 c3   case 3
 c4      case 5
 
- ----- immediately expanded variable
+----- immediately expanded variable
 
 d1   case 1
 d2   case 2
 d3   case 3
 d4      case 5
 
- ----- shell assignment
+----- shell assignment
 
 e1   case 1
 e2   case 2
 e3   case 3
 e4      case 5
 
- ----- conditional assignment
+----- conditional assignment
 
 f1   case 1
 f2   case 2
 f3   case 3
 f4      case 5
 
- ----- append assignment
+----- append assignment
 
 g1   case 1
 g2   case 2

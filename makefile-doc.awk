@@ -425,7 +425,7 @@ function process_options(sub_names, dummy_array_labels) { #locals
   VARS = VARS == "" ? 1 : VARS
   PADDING = PADDING == "" ? " " : PADDING
   DEPRECATED = DEPRECATED == "" ? 1 : DEPRECATED
-  OFFSET = OFFSET == "" ? 2 : OFFSET
+  OFFSET = OFFSET == "" ? 3 : OFFSET
   WARN = WARN == "" ? 1 : WARN
   if (!is_bool(VARS)) {
     option_error("VARS should be 0 or 1")
@@ -700,7 +700,7 @@ function print_help() {
   print_option("VARS", "show documented variables (0 or 1)", VARS)
   print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
   print_option("PADDING", "character between anchors and docs", PADDING)
-  print_option("OFFSET", "spaces between anchors and docs", OFFSET)
+  print_option("OFFSET", "spaces between names and docs", OFFSET)
   print_option("WARN", "print warnings on stderr (0 or 1)", WARN)
   print_option("COLOR", "use colors (0 or 1)", COLOR)
   print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
@@ -1431,9 +1431,9 @@ function parser_file_start(state, memory) { #update
 #   obs["first_char"]: the first character of the line ("" for an empty line)
 #   obs["inline"]:     1 if the line has an anchor and its comment starts with ## but not
 #                      ##@ (an inline doc)
-#   obs["inline_doc"]: that comment without its tag ("" if there is none)
-#   obs["text"]:       the line without its leading blanks and its tag, for a doc or
-#                      section line ("" otherwise)
+#   obs["inline_doc"]: that comment without its tag and the one blank after it ("" if none)
+#   obs["text"]:       the line without its leading blanks, its tag and the one blank after
+#                      it, for a doc or section line ("" otherwise)
 #   obs["tag"]:        the tag of a doc line or of the inline doc (##, ##! or ##%), "" otherwise
 #   obs["prefix"]:     the prefix that the line assigns to .RECIPEPREFIX ("" otherwise)
 function parser_observe(line,
@@ -1450,13 +1450,16 @@ function parser_observe(line,
     sub(/^[ \t]+/, "", obs["text"])
     obs["tag"] = parser_get_doc_tag(obs["text"])
     sub(TAG_REGEX, "", obs["text"])
+    sub(/^[ \t]/, "", obs["text"])                 # the one blank after the tag
   } else if (obs["line_kind"] == "section") {
     obs["text"] = line
     sub(/^[ \t]*##@/, "", obs["text"])
+    sub(/^[ \t]/, "", obs["text"])                 # the one blank after the tag
   } else if (obs["inline"]) {
     obs["inline_doc"] = obs["comment"]
     obs["tag"] = parser_get_doc_tag(obs["inline_doc"])
     sub(TAG_REGEX, "", obs["inline_doc"])
+    sub(/^[ \t]/, "", obs["inline_doc"])           # the one blank after the tag
   }
   obs["prefix"] = ""
   # obs["prefix"] is set only when the assignement to .RECIPEPREFIX appears on the line itself. We
@@ -1997,9 +2000,8 @@ function display_substitutions(sub_values, sub_row, len_anchors,
     }
   }
 
-  # the + 1 assumes the usual space after the tag (as in `## doc`), so that the values
-  # line up with the text of the doc
-  indentation = spaces(len_anchors + OFFSET + 1)
+  # the values line up with the text of the doc
+  indentation = spaces(len_anchors + OFFSET)
   output = (SUB_PARAM[sub_row, "L"] ? "\n" indentation : " ") lines[1]
   # the lines after the first are aligned with the first value (after I)
   next_indentation = indentation spaces(text_length(initial))

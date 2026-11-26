@@ -1,0 +1,12 @@
+#: desc: OFFSET is the gap between the longest name and the docs, SUB values included
+-v COLOR=0 -v OFFSET=0 -v SUB=first:a\ b test/fixtures/Makefile.offset
+#: stdout
+------------------
+Available targets:
+------------------
+first        With a blank after the tag
+             a
+             b
+second-targetWithout a blank after the tag
+third          With three blanks: two are kept
+------------------

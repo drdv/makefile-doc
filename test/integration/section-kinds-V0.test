@@ -5,11 +5,11 @@
 Available targets:
 ------------------
 build     Compile
- Test
+Test
 test      Use `make check` (the section belongs to the targets)
 check     Run the tests
- Release
+Release
 publish   Deprecated, and alone in its section
- Install
+Install
 install   Install the binaries
 ------------------

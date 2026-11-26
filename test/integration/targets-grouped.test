@@ -5,18 +5,18 @@
 Available targets:
 --------------------
 
- ----- Independent Targets -----
+----- Independent Targets -----
 
 first second           two targets
 a b                    other two targets
 
- ----- Grouped Targets -----
+----- Grouped Targets -----
 
 me myself and I&       four grouped targets
 the show must go on&   five grouped targets
 lonely&                a bit pointless grouping one target
 
- ----- Double-colon grouped Targets -----
+----- Double-colon grouped Targets -----
 
 yes no&~1              two grouped targets with double-colon (recipe 1)
 yes no&~2              two {`grouped`, `targets`, `with`, `double-colon`} (recipe 2)

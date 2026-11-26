@@ -5,14 +5,14 @@
 Available targets:
 ------------------
 build     Compile
- Test
+Test
 check     Run the tests
- Install
+Install
 install   Install the binaries
 
 ------------------
 Variables:
 ------------------
- Build
+Build
 JOBS      Number of jobs (the section belongs to the variables)
 ------------------

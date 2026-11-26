@@ -1,0 +1,8 @@
+## With a blank after the tag
+first:
+
+##Without a blank after the tag
+second-target:
+
+##   With three blanks: two are kept
+third:

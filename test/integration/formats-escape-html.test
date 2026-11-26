@@ -13,7 +13,7 @@
 ------------------
 Available targets:
 ------------------
- Section with &lt;tags&gt; &amp; ampersands
+Section with &lt;tags&gt; &amp; ampersands
 test   Run the tests (use AWK=&lt;variant&gt; &amp; co)
 a b&amp;   Grouped targets (displayed with a &amp;)
 

@@ -14,7 +14,7 @@ function test_process_options_defaults() {
   clear_options()
   check("process_options: no option, no invalid option", process_options(), 0)
   check("process_options: the defaults",
-        OUTPUT_FORMAT " " VARS " " DEPRECATED " " OFFSET " [" PADDING "]", "ANSI 1 1 2 [ ]")
+        OUTPUT_FORMAT " " VARS " " DEPRECATED " " OFFSET " [" PADDING "]", "ANSI 1 1 3 [ ]")
   check("process_options: the default recipe prefix is a tab", RECIPEPREFIX, "\t")
   clear_options()
   init_globals()

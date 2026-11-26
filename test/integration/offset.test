@@ -1,0 +1,10 @@
+#: desc: One blank after the tag is removed: docs with and without it are aligned
+-v COLOR=0 test/fixtures/Makefile.offset
+#: stdout
+------------------
+Available targets:
+------------------
+first           With a blank after the tag
+second-target   Without a blank after the tag
+third             With three blanks: two are kept
+------------------

@@ -14,7 +14,7 @@
 Available targets:
 ------------------
 
-<span class="makefile-doc-section"> Section with <span class="makefile-doc-backticks">backticks</span> and {braces}</span>
+<span class="makefile-doc-section">Section with <span class="makefile-doc-backticks">backticks</span> and {braces}</span>
 
 <span class="makefile-doc-default">t-default   </span>   A default target with <span class="makefile-doc-backticks">backticks</span> and {braces}
                on two lines

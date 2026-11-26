@@ -32,7 +32,7 @@
 Available targets:
 ------------------
 
-\textcolor{makefile-doc-section}{ Section with \bgcolor{makefile-doc-backticks}{backticks} and \{braces\}}
+\textcolor{makefile-doc-section}{Section with \bgcolor{makefile-doc-backticks}{backticks} and \{braces\}}
 
 \textcolor{makefile-doc-default}{t-default   }   A default target with \bgcolor{makefile-doc-backticks}{backticks} and \{braces\}
                on two lines
