@@ -16,10 +16,13 @@ test/fixtures/Makefile.docs-banner
   10 0 1  0  0 \t |   ####  
   11 0 1  0  0 \t | t3:
   12 0 1  0  0 \t |
-  13 0 1  1  0 \t | ### Docs starting with three # (kept)
+  13 0 1  0  0 \t | ### A heading is a banner, not a doc
   14 0 1  0  0 \t | t4:
-  14 ============ => target:[t4]
   15 0 1  0  0 \t |
-  16 0 1  1  0 \t | ## Docs of a variable above a banner (discarded)
-  17 0 1  0  0 \t | ###
-  18 0 0  0  0 \t | V := 1
+  16 0 1  1  0 \t | ## Docs above a heading (discarded)
+  17 0 1  0  0 \t | #### Heading ####
+  18 0 1  0  0 \t | t5:
+  19 0 1  0  0 \t |
+  20 0 1  1  0 \t | ## Docs of a variable above a banner (discarded)
+  21 0 1  0  0 \t | ###
+  22 0 0  0  0 \t | V := 1

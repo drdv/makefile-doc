@@ -10,8 +10,12 @@ t2:
   ####  
 t3:
 
-### Docs starting with three # (kept)
+### A heading is a banner, not a doc
 t4:
+
+## Docs above a heading (discarded)
+#### Heading ####
+t5:
 
 ## Docs of a variable above a banner (discarded)
 ###
