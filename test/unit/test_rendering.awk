@@ -136,7 +136,7 @@ function test_substitute_backticks_patterns() {
 # display_substitutions: the values of a SUB, with the parameters of its row of SUB_PARAM
 function test_display_substitutions(labels, values, names) { #locals
   init_globals()
-  OFFSET = 2
+  OFFSET = 3
   check("display_substitutions: no values", display_substitutions("", "", 1), "\n")
   check("display_substitutions: the defaults (one value per line, on the next lines)",
         display_substitutions("a b", "", 1), "\n    a\n    b\n")
@@ -152,15 +152,15 @@ function test_display_substitutions(labels, values, names) { #locals
 # format_doc: the doc after the name, its lines aligned
 function test_format_doc() {
   init_globals()
-  OFFSET = 2
+  OFFSET = 3
   check("format_doc: the lines aligned with the first one (width 1)",
-        format_doc(" a\n b", 1), "   a\n    b")
+        format_doc("a\nb", 1), "   a\n    b")
   OUTPUT_FORMAT = "HTML"
   COLOR_BACKTICKS = 1
   COLOR_BACKTICKS_CODE = "<b>"
   COLOR_RESET_CODE = "</b>"
   check("format_doc: a span in backticks across lines does not color the indentation",
-        format_doc(" see `foo\n bar` here", 1), "   see <b>foo</b>\n   <b> bar</b> here")
+        format_doc("see `foo\nbar` here", 1), "   see <b>foo</b>\n    <b>bar</b> here")
   OFFSET = OUTPUT_FORMAT = COLOR_BACKTICKS = ""
   init_globals()
 }
@@ -178,17 +178,17 @@ function display_record(label, tag, doc) {
 # format_anchor: one DISPLAY record in, its text out (no colors)
 function test_format_anchor() {
   init_globals()
-  OFFSET = 2
+  OFFSET = 3
   PADDING = "."
-  display_record("t", "##", " doc")
+  display_record("t", "##", "doc")
   check("format_anchor: the label padded to the width, then the doc", format_anchor(1, 3),
         "t..   doc\n")
-  DISPLAY[1, "doc"] = " line 1\n line 2"
+  DISPLAY[1, "doc"] = "line 1\nline 2"
   check("format_anchor: the next lines of the doc are aligned with the first one",
         format_anchor(1, 3), "t..   line 1\n      line 2\n")
-  DISPLAY[1, "section"] = " S"
-  DISPLAY[1, "doc"] = " doc"
-  check("format_anchor: the section above", format_anchor(1, 3), " S\nt..   doc\n")
+  DISPLAY[1, "section"] = "S"
+  DISPLAY[1, "doc"] = "doc"
+  check("format_anchor: the section above", format_anchor(1, 3), "S\nt..   doc\n")
   DISPLAY[1, "section"] = ""
   check("format_anchor: an empty section is a blank line", format_anchor(1, 3),
         "\nt..   doc\n")
@@ -204,10 +204,10 @@ function test_format_documentation() {
   init_globals()
   VARS = 1
   DEPRECATED = 1
-  OFFSET = 2
+  OFFSET = 3
   PADDING = "."
-  add_anchor("variable", "VAR", "##", " v", " S")
-  add_anchor("target", "t", "##", " doc", "")
+  add_anchor("variable", "VAR", "##", "v", "S")
+  add_anchor("target", "t", "##", "doc", "")
   prepare_rendering()
   check("format_documentation: the targets, then the variables (no colors)",
         format_documentation(),
@@ -219,7 +219,7 @@ function test_format_documentation() {
         "------------------\n" \
         "Variables:\n" \
         "------------------\n" \
-        " S\n" \
+        "S\n" \
         "VAR   v\n" \
         "------------------\n")
 

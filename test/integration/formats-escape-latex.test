@@ -32,7 +32,7 @@
 ------------------
 Available targets:
 ------------------
- Section with <tags> & ampersands
+Section with <tags> & ampersands
 test   Run the tests (use AWK=<variant> & co)
 a b&   Grouped targets (displayed with a &)
 

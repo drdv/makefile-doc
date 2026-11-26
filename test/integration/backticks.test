@@ -7,11 +7,11 @@ Available targets:
 [34mb1[0m   {[1mA[0m, [1mset[0m, [1mwith[0m, [1melements[0m}
 [34mb2[0m   [1mAll in backticks[0m
 
-[32m  Section [1m{first second} third[0m[32m stuff[0m
+[32m Section [1m{first second} third[0m[32m stuff[0m
 
 [34mb3[0m   No backticks
 [34mb4[0m   Text in backticks [1mthat spans[0m
-    [1m two lines[0m (each line is colored on its own)
+     [1mtwo lines[0m (each line is colored on its own)
 
 ------------------
 Variables:

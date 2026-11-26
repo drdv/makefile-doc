@@ -126,9 +126,9 @@ line $i$ is read with $D_{i-1}$. For example:
   \toprule
   $i$ & $L_i$ & $\Obs{text}$ & the texts of $D_i$ \\
   \midrule
-  1 & \code{\ \ \#\# Compile the} & \code{\ Compile the} & $\langle$\code{\ Compile the}$\rangle$ \\
-  2 & \code{\#\# project} & \code{\ project} &
-      $\langle$\code{\ Compile the}, \code{\ project}$\rangle$ \\
+  1 & \code{\ \ \#\# Compile the} & \code{Compile the} & $\langle$\code{Compile the}$\rangle$ \\
+  2 & \code{\#\# project} & \code{project} &
+      $\langle$\code{Compile the}, \code{project}$\rangle$ \\
   3 & \code{build:} & & $\emptyseq$ (the doc of \code{build}: $D_2$) \\
   \bottomrule
 \end{tabular}
@@ -202,9 +202,10 @@ Table~\ref{tab:obs} lists them.
   $\Obs{override}$ & 1 if a variable is set with the qualifier \code{override} \\
   $\Obs{inline}$ & 1 if $L_i$ has an anchor and its comment (section~\ref{sec:lexical})
                    starts with \code{\#\#} but not \code{\#\#@}: an inline doc \\
-  $\Obs{inline\_doc}$ & that comment without its tag (empty if there is none) \\
-  $\Obs{text}$ & $L_i$ without its leading blanks and its tag, if $\Obs{line\_kind}$ is
-                 \kind{doc} or \kind{section} (empty otherwise) \\
+  $\Obs{inline\_doc}$ & that comment without its tag and the one blank after it (empty if
+                        there is none) \\
+  $\Obs{text}$ & $L_i$ without its leading blanks, its tag and the one blank after it, if
+                 $\Obs{line\_kind}$ is \kind{doc} or \kind{section} (empty otherwise) \\
   $\Obs{tag}$ & the tag of a doc line, or of the inline doc: \code{\#\#}, \code{\#\#!} or
                 \code{\#\#\%} (empty otherwise) \\
   $\Obs{prefix}$ & the prefix that $L_i$ assigns to \code{.RECIPEPREFIX}, when the value is

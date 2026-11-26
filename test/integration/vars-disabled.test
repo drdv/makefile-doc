@@ -7,7 +7,7 @@ makefile-doc: test/fixtures/Makefile.vars:33: warning: redefined docs of variabl
 Available targets:
 ------------------
 
- ----- This section in anchored on a target -----
+----- This section in anchored on a target -----
 
 some-target   some target (that will consume the above section)
 ------------------

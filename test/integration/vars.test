@@ -7,7 +7,7 @@ makefile-doc: test/fixtures/Makefile.vars:33: warning: redefined docs of variabl
 Available targets:
 ------------------
 
- ----- This section in anchored on a target -----
+----- This section in anchored on a target -----
 
 some-target     some target (that will consume the above section)
 
@@ -23,7 +23,7 @@ VAR3_0              Third variable (without value)
 VAR4            Top comment with value (to expand)
 VAR5            Inline comment with value (to expand)
 
- ----- Will be associated with the next anchor (which happens to be a variable) -----
+----- Will be associated with the next anchor (which happens to be a variable) -----
 
 VAR6            Overwrites previous docs for this variable (change to deprecated)
 x               A one letter variable

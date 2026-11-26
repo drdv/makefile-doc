@@ -5,7 +5,7 @@
 Available targets:
 ------------------
 
- --- Files in out ---
+--- Files in out ---
 
 $(OUT_DIR)/a   Write out/a
 ------------------

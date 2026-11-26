@@ -35,7 +35,7 @@
 \textcolor{makefile-doc-fg}{Available targets:}
 \textcolor{makefile-doc-fg}{------------------}
 
-\textcolor{makefile-doc-fg}{\emph{ Section with \sout{backticks} and \{braces\}}}
+\textcolor{makefile-doc-fg}{\emph{Section with \sout{backticks} and \{braces\}}}
 
 \textcolor{makefile-doc-fg}{\textcolor{makefile-doc-default}{t-default   }   A default target with \sout{backticks} and \{braces\}}
 \textcolor{makefile-doc-fg}{               on two lines}

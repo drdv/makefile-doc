@@ -6,6 +6,6 @@ makefile-doc: test/fixtures/Makefile.section-redefine-deprecated:6: warning: red
 ------------------
 Available targets:
 ------------------
- Build
+Build
 test   Run the tests
 ------------------
