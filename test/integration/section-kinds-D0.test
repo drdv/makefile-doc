@@ -1,0 +1,18 @@
+#: desc: With DEPRECATED=0, a section moves to the next displayed anchor of its kind, or is dropped
+-v COLOR=0 -v DEPRECATED=0 test/fixtures/Makefile.section-kinds
+#: stdout
+------------------
+Available targets:
+------------------
+build     Compile
+ Test
+check     Run the tests
+ Install
+install   Install the binaries
+
+------------------
+Variables:
+------------------
+ Build
+JOBS      Number of jobs (the section belongs to the variables)
+------------------

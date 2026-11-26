@@ -1,10 +1,8 @@
-#: desc: With VARS=0, redefining the docs and the section of a variable gives no warning (the sections go to the next displayed anchor)
+#: desc: With VARS=0, redefining the docs and the section of a variable gives no warning (the sections of the variable are hidden)
 -v COLOR=0 -v VARS=0 test/fixtures/Makefile.vars-disabled-redefined
 #: stdout
 ------------------
 Available targets:
 ------------------
- Section 1
- Section 2
 t   A target
 ------------------

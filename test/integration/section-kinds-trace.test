@@ -1,0 +1,32 @@
+#: desc: The parser state after each line of Makefile.section-kinds
+#: trace
+test/fixtures/Makefile.section-kinds
+#: stdout
+== test/fixtures/Makefile.section-kinds
+   1 0 0  0  1 \t | ##@ Build
+   2 0 0  1  1 \t | ## Number of jobs (the section belongs to the variables)
+   3 0 0  0  0 \t | JOBS := 4
+   3 ============ => variable:[JOBS] +section
+   4 0 0  0  0 \t |
+   5 0 0  1  0 \t | ## Compile
+   6 0 1  0  0 \t | build:
+   6 ============ => target:[build]
+   7 0 1  0  0 \t |
+   8 0 1  0  1 \t | ##@ Test
+   9 0 1  1  1 \t | ##% Use `make check` (the section belongs to the targets)
+  10 0 1  0  0 \t | test:
+  10 ============ => target:[test] +section
+  11 0 1  0  0 \t |
+  12 0 1  1  0 \t | ## Run the tests
+  13 0 1  0  0 \t | check:
+  13 ============ => target:[check]
+  14 0 1  0  0 \t |
+  15 0 1  0  1 \t | ##@ Release
+  16 0 1  1  1 \t | ##% Deprecated, and alone in its section
+  17 0 1  0  0 \t | publish:
+  17 ============ => target:[publish] +section
+  18 0 1  0  0 \t |
+  19 0 1  0  1 \t | ##@ Install
+  20 0 1  1  1 \t | ## Install the binaries
+  21 0 1  0  0 \t | install:
+  21 ============ => target:[install] +section

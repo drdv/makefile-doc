@@ -20,8 +20,10 @@
 #       ##   a default anchor (displayed in COLOR_DEFAULT)
 #       ##!  an anchor that needs attention (displayed in COLOR_ATTENTION)
 #       ##%  a deprecated anchor (displayed in COLOR_DEPRECATED)
-#   * Lines that start with ##@ form a section (displayed in COLOR_SECTION, above the next
-#     displayed anchor).
+#   * Lines that start with ##@ form a section (displayed in COLOR_SECTION). We define the
+#     kind of a section to be the kind (target or variable) of the first documented anchor
+#     after it. The kind is set while parsing, so hiding anchors (VARS, DEPRECATED) does
+#     not impact it. A section is displayed above the first displayed anchor of its kind.
 
 #### Options
 #   Passed with -v OPTION=value. print_help() lists them (run the script with an empty
@@ -1729,12 +1731,11 @@ function print_warnings(k) { #locals
   }
 }
 
-# Fill DISPLAY from the interface and the settings: each displayed anchor once, at its first
-# definition, with the doc and tag of its last one; the targets, then the variables
-function prepare_rendering(k, key, n, order, last, sections, kind) { #locals
+# Fill DISPLAY from ANCHORS (parser's output) and VARS, DEPRECATED, SUB, DSUB (the settings)
+function prepare_rendering(k, key, n, order, last, sections, anchor_kinds, i) { #locals
   split("", order)
   split("", last)
-  split("", sections)
+
   n = 0
   for (k = 1; k <= ANCHOR_COUNT; k++) {
     key = ANCHORS[k, "kind"] SUBSEP ANCHORS[k, "name"]
@@ -1743,39 +1744,67 @@ function prepare_rendering(k, key, n, order, last, sections, kind) { #locals
     }
     last[key] = k
   }
+  # order[1..n]  the key of each distinct anchor, in the order of its first definition
+  # last[key]    the index in ANCHORS of the last definition of the anchor
+
   DOCUMENTED_COUNT = n
   place_sections(last, sections)
-  for (kind = 1; kind <= 2; kind++) {
+  # Together (order, last, sections) give the rule: the last definition of an anchor decides
+  # whether it is displayed; if so, only once,
+  #   - at the position of its first definition
+  #   - with the doc and tag of its last definition (if it is displayed)
+  #   - with the last section given to any of its definitions
+
+  split("target variable", anchor_kinds, " ")  # the display order: first targets then variables
+  for (i = 1; i <= 2; i++) {
     for (k = 1; k <= n; k++) {
       key = order[k]
-      if ((ANCHORS[last[key], "kind"] == "target") == (kind == 1) && is_displayed(last[key])) {
+      if (ANCHORS[last[key], "kind"] == anchor_kinds[i] && is_displayed(last[key])) {
         add_display_record(last[key], key, sections)
       }
     }
   }
 }
 
-# true if the anchor whose last definition is ANCHORS[k] is displayed: not a variable with
-# VARS=0, nor a deprecated anchor with DEPRECATED=0
+# Whether the anchor of record k is displayed:
+#   variables are hidden when VARS is 0
+#   deprecated anchors (tag ##%) when DEPRECATED is 0.
 function is_displayed(k) {
-  return (ANCHORS[k, "kind"] == "target" || VARS) && !(!DEPRECATED && ANCHORS[k, "tag"] == "##%")
+  if (!VARS && ANCHORS[k, "kind"] == "variable") {
+    return 0
+  }
+
+  if (!DEPRECATED && ANCHORS[k, "tag"] == "##%") {
+    return 0
+  }
+
+  return 1
 }
 
-# Give each section to the next displayed anchor after it in the Makefiles: sections[key],
-# with last[key] the last definition of each anchor. Sections with no displayed anchor after
-# them are dropped, consecutive ones are merged, and a later section of the same anchor
-# replaces an earlier one.
+# Give each section to a displayed anchor (see Docs for the kind of a section).
+# last[key] is the index in ANCHORS of the last definition of an anchor.
+#   - A section goes to the first displayed anchor of its kind, before the next section.
+#   - With no such anchor, the section is dropped. (Sections with no documented anchor
+#     between them are already merged by the parser.)
+#   - A later section of the same anchor replaces an earlier one.
+#
+# Fill:
+#   sections  sections[key]: the section displayed above the anchor
 function place_sections(last,
-                        sections, #update
-                        k, key, has_section, section) { #locals
+                        sections, #fill
+                        k, key, kind, has_section, section, section_kind) { #locals
+  split("", sections)
   has_section = 0
   for (k = 1; k <= ANCHOR_COUNT; k++) {
+    kind = ANCHORS[k, "kind"]
     if ((k, "section") in ANCHORS) {
-      section = has_section ? section "\n" ANCHORS[k, "section"] : ANCHORS[k, "section"]
+      section = ANCHORS[k, "section"]
+      section_kind = kind
       has_section = 1
     }
-    key = ANCHORS[k, "kind"] SUBSEP ANCHORS[k, "name"]
-    if (has_section && is_displayed(last[key])) {
+
+    key = kind SUBSEP ANCHORS[k, "name"]
+    if (has_section && kind == section_kind && is_displayed(last[key])) {
       sections[key] = section
       has_section = 0
     }

@@ -53,8 +53,27 @@ function test_prepare_rendering() {
   add_anchors()
   prepare_rendering()
   check("prepare_rendering: hidden anchors are left out", displayed_names(), "t")
-  check("prepare_rendering: the sections of hidden anchors go to the next displayed one",
+  check("prepare_rendering: a section skips hidden anchors of its kind, not other kinds",
         DISPLAY[1, "section"], " S2")
+
+  init_globals()
+  VARS = 0
+  DEPRECATED = 1
+  add_anchor("variable", "V", "##", " v", " S")
+  add_anchor("target", "t", "##", " doc", "")
+  prepare_rendering()
+  check("prepare_rendering: the section of a hidden variable does not go to a target",
+        ("1", "section") in DISPLAY, 0)
+
+  init_globals()
+  VARS = 1
+  DEPRECATED = 0
+  add_anchor("target", "old", "##%", " deprecated", " S1")
+  add_anchor("target", "t1", "##", " one", " S2")
+  add_anchor("target", "t2", "##", " two", "")
+  prepare_rendering()
+  check("prepare_rendering: a section with no displayed anchor before the next one is dropped",
+        DISPLAY[1, "section"] "|" (("2", "section") in DISPLAY), " S2|0")
   check("prepare_rendering: hidden anchors are still documented", DOCUMENTED_COUNT, 3)
 
   init_globals()
