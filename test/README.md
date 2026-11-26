@@ -308,7 +308,7 @@ config:
       bottom: 20
 ---
 flowchart TD
-    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>opt_process()"]
+    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>opt_process(), fmt_init()"]
     makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_* (see the parser note)"]
     begin -- "constants" --> parsing
     begin --> settings[("Options and settings")]
