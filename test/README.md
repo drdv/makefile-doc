@@ -107,7 +107,7 @@ BEGIN {                                # BEGIN #1 (initialize harness state)
 BEGIN {                                # BEGIN #2
   init_globals()                       # initialize global state
   if (!UNIT_TEST) {
-    if (process_options() > 0) {       # skipped
+    if (opt_process() > 0) {           # skipped
       ABORT = 1
       exit 1
     }
@@ -308,7 +308,7 @@ config:
       bottom: 20
 ---
 flowchart TD
-    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>process_options()"]
+    options["Options (-v)"] --> begin["<b>BEGIN</b><br/>opt_process()"]
     makefiles["Makefiles (or stdin)"] --> parsing["<b>Parsing</b><br/>parser_* (see the parser note)"]
     begin -- "constants" --> parsing
     begin --> settings[("Options and settings")]

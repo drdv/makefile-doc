@@ -97,8 +97,8 @@ function test_prepare_rendering() {
 }
 
 function test_display_name(labels) { #locals
-  form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", 1, DSUB_PARAM, labels, DSUB_VALUES,
-                     DSUB_NAMES)
+  opt_form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", 1, DSUB_PARAM, labels, DSUB_VALUES,
+                         DSUB_NAMES)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
   check("display_name: replaced in the order given", display_name("$(D)/a"), "o/a")
   check("display_name: every occurrence", display_name("$(D)/a $(D)/b"), "o/a o/b")
@@ -140,8 +140,8 @@ function test_display_substitutions(labels, values, names) { #locals
   check("display_substitutions: no values", display_substitutions("", "", 1), "\n")
   check("display_substitutions: the defaults (one value per line, on the next lines)",
         display_substitutions("a b", "", 1), "\n    a\n    b\n")
-  form_substitutions("<L:0,M:0,I:{,T:},S:\\,>t:a b c;<N:2>u:a b c", 0, SUB_PARAM, labels, values,
-                     names)
+  opt_form_substitutions("<L:0,M:0,I:{,T:},S:\\,>t:a b c;<N:2>u:a b c", 0, SUB_PARAM, labels,
+                         values, names)
   check("display_substitutions: L:0, M:0, I, T and S", display_substitutions("a b c", "t", 1),
         " {a, b, c}\n")
   check("display_substitutions: N", display_substitutions("a b c", "u", 1), "\n    a\n    b\n")
