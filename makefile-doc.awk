@@ -141,16 +141,6 @@ function spaces(n) {
   return repeated_string(" ", n)
 }
 
-# copy the elements of the array from to the array to (emptied first)
-function copy_array(from,
-                    to, #fill
-                    key) { #locals
-  split("", to)
-  for (key in from) {
-    to[key] = from[key]
-  }
-}
-
 # array[key], or "" if there is no such key (unlike reading array[key], it does not create it)
 function array_get(array, key) {
   return (key in array) ? array[key] : ""
@@ -1081,12 +1071,13 @@ function fmt_document(body) {
 # At the first line of each file, the state and the memory are reset (parser_file_start). A
 # physical line is joined with the next ones while it ends with an odd number of backslashes
 # (parser_join), and each logical line is then processed by parser_process:
-#  1. its observations are computed (parser_observe)
-#  2. its kind is derived (parser_kind)
-#  3. the state is updated (parser_step)
-#  4. a documented anchor is recorded in the interface variables (record_anchor, see init_globals)
-#  5. the memory is updated (parser_carry)
-# The rules at the end of the section run it.
+#  1. observations       (parser_observe)
+#  2. kind, and e_i      (parser_kind, parser_documented)
+#  3. anchor record      (record_anchor, see init_globals)
+#  4. state transition   (parser_step)
+#  5. memory transition  (parser_carry)
+# Step 3 reads the state and the memory before steps 4 and 5 change them.
+# The rules FNR == 1 and { ... } at the end of the section run the reset and the steps.
 
 # Record a warning about line of file ("" for none), printed before the docs (see
 # print_warnings).
@@ -1509,15 +1500,21 @@ function parser_kind(state, obs) {
   return (state["r"] && obs["first_char"] == state["p"]) ? "recipe" : obs["line_kind"]
 }
 
-# The state transition, from the kind of the line k and the observations obs. Return e_i.
+# Return e_i, whether the line is an anchor that gets documented, from the state x_{i-1}
+# (after the reset), the observations O_i and the kind k_i:
+#   e_i = 1   if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or O_i[inline] = 1)
+#         0   otherwise
+function parser_documented(state, obs, k) {
+  return (k == "rule" || k == "assignment") && (state["d"] || obs["inline"])
+}
+
+# The state transition, from the observations obs, the kind of the line k and e_i (see
+# parser_documented).
 #
 # Update:
 #   state: x_{i-1} (after the reset) becomes x_i
-function parser_step(obs, k,
-                     state, #update
-                     e) { #locals
-  # e_i = 1 if k_i in {rule, assignment} and (d_bar_{i-1} = 1 or O_i[inline] = 1), 0 otherwise
-  e = (k == "rule" || k == "assignment") && (state["d"] || obs["inline"])
+function parser_step(obs, k, e,
+                     state) { #update
   if (k == "recipe" || k == "rule" || k == "special rule") {
     state["r"] = 1                   # r_i = 1             if k_i in {recipe, rule, special rule}
   } else if (k == "assignment" || k == "other") {
@@ -1541,7 +1538,6 @@ function parser_step(obs, k,
     state["p"] = obs["prefix"]       # p_i = O_i[prefix]   if k_i != recipe and O_i[prefix]
   }                                  #                       is not none
                                      #       p_{i-1}       otherwise
-  return e
 }
 
 # The memory transition, from the kind of the line k, the observations obs and the new state x_i.
@@ -1552,12 +1548,12 @@ function parser_carry(state, obs, k,
                       memory) { #update
   if (k == "doc") {
     if (memory["dn"] == 0) {
-      memory["doc_tag"] = obs["tag"]               # the tag of D_i: O_i[tag]
+      memory["doc_tag"] = obs["tag"]                # the tag of D_i: O_i[tag]
     }
-    memory["doc", ++memory["dn"]] = obs["text"]    # D_i = D_bar_{i-1} + O_i[text]  if k_i = doc
+    memory["doc", ++memory["dn"]] = obs["text"]     # D_i = D_bar_{i-1} + O_i[text]  if k_i = doc
   } else if (!state["d"]) {
-    memory["dn"] = 0                               #       empty                    if d_i = 0
-  }                                                #       D_bar_{i-1}              otherwise
+    memory["dn"] = 0                                #       empty                    if d_i = 0
+  }                                                 #       D_bar_{i-1}              otherwise
   if (k == "section") {
     memory["section", ++memory["sn"]] = obs["text"] # S_i = S_{i-1} + O_i[text]  if k_i = section
   } else if (!state["s"]) {
@@ -1578,21 +1574,22 @@ function parser_carry(state, obs, k,
 function parser_process(line, line_number,
                         state, memory, context, #update
                         obs, derived, #fill
-                        before, k, e) { #locals
-  parser_observe(line, obs)          # O_i = obs(L_i)
-  k = parser_kind(state, obs)        # k_i
-  copy_array(state, before)          # x_{i-1}
-  e = parser_step(obs, k, state)     # x_i and e_i
+                        k, e) { #locals
+  parser_observe(line, obs)                                 # O_i = obs(L_i)
+  k = parser_kind(state, obs)                               # k_i
+  e = parser_documented(state, obs, k)                      # e_i
   if (e) {
-    record_anchor(obs, before, memory, line_number, context)
+    record_anchor(obs, state, memory, line_number, context) # A_n
   }
-  parser_carry(state, obs, k, memory) # (D_i, S_i)
+  parser_step(obs, k, e, state)                             # x_i
+  parser_carry(state, obs, k, memory)                       # (D_i, S_i)
   derived["k"] = k
   derived["e"] = e
 }
 
 # Record a documented anchor (e_i = 1) as the next anchor record A_n, the entry n of ANCHORS,
-# from obs, before (x_{i-1}) and memory (D_bar_{i-1}, S_{i-1}):
+# from obs, state (x_{i-1}, after the reset) and memory (D_bar_{i-1}, S_{i-1}), before their
+# transitions:
 #   A_n[kind]      O_i[anchor_kind]
 #   A_n[name]      O_i[anchor_name] (for a target, see form_target_name)
 #   A_n[doc]       the texts of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[inline_doc] otherwise
@@ -1604,7 +1601,7 @@ function parser_process(line, line_number,
 #
 # Update:
 #   context: the anchors documented so far
-function record_anchor(obs, before, memory, line_number,
+function record_anchor(obs, state, memory, line_number,
                        context, #update
                        kind, name) { #locals
   kind = obs["anchor_kind"]
@@ -1616,14 +1613,14 @@ function record_anchor(obs, before, memory, line_number,
   ANCHOR_COUNT++
   ANCHORS[ANCHOR_COUNT, "kind"] = kind
   ANCHORS[ANCHOR_COUNT, "name"] = name
-  if (before["d"]) {
+  if (state["d"]) {
     ANCHORS[ANCHOR_COUNT, "doc"] = memory_lines(memory, "doc", memory["dn"])
     ANCHORS[ANCHOR_COUNT, "tag"] = memory["doc_tag"]
   } else {
     ANCHORS[ANCHOR_COUNT, "doc"] = obs["inline_doc"]
     ANCHORS[ANCHOR_COUNT, "tag"] = obs["tag"]
   }
-  if (before["s"]) {
+  if (state["s"]) {
     ANCHORS[ANCHOR_COUNT, "section"] = memory_lines(memory, "section", memory["sn"])
   }
   if (("override" in obs) && obs["override"]) { # the command line cannot change it
