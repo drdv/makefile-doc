@@ -2,7 +2,13 @@
 -v OUTPUT_FORMAT=latex -v COLOR_ATTENTION=1 -v COLOR_SECTION=3 -v COLOR_DEPRECATED=4 -v COLOR_BACKTICKS=9 -v EXPORT_THEME=FG:000000,BG:AAAAAA,34:7c3f00 test/fixtures/Makefile.formats
 #: stdout
 \documentclass{article}
-\usepackage[utf8]{inputenc}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
 \usepackage{xcolor}
 \usepackage{alltt}
 \usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}

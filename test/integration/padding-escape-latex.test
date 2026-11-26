@@ -2,7 +2,13 @@
 -v COLOR=0 -v PADDING='{' -v OUTPUT_FORMAT=latex test/fixtures/Makefile.padding
 #: stdout
 \documentclass{article}
-\usepackage[utf8]{inputenc}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
 \usepackage{xcolor}
 \usepackage{alltt}
 \usepackage[top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}
