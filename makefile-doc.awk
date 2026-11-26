@@ -39,6 +39,10 @@
 #             function f(x, y,                  function g(k, n) { #locals
 #                        out, #fill
 #                        k, n) { #locals
+#   * A function comment lists the arrays that it updates and fills under Update: and Fill:,
+#     as name[key] = VALUE when the content is written as code (VALUE: a placeholder), and as
+#     name[key]: description otherwise. Within a list, the descriptions (and the lines that
+#     continue them) are aligned; the code lines are not.
 #   * Globals are upper case (a global in lower case is a local that was not declared).
 #   * Only POSIX awk, for all the major awks: no match() with an array, no arrays of arrays,
 #     no gensub. Groups are read with RSTART and RLENGTH.
@@ -469,11 +473,11 @@ function report_assignment_operands(k) { #locals
 # (see option_error) and skipped, as are invalid parameters.
 #
 # Fill:
-#   param_table       the parameters, in the rows of the table (see init_globals, and the
-#                     store_*_params functions)
-#   sub_labels_array  sub_labels_array[NAME] = LABEL (only for a name with a label)
-#   sub_values_array  sub_values_array[NAME] = VALUES
-#   sub_names_array   sub_names_array[1..n], the names in the order given
+#   param_table:           the parameters, in the rows of the table (see init_globals, and the
+#                          store_*_params functions)
+#   sub_labels_array[NAME] = LABEL (only for a name with a label)
+#   sub_values_array[NAME] = VALUES
+#   sub_names_array[1..n]: the names in the order given
 function form_substitutions(spec, no_labels,
                             param_table, sub_labels_array, sub_values_array, sub_names_array, #fill
                             split_substitutions, k, n, string, substitution_params, #locals
@@ -552,8 +556,8 @@ function form_substitutions(spec, no_labels,
 # pair, only the first colon is a separator, and a comma in a value is written \,
 #
 # Fill:
-#   params  params[key] = value
-#   keys    keys[1..n], the keys in the order given
+#   params[key] = value
+#   keys[1..n]: the keys in the order given
 function parse_substitution_params(string,
                                    params, keys, #fill
                                    k, n, n_pairs, key_values, pair, key) { #locals
@@ -598,11 +602,11 @@ function copy_param_defaults(name,
 # option is SUB or DSUB.
 #
 # Update:
-#   table   the row name starts with the defaults (see copy_param_defaults)
+#   table: the row name starts with the defaults (see copy_param_defaults)
 #
 # Fill:
-#   params  params[key] = value, for the other parameters
-#   keys    keys[1..n], their keys in the order given
+#   params[key] = value, for the other parameters
+#   keys[1..n]: their keys in the order given
 function checked_params(option, allowed, name, string_with_parameters,
                         table, #update
                         params, keys, #fill
@@ -1094,11 +1098,11 @@ function get_doc_tag(string) {
 # The structure of a line.
 #
 # Fill:
-#   obs["line_kind"]    the kind of the line as if no rule were open:
-#                       assignment, rule, special rule, neutral, banner, section, doc, other
-#   obs["anchor_kind"]  target or variable for an assignment or a rule line, "" otherwise
-#   obs["anchor_name"]  the (stripped) name of the anchor, "" if no anchor
-#   obs["comment"]      the comment after the anchor, from its # to the end of the line ("" if none)
+#   obs["line_kind"]:   the kind of the line as if no rule were open (assignment, rule,
+#                       special rule, neutral, banner, section, doc or other)
+#   obs["anchor_kind"]: target or variable for an assignment or a rule line, "" otherwise
+#   obs["anchor_name"]: the (stripped) name of the anchor, "" if no anchor
+#   obs["comment"]:     the comment after the anchor, from its # to the end of the line ("" if none)
 #
 # and, depending on the line:
 #   obs["override"], obs["operator"], obs["value"], obs["double"], obs["grouped"]
@@ -1180,10 +1184,10 @@ function parser_define_name(line,
 # or a rule, and cut the fields from line.
 #
 # Update:
-#   obs["line_kind"]    assignment (also target-specific), rule, or unchanged ("") if neither
-#   obs["anchor_kind"]  variable or target
-#   obs["anchor_name"]  the name of the anchor
-#   obs["comment"]      from the # to the end of the line ("" if none)
+#   obs["line_kind"]:   assignment (also target-specific), rule, or unchanged ("") if neither
+#   obs["anchor_kind"]: variable or target
+#   obs["anchor_name"]: the name of the anchor
+#   obs["comment"]:     from the # to the end of the line ("" if none)
 #
 # for an assignment to a variable:
 #   obs["override"], obs["operator"]
@@ -1277,7 +1281,7 @@ function parser_comment_after(line, masked, p, is_target_specific,
 # and their blanks (1 if there are no qualifiers and no leading blanks).
 #
 # Fill:
-#   qualifiers["override"]  1 if override is among them, 0 otherwise
+#   qualifiers["override"]: 1 if override is among them, 0 otherwise
 function parser_qualifiers(text,
                            qualifiers, #fill
                            len) { #locals
@@ -1380,8 +1384,8 @@ function parser_reference_end(line, k,
 # The initial state and memory, from prefix (p_0: the RECIPEPREFIX option, a tab by default).
 #
 # Fill:
-#   state   x_0 = (0, 0, 0, p_0)
-#   memory  D_0 = S_0 = empty
+#   state:  x_0 = (0, 0, 0, p_0)
+#   memory: D_0 = S_0 = empty
 function parser_init(prefix,
                      state, memory) { #fill
   split("", state)
@@ -1398,8 +1402,8 @@ function parser_init(prefix,
 # section and the recipe prefix carry over.
 #
 # Update:
-#   state["r"], state["d"]  0
-#   memory["dn"]            0 (D is emptied)
+#   state["r"] = state["d"] = 0
+#   memory["dn"] = 0 (D is emptied)
 function parser_file_start(state, memory) { #update
   state["r"] = 0
   state["d"] = 0
@@ -1410,14 +1414,14 @@ function parser_file_start(state, memory) { #update
 # the state nor the memory).
 #
 # Fill (besides the fields of parser_structure):
-#   obs["first_char"]  the first character of the line ("" for an empty line)
-#   obs["inline"]      1 if the line has an anchor and its comment starts with ## but not
-#                      ##@: an inline doc
-#   obs["inline_doc"]  that comment without its token ("" if there is none)
-#   obs["text"]        the line without its leading blanks and its token, for a doc or
+#   obs["first_char"]: the first character of the line ("" for an empty line)
+#   obs["inline"]:     1 if the line has an anchor and its comment starts with ## but not
+#                      ##@ (an inline doc)
+#   obs["inline_doc"]: that comment without its token ("" if there is none)
+#   obs["text"]:       the line without its leading blanks and its token, for a doc or
 #                      section line ("" otherwise)
-#   obs["tag"]         the token of a doc line or of the inline doc: ##, ##! or ##% ("" otherwise)
-#   obs["prefix"]      the prefix that the line assigns to .RECIPEPREFIX ("" otherwise).
+#   obs["tag"]:        the token of a doc line or of the inline doc (##, ##! or ##%), "" otherwise
+#   obs["prefix"]:     the prefix that the line assigns to .RECIPEPREFIX ("" otherwise)
 function parser_observe(line,
                         obs) { #fill
   parser_structure(line, obs)
@@ -1490,7 +1494,7 @@ function parser_kind(state, obs) {
 # The state transition, from the kind of the line k and the observations obs. Return e_i.
 #
 # Update:
-#   state  x_{i-1} (after the reset) becomes x_i
+#   state: x_{i-1} (after the reset) becomes x_i
 function parser_step(obs, k,
                      state, #update
                      e) { #locals
@@ -1525,7 +1529,7 @@ function parser_step(obs, k,
 # The memory transition, from the kind of the line k, the observations obs and the new state x_i.
 #
 # Update:
-#   memory  D_bar_{i-1} and S_{i-1} become D_i and S_i
+#   memory: D_bar_{i-1} and S_{i-1} become D_i and S_i
 function parser_carry(state, obs, k,
                       memory) { #update
   if (k == "doc") {
@@ -1546,12 +1550,13 @@ function parser_carry(state, obs, k,
 # Process the logical line L_i: line, which starts at the physical line line_number of its file.
 #
 # Update:
-#   state, memory  x_{i-1} and D_bar_{i-1}, S_{i-1} become x_i and D_i, S_i
-#   context        the anchors documented so far (see record_anchor)
+#   state, memory: x_{i-1} and D_bar_{i-1}, S_{i-1} become x_i and D_i, S_i
+#   context:       the anchors documented so far (see record_anchor)
 #
 # Fill:
-#   obs            the observations O_i (see parser_observe)
-#   derived        derived["k"] (k_i) and derived["e"] (e_i)
+#   obs: the observations O_i (see parser_observe)
+#   derived["k"] = k_i
+#   derived["e"] = e_i
 function parser_process(line, line_number,
                         state, memory, context, #update
                         obs, derived, #fill
@@ -1580,7 +1585,7 @@ function parser_process(line, line_number,
 # A redefined doc is reported (see add_warning), with line_number.
 #
 # Update:
-#   context  the anchors documented so far
+#   context: the anchors documented so far
 function record_anchor(obs, before, memory, line_number,
                        context, #update
                        kind, name) { #locals
@@ -1787,7 +1792,7 @@ function is_displayed(k) {
 #   - A later section of the same anchor replaces an earlier one.
 #
 # Fill:
-#   sections  sections[key]: the section displayed above the anchor
+#   sections[key]: the section displayed above the anchor
 function place_sections(last,
                         sections, #fill
                         k, key, kind, has_section, section, section_kind) { #locals
