@@ -2,7 +2,7 @@
 """Manage the version and the releases of makefile-doc.
 
 The version is defined in makefile-doc.awk and copied to the README; the release notes are
-the message of the annotated tag (see "Releasing" in test/README.md).
+the message of the annotated tag (see "Releasing" in tools/README.md).
 """
 
 import sys
