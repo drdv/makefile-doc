@@ -175,7 +175,7 @@ The remaining details:
   form).
 - A target-specific assignment (`t: V := 1`) documents its target, `t`, like a rule.
 - Inside a `define` block, documented targets and variables are displayed too (e.g., in a
-  template of rules instantiated with `$(eval $(call ...))`).
+  template of rules instantiated with `$(eval $(call ...))`; see [Limitations](#limitations)).
 
 See `test/fixtures/Makefile.*` for many more examples.
 
@@ -428,6 +428,21 @@ makefile-doc reads the Makefiles line by line, following the syntax of GNU Make 
   differently, use [`SUB`](#sub-rename-an-anchor-and-list-its-values) for one anchor, e.g., `-v
   SUB='$$(PREFIX)_FLAGS:MY_FLAGS:'`, or [`DSUB`](#dsub-replace-text-in-docs-and-names) with `A:1`
   for every name at once, e.g., `-v DSUB='<A:1>$$(PREFIX):MY'`.
+- **The body of a `define` is read as ordinary lines.** GNU Make keeps it as the value of the
+  variable, but makefile-doc displays the documented targets and variables inside it. This is what
+  you want in a template of rules expanded with `$(eval $(call ...))`, whose targets exist when
+  `make` runs. It is not what you want when the body is plain text that happens to contain a doc and
+  an assignment:
+
+  ```make
+  define USAGE
+  ## Number of parallel jobs
+  JOBS = 4
+  endef
+  ```
+
+  Here `JOBS` is displayed as a documented variable, although GNU Make never defines it (it is part
+  of the value of `USAGE`).
 
 Escaped characters in target names are displayed as written: `foo\ bar:` is shown as `foo\ bar`,
 which is how the target is invoked (`make foo\ bar`), and `foo\#bar:` as `foo\#bar`.
