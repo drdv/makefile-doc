@@ -284,11 +284,11 @@ function step_entry(entry, r, d, s, e) {
   return entry + 0
 }
 
-# parser_step against the step table, for every kind of line and every state before the line
-# (and with and without an inline doc for an anchor), with e_i as in the note, and p_i (a
-# recipe line does not change the prefix)
+# parser_documented (e_i) and parser_step against the step table, for every kind of line and
+# every state before the line (and with and without an inline doc for an anchor), with e_i as
+# in the note, and p_i (a recipe line does not change the prefix)
 function test_parser_step(table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, state, obs, #locals
-                          got, want, failures) { #locals
+                          got, got_e, want, failures) { #locals
   step_table(table)
   n_kinds = split("recipe|neutral|doc|section|banner|rule|special rule|assignment|other",
                   kinds, "|")
@@ -315,8 +315,9 @@ function test_parser_step(table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, s
             want = step_entry(cols[1], r, d, s, e) step_entry(cols[2], r, d, s, e) \
                    step_entry(cols[3], r, d, s, e) " e=" e \
                    " p=" (kind == "recipe" ? "\t" : ">")
-            got = parser_step(obs, kind, state)
-            got = state["r"] state["d"] state["s"] " e=" (got ? 1 : 0) " p=" state["p"]
+            got_e = parser_documented(state, obs, kind)
+            parser_step(obs, kind, got_e, state)
+            got = state["r"] state["d"] state["s"] " e=" (got_e ? 1 : 0) " p=" state["p"]
             if (got != want) {
               failures = failures sprintf(" [rds=%d%d%d a=%d: got %s, want %s]", r, d, s, a,
                                           got, want)
@@ -325,7 +326,7 @@ function test_parser_step(table, kinds, n_kinds, j, kind, cols, r, d, s, a, e, s
         }
       }
     }
-    check("parser_step: " kind " (every state before the line)", failures, "")
+    check("parser_documented, parser_step: " kind " (every state before the line)", failures, "")
   }
 }
 
@@ -395,9 +396,9 @@ function last_record() {
 }
 
 # record_anchor against the equations of the record, and the warning about a redefined doc
-function test_record_anchor(context, obs, before, memory) { #locals
+function test_record_anchor(context, obs, state, memory) { #locals
   init_globals()
-  carry_setup(1, 1, memory, before)
+  carry_setup(1, 1, memory, state)
   memory["dn"] = 2
   memory["doc", 2] = "b"
   obs["anchor_kind"] = "variable"
@@ -405,13 +406,13 @@ function test_record_anchor(context, obs, before, memory) { #locals
   obs["inline_doc"] = "i"
   obs["tag"] = "##%"
   context["file"] = "f"
-  record_anchor(obs, before, memory, 7, context)
+  record_anchor(obs, state, memory, 7, context)
   check("record_anchor: d_bar = 1: the pending doc and its tag; s = 1: the section",
         last_record(), "a\nb|##|s")
 
-  before["d"] = 0
-  before["s"] = 0
-  record_anchor(obs, before, memory, 9, context)
+  state["d"] = 0
+  state["s"] = 0
+  record_anchor(obs, state, memory, 9, context)
   check("record_anchor: d_bar = 0: the inline doc and its tag; s = 0: no section",
         last_record(), "i|##%|<none>")
   check("record_anchor: a redefined doc is reported with its file and line",

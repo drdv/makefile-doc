@@ -58,8 +58,7 @@ What the parser uses to read line $i$ falls into five groups, and it produces on
   Observations & read from the text of $L_i$ only: $\mathcal{O}_i[\ldots]$
                  (section~\ref{sec:observations}) \\
   Derived & computed for line $i$ from the groups above, and not carried to the next line:
-            $\bar r_{i-1}$, $\bar d_{i-1}$, $\bar D_{i-1}$, $k_i$, $e_i$
-            (section~\ref{sec:derived}) \\
+            the reset, $k_i$, $e_i$ (section~\ref{sec:derived}) \\
   \midrule
   Output & the anchor records $\mathcal{A}_1, \dots, \mathcal{A}_m$, one for each
            documented anchor (section~\ref{sec:output}) \\
@@ -67,15 +66,16 @@ What the parser uses to read line $i$ falls into five groups, and it produces on
 \end{tabular}
 \end{center}
 
-\noindent For each line $i$, in this order:
+\noindent For each line $i$, the parser does the following, in this order:
 \begin{enumerate}
-  \item the environment gives $b_i$;
-  \item $\obs$ computes the observations $\mathcal{O}_i$ from $L_i$ alone;
-  \item the derived quantities are computed (section~\ref{sec:derived}), among them the
-        kind of the line $k_i$ and whether it is an anchor that gets documented, $e_i$;
-  \item if $e_i = 1$, the next anchor record $\mathcal{A}_n$ is produced, from the memory
+  \item if $L_i$ is the first line of a file ($b_i = 1$), it resets the state and the
+        pending doc (section~\ref{sec:derived});
+  \item it computes the observations $\mathcal{O}_i$ from $L_i$ alone;
+  \item it derives the kind of the line, $k_i$, and whether the line is a documented anchor,
+        $e_i$ (section~\ref{sec:derived});
+  \item if $e_i = 1$, it produces the next anchor record $\mathcal{A}_n$, from the memory
         \emph{before} its transition;
-  \item the state goes from $x_{i-1}$ to $x_i$, and the memory from
+  \item it updates the state from $x_{i-1}$ to $x_i$, and the memory from
         $(D_{i-1}, S_{i-1})$ to $(D_i, S_i)$.
 \end{enumerate}
 Then line $i+1$, whose observations do not depend on anything before it.
@@ -299,7 +299,8 @@ emptied:
   \end{cases}
   \label{eq:reset}
 \end{equation}
-The section, the prefix and the memory of the section carry over to the next file.
+The section, the prefix and the memory of the section carry over to the next file. The
+state after the reset is $\bar x_{i-1} = (\bar r_{i-1}, \bar d_{i-1}, s_{i-1}, p_{i-1})$.
 
 \paragraph{Kind of the line.} A line is a recipe line if a rule is open and the line starts
 with the prefix; otherwise its kind is observed:
@@ -508,7 +509,8 @@ In makefile-doc.awk:
   \code{parser\_structure} & the questions of table~\ref{tab:questions}, with the searches \\
   \code{parser\_mask}, \code{parser\_scan} & the lexical layer \\
   \code{parser\_kind} & the kind of the line \eqref{eq:k} \\
-  \code{parser\_step} & the state \eqref{eq:r}--\eqref{eq:p}; returns $e_i$ \eqref{eq:e} \\
+  \code{parser\_documented} & whether the line is a documented anchor, $e_i$ \eqref{eq:e} \\
+  \code{parser\_step} & the state \eqref{eq:r}--\eqref{eq:p} \\
   \code{record\_anchor} & the record \eqref{eq:record}, with the memory before its
                           transition \\
   \code{parser\_carry} & the memory \eqref{eq:D}--\eqref{eq:S} \\
