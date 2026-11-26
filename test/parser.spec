@@ -374,3 +374,15 @@ id:          special-target
 line:        [.SUFFIXES: .c]
 line_kind:   special rule
 note:        special targets are not documented
+
+id:          special-targets
+line:        [.PHONY .SILENT: t]
+line_kind:   special rule
+note:        all the targets are special: the line documents nothing
+
+id:          special-and-ordinary-target
+line:        [.PHONY t: dep]
+line_kind:   rule
+anchor_kind: target
+anchor_name: [.PHONY t]
+note:        an ordinary target among them: the rule is documented

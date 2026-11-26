@@ -24,29 +24,34 @@ test/fixtures/Makefile.targets-ignore
   16 0 1  0  0 \t | t2:
   16 ============ => target:[t2]
   17 0 1  0  0 \t |
-  18 0 1  1  0 \t | ## (t3) Ignore .SECONDARY
-  19 0 1  1  0 \t | .SECONDARY: t3 ## BAD
-  20 0 1  0  0 \t | t3:
-  20 ============ => target:[t3]
+  18 0 1  1  0 \t | ## (t2b) Ignore .PHONY and .SILENT on one line
+  19 0 1  1  0 \t | .PHONY .SILENT: t2b
+  20 0 1  0  0 \t | t2b:
+  20 ============ => target:[t2b]
   21 0 1  0  0 \t |
-  22 0 1  1  0 \t | ## (t4) Ignore .INTERMEDIATE
-  23 0 1  1  0 \t | .INTERMEDIATE: t4 ## BAD
-  24 0 1  0  0 \t | t4:
-  24 ============ => target:[t4]
+  22 0 1  1  0 \t | ## (t3) Ignore .SECONDARY
+  23 0 1  1  0 \t | .SECONDARY: t3 ## BAD
+  24 0 1  0  0 \t | t3:
+  24 ============ => target:[t3]
   25 0 1  0  0 \t |
-  26 0 1  1  0 \t | ## (t5) Ignore .INTERMEDIATE and .PRECIOUS
-  27 0 1  1  0 \t | .PRECIOUS: t5 ## BAD
-  28 0 1  1  0 \t | .INTERMEDIATE: t5
-  29 0 1  0  0 \t | t5:
-  29 ============ => target:[t5]
-  30 0 1  0  0 \t |
-  31 0 1  0  0 \t | t6: ## (t6)
-  31 ============ => target:[t6]
-  32 0 1  0  0 \t |
-  33 0 1  1  0 \t | ## Create a python venv
-  34 0 1  0  0 \t | .venv/.sentinel:
-  34 ============ => target:[.venv/.sentinel]
-  35 0 1  0  0 \t |
-  36 0 1  1  0 \t | ## A target named in upper case like a special target is a target
-  37 0 1  0  0 \t | .ENV:
-  37 ============ => target:[.ENV]
+  26 0 1  1  0 \t | ## (t4) Ignore .INTERMEDIATE
+  27 0 1  1  0 \t | .INTERMEDIATE: t4 ## BAD
+  28 0 1  0  0 \t | t4:
+  28 ============ => target:[t4]
+  29 0 1  0  0 \t |
+  30 0 1  1  0 \t | ## (t5) Ignore .INTERMEDIATE and .PRECIOUS
+  31 0 1  1  0 \t | .PRECIOUS: t5 ## BAD
+  32 0 1  1  0 \t | .INTERMEDIATE: t5
+  33 0 1  0  0 \t | t5:
+  33 ============ => target:[t5]
+  34 0 1  0  0 \t |
+  35 0 1  0  0 \t | t6: ## (t6)
+  35 ============ => target:[t6]
+  36 0 1  0  0 \t |
+  37 0 1  1  0 \t | ## Create a python venv
+  38 0 1  0  0 \t | .venv/.sentinel:
+  38 ============ => target:[.venv/.sentinel]
+  39 0 1  0  0 \t |
+  40 0 1  1  0 \t | ## A target named in upper case like a special target is a target
+  41 0 1  0  0 \t | .ENV:
+  41 ============ => target:[.ENV]
