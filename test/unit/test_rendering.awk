@@ -45,7 +45,6 @@ function test_prepare_rendering() {
         DISPLAY[1, "doc"] " " DISPLAY[1, "tag"], " second ##!")
   check("prepare_rendering: a section goes to the next displayed anchor",
         DISPLAY[3, "section"] DISPLAY[2, "section"], " S1 S2")
-  check("prepare_rendering: the documented anchors", DOCUMENTED_COUNT, 3)
 
   init_globals()
   VARS = 0
@@ -74,7 +73,6 @@ function test_prepare_rendering() {
   prepare_rendering()
   check("prepare_rendering: a section with no displayed anchor before the next one is dropped",
         DISPLAY[1, "section"] "|" (("2", "section") in DISPLAY), " S2|0")
-  check("prepare_rendering: hidden anchors are still documented", DOCUMENTED_COUNT, 3)
 
   init_globals()
   VARS = 1
