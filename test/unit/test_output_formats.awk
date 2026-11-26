@@ -60,7 +60,7 @@ function test_fmt_document() {
   init_globals()
 }
 
-# initialize the colors as init_globals() and process_options() do (with the default color
+# initialize the colors as init_globals() and opt_process() do (with the default color
 # options)
 function setup_colors(output_format, export_theme) {
   define_ansi_to_html_colors() # the default colors, without the theme of a previous call
@@ -69,40 +69,41 @@ function setup_colors(output_format, export_theme) {
   COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = ""
   COLOR_SECTION = COLOR_BACKTICKS = ""
   COLOR = 1
-  initialize_colors()
+  opt_colors()
+  initialize_color_codes()
 }
 
-function test_default_color_option() {
+function test_opt_default_color() {
   if ("NO_COLOR" in ENVIRON) {
     delete ENVIRON["NO_COLOR"] # the tests run without it in their environment
   }
-  check("default_color_option: colors without NO_COLOR", default_color_option(), 1)
+  check("opt_default_color: colors without NO_COLOR", opt_default_color(), 1)
   ENVIRON["NO_COLOR"] = ""
-  check("default_color_option: colors with an empty NO_COLOR", default_color_option(), 1)
+  check("opt_default_color: colors with an empty NO_COLOR", opt_default_color(), 1)
   ENVIRON["NO_COLOR"] = "1"
-  check("default_color_option: no colors with NO_COLOR=1", default_color_option(), 0)
+  check("opt_default_color: no colors with NO_COLOR=1", opt_default_color(), 0)
   delete ENVIRON["NO_COLOR"]
 }
 
-function test_validate_ansi_param(message) { #locals
+function test_opt_ansi_param(message) { #locals
   init_globals()
   setup_colors("ANSI", "")
-  check("validate_ansi_param: color", validate_ansi_param("COLOR_X", 34), 34)
-  check("validate_ansi_param: attribute", validate_ansi_param("COLOR_X", 9), 9)
-  check("validate_ansi_param: bright background", validate_ansi_param("COLOR_X", 107), 107)
-  check("validate_ansi_param: 0 (no color)", validate_ansi_param("COLOR_X", 0), 0)
-  check("validate_ansi_param: valid parameters are not errors", OPTION_ERRORS, 0)
+  check("opt_ansi_param: color", opt_ansi_param("COLOR_X", 34), 34)
+  check("opt_ansi_param: attribute", opt_ansi_param("COLOR_X", 9), 9)
+  check("opt_ansi_param: bright background", opt_ansi_param("COLOR_X", 107), 107)
+  check("opt_ansi_param: 0 (no color)", opt_ansi_param("COLOR_X", 0), 0)
+  check("opt_ansi_param: valid parameters are not errors", OPTION_ERRORS, 0)
 
   message = "ERROR: COLOR_X should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107\n"
-  check("validate_ansi_param: unsupported attribute", validate_ansi_param("COLOR_X", 2), 0)
-  check("validate_ansi_param: unsupported attribute is an error", stderr_text(), message)
-  check("validate_ansi_param: out of range", validate_ansi_param("COLOR_X", 108), 0)
-  check("validate_ansi_param: not a number", validate_ansi_param("COLOR_X", "abc"), 0)
-  check("validate_ansi_param: compound parameter", validate_ansi_param("COLOR_X", "1;34"), 0)
-  check("validate_ansi_param: FG is not a color parameter",
-        validate_ansi_param("COLOR_X", "FG"), 0)
-  check("validate_ansi_param: the other errors", stderr_text(), message message message message)
-  check("validate_ansi_param: every error is counted", OPTION_ERRORS, 5)
+  check("opt_ansi_param: unsupported attribute", opt_ansi_param("COLOR_X", 2), 0)
+  check("opt_ansi_param: unsupported attribute is an error", stderr_text(), message)
+  check("opt_ansi_param: out of range", opt_ansi_param("COLOR_X", 108), 0)
+  check("opt_ansi_param: not a number", opt_ansi_param("COLOR_X", "abc"), 0)
+  check("opt_ansi_param: compound parameter", opt_ansi_param("COLOR_X", "1;34"), 0)
+  check("opt_ansi_param: FG is not a color parameter",
+        opt_ansi_param("COLOR_X", "FG"), 0)
+  check("opt_ansi_param: the other errors", stderr_text(), message message message message)
+  check("opt_ansi_param: every error is counted", OPTION_ERRORS, 5)
 }
 
 function test_fmt_color_code() {
@@ -188,8 +189,8 @@ BEGIN {
   test_fmt_escape()
   test_fmt_color()
   test_fmt_document()
-  test_default_color_option()
-  test_validate_ansi_param()
+  test_opt_default_color()
+  test_opt_ansi_param()
   test_fmt_color_code()
   test_export_theme()
   test_ansi_color_param_to_html_style()

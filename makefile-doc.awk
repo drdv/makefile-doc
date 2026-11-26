@@ -26,8 +26,8 @@
 #     not impact it. A section is displayed above the first displayed anchor of its kind.
 
 #### Options
-#   Passed with -v OPTION=value. print_help() lists them (run the script with an empty
-#   stdin), and README.md describes them, with examples. The checks are in process_options().
+#   Passed with -v OPTION=value. opt_print_help() lists them (run the script with an empty
+#   stdin), and README.md describes them, with examples. The checks are in opt_process().
 
 #### Code conventions
 #   * The parameters of a function are in groups, in this order: the inputs, the arrays that
@@ -108,7 +108,7 @@ function min(x, y) {
 }
 
 # string repeated n times, with n a non-negative integer. The only n that comes from the
-# user, OFFSET, is checked by process_options. A loop is used rather than gsub, whose
+# user, OFFSET, is checked by opt_process. A loop is used rather than gsub, whose
 # replacement would need & and \ escaped.
 function repeated_string(string, n,
                          s, k) { #locals
@@ -253,7 +253,7 @@ function color_name(label) {
 # can be called from unit tests (also to reset the state between tests).
 function init_globals() {
   # The options (COLOR, VARS, SUB, ...) are not initialized here: -v sets them before BEGIN,
-  # and process_options gives them their defaults (print_help lists them).
+  # and opt_process gives them their defaults (opt_print_help lists them).
 
   # ---------------------------------------------------------------------------------------
   # The control of the run
@@ -262,7 +262,7 @@ function init_globals() {
   # can be overridden with -v STDERR=file (used by the unit tests)
   STDERR = STDERR == "" ? "/dev/stderr" : STDERR
   ABORT = 0 # set to the exit status when BEGIN fails (END must not print anything)
-  OPTION_ERRORS = 0 # number of invalid options (see option_error)
+  OPTION_ERRORS = 0 # number of invalid options (see opt_error)
 
   # ---------------------------------------------------------------------------------------
   # Constants (never changed after init_globals)
@@ -282,8 +282,8 @@ function init_globals() {
   # v1.29.1 and below, fixed in v1.30.0)
   TAG_REGEX = "^(##!|##%|##)"
 
-  # stands in for a character during a split or a replacement (see form_substitutions,
-  # parse_substitution_params, latex_escape); assumed absent from options and
+  # stands in for a character during a split or a replacement (see opt_form_substitutions,
+  # opt_parse_substitution_params, latex_escape); assumed absent from options and
   # docs. Not SUBSEP, though it has the same default value.
   PLACEHOLDER = "\034"
 
@@ -296,20 +296,20 @@ function init_globals() {
   DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
 
   # ---------------------------------------------------------------------------------------
-  # Settings: derived from the options by process_options, read when rendering
+  # Settings: derived from the options by opt_process, read when rendering
   # ---------------------------------------------------------------------------------------
 
-  # the colors of the HTML and LaTeX output (process_options applies EXPORT_THEME)
+  # the colors of the HTML and LaTeX output (opt_export_theme applies EXPORT_THEME)
   define_ansi_to_html_colors()
 
-  # the color codes of each kind of text (see initialize_colors)
+  # the color codes of each kind of text (see initialize_color_codes)
   COLOR_DEFAULT_CODE = COLOR_ATTENTION_CODE = COLOR_DEPRECATED_CODE = ""
   COLOR_SECTION_CODE = COLOR_BACKTICKS_CODE = COLOR_RESET_CODE = ""
 
   # the text before and after the documentation (see initialize_output_format)
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
 
-  # SUB and DSUB (see form_substitutions). The parameters of each substitution, with the
+  # SUB and DSUB (see opt_form_substitutions). The parameters of each substitution, with the
   # defaults filled in, are in the rows of a table: SUB_PARAM[name, key] (keys L, M, N, S, P,
   # I, T) and DSUB_PARAM[name, key] (keys A, D). The row "" holds the defaults: it is the
   # row of an anchor without SUB (a name is never empty).
@@ -410,19 +410,19 @@ function set_dsub_param_defaults(table) { #fill
 }
 
 #### Options
-# The options given with -v: their defaults, their checks and the settings derived from them
-# (those of the output formats are in Output formats).
+# The options given with -v: their defaults, their checks and the settings derived from them.
 
 # Check the options and derive the settings. All the invalid options are reported (see
-# option_error); return their number (BEGIN exits when it is not 0).
-function process_options(sub_names, dummy_array_labels) { #locals
+# opt_error); return their number (BEGIN exits when it is not 0).
+function opt_process(sub_names, dummy_array_labels) { #locals
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (OUTPUT_FORMAT != "ANSI" && OUTPUT_FORMAT != "HTML" && OUTPUT_FORMAT != "LATEX") {
-    option_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
+    opt_error("OUTPUT_FORMAT should be ANSI, HTML or LATEX")
     OUTPUT_FORMAT = "ANSI"
   }
 
-  initialize_colors()
+  opt_colors()
+  initialize_color_codes()
   initialize_output_format()
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
@@ -433,44 +433,44 @@ function process_options(sub_names, dummy_array_labels) { #locals
   OFFSET = OFFSET == "" ? 3 : OFFSET
   WARN = WARN == "" ? 1 : WARN
   if (!is_bool(VARS)) {
-    option_error("VARS should be 0 or 1")
+    opt_error("VARS should be 0 or 1")
   }
   if (text_length(PADDING) != 1) {
-    option_error("PADDING should have length 1")
+    opt_error("PADDING should have length 1")
   }
   if (!is_bool(DEPRECATED)) {
-    option_error("DEPRECATED should be 0 or 1")
+    opt_error("DEPRECATED should be 0 or 1")
   }
   if (OFFSET !~ /^[0-9]+$/) {
-    option_error("OFFSET should be a non-negative integer")
+    opt_error("OFFSET should be a non-negative integer")
   }
   if (!is_bool(WARN)) {
-    option_error("WARN should be 0 or 1")
+    opt_error("WARN should be 0 or 1")
   }
 
   # (with "", gawk --lint does not warn when the option is not set)
-  form_substitutions(SUB "", 0, SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names)
-  form_substitutions(DSUB "", 1, DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
+  opt_form_substitutions(SUB "", 0, SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names)
+  opt_form_substitutions(DSUB "", 1, DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
   DSUB_COUNT = length_array_posix(DSUB_NAMES)
 
-  report_assignment_operands()
+  opt_report_assignment_operands()
   return OPTION_ERRORS
 }
 
 # Report an invalid value of an option. The script goes on, so that all the invalid options
-# are reported, and stops after process_options() (see BEGIN).
-function option_error(message) {
+# are reported, and stops after opt_process() (see BEGIN).
+function opt_error(message) {
   printf("ERROR: %s\n", message) > STDERR
   OPTION_ERRORS++
 }
 
 # Report the operands that are assignments, e.g., VARS=0: awk makes them after BEGIN, too
-# late for the options, which must be given with -v (see option_error)
-function report_assignment_operands(k) { #locals
+# late for the options, which must be given with -v (see opt_error)
+function opt_report_assignment_operands(k) { #locals
   for (k = 1; k < ARGC; k++) {
     if (ARGV[k] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) {
-      option_error(sprintf("'%s' is an assignment: give options with -v (-v %s)",
-                           ARGV[k], ARGV[k]))
+      opt_error(sprintf("'%s' is an assignment: give options with -v (-v %s)",
+                        ARGV[k], ARGV[k]))
     }
   }
 }
@@ -485,7 +485,7 @@ function report_assignment_operands(k) { #locals
 # t:/a:b gives the label /a and the value b.
 #
 # Empty items are skipped; invalid ones (no colon, no name, a name given twice) are reported
-# (see option_error) and skipped, as are invalid parameters.
+# (see opt_error) and skipped, as are invalid parameters.
 #
 # Fill:
 #   param_table:           the parameters, in the rows of the table (see init_globals, and the
@@ -493,11 +493,12 @@ function report_assignment_operands(k) { #locals
 #   sub_labels_array[NAME] = LABEL (only for a name with a label)
 #   sub_values_array[NAME] = VALUES
 #   sub_names_array[1..n]: the names in the order given
-function form_substitutions(spec, no_labels,
-                            param_table, sub_labels_array, sub_values_array, sub_names_array, #fill
-                            split_substitutions, k, n, string, substitution_params, #locals
-                            substitution_rest, name, label, values, colon, has_label, #locals
-                            n_substitutions, option) { #locals
+function opt_form_substitutions(spec, no_labels,
+                                param_table, sub_labels_array, #fill
+                                sub_values_array, sub_names_array, #fill
+                                split_substitutions, k, n, string, substitution_params, #locals
+                                substitution_rest, name, label, values, colon, has_label, #locals
+                                n_substitutions, option) { #locals
   if (no_labels) {
     set_dsub_param_defaults(param_table)
   } else {
@@ -529,8 +530,8 @@ function form_substitutions(spec, no_labels,
 
     colon = index(substitution_rest, ":")
     if (colon == 0) {
-      option_error(sprintf("%s: '%s' should be %s", option, string,
-                           no_labels ? "NAME:VALUE" : "NAME:[[LABEL]:][VALUES]"))
+      opt_error(sprintf("%s: '%s' should be %s", option, string,
+                        no_labels ? "NAME:VALUE" : "NAME:[[LABEL]:][VALUES]"))
       continue
     }
     name = substr(substitution_rest, 1, colon - 1)
@@ -546,17 +547,17 @@ function form_substitutions(spec, no_labels,
     name = strip_start_end_spaces_tabs(name)
 
     if (name == "") {
-      option_error(sprintf("%s: '%s' has an empty NAME", option, string))
+      opt_error(sprintf("%s: '%s' has an empty NAME", option, string))
       continue
     }
     if (name in sub_values_array) {
-      option_error(sprintf("%s: '%s' is given more than once", option, name))
+      opt_error(sprintf("%s: '%s' is given more than once", option, name))
       continue
     }
     if (no_labels) {
-      store_dsub_params(name, substitution_params, param_table)
+      opt_store_dsub_params(name, substitution_params, param_table)
     } else {
-      store_sub_params(name, substitution_params, param_table)
+      opt_store_sub_params(name, substitution_params, param_table)
     }
 
     sub_names_array[++n] = name
@@ -573,9 +574,9 @@ function form_substitutions(spec, no_labels,
 # Fill:
 #   params[key] = value
 #   keys[1..n]: the keys in the order given
-function parse_substitution_params(string,
-                                   params, keys, #fill
-                                   k, n, n_pairs, key_values, pair, key) { #locals
+function opt_parse_substitution_params(string,
+                                       params, keys, #fill
+                                       k, n, n_pairs, key_values, pair, key) { #locals
   split("", params)
   split("", keys)
 
@@ -598,9 +599,9 @@ function parse_substitution_params(string,
 
 # Copy the row of defaults of a table of parameters, "", to the row name (the keys of the row
 # "" are found first: adding elements to an array while looping over it is undefined)
-function copy_param_defaults(name,
-                             table, #update
-                             key, defaults) { #locals
+function opt_copy_param_defaults(name,
+                                 table, #update
+                                 key, defaults) { #locals
   for (key in table) {
     if (index(key, SUBSEP) == 1) {
       defaults[substr(key, length(SUBSEP) + 1)] = table[key]
@@ -611,35 +612,35 @@ function copy_param_defaults(name,
   }
 }
 
-# Parse the parameters of name, string_with_parameters (see parse_substitution_params).
+# Parse the parameters of name, string_with_parameters (see opt_parse_substitution_params).
 # Report the repeated parameters and the unknown ones (allowed: the known keys, as written in
-# the message, e.g., "A or D"; see option_error), and return the number n of the others.
+# the message, e.g., "A or D"; see opt_error), and return the number n of the others.
 # option is SUB or DSUB.
 #
 # Update:
-#   table: the row name starts with the defaults (see copy_param_defaults)
+#   table: the row name starts with the defaults (see opt_copy_param_defaults)
 #
 # Fill:
 #   params[key] = value, for the other parameters
 #   keys[1..n]: their keys in the order given
-function checked_params(option, allowed, name, string_with_parameters,
-                        table, #update
-                        params, keys, #fill
-                        all_params, all_keys, k, n, n_all, key, seen) { #locals
-  copy_param_defaults(name, table)
+function opt_checked_params(option, allowed, name, string_with_parameters,
+                            table, #update
+                            params, keys, #fill
+                            all_params, all_keys, k, n, n_all, key, seen) { #locals
+  opt_copy_param_defaults(name, table)
   split("", params)
   split("", keys)
   split("", seen)
   n = 0
-  n_all = parse_substitution_params(string_with_parameters, all_params, all_keys)
+  n_all = opt_parse_substitution_params(string_with_parameters, all_params, all_keys)
   for (k = 1; k <= n_all; k++) {
     key = all_keys[k]
     if (key in seen) {
-      option_error(sprintf("%s: parameter %s of %s is given more than once", option, key,
-                           name))
+      opt_error(sprintf("%s: parameter %s of %s is given more than once", option, key,
+                        name))
     } else if (!(("", key) in table)) {
-      option_error(sprintf("%s: unknown parameter %s of %s (use %s)", option, key, name,
-                           allowed))
+      opt_error(sprintf("%s: unknown parameter %s of %s (use %s)", option, key, name,
+                        allowed))
     } else {
       keys[++n] = key
       params[key] = all_params[key]
@@ -651,20 +652,20 @@ function checked_params(option, allowed, name, string_with_parameters,
 
 # Store the parameters of the SUB substitution of name in its row of table: the defaults (the
 # row ""), replaced by the valid parameters of string_with_parameters; the invalid ones are
-# reported (see option_error). L, M and N are stored as numbers.
-function store_sub_params(name, string_with_parameters,
-                          table, #update
-                          params, keys, k, n, key, value) { #locals
-  n = checked_params("SUB", "L, M, N, S, P, I or T", name, string_with_parameters, table,
-                     params, keys)
+# reported (see opt_error). L, M and N are stored as numbers.
+function opt_store_sub_params(name, string_with_parameters,
+                              table, #update
+                              params, keys, k, n, key, value) { #locals
+  n = opt_checked_params("SUB", "L, M, N, S, P, I or T", name, string_with_parameters, table,
+                         params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
     if ((key == "L" || key == "M") && !is_bool(value)) {
-      option_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
+      opt_error(sprintf("SUB: parameter %s of %s should be 0 or 1", key, name))
     } else if (key == "N" && value !~ /^(-1|[0-9]+)$/) {
-      option_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
-                           name))
+      opt_error(sprintf("SUB: parameter N of %s should be -1 or a non-negative integer",
+                        name))
     } else {
       # S, P, I and T as given (their blanks are part of them)
       table[name, key] = (key == "L" || key == "M" || key == "N") ? value + 0 : params[key]
@@ -674,112 +675,141 @@ function store_sub_params(name, string_with_parameters,
 
 # Store the parameters of the DSUB substitution of name in its row of table, as numbers: the
 # defaults (the row ""), replaced by the valid parameters of string_with_parameters; the
-# invalid ones are reported (see option_error):
+# invalid ones are reported (see opt_error):
 #   A  0: (default) the names of anchors are not changed, 1: name is replaced in them too
 #   D  0: the docs and section titles are not changed, 1: (default) name is replaced in them
-function store_dsub_params(name, string_with_parameters,
-                           table, #update
-                           params, keys, k, n, key, value) { #locals
-  n = checked_params("DSUB", "A or D", name, string_with_parameters, table, params, keys)
+function opt_store_dsub_params(name, string_with_parameters,
+                               table, #update
+                               params, keys, k, n, key, value) { #locals
+  n = opt_checked_params("DSUB", "A or D", name, string_with_parameters, table, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_start_end_spaces_tabs(params[key])
     if (!is_bool(value)) {
-      option_error(sprintf("DSUB: parameter %s of %s should be 0 or 1", key, name))
+      opt_error(sprintf("DSUB: parameter %s of %s should be 0 or 1", key, name))
     } else {
       table[name, key] = value + 0
     }
   }
   if (!table[name, "A"] && !table[name, "D"]) {
-    option_error(sprintf("DSUB: %s is replaced nowhere (A and D are both 0)", name))
+    opt_error(sprintf("DSUB: %s is replaced nowhere (A and D are both 0)", name))
   }
 }
 
 # the help: the usage, then the options with their current values (shown in double quotes,
 # so that empty values and blanks are visible)
-function print_help() {
+function opt_print_help() {
   print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)"
   print "Description: Generate docs for Makefile variables and targets"
   print "Version: " VERSION
   print "Options (current values):"
-  print_option("VARS", "show documented variables (0 or 1)", VARS)
-  print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
-  print_option("PADDING", "character between anchors and docs", PADDING)
-  print_option("OFFSET", "spaces between names and docs", OFFSET)
-  print_option("WARN", "print warnings on stderr (0 or 1)", WARN)
-  print_option("COLOR", "use colors (0 or 1)", COLOR)
-  print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
+  opt_print_option("VARS", "show documented variables (0 or 1)", VARS)
+  opt_print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
+  opt_print_option("PADDING", "character between anchors and docs", PADDING)
+  opt_print_option("OFFSET", "spaces between names and docs", OFFSET)
+  opt_print_option("WARN", "print warnings on stderr (0 or 1)", WARN)
+  opt_print_option("COLOR", "use colors (0 or 1)", COLOR)
+  opt_print_option("OUTPUT_FORMAT", "ANSI, HTML or LATEX", OUTPUT_FORMAT)
   # (EXPORT_THEME, SUB and DSUB have no default: with "", gawk --lint does not warn about them)
-  print_option("EXPORT_THEME", "colors of the HTML and LaTeX output", EXPORT_THEME "")
-  print_option("SUB", "rename anchors and list values", SUB "")
-  print_option("DSUB", "replace text in docs and names", DSUB "")
-  print_option("RECIPEPREFIX", "the .RECIPEPREFIX of the Makefile",
-               RECIPEPREFIX == "\t" ? "\\t" : RECIPEPREFIX)
-  print_option("COLOR_DEFAULT", "anchors documented with ##", COLOR_DEFAULT)
-  print_option("COLOR_ATTENTION", "anchors documented with ##!", COLOR_ATTENTION)
-  print_option("COLOR_DEPRECATED", "anchors documented with ##%", COLOR_DEPRECATED)
-  print_option("COLOR_SECTION", "sections", COLOR_SECTION)
-  print_option("COLOR_BACKTICKS", "text in backticks", COLOR_BACKTICKS)
+  opt_print_option("EXPORT_THEME", "colors of the HTML and LaTeX output", EXPORT_THEME "")
+  opt_print_option("SUB", "rename anchors and list values", SUB "")
+  opt_print_option("DSUB", "replace text in docs and names", DSUB "")
+  opt_print_option("RECIPEPREFIX", "the .RECIPEPREFIX of the Makefile",
+                   RECIPEPREFIX == "\t" ? "\\t" : RECIPEPREFIX)
+  opt_print_option("COLOR_DEFAULT", "anchors documented with ##", COLOR_DEFAULT)
+  opt_print_option("COLOR_ATTENTION", "anchors documented with ##!", COLOR_ATTENTION)
+  opt_print_option("COLOR_DEPRECATED", "anchors documented with ##%", COLOR_DEPRECATED)
+  opt_print_option("COLOR_SECTION", "sections", COLOR_SECTION)
+  opt_print_option("COLOR_BACKTICKS", "text in backticks", COLOR_BACKTICKS)
 }
 
 # one line of the help: an option, its description and its value
-function print_option(name, description, value) {
+function opt_print_option(name, description, value) {
   printf("  %-16s  %-35s  \"%s\"\n", name, description, value)
 }
 
-#### Output formats
-# Everything that depends on OUTPUT_FORMAT (ANSI, HTML, LATEX): colors, themes, escapes,
-# header and footer. Rendering does not read OUTPUT_FORMAT: it calls the functions fmt_*
-# (fmt_escape, fmt_color, fmt_document), and uses the color codes of fmt_color_code.
-
-function initialize_colors() {
-  COLOR = COLOR == "" ? default_color_option() : COLOR
+# Check COLOR (by default 1, or 0 when NO_COLOR is set, see opt_default_color), EXPORT_THEME
+# (see opt_export_theme) and the COLOR_* options. Without colors, the COLOR_* options are 0.
+function opt_colors() {
+  COLOR = COLOR == "" ? opt_default_color() : COLOR
   if (!is_bool(COLOR)) {
-    option_error("COLOR should be 0 or 1")
+    opt_error("COLOR should be 0 or 1")
     COLOR = 1
   }
 
-  set_user_defined_color_theme() # EXPORT_THEME overrides colors of EXPORT_PALETTE
+  opt_export_theme() # EXPORT_THEME overrides colors of EXPORT_PALETTE
 
-  COLOR_DEFAULT = validate_ansi_param("COLOR_DEFAULT",
-                                      COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
-  COLOR_ATTENTION = validate_ansi_param("COLOR_ATTENTION",
-                                        COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
-  COLOR_DEPRECATED = validate_ansi_param("COLOR_DEPRECATED",
-                                         COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
-  COLOR_SECTION = validate_ansi_param("COLOR_SECTION",
-                                      COLOR_SECTION == "" ? 32 : COLOR_SECTION)
-  COLOR_BACKTICKS = validate_ansi_param("COLOR_BACKTICKS",
-                                        COLOR_BACKTICKS == "" ? 33 : COLOR_BACKTICKS)
+  COLOR_DEFAULT = opt_ansi_param("COLOR_DEFAULT", COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
+  COLOR_ATTENTION = opt_ansi_param("COLOR_ATTENTION", COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
+  COLOR_DEPRECATED = opt_ansi_param("COLOR_DEPRECATED",
+                                    COLOR_DEPRECATED == "" ? 33 : COLOR_DEPRECATED)
+  COLOR_SECTION = opt_ansi_param("COLOR_SECTION", COLOR_SECTION == "" ? 32 : COLOR_SECTION)
+  COLOR_BACKTICKS = opt_ansi_param("COLOR_BACKTICKS", COLOR_BACKTICKS == "" ? 33 : COLOR_BACKTICKS)
   if (!COLOR) {
     COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = 0
   }
-
-  COLOR_DEFAULT_CODE = fmt_color_code(COLOR_DEFAULT, "DEFAULT")
-  COLOR_ATTENTION_CODE = fmt_color_code(COLOR_ATTENTION, "ATTENTION")
-  COLOR_DEPRECATED_CODE = fmt_color_code(COLOR_DEPRECATED, "DEPRECATED")
-  COLOR_SECTION_CODE = fmt_color_code(COLOR_SECTION, "SECTION")
-  COLOR_BACKTICKS_CODE = fmt_color_code(COLOR_BACKTICKS, "BACKTICKS")
-  COLOR_RESET_CODE = fmt_color_code(-1)
 }
 
 # the default of the COLOR option: 0 if NO_COLOR is set to a non-empty value (no-color.org)
-function default_color_option() {
+function opt_default_color() {
   return ("NO_COLOR" in ENVIRON && ENVIRON["NO_COLOR"] != "") ? 0 : 1
 }
 
 # Return the ANSI color parameter given for a COLOR_* option (0 means no color). An
-# unsupported value is reported (see option_error).
-function validate_ansi_param(option, ansi_param) {
+# unsupported value is reported (see opt_error).
+function opt_ansi_param(option, ansi_param) {
   # the supported parameters: the colors (EXPORT_PALETTE) and the attributes, e.g., bold
   if (ansi_param in EXPORT_PALETTE || ansi_param in ANSI_TO_HTML_VALUE) {
     # The explicit cast to int here is needed only because of a busybox awk bug,
     # see misc/busybox_awk_bug_20251107.awk
     return int(ansi_param)
   }
-  option_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",
-                       option))
+  opt_error(sprintf("%s should be one of 0, 1, 3, 4, 9, 30-37, 40-47, 90-97, 100-107",
+                    option))
   return 0
+}
+
+# Apply EXPORT_THEME, ANSI_PARAM:HEX_COLOR[,...]: the colors of the parameters 30-37, 40-47,
+# 90-97 and 100-107, and FG and BG (invalid entries are reported, see opt_error)
+function opt_export_theme(html_colors_split, k, n, ansi_html_map, ansi_param, #locals
+                          html_color_code) { #locals
+  n = split(EXPORT_THEME, html_colors_split, ",")
+  for (k = 1; k <= n; k++) {
+    if (html_colors_split[k] ~ /^[ \t]*$/) {
+      continue # an empty entry, e.g., after a trailing comma
+    }
+    split(html_colors_split[k], ansi_html_map, ":")
+    ansi_param = ansi_html_map[1]
+    html_color_code = array_get(ansi_html_map, 2) # "" if there is no colon
+    if (ansi_param != "FG" && ansi_param != "BG" && !(ansi_param in EXPORT_PALETTE)) {
+      opt_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
+                        html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
+    } else if (!is_hex_color(html_color_code)) {
+      opt_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
+                        html_colors_split[k]))
+    } else if (ansi_param in EXPORT_PALETTE) {
+      EXPORT_PALETTE[ansi_param] = html_color_code
+    } else {
+      EXPORT_FG_BG[ansi_param] = html_color_code
+    }
+  }
+}
+
+#### Output formats
+# Everything that depends on OUTPUT_FORMAT (ANSI, HTML, LATEX): color codes, escapes, header
+# and footer (the color options are checked in Options). Rendering does not read
+# OUTPUT_FORMAT: it calls the functions fmt_* (fmt_escape, fmt_color, fmt_document), and uses
+# the color codes of fmt_color_code.
+
+# The color codes of each kind of text in the output format (see fmt_color_code), from the
+# COLOR_* options (checked by opt_colors)
+function initialize_color_codes() {
+  COLOR_DEFAULT_CODE = fmt_color_code(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = fmt_color_code(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = fmt_color_code(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_SECTION_CODE = fmt_color_code(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = fmt_color_code(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = fmt_color_code(-1)
 }
 
 # The colors of the HTML and LaTeX output (EXPORT_THEME can change them):
@@ -811,32 +841,6 @@ function define_ansi_to_html_colors(k) { #locals
 
   for (k = 30; k <= 37; k++) { EXPORT_PALETTE[k+10] = EXPORT_PALETTE[k] }
   for (k = 90; k <= 97; k++) { EXPORT_PALETTE[k+10] = EXPORT_PALETTE[k] }
-}
-
-# Apply EXPORT_THEME, ANSI_PARAM:HEX_COLOR[,...]: the colors of the parameters 30-37, 40-47,
-# 90-97 and 100-107, and FG and BG (invalid entries are reported, see option_error)
-function set_user_defined_color_theme(html_colors_split, k, n, ansi_html_map, ansi_param, #locals
-                                      html_color_code) { #locals
-  n = split(EXPORT_THEME, html_colors_split, ",")
-  for (k = 1; k <= n; k++) {
-    if (html_colors_split[k] ~ /^[ \t]*$/) {
-      continue # an empty entry, e.g., after a trailing comma
-    }
-    split(html_colors_split[k], ansi_html_map, ":")
-    ansi_param = ansi_html_map[1]
-    html_color_code = array_get(ansi_html_map, 2) # "" if there is no colon
-    if (ansi_param != "FG" && ansi_param != "BG" && !(ansi_param in EXPORT_PALETTE)) {
-      option_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
-                           html_colors_split[k], "30-37, 40-47, 90-97, 100-107"))
-    } else if (!is_hex_color(html_color_code)) {
-      option_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
-                           html_colors_split[k]))
-    } else if (ansi_param in EXPORT_PALETTE) {
-      EXPORT_PALETTE[ansi_param] = html_color_code
-    } else {
-      EXPORT_FG_BG[ansi_param] = html_color_code
-    }
-  }
 }
 
 # The CSS property of each ANSI parameter, and the value of the attributes (the colors are
@@ -877,7 +881,7 @@ function define_ansi_to_latex_function(k) { #locals
 # ansi_color_param:
 # == 0: no color ("")
 #  > 0: some color
-#  < 0: the code that ends a color (the user cannot set -1, see validate_ansi_param())
+#  < 0: the code that ends a color (the user cannot set -1, see opt_ansi_param())
 function fmt_color_code(ansi_color_param, color_label_key) {
   if (!ansi_color_param) {
     return "" # token for "no color annotation should be applied at all"
@@ -937,7 +941,7 @@ function html_box_style(style) { #locals
 }
 
 # Set OUTPUT_HEADER and OUTPUT_FOOTER, printed around the documentation (each ends with a
-# newline; empty for ANSI). Called after initialize_colors, whose colors it uses.
+# newline; empty for ANSI). Called after opt_colors, whose colors it uses.
 function initialize_output_format() {
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
   if (OUTPUT_FORMAT == "HTML") {
@@ -2095,7 +2099,7 @@ function print_documentation(document) { #locals
 BEGIN {
   init_globals()
   if (!UNIT_TEST) {
-    if (process_options() > 0) {
+    if (opt_process() > 0) {
       ABORT = 1
       exit 1
     }
@@ -2112,7 +2116,7 @@ END {
     # Without a Makefile, awk reads stdin: if it is empty (e.g., < /dev/null, or Ctrl-D in
     # a terminal), print the help
     if (ARGC == 1 && NR == 0) {
-      print_help()
+      opt_print_help()
       exit 1
     }
     parser_warn_about_continued_last_line()
