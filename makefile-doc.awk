@@ -282,7 +282,7 @@ function init_globals() {
   # Constants (never changed after init_globals)
   # ---------------------------------------------------------------------------------------
 
-  VERSION = "v2.2" # the source of truth for the version (tools/release.py updates it)
+  VERSION = "v2.3" # the source of truth for the version (tools/release.py updates it)
   OUTPUT_FORMATS = "ANSI HTML LATEX" # the values of OUTPUT_FORMAT (see fmt_init)
   PROGRAM = "makefile-doc" # the name at the start of the warnings and the errors
 
