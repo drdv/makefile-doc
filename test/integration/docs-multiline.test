@@ -4,7 +4,7 @@
 ------------------
 Available targets:
 ------------------
-t1   Spaces before the ## token are allowed and stripped
+t1   Spaces before the ## tag are allowed and stripped
      top docs can have multiple lines
        indentation can be used for emphasis
 t2   Blank lines

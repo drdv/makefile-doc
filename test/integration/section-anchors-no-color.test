@@ -8,6 +8,6 @@ Available targets:
 ------ Section 1 -----
 
 t1   The section is anchored to the next documented target
------- Section 2 (spaces before the ##@ token) -----
+------ Section 2 (spaces before the ##@ tag) -----
 t2   A section anchored to a deprecated target
 ------------------

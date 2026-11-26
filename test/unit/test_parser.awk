@@ -549,7 +549,7 @@ function trace_memory(text,
 }
 
 function test_parser_memory() {
-  check("memory: doc and section lines are added without their tokens",
+  check("memory: doc and section lines are added without their tags",
         trace_memory("##@ s1|## d1|##! d2|##@ s2"), "/ s1  d1/ s1  d1+ d2/ s1  d1+ d2/ s1+ s2")
   check("memory: a directive drops the doc, an undocumented anchor keeps the section",
         trace_memory("##@ s|## d|include x|t:"), "/ s  d/ s / s / s")

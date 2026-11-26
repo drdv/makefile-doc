@@ -6,7 +6,7 @@ undocumented-target: # does not consume the section
 ## The section is anchored to the next documented target
 t1:
 
-  ##@------ Section 2 (spaces before the ##@ token) -----
+  ##@------ Section 2 (spaces before the ##@ tag) -----
 
 ##% A section anchored to a deprecated target
 t2:
