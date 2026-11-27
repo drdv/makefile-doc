@@ -117,20 +117,34 @@ function test_render_substitute_backticks() {
   COLOR_RESET_CODE = "<<<"
 
   check("render_substitute_backticks: two regions",
-        render_substitute_backticks("this `is` a test `x` and"),
+        render_substitute_backticks("this `is` a test `x` and", ">>>"),
         "this >>>is<<< a test >>>x<<< and")
   check("render_substitute_backticks: regions are paired from the left",
-        render_substitute_backticks("`this `is` a test `x` and`"),
+        render_substitute_backticks("`this `is` a test `x` and`", ">>>"),
         ">>>this <<<is>>> a test <<<x>>> and<<<")
   check("render_substitute_backticks: inside braces",
-        render_substitute_backticks("{`1`, `2`, `3`}"),
+        render_substitute_backticks("{`1`, `2`, `3`}", ">>>"),
         "{>>>1<<<, >>>2<<<, >>>3<<<}")
   check("render_substitute_backticks: region with a space",
-        render_substitute_backticks("empty ` ` region"),
+        render_substitute_backticks("empty ` ` region", ">>>"),
         "empty >>> <<< region")
   check("render_substitute_backticks: empty region is left as is",
-        render_substitute_backticks("empty `` region"),
+        render_substitute_backticks("empty `` region", ">>>"),
         "empty `` region")
+  check("render_substitute_backticks: no color removes the backticks",
+        render_substitute_backticks("a `b` c", ""), "a b c")
+}
+
+# render_doc_width: the width of the last line of a doc, as it is displayed
+function test_render_doc_width() {
+  init_globals()
+  check("render_doc_width: an empty doc", render_doc_width(""), 0)
+  check("render_doc_width: the last line", render_doc_width("line 1\nend"), 3)
+  check("render_doc_width: backticks are counted without colors", render_doc_width("`a` b"), 5)
+  COLOR_BACKTICKS_CODE = ">>>"
+  check("render_doc_width: backticks are not counted with colors", render_doc_width("`a` b"), 3)
+  check("render_doc_width: a region across lines", render_doc_width("`a\nb` c"), 3)
+  init_globals()
 }
 
 # render_sub_values: the values of a SUB, with the parameters of its row of SUB_PARAM
@@ -142,9 +156,16 @@ function test_render_sub_values(labels, values, names) { #locals
         render_sub_values("a b", "", 1), "\n    a\n    b\n")
   opt_form_substitutions("<L:0,M:0,I:{,T:},S:\\,>t:a b c;<N:2>u:a b c", 0, SUB_PARAM, labels,
                          values, names)
-  check("render_sub_values: L:0, M:0, I, T and S", render_sub_values("a b c", "t", 1),
+  check("render_sub_values: L:0, M:0, I, T and S", render_sub_values("a b c", "t", 1, 3),
         " {a, b, c}\n")
+  check("render_sub_values: L:0 and an empty doc", render_sub_values("a b c", "t", 1, 0),
+        "{a, b, c}\n")
   check("render_sub_values: N", render_sub_values("a b c", "u", 1), "\n    a\n    b\n")
+  opt_form_substitutions("<L:0,I:(>t:a b", 0, SUB_PARAM, labels, values, names)
+  check("render_sub_values: L:0, M:1, the next values under the first one",
+        render_sub_values("a b", "t", 1, 3), " (a\n         b\n")
+  check("render_sub_values: L:0, M:1 and an empty doc",
+        render_sub_values("a b", "t", 1, 0), "(a\n     b\n")
   OFFSET = ""
   init_globals()
 }
@@ -236,6 +257,7 @@ BEGIN {
   # DISPLAY -> text: the layout (render_documentation)
   test_render_substitute_backticks()
   test_render_doc()
+  test_render_doc_width()
   test_render_sub_values()
   test_render_anchor()
   test_render_documentation()

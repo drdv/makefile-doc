@@ -1975,7 +1975,9 @@ function render_separator(character, len_anchors) {
                                             length(HEADER_VARIABLES))))
 }
 
-function render_substitute_backticks(string,
+# string with the text of each region in backticks colored with color_code, without the
+# backticks. With color_code "", only the backticks are removed (see render_doc_width).
+function render_substitute_backticks(string, color_code,
                                      before_match, inside_match, after_match) { #locals
   # (gensub with a back-reference would do this in one call, but it is only in gawk)
   while (match(string, /`([^`]+)`/)) {
@@ -1983,16 +1985,27 @@ function render_substitute_backticks(string,
     inside_match = substr(string, RSTART + 1, RLENGTH - 2)
     after_match = substr(string, RSTART + RLENGTH)
 
-    string = before_match fmt_color(inside_match, COLOR_BACKTICKS_CODE) after_match
+    string = before_match fmt_color(inside_match, color_code) after_match
   }
   return string
 }
 
 function render_backticks(doc) {
   if (COLOR_BACKTICKS_CODE != "") {
-    return render_substitute_backticks(doc)
+    return render_substitute_backticks(doc, COLOR_BACKTICKS_CODE)
   }
   return doc
+}
+
+# The width of the last line of doc as it is displayed: without the backticks that
+# render_backticks removes
+function render_doc_width(doc,
+                          n, lines) { #locals
+  if (COLOR_BACKTICKS_CODE != "") {
+    doc = render_substitute_backticks(doc, "")
+  }
+  n = split(doc, lines, "\n")
+  return n > 0 ? text_length(lines[n]) : 0
 }
 
 # the color code of an anchor, given by the tag of its doc
@@ -2024,8 +2037,9 @@ function render_section(section) {
 # space-separated, and its parameters are in the row sub_row of SUB_PARAM. Each value
 # becomes an item, with P before it and S after it. The first item also starts with I, and
 # the last one ends with T instead of S. The items are on one line (M=0) or one per line
-# (M=1). They start after the doc (L=0) or on the next line (L=1).
-function render_sub_values(sub_values, sub_row, len_anchors,
+# (M=1). They start after the doc (L=0) or on the next line (L=1). doc_width is the width of
+# the last line of the doc (see render_doc_width).
+function render_sub_values(sub_values, sub_row, len_anchors, doc_width,
                            values, n, k, item, lines, n_lines, initial, prefix, #locals
                            separator, termination, indentation, next_indentation, #locals
                            output) { #locals
@@ -2061,9 +2075,18 @@ function render_sub_values(sub_values, sub_row, len_anchors,
     }
   }
 
-  # the values line up with the text of the doc
+  # The values line up with the text of the doc: the first one starts on the next line (L=1),
+  # or after the doc and a space (L=0), where the doc starts if it is empty. indentation
+  # ends where the first value starts.
   indentation = spaces(len_anchors + OFFSET)
-  output = (SUB_PARAM[sub_row, "L"] ? "\n" indentation : " ") lines[1]
+  if (SUB_PARAM[sub_row, "L"]) {
+    output = "\n" indentation lines[1]
+  } else if (doc_width > 0) {
+    output = " " lines[1]
+    indentation = indentation spaces(doc_width + 1)
+  } else {
+    output = lines[1]
+  }
   # the lines after the first are aligned with the first value (after I)
   next_indentation = indentation spaces(text_length(initial))
   for (k = 2; k <= n_lines; k++) {
@@ -2095,7 +2118,8 @@ function render_anchor(k, len_anchors,
   }
 
   output = output formatted_anchor render_doc(DISPLAY[k, "doc"], len_anchors) \
-           render_sub_values(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors)
+           render_sub_values(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors,
+                             render_doc_width(DISPLAY[k, "doc"]))
   return strip_trailing_blanks(output)
 }
 

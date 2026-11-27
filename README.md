@@ -310,7 +310,8 @@ A substitution can start with parameters that control how the values are display
 | `I`       | initial string, e.g., `{`                                  | none    |
 | `T`       | termination string, e.g., `}`                              | none    |
 
-For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, c}`.
+For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, c}`. With `M:1`,
+the values after the first are aligned under it (after `I`), also when they follow the doc (`L:0`).
 
 - In a parameter, only the first colon is a separator: `S::` sets the separator to a
   colon and `P:x:y` the prefix to `x:y`.
