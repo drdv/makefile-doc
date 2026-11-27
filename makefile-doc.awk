@@ -435,7 +435,7 @@ function set_dsub_param_defaults(table) { #fill
 
 # Check the options and derive the settings. Report every invalid option, and return their
 # number. BEGIN exits when it is not 0.
-function opt_process(sub_names, dummy_array_labels) { #locals
+function opt_process(unused_sub_names, unused_dsub_labels) { #locals
   OUTPUT_FORMAT = OUTPUT_FORMAT == "" ? "ANSI" : toupper(OUTPUT_FORMAT)
   if (!index(" " OUTPUT_FORMATS " ", " " OUTPUT_FORMAT " ")) {
     opt_error("OUTPUT_FORMAT should be " or_list(OUTPUT_FORMATS))
@@ -469,8 +469,8 @@ function opt_process(sub_names, dummy_array_labels) { #locals
   }
 
   # (with "", gawk --lint does not warn when the option is not set)
-  opt_form_substitutions(SUB "", 0, SUB_PARAM, SUB_LABELS, SUB_VALUES, sub_names)
-  opt_form_substitutions(DSUB "", 1, DSUB_PARAM, dummy_array_labels, DSUB_VALUES, DSUB_NAMES)
+  opt_form_substitutions(SUB "", 0, SUB_PARAM, SUB_LABELS, SUB_VALUES, unused_sub_names)
+  opt_form_substitutions(DSUB "", 1, DSUB_PARAM, unused_dsub_labels, DSUB_VALUES, DSUB_NAMES)
   DSUB_COUNT = array_length(DSUB_NAMES)
 
   opt_report_assignment_operands()
@@ -617,25 +617,20 @@ function opt_parse_substitution_params(string,
   return n
 }
 
-# Copy the row of defaults, "", of a table of parameters to the row name. The keys of the
-# row "" are collected first, because adding elements to an array while looping over it is
-# undefined.
-function opt_copy_param_defaults(name,
+# Copy the defaults of the parameters known_keys (space-separated), from the row "" of a
+# table of parameters to the row name.
+function opt_copy_param_defaults(name, known_keys,
                                  table, #update
-                                 key, defaults) { #locals
-  for (key in table) {
-    if (index(key, SUBSEP) == 1) {
-      defaults[substr(key, length(SUBSEP) + 1)] = table[key]
-    }
-  }
-  for (key in defaults) {
-    table[name, key] = defaults[key]
+                                 key_list, k, n) { #locals
+  n = split(known_keys, key_list, " ")
+  for (k = 1; k <= n; k++) {
+    table[name, key_list[k]] = table["", key_list[k]]
   }
 }
 
 # Parse string_with_parameters, the parameters of name in option (SUB or DSUB). Report the
-# repeated and the unknown parameters, and return the number n of the others. allowed lists
-# the known keys for the message, e.g., "A or D".
+# repeated and the unknown parameters, and return the number n of the others. known_keys
+# lists the known keys, space-separated, e.g., "A D".
 #
 # Update:
 #   table: the row name starts with the defaults (see opt_copy_param_defaults)
@@ -643,11 +638,11 @@ function opt_copy_param_defaults(name,
 # Fill:
 #   params[key] = value, for the other parameters
 #   keys[1..n]: their keys in the order given
-function opt_checked_params(option, allowed, name, string_with_parameters,
+function opt_checked_params(option, known_keys, name, string_with_parameters,
                             table, #update
                             params, keys, #fill
                             all_params, all_keys, k, n, n_all, key, seen) { #locals
-  opt_copy_param_defaults(name, table)
+  opt_copy_param_defaults(name, known_keys, table)
   split("", params)
   split("", keys)
   split("", seen)
@@ -660,7 +655,7 @@ function opt_checked_params(option, allowed, name, string_with_parameters,
                         name))
     } else if (!(("", key) in table)) {
       opt_error(sprintf("%s: unknown parameter %s of %s (use %s)", option, key, name,
-                        allowed))
+                        or_list(known_keys)))
     } else {
       keys[++n] = key
       params[key] = all_params[key]
@@ -676,7 +671,7 @@ function opt_checked_params(option, allowed, name, string_with_parameters,
 function opt_store_sub_params(name, string_with_parameters,
                               table, #update
                               params, keys, k, n, key, value) { #locals
-  n = opt_checked_params("SUB", "L, M, N, S, P, I or T", name, string_with_parameters, table,
+  n = opt_checked_params("SUB", "L M N S P I T", name, string_with_parameters, table,
                          params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
@@ -701,7 +696,7 @@ function opt_store_sub_params(name, string_with_parameters,
 function opt_store_dsub_params(name, string_with_parameters,
                                table, #update
                                params, keys, k, n, key, value) { #locals
-  n = opt_checked_params("DSUB", "A or D", name, string_with_parameters, table, params, keys)
+  n = opt_checked_params("DSUB", "A D", name, string_with_parameters, table, params, keys)
   for (k = 1; k <= n; k++) {
     key = keys[k]
     value = strip_blanks(params[key])
@@ -1464,7 +1459,8 @@ function parser_reference_end(line, k,
 # The reset at the first line of a file is applied to state and memory (see parser_file_start).
 # ---------------------------------------------------------------------------------------
 
-# The initial state and memory. prefix is p_0, the RECIPEPREFIX option (a tab by default).
+# The initial state and memory. prefix is p_0, the RECIPEPREFIX option: one character, a tab
+# by default (see opt_process).
 #
 # Fill:
 #   state:  x_0 = (0, 0, 0, p_0)
@@ -1475,7 +1471,7 @@ function parser_init(prefix,
   state["r"] = 0
   state["d"] = 0
   state["s"] = 0
-  state["p"] = prefix == "" ? "\t" : substr(prefix, 1, 1)
+  state["p"] = prefix
   split("", memory)
   memory["dn"] = 0
   memory["sn"] = 0
@@ -1483,10 +1479,6 @@ function parser_init(prefix,
 
 # The reset at the first line of a file (b_i = 1): no rule is open and no doc is pending; the
 # section and the recipe prefix carry over.
-#
-# Update:
-#   state["r"] = state["d"] = 0
-#   memory["dn"] = 0 (D is emptied)
 function parser_file_start(state, memory) { #update
   state["r"] = 0
   state["d"] = 0
@@ -2134,7 +2126,7 @@ function render_sub_values(sub_values, sub_row, len_anchors, doc_width,
 # Return the text of one displayed anchor, as it appears in the help. len_anchors is the
 # width of the column of names.
 function render_anchor(k, len_anchors,
-                       section, label, formatted_anchor, padding, color, output) { #locals
+                       section, label, formatted_anchor, padding, output) { #locals
   output = ""
   if ((k, "section") in DISPLAY) { # (an empty section is a blank line)
     section = render_section(DISPLAY[k, "section"])
@@ -2146,12 +2138,7 @@ function render_anchor(k, len_anchors,
   # The padding is measured on the label, because an HTML or LaTeX escape is longer than its
   # character. It is escaped too, because PADDING can be any character.
   padding = fmt_escape(repeated_string(PADDING, len_anchors - text_length(label)))
-  color = render_anchor_color(DISPLAY[k, "tag"])
-  if (color) {
-    formatted_anchor = color formatted_anchor padding COLOR_RESET_CODE
-  } else {
-    formatted_anchor = formatted_anchor padding
-  }
+  formatted_anchor = fmt_color(formatted_anchor padding, render_anchor_color(DISPLAY[k, "tag"]))
 
   output = output formatted_anchor render_doc(DISPLAY[k, "doc"], len_anchors) \
            render_sub_values(DISPLAY[k, "values"], DISPLAY[k, "sub_row"], len_anchors,

@@ -512,22 +512,24 @@ function trace_lines(text, prefix,
 function test_parser_states(state, memory, joiner, context, obs, derived) { #locals
   check("states: the example of the model",
         trace_lines("##@ Build|## Compile the app|build: main.c|\tcc -o app main.c||" \
-                    "## The version|V := 1", ""), "001 011 100 100 100 110 000")
-  check("states: an inline doc consumes the section", trace_lines("##@ s|t: ## doc", ""), "001 100")
-  check("states: an undocumented target leaves the section", trace_lines("##@ s|t:", ""), "001 101")
+                    "## The version|V := 1", "\t"), "001 011 100 100 100 110 000")
+  check("states: an inline doc consumes the section", trace_lines("##@ s|t: ## doc", "\t"),
+        "001 100")
+  check("states: an undocumented target leaves the section", trace_lines("##@ s|t:", "\t"),
+        "001 101")
   check("states: a special target opens a rule (#181)",
-        trace_lines("A := 1|.DEFAULT:|\t## not a doc|next:", ""), "000 100 100 100")
+        trace_lines("A := 1|.DEFAULT:|\t## not a doc|next:", "\t"), "000 100 100 100")
   check("states: a directive closes the rule (#182)",
-        trace_lines("t:|\techo|include x|\t## a doc|u:", ""), "100 100 000 010 100")
+        trace_lines("t:|\techo|include x|\t## a doc|u:", "\t"), "100 100 000 010 100")
   check("states: a line with only the prefix is a recipe line (drops the doc)",
-        trace_lines("t:|## doc|\t|u:", ""), "100 110 100 100")
+        trace_lines("t:|## doc|\t|u:", "\t"), "100 110 100 100")
   check("states: continued lines, recipe lines included",
-        trace_lines("## doc|t1 \\|  t2:|\techo \\|still the recipe|V := 1", ""),
+        trace_lines("## doc|t1 \\|  t2:|\techo \\|still the recipe|V := 1", "\t"),
         "010 + 100 + 100 000")
   check("states: a recipe line of only its prefix, continued",
-        trace_lines("t:|\t\\|BOGUS := 1 ## x|u:", ""), "100 + 100 100")
+        trace_lines("t:|\t\\|BOGUS := 1 ## x|u:", "\t"), "100 + 100 100")
   check("states: an assignment to .RECIPEPREFIX changes the prefix",
-        trace_lines(".RECIPEPREFIX := >|t:|> echo|\t## not a recipe line|u:", ""),
+        trace_lines(".RECIPEPREFIX := >|t:|> echo|\t## not a recipe line|u:", "\t"),
         "000 100 100 110 100")
   check("states: the RECIPEPREFIX option", trace_lines("t:|> echo|\t## doc|u:", ">"),
         "100 100 110 100")
@@ -553,7 +555,7 @@ function test_parser_states(state, memory, joiner, context, obs, derived) { #loc
   parser_observe("V := 1", obs)
   check("prefix: another line assigns none", obs["prefix"], "")
   check("prefix: a recipe line does not change it",
-        trace_lines("t:|\t.RECIPEPREFIX = >|\t## still a recipe line|u:", ""), "100 100 100 100")
+        trace_lines("t:|\t.RECIPEPREFIX = >|\t## still a recipe line|u:", "\t"), "100 100 100 100")
 
   split("", state)
   state["r"] = 1
@@ -568,7 +570,7 @@ function test_parser_states(state, memory, joiner, context, obs, derived) { #loc
   parser_observe("\tV := 1", obs)
   check("parser_kind: no rule is open", parser_kind(state, obs), "assignment")
 
-  parser_init("", state, memory)
+  parser_init("\t", state, memory)
   parser_join_init(joiner)
   parser_join("##@ s", 1, joiner)
   parser_process(joiner["line"], joiner["start"], state, memory, context, obs, derived)
@@ -586,7 +588,7 @@ function test_parser_states(state, memory, joiner, context, obs, derived) { #loc
 # D/S with the lines of each joined by +
 function trace_memory(text,
                       state, memory, joiner, context, lines, n, k, obs, derived, out) { #locals
-  parser_init("", state, memory)
+  parser_init("\t", state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
   out = ""
@@ -620,7 +622,7 @@ function test_parser_memory() {
 function recorded(text,
                   state, memory, joiner, context, lines, n, k, obs, derived) { #locals
   init_globals()
-  parser_init("", state, memory)
+  parser_init("\t", state, memory)
   parser_join_init(joiner)
   n = split(text, lines, "|")
   for (k = 1; k <= n; k++) {
