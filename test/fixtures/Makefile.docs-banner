@@ -20,3 +20,8 @@ t5:
 ## Docs of a variable above a banner (discarded)
 ###
 V := 1
+
+t6: ### An inline banner is not a doc
+
+## Docs above a target with an inline banner
+t7: ### Inline banner
