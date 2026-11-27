@@ -26,3 +26,9 @@ test/fixtures/Makefile.docs-banner
   20 0 1  1  0 \t | ## Docs of a variable above a banner (discarded)
   21 0 1  0  0 \t | ###
   22 0 0  0  0 \t | V := 1
+  23 0 0  0  0 \t |
+  24 0 1  0  0 \t | t6: ### An inline banner is not a doc
+  25 0 1  0  0 \t |
+  26 0 1  1  0 \t | ## Docs above a target with an inline banner
+  27 0 1  0  0 \t | t7: ### Inline banner
+  27 ============ => target:[t7]

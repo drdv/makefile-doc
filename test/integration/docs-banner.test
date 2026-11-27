@@ -6,4 +6,5 @@
 Available targets:
 ------------------
 t2   Docs below a banner
+t7   Docs above a target with an inline banner
 ------------------

@@ -1478,7 +1478,7 @@ function parser_file_start(state, memory) { #update
 # Fill (besides the fields of parser_structure):
 #   obs["first_char"]: the first character of the line ("" for an empty line)
 #   obs["inline"]:     1 if the line has an anchor and its comment starts with ## but not
-#                      ##@ (an inline doc)
+#                      ##@ or ### (an inline doc)
 #   obs["inline_doc"]: that comment without its tag and the one blank after it ("" if none)
 #   obs["text"]:       the line without its leading blanks, its tag and the one blank after
 #                      it, for a doc or section line ("" otherwise)
@@ -1489,7 +1489,7 @@ function parser_observe(line,
   parser_structure(line, obs)
   obs["first_char"] = substr(line, 1, 1)
   obs["inline"] = obs["anchor_kind"] != "" && obs["comment"] ~ /^##/ &&
-                  obs["comment"] !~ /^##@/
+                  obs["comment"] !~ /^(##@|###)/
   obs["inline_doc"] = ""
   obs["text"] = ""
   obs["tag"] = ""

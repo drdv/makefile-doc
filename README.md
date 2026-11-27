@@ -129,8 +129,8 @@ Blank lines, comments, conditionals (`ifeq` ... `endif`) and [special
 targets](https://www.gnu.org/software/make/manual/html_node/Special-Targets.html) such as
 `.PHONY: target` can appear between a doc and its anchor. Most other lines discard the doc, e.g.,
 `include`, `$(info ...)` or a comment banner (a comment that starts with three or more `#`, such as
-`### Build ###`). The full list is in the kinds of lines of
-[misc/docs/parser-model.tex](misc/docs/parser-model.tex).
+`### Build ###`). A banner after an anchor (`build: ### Build ###`) is not an inline doc. The full
+list is in the kinds of lines of [misc/docs/parser-model.tex](misc/docs/parser-model.tex).
 
 The remaining details:
 

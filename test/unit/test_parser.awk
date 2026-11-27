@@ -221,6 +221,9 @@ function test_parser_inline_docs() {
         inline_doc("target: ##@ some text"), "<none>")
   check("inline doc: none for an inline ##@ on a variable",
         inline_doc("X := 1 ##@ some text"), "<none>")
+  check("inline doc: none for an inline banner", inline_doc("target: ### Build ###"), "<none>")
+  check("inline doc: none for an inline banner on a variable",
+        inline_doc("X := 1 ### Build"), "<none>")
   check("inline doc: variable with a ; in its value", inline_doc("X := a;b ## doc"), "## doc")
   check("inline doc: none in an ordinary comment",
         inline_doc("target: deps # a comment ## text"), "<none>")
