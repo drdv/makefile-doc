@@ -726,7 +726,7 @@ function opt_print_help() {
   opt_print_option("VARS", "show documented variables (0 or 1)", VARS)
   opt_print_option("DEPRECATED", "show deprecated anchors (0 or 1)", DEPRECATED)
   opt_print_option("PADDING", "character between anchors and docs", PADDING)
-  opt_print_option("OFFSET", "spaces between names and docs", OFFSET)
+  opt_print_option("OFFSET", "spaces after the longest name", OFFSET)
   opt_print_option("WARN", "print warnings on stderr (0 or 1)", WARN)
   opt_print_option("COLOR", "use colors (0 or 1)", COLOR)
   opt_print_option("OUTPUT_FORMAT", or_list(OUTPUT_FORMATS), OUTPUT_FORMAT)
