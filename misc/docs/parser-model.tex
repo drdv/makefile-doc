@@ -36,57 +36,22 @@ model (section~\ref{sec:implementation}).
 
 \begin{itemize}
   \item \textbf{Logical lines.} A physical line that ends with an odd number of
-        backslashes is joined with the next one, recipe lines included; as in GNU Make,
-        the backslash, the newline and the blanks around them become one space. The model
-        reads the resulting logical lines $L_1, L_2, \dots$
+        backslashes is joined with the next one, recipe lines included. Outside a
+        recipe, as in GNU Make, the backslash, the newline and the blanks around them
+        become one space; the model does the same in a recipe
+        line.\footnote{In a recipe line, GNU Make keeps the backslash and the newline
+        and passes them to the shell. The model joins the line all the same, so that its
+        continuation is not read as a rule, a doc or an assignment. The text of a
+        recipe line does not matter to the model, which uses only its first character.}
+        The model reads the resulting logical lines $L_1, L_2, \dots$
   \item \textbf{Files in order.} The files are read whole, one after another (for
         \code{make help}, in the order of \code{\$(MAKEFILE\_LIST)}). A line continued at
         the end of a file is dropped.
 \end{itemize}
 
-\section{Overview}
-\label{sec:overview}
-
-What the parser uses to read line $i$ falls into five groups, and it produces one output:
-
-\begin{center}
-\begin{tabular}{@{}lP{0.66\textwidth}@{}}
-  \toprule
-  Group & Content \\
-  \midrule
-  Environment & given with each line, not read from it: $b_i$ \\
-  State & what decides how lines are read: $x_i = (r_i, d_i, s_i, p_i)$
-          (section~\ref{sec:state}) \\
-  Memory & the pending text, carried from line to line but never deciding anything:
-           $D_i$, $S_i$ (section~\ref{sec:memory}) \\
-  Observations & read from the text of $L_i$ only: $\mathcal{O}_i[\ldots]$
-                 (section~\ref{sec:observations}) \\
-  Derived & computed for line $i$ from the groups above, and not carried to the next line:
-            the reset, $k_i$, $e_i$ (section~\ref{sec:derived}) \\
-  \midrule
-  Output & the anchor records $\mathcal{A}_1, \dots, \mathcal{A}_m$, one for each
-           documented anchor (section~\ref{sec:output}) \\
-  \bottomrule
-\end{tabular}
-\end{center}
-
-\noindent For each line $i$, the parser does the following, in this order:
-\begin{enumerate}
-  \item if $L_i$ is the first line of a file ($b_i = 1$), it resets the state and the
-        pending doc (section~\ref{sec:derived});
-  \item it computes the observations $\mathcal{O}_i$ from $L_i$ alone;
-  \item it derives the kind of the line, $k_i$, and whether the line is a documented anchor,
-        $e_i$ (section~\ref{sec:derived});
-  \item if $e_i = 1$, it produces the next anchor record $\mathcal{A}_n$, from the memory
-        \emph{before} its transition;
-  \item it updates the state from $x_{i-1}$ to $x_i$, and the memory from
-        $(D_{i-1}, S_{i-1})$ to $(D_i, S_i)$.
-\end{enumerate}
-Then line $i+1$, whose observations do not depend on anything before it.
-
 \section{Notation}
 
-Lower-case letters are flags and characters (the state and the derived quantities);
+Lower-case letters are flags, characters and kinds ($b_i$, the state, $k_i$ and $e_i$);
 upper-case letters are text (the lines $L_i$ and the memory $D_i$, $S_i$); calligraphic
 letters are records (the observations $\mathcal{O}_i$ and the anchor records
 $\mathcal{A}_n$). A bar marks a quantity after the reset at the first line of a file
@@ -134,6 +99,47 @@ line $i$ is read with $D_{i-1}$. For example:
 \end{tabular}
 \end{center}
 
+\section{Overview}
+\label{sec:overview}
+
+What the parser uses to read line $i$ falls into five groups, and it produces one output:
+
+\begin{center}
+\begin{tabular}{@{}lP{0.66\textwidth}@{}}
+  \toprule
+  Group & Content \\
+  \midrule
+  Environment & given with each line, not read from it: $b_i$ \\
+  State & what decides how lines are read: $x_i = (r_i, d_i, s_i, p_i)$
+          (section~\ref{sec:state}) \\
+  Memory & the pending text, carried from line to line but never deciding anything:
+           $D_i$, $S_i$ (section~\ref{sec:memory}) \\
+  Observations & read from the text of $L_i$ only: $\mathcal{O}_i[\ldots]$
+                 (section~\ref{sec:observations}) \\
+  Derived & computed for line $i$ from the groups above, and not carried to the next line:
+            the reset, $k_i$, $e_i$ (section~\ref{sec:derived}) \\
+  \midrule
+  Output & the anchor records $\mathcal{A}_1, \dots, \mathcal{A}_m$, one for each
+           documented anchor (section~\ref{sec:output}) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent For each line $i$, the parser does the following, in this order:
+\begin{enumerate}
+  \item if $L_i$ is the first line of a file ($b_i = 1$), it resets the state and the
+        pending doc (section~\ref{sec:derived});
+  \item it computes the observations $\mathcal{O}_i$ from $L_i$ alone;
+  \item it derives the kind of the line, $k_i$, and whether the line is a documented anchor,
+        $e_i$ (section~\ref{sec:derived});
+  \item if $e_i = 1$, it produces the next anchor record $\mathcal{A}_n$, from the state
+        and the memory \emph{before} their transitions ($\bar x_{i-1}$, $\bar D_{i-1}$ and
+        $S_{i-1}$);
+  \item it updates the state from $\bar x_{i-1}$ to $x_i$, and the memory from
+        $(\bar D_{i-1}, S_{i-1})$ to $(D_i, S_i)$.
+\end{enumerate}
+Then line $i+1$, whose observations do not depend on anything before it.
+
 \section{Kinds of lines}
 \label{sec:kinds}
 
@@ -167,7 +173,8 @@ take the pending doc.
   \kind{special rule} & a rule of a special target: \code{.PHONY: t}, \code{.DEFAULT:},
                         \ldots \\
   \kind{assignment} & \code{V := 1} (any operator, after \code{export}, \code{override},
-                      \code{private}), \code{t: V := 1}, \code{define V} \\
+                      \code{private}), \code{t: V := 1}, \code{define V} (also after
+                      the qualifiers) \\
   \kind{other} & a directive (\code{include}, \code{vpath}, \code{export V},
                  \code{unexport}, \ldots), \code{endef}, \code{\$(info \ldots)}, anything
                  else \\
@@ -198,8 +205,8 @@ Table~\ref{tab:obs} lists them.
                          (section~\ref{sec:lexical}) \\
   $\Obs{anchor\_name}$ & the name of the anchor, as written: the word before the operator,
                          after the qualifiers (a variable), or the text before the
-                         separating colon, without its trailing blanks and \code{\&} (a
-                         target) \\
+                         separating colon, without its leading and trailing blanks and
+                         \code{\&} (a target) \\
   $\Obs{override}$ & 1 if a variable is set with the qualifier \code{override} \\
   $\Obs{inline}$ & 1 if $L_i$ has an anchor and its comment (section~\ref{sec:lexical})
                    starts with \code{\#\#} but not \code{\#\#@} or \code{\#\#\#}: an inline
@@ -239,7 +246,8 @@ question 3 comes before question 4, so both lines above are assignments.
   2 & Is it a comment: banner, section, doc, plain comment? &
       \kind{banner}, \kind{section}, \kind{doc}, \kind{neutral} \\
   3 & Is it an assignment? & \kind{assignment} \\
-  4 & Does it start with a keyword? & conditional: \kind{neutral} \\
+  4 & Does it start with a keyword (\code{define} also after the qualifiers)? &
+      conditional: \kind{neutral} \\
     & & \code{define}: \kind{assignment} \\
     & & directive, \code{endef}: \kind{other} \\
   5 & Is it a rule? & question 6 \\
@@ -267,8 +275,9 @@ the line: it is blank, it starts with \code{\#}, or its first word is a keyword.
   \item after the separating colon, \code{=}, \code{;} and \code{\#} each change what the
         rest of the line is.
 \end{itemize}
-Section~\ref{sec:lexical} describes this analysis.\footnote{As a by-product of answering questions 3
-  and 5, the analysis also computes the observations $\Obs{anchor\_kind}$, $\Obs{anchor\_name}$,
+Section~\ref{sec:lexical} describes this analysis.\footnote{As a by-product of answering
+  questions 3 and 5, the analysis finds the anchor, the comment, the operator and the value of
+  the line. From them, $\obs$ derives $\Obs{anchor\_kind}$, $\Obs{anchor\_name}$,
   $\Obs{override}$, $\Obs{inline}$, $\Obs{inline\_doc}$ and $\Obs{prefix}$ (table~\ref{tab:obs}).}
 
 \subsection{Lexical layer}
@@ -543,9 +552,10 @@ In makefile-doc.awk:
                           \code{section}$_{1..\code{sn}}$; \code{dn} and \code{sn} are the
                           lengths of $D_i$ and $S_i$ \\
   \code{PARSER\_OBS} & the observations of $L_i$, with the names of table~\ref{tab:obs},
-                       and a few fields used only to compute them: \code{comment};
-                       \code{operator} and \code{value} of an assignment; \code{double}
-                       and \code{grouped}, for the name of a target as displayed \\
+                       and the fields used to compute them (\code{comment}, and the
+                       \code{operator} and \code{value} of an assignment). \code{double}
+                       and \code{grouped} are for the name of a target as displayed,
+                       outside the model (section~\ref{sec:output}) \\
   \code{PARSER\_DERIVED} & the derived quantities of $L_i$: $k_i$ and $e_i$ (the reset is
                            applied to the state and the memory) \\
   \code{ANCHORS} & the anchor records \\
