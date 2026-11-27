@@ -1,13 +1,12 @@
 \documentclass[11pt]{article}
 \usepackage[margin=2.5cm]{geometry}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{array}
 \newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{xcolor}
-\usepackage{float}
 
 \newcommand{\code}[1]{\mbox{\texttt{#1}}}
 \newcommand{\obs}{\mathrm{obs}}
@@ -55,9 +54,10 @@ Lower-case letters are flags, characters and kinds ($b_i$, the state, $k_i$ and 
 upper-case letters are text (the lines $L_i$ and the memory $D_i$, $S_i$); calligraphic
 letters are records (the observations $\mathcal{O}_i$ and the anchor records
 $\mathcal{A}_n$). A bar marks a quantity after the reset at the first line of a file
-(section~\ref{sec:derived}).
+(section~\ref{sec:derived}). Table~\ref{tab:notation} lists the notation.
 
-\begin{center}
+\begin{table}
+\centering
 \begin{tabular}{@{}lP{0.68\textwidth}@{}}
   \toprule
   $L_i$ & the $i$-th logical line, over all files \\
@@ -81,12 +81,15 @@ $\mathcal{A}_n$). A bar marks a quantity after the reset at the first line of a 
                                   (section~\ref{sec:output}) \\
   \bottomrule
 \end{tabular}
-\end{center}
+\caption{Notation.}
+\label{tab:notation}
+\end{table}
 
-\noindent The indices follow the state: $D_i$ is the pending doc \emph{after} line $i$, so
-line $i$ is read with $D_{i-1}$. For example:
+The indices follow the state: $D_i$ is the pending doc \emph{after} line $i$, so line $i$
+is read with $D_{i-1}$. Table~\ref{tab:example} gives an example.
 
-\begin{center}
+\begin{table}
+\centering
 \begin{tabular}{@{}rlll@{}}
   \toprule
   $i$ & $L_i$ & $\Obs{text}$ & the texts of $D_i$ \\
@@ -97,14 +100,18 @@ line $i$ is read with $D_{i-1}$. For example:
   3 & \code{build:} & & $\emptyseq$ (the doc of \code{build}: $D_2$) \\
   \bottomrule
 \end{tabular}
-\end{center}
+\caption{An example of the indices of $D_i$.}
+\label{tab:example}
+\end{table}
 
 \section{Overview}
 \label{sec:overview}
 
-What the parser uses to read line $i$ falls into five groups, and it produces one output:
+What the parser uses to read line $i$ falls into five groups, and it produces one output
+(table~\ref{tab:overview}).
 
-\begin{center}
+\begin{table}
+\centering
 \begin{tabular}{@{}lP{0.66\textwidth}@{}}
   \toprule
   Group & Content \\
@@ -123,9 +130,11 @@ What the parser uses to read line $i$ falls into five groups, and it produces on
            documented anchor (section~\ref{sec:output}) \\
   \bottomrule
 \end{tabular}
-\end{center}
+\caption{What the parser uses to read a line, and its output.}
+\label{tab:overview}
+\end{table}
 
-\noindent For each line $i$, the parser does the following, in this order:
+For each line $i$, the parser does the following, in this order:
 \begin{enumerate}
   \item if $L_i$ is the first line of a file ($b_i = 1$), it resets the state and the
         pending doc (section~\ref{sec:derived});
@@ -146,7 +155,7 @@ Then line $i+1$, whose observations do not depend on anything before it.
 We define the kind of a line by the role it plays in the Makefile: a recipe line, a rule, an
 assignment, a doc, a section, and so on. The kind is what the parser looks at to decide how the line
 changes the state: whether it opens or closes a rule, and whether it starts, keeps or drops a
-pending doc or section.
+pending doc or section. Table~\ref{tab:kinds} lists the kinds.
 
 Two lines can have the same role, and so the same kind, even if their anchors differ: \code{V := 1}
 documents a variable and \code{t: V := 1} a target,\footnote{\code{t: V := 1} is a target-specific
@@ -154,7 +163,8 @@ documents a variable and \code{t: V := 1} a target,\footnote{\code{t: V := 1} is
   documented as a variable.} but both lines are of kind \kind{assignment}: they close the rule and
 take the pending doc.
 
-\begin{center}
+\begin{table}
+\centering
 \begin{tabular}{@{}lP{0.7\textwidth}@{}}
   \toprule
   Kind of line & Lines \\
@@ -180,7 +190,9 @@ take the pending doc.
                  else \\
   \bottomrule
 \end{tabular}
-\end{center}
+\caption{The kinds of lines.}
+\label{tab:kinds}
+\end{table}
 
 \section{Observations}
 \label{sec:observations}
@@ -189,7 +201,7 @@ The observations describe a line on its own: $\mathcal{O}_i = \obs(L_i)$ reads t
 $L_i$ and nothing else (neither the state, nor the memory, nor the environment).
 Table~\ref{tab:obs} lists them.
 
-\begin{table}[H]
+\begin{table}
 \centering
 \begin{tabular}{@{}lP{0.66\textwidth}@{}}
   \toprule
@@ -236,7 +248,7 @@ asking the questions of table~\ref{tab:questions} in order: the first question a
 gives the kind, and the kind is \kind{other} if none is. The order settles such cases:
 question 3 comes before question 4, so both lines above are assignments.
 
-\begin{table}[H]
+\begin{table}
 \centering
 \begin{tabular}{@{}rP{0.46\textwidth}l@{}}
   \toprule
@@ -389,23 +401,19 @@ only for the kinds of lines that are not \kind{recipe}.
 \section{State}
 \label{sec:state}
 
-\begin{equation}
-  x_0 = (0,\ 0,\ 0,\ p_0)
+\begin{align}
+  x_0 &= (0,\ 0,\ 0,\ p_0)
   \qquad \text{($p_0$: the \code{RECIPEPREFIX} option, a tab by default)}
-  \label{eq:init}
-\end{equation}
-\begin{equation}
-  r_i =
+  \label{eq:init}\\[6pt]
+  r_i &=
   \begin{cases}
     1 & \text{if } k_i \in \{\kind{recipe}, \kind{rule}, \kind{special rule}\}\\
     0 & \text{if } k_i \in \{\kind{assignment}, \kind{other}\}\\
     \bar r_{i-1} & \text{if } k_i \in \{\kind{neutral}, \kind{doc}, \kind{section},
                    \kind{banner}\}
   \end{cases}
-  \label{eq:r}
-\end{equation}
-\begin{equation}
-  d_i =
+  \label{eq:r}\\[6pt]
+  d_i &=
   \begin{cases}
     1 & \text{if } k_i = \kind{doc}\\
     0 & \text{if } k_i \in \{\kind{recipe}, \kind{banner}, \kind{rule}, \kind{assignment},
@@ -413,30 +421,29 @@ only for the kinds of lines that are not \kind{recipe}.
     \bar d_{i-1} & \text{if } k_i \in \{\kind{neutral}, \kind{section},
                    \kind{special rule}\}
   \end{cases}
-  \label{eq:d}
-\end{equation}
-\begin{equation}
-  s_i =
+  \label{eq:d}\\[6pt]
+  s_i &=
   \begin{cases}
     1 & \text{if } k_i = \kind{section}\\
     0 & \text{if } e_i = 1\\
     s_{i-1} & \text{otherwise}
   \end{cases}
-  \label{eq:s}
-\end{equation}
-\begin{equation}
-  p_i =
+  \label{eq:s}\\[6pt]
+  p_i &=
   \begin{cases}
     \Obs{prefix} & \text{if } k_i \ne \kind{recipe} \text{ and } \Obs{prefix} \text{ is not
                    none}\\
     p_{i-1} & \text{otherwise}
   \end{cases}
   \label{eq:p}
-\end{equation}
+\end{align}
 
-\noindent The equations \eqref{eq:r}, \eqref{eq:d} and \eqref{eq:s}, by kind of line:
+\noindent Table~\ref{tab:state} gives the equations \eqref{eq:r}, \eqref{eq:d} and
+\eqref{eq:s} by kind of line. Every anchor drops the pending doc, documented or not; only a
+documented one takes the section.
 
-\begin{center}
+\begin{table}
+\centering
 \begin{tabular}{@{}llll@{}}
   \toprule
   $k_i$ & $r_i$ & $d_i$ & $s_i$ \\
@@ -452,10 +459,9 @@ only for the kinds of lines that are not \kind{recipe}.
   \kind{other} & $0$ & $0$ & $s_{i-1}$ \\
   \bottomrule
 \end{tabular}
-\end{center}
-
-\noindent Every anchor drops the pending doc, documented or not; only a documented one
-takes the section.
+\caption{Equations \eqref{eq:r}--\eqref{eq:s} by kind of line.}
+\label{tab:state}
+\end{table}
 
 \section{Memory}
 \label{sec:memory}
@@ -538,9 +544,11 @@ double-colon target), and the warnings (a redefined doc, a continued last line).
 \section{Implementation}
 \label{sec:implementation}
 
-In makefile-doc.awk:
+Tables~\ref{tab:arrays} and~\ref{tab:functions} show how makefile-doc.awk implements the
+model.
 
-\begin{center}
+\begin{table}[!htb]
+\centering
 \begin{tabular}{@{}lP{0.62\textwidth}@{}}
   \toprule
   Array & Content \\
@@ -563,9 +571,12 @@ In makefile-doc.awk:
   \code{PARSER\_CONTEXT} & the file, and what names and warnings need \\
   \bottomrule
 \end{tabular}
-\end{center}
+\caption{The arrays of the parser in makefile-doc.awk.}
+\label{tab:arrays}
+\end{table}
 
-\begin{center}
+\begin{table}[!htb]
+\centering
 \begin{tabular}{@{}lP{0.62\textwidth}@{}}
   \toprule
   Function & Role \\
@@ -586,9 +597,11 @@ In makefile-doc.awk:
   \code{parser\_process} & one logical line, in the order of section~\ref{sec:overview} \\
   \bottomrule
 \end{tabular}
-\end{center}
+\caption{The functions of the parser in makefile-doc.awk.}
+\label{tab:functions}
+\end{table}
 
-\noindent The comments of these functions give their equations. The checks:
+The comments of these functions give their equations. The checks:
 \begin{itemize}
   \item \code{test/parser.spec}: the examples of $\obs$ (checked with GNU Make 4.4);
   \item \code{test/unit/test\_parser.awk}: the checks of the state, the memory and the
@@ -610,7 +623,8 @@ Where the model cannot follow GNU Make, because it does not evaluate the Makefil
   \item The new value of \code{.RECIPEPREFIX} is known only when it is written on the line
         ($\Obs{prefix}$). The model takes its first character:
         \begin{itemize}
-          \item with \code{=}, as written, references included: as GNU Make;
+          \item with \code{=}, as written, references included (with
+                \code{\textbackslash\#} read as \code{\#}): as GNU Make;
           \item with \code{:=}, \code{::=} or \code{:::=} and no reference: as GNU Make.
         \end{itemize}
         Otherwise the model keeps $p_{i-1}$:
