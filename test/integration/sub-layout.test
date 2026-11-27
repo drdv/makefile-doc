@@ -1,0 +1,21 @@
+#: desc: SUB with L:0: the values start where the doc starts if it is empty, and the next ones (M:1) are under the first one
+-v COLOR=0 -v 'SUB=<L:0,M:0>empty-flat:x y z;<L:0>empty-lines:x y z;<L:0,I:(,T:),S:\\,>initial:x y z;<L:0>two-lines:x y z;<L:0>backticks:x y z' test/fixtures/Makefile.sub-layout
+#: stdout
+------------------
+Available targets:
+------------------
+empty-flat    x y z
+empty-lines   x
+              y
+              z
+initial       doc with I, T and S (x,
+                                   y,
+                                   z)
+two-lines     a doc on
+              two lines x
+                        y
+                        z
+backticks     doc with `backticks` x
+                                   y
+                                   z
+------------------

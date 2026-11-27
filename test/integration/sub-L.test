@@ -13,9 +13,9 @@ counter-   Some target:
 Variables:
 ------------------
 AWK        Some variable: awk
-           mawk
-           nawk
-           bawk
-           wak
-           goawk
+                          mawk
+                          nawk
+                          bawk
+                          wak
+                          goawk
 ------------------

@@ -1,0 +1,21 @@
+#: desc: SUB with L:0 and colors: the removed backticks do not shift the values under the first one
+-v 'SUB=<L:0,M:0>empty-flat:x y z;<L:0>empty-lines:x y z;<L:0,I:(,T:),S:\\,>initial:x y z;<L:0>two-lines:x y z;<L:0>backticks:x y z' test/fixtures/Makefile.sub-layout
+#: stdout
+------------------
+Available targets:
+------------------
+[34mempty-flat [0m   x y z
+[34mempty-lines[0m   x
+              y
+              z
+[34minitial    [0m   doc with I, T and S (x,
+                                   y,
+                                   z)
+[34mtwo-lines  [0m   a doc on
+              two lines x
+                        y
+                        z
+[34mbackticks  [0m   doc with [33mbackticks[0m x
+                                 y
+                                 z
+------------------
