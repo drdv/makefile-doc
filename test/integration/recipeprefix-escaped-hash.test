@@ -1,0 +1,9 @@
+#: desc: An escaped # (\#) in the value of .RECIPEPREFIX sets the prefix to #, as in GNU Make
+-v COLOR=0 test/fixtures/Makefile.recipeprefix-escaped-hash
+#: stdout
+------------------
+Available targets:
+------------------
+t   A target
+u   Another target
+------------------

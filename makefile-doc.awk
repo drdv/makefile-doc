@@ -1546,6 +1546,7 @@ function parser_observe(line,
 #   :=, ::=   the first character of the value, when it has no reference ($)
 #   ?=        "": .RECIPEPREFIX is always defined (origin default), so nothing changes
 #   +=        "", when .RECIPEPREFIX has a value: its first character does not change
+#   \#        a value that starts with an escaped # gives #: GNU Make removes the backslash
 #
 # Unlike GNU Make (we return ""):
 #   :=, ::=   with a reference: GNU Make expands it (its value is not known from the line)
@@ -1557,6 +1558,9 @@ function parser_new_prefix(operator, value) {
   if (operator == "+=" || operator == "?=" || operator == "!=" ||
       (operator ~ /^:+=$/ && index(value, "$") > 0)) {
     return ""
+  }
+  if (index(value, "\\#") == 1) {
+    return "#"
   }
   return value == "" ? "\t" : substr(value, 1, 1)
 }

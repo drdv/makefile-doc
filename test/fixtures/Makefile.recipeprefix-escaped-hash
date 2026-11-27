@@ -1,0 +1,7 @@
+.RECIPEPREFIX = \#
+
+t: ## A target
+#@echo 1
+## Not a doc: a recipe line (the prefix is #)
+
+u: ## Another target
