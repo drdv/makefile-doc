@@ -7,14 +7,7 @@
 
 # add a record to the interface, as the parser does (section "": none)
 function add_anchor(kind, name, tag, doc, section) {
-  ANCHOR_COUNT++
-  ANCHORS[ANCHOR_COUNT, "kind"] = kind
-  ANCHORS[ANCHOR_COUNT, "name"] = name
-  ANCHORS[ANCHOR_COUNT, "tag"] = tag
-  ANCHORS[ANCHOR_COUNT, "doc"] = doc
-  if (section != "") {
-    ANCHORS[ANCHOR_COUNT, "section"] = section
-  }
+  parser_add_anchor(kind, name, doc, tag, section != "", section, 0)
 }
 
 # the displayed names, in order, separated by spaces
@@ -86,8 +79,7 @@ function test_render_prepare() {
   check("render_prepare: the label is the displayed name", DISPLAY[1, "label"], "T")
 
   init_globals()
-  add_anchor("variable", "V", "##", " doc", "")
-  ANCHORS[ANCHOR_COUNT, "override"] = 1
+  parser_add_anchor("variable", "V", " doc", "##", 0, "", 1)
   render_prepare()
   check("render_prepare: the label of a variable set with override",
         DISPLAY[1, "name"] "|" DISPLAY[1, "label"], "V|V (fixed)")
