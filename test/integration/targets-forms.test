@@ -13,4 +13,5 @@ $(TARGET-NAME)       Target from a variable in `$()`
 ${TARGET-NAME}       Target from a variable in `${}`
 $T                   Target from a one-letter variable
 $(t1) ${t2} t3       Variables and a name (issue #12)
+a b = c              Targets with an = among them (two words before it: not an assignment)
 ------------------

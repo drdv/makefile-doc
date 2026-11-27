@@ -1284,8 +1284,8 @@ function parser_scan(line,
     name_start = parser_qualifiers(left, qualifiers)
     rest = substr(left, name_start)
     sub(/[ \t]+$/, "", rest)
+    end = c == "=" ? p : q + 1 # the = of the operator
     if (rest != "" && rest !~ /[ \t]/) {
-      end = c == "=" ? p : q + 1 # the = of the operator
       obs["line_kind"] = "assignment"
       obs["anchor_kind"] = "variable"
       obs["anchor_name"] = substr(line, name_start, length(rest))
@@ -1294,8 +1294,20 @@ function parser_scan(line,
       obs["operator"] = substr(line, start, end - start + 1)
       obs["value"] = substr(line, end + 1, length(line) - end - length(obs["comment"]))
       sub(/^[ \t]+/, "", obs["value"])
+      return
     }
-    return
+    # Not an assignment: the first colon after the operator, if no # comes before it, is the
+    # separating colon (e.g., `a b = c: d` is a rule with the targets a, b, = and c).
+    rest = substr(masked, end + 1)
+    p = match(rest, /[#:]/)
+    if (!p || substr(rest, p, 1) == "#") {
+      return
+    }
+    p += end
+    q = p
+    while (substr(masked, q + 1, 1) == ":") {
+      q++
+    }
   }
 
   # p is the separating colon (:, :: or &:)
