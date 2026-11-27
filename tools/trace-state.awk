@@ -82,7 +82,7 @@ function trace_print(k, joined, prefix) { #locals
     printf("%4d ============ => %s:[%s]%s\n",
            TRACE_LINE,
            ANCHORS[ANCHOR_COUNT, "kind"],
-           ANCHORS[ANCHOR_COUNT, "name"],
+           anchor_display_name(ANCHORS[ANCHOR_COUNT, "name"]),
            ((ANCHOR_COUNT, "section") in ANCHORS) ? " +section" : "")
   }
   TRACE_ANCHOR_INDEX = ANCHOR_COUNT

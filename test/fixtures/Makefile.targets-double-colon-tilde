@@ -1,0 +1,5 @@
+## A target named a~1
+a~1:
+
+## The first documented rule of the double-colon target a
+a::

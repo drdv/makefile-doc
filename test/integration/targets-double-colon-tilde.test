@@ -1,0 +1,9 @@
+#: desc: A target named a~1 is not the first rule of the double-colon target a: both are displayed, without a warning
+-v COLOR=0 test/fixtures/Makefile.targets-double-colon-tilde
+#: stdout
+------------------
+Available targets:
+------------------
+a~1   A target named a~1
+a~1   The first documented rule of the double-colon target a
+------------------
