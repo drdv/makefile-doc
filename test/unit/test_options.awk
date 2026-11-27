@@ -121,7 +121,7 @@ function test_opt_parse_substitution_params(params, keys, n) { #locals
 function test_opt_checked_params(table, params, keys, n) { #locals
   init_globals()
   set_dsub_param_defaults(table)
-  n = opt_checked_params("DSUB", "A or D", "x", "D:0,Z:1,D:1,A:1", table, params, keys)
+  n = opt_checked_params("DSUB", "A D", "x", "D:0,Z:1,D:1,A:1", table, params, keys)
   check("opt_checked_params: the keys that are neither repeated nor unknown, in order",
         n " " keys[1] keys[2], "2 DA")
   check("opt_checked_params: their values", params["A"], "1")
