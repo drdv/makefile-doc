@@ -343,7 +343,7 @@ function init_globals() {
   DSUB_COUNT = 0 # number of DSUB substitutions
 
   # ---------------------------------------------------------------------------------------
-  # The interface between parsing and rendering. Parsing writes it (see parser_record_anchor
+  # The interface between parsing and rendering. Parsing writes it (see parser_add_anchor
   # and parser_add_warning), and rendering reads it (see render_prepare).
   # ---------------------------------------------------------------------------------------
 
@@ -1129,6 +1129,21 @@ function parser_add_warning(file, line, message) {
   WARNINGS[WARNING_COUNT, "message"] = message
 }
 
+# Record an anchor as the next record of ANCHORS (see init_globals).
+function parser_add_anchor(kind, name, doc, tag, has_section, section, override) {
+  ANCHOR_COUNT++
+  ANCHORS[ANCHOR_COUNT, "kind"] = kind
+  ANCHORS[ANCHOR_COUNT, "name"] = name
+  ANCHORS[ANCHOR_COUNT, "doc"] = doc
+  ANCHORS[ANCHOR_COUNT, "tag"] = tag
+  if (has_section) {
+    ANCHORS[ANCHOR_COUNT, "section"] = section
+  }
+  if (override) { # the command line cannot change it
+    ANCHORS[ANCHOR_COUNT, "override"] = 1
+  }
+}
+
 # A last line that ends with a backslash cannot be joined, so it is not parsed. awk has no
 # hook at the end of a file, so this is called at the next file and in END. A continued
 # recipe line is not reported, because its rule ends with the file anyway.
@@ -1678,7 +1693,7 @@ function parser_process(line, line_number,
 #   context: the anchors documented so far
 function parser_record_anchor(obs, state, memory, line_number,
                               context, #update
-                              kind, name) { #locals
+                              kind, name, doc, tag) { #locals
   kind = obs["anchor_kind"]
   name = kind == "target" ? parser_form_target_name(obs, context) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
@@ -1686,22 +1701,16 @@ function parser_record_anchor(obs, state, memory, line_number,
                        sprintf("redefined docs of %s '%s'", kind, name))
   }
   context["seen", kind, name] = 1
-  ANCHOR_COUNT++
-  ANCHORS[ANCHOR_COUNT, "kind"] = kind
-  ANCHORS[ANCHOR_COUNT, "name"] = name
   if (state["d"]) {
-    ANCHORS[ANCHOR_COUNT, "doc"] = parser_memory_lines(memory, "doc", memory["dn"])
-    ANCHORS[ANCHOR_COUNT, "tag"] = memory["doc_tag"]
+    doc = parser_memory_lines(memory, "doc", memory["dn"])
+    tag = memory["doc_tag"]
   } else {
-    ANCHORS[ANCHOR_COUNT, "doc"] = obs["inline_doc"]
-    ANCHORS[ANCHOR_COUNT, "tag"] = obs["tag"]
+    doc = obs["inline_doc"]
+    tag = obs["tag"]
   }
-  if (state["s"]) {
-    ANCHORS[ANCHOR_COUNT, "section"] = parser_memory_lines(memory, "section", memory["sn"])
-  }
-  if (("override" in obs) && obs["override"]) { # the command line cannot change it
-    ANCHORS[ANCHOR_COUNT, "override"] = 1
-  }
+  parser_add_anchor(kind, name, doc, tag, state["s"],
+                    parser_memory_lines(memory, "section", memory["sn"]),
+                    ("override" in obs) && obs["override"])
 }
 
 # the lines memory[key, 1..n] joined with \n
