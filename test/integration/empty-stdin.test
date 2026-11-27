@@ -1,0 +1,4 @@
+#: desc: An empty stdin given as - is reported (without a Makefile, an empty stdin prints the help)
+-v COLOR=0 -
+#: stderr
+makefile-doc: warning: no documented targets/variables in -

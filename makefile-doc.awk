@@ -363,7 +363,7 @@ function init_globals() {
   split("", WARNINGS)
   WARNING_COUNT = 0
 
-  FILES_PROCESSED = "" # the names of the files read, separated by spaces
+  FILES_PROCESSED = "" # the names of the input files, separated by spaces (see parser_list_files)
 
   # ---------------------------------------------------------------------------------------
   # The state of the parser
@@ -1792,13 +1792,27 @@ function parser_join(physical, line_number,
   return 0
 }
 
+# Set FILES_PROCESSED to the input files: the operands of awk, or - (stdin) if there are none.
+# It is called in END, because an empty file has no line to run the rule FNR == 1. (An
+# assignment operand never gets here: opt_process rejects it.)
+function parser_list_files(k) { #locals
+  FILES_PROCESSED = ""
+  for (k = 1; k < ARGC; k++) {
+    if (ARGV[k] != "") { # awk skips an empty operand
+      FILES_PROCESSED = (FILES_PROCESSED == "" ? "" : FILES_PROCESSED " ") ARGV[k]
+    }
+  }
+  if (FILES_PROCESSED == "") {
+    FILES_PROCESSED = "-"
+  }
+}
+
 # stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
 FNR == 1 {
   parser_warn_about_continued_last_line()
   parser_join_init(PARSER_JOINER)
   parser_file_start(PARSER_STATE, PARSER_MEMORY) # b_i = 1
   PARSER_CONTEXT["file"] = FILENAME == "" ? "-" : FILENAME
-  FILES_PROCESSED = (FILES_PROCESSED == "" ? "" : FILES_PROCESSED " ") PARSER_CONTEXT["file"]
 }
 
 {
@@ -2194,6 +2208,7 @@ END {
       exit 1
     }
     parser_warn_about_continued_last_line()
+    parser_list_files()
     render_print_documentation()
   }
 }
