@@ -66,10 +66,10 @@
 #   Parsing                the parser that reads the Makefiles, and its helpers
 #   Rendering              what is displayed (DISPLAY), then its layout in the output format
 #   Flow                   BEGIN and END
-# A function is in the section that owns the variables it writes. Options writes the
-# settings. Parsing writes the interface, which Rendering reads (see init_globals). Rendering
-# uses the output formats only through the functions fmt_* and the color codes. Parsing does
-# not use them.
+# A function is in the section that owns the variables it writes. Options and Output formats
+# write the settings (opt_process, then fmt_init). Parsing writes the interface, which
+# Rendering reads (see init_globals). Rendering uses the output formats only through the
+# functions fmt_* and the color codes. Parsing does not use them.
 
 #### Terminology
 #   * A Makefile rule (without patterns) has the form
@@ -305,6 +305,9 @@ function init_globals() {
   # It is not SUBSEP, although it has the same default value.
   PLACEHOLDER = "\034"
 
+  # the ANSI parameters that the color options accept (see opt_define_ansi_params)
+  opt_define_ansi_params()
+
   # the tables of the HTML and LaTeX output formats
   fmt_define_html_attributes()
   fmt_define_latex_functions()
@@ -314,15 +317,20 @@ function init_globals() {
   DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
 
   # ---------------------------------------------------------------------------------------
-  # Settings. opt_process derives them from the options, and rendering reads them.
+  # Settings. opt_process, then fmt_init, derive them from the options, and rendering reads
+  # them.
   # ---------------------------------------------------------------------------------------
 
-  # the colors of the HTML and LaTeX output (opt_export_theme applies EXPORT_THEME)
-  fmt_define_export_palette()
+  # EXPORT_THEME, parsed by opt_export_theme. EXPORT_THEME_COLORS[param] is the hex color of
+  # param, an ANSI color parameter, FG or BG.
+  split("", EXPORT_THEME_COLORS)
 
-  # The settings of the output format, set by fmt_init. They are the color codes of each
-  # kind of text, the text before and after the documentation, the color of each line ("" for
-  # none), and whether a color must be restored after a reset.
+  # The settings of the output format, set by fmt_init:
+  #   - the colors of the HTML and LaTeX output (see fmt_define_export_palette)
+  #   - the color codes of each kind of text
+  #   - the text before and after the documentation
+  #   - the color of each line ("" for none)
+  #   - whether a color must be restored after a reset
   COLOR_DEFAULT_CODE = COLOR_ATTENTION_CODE = COLOR_DEPRECATED_CODE = ""
   COLOR_SECTION_CODE = COLOR_BACKTICKS_CODE = COLOR_RESET_CODE = ""
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
@@ -443,7 +451,6 @@ function opt_process(unused_sub_names, unused_dsub_labels) { #locals
   }
 
   opt_colors()
-  fmt_init()
 
   RECIPEPREFIX = RECIPEPREFIX == "" ? "\t" : substr(RECIPEPREFIX, 1, 1)
 
@@ -752,7 +759,7 @@ function opt_colors() {
     COLOR = 1
   }
 
-  opt_export_theme() # EXPORT_THEME overrides colors of EXPORT_PALETTE
+  opt_export_theme()
 
   COLOR_DEFAULT = opt_ansi_param("COLOR_DEFAULT", COLOR_DEFAULT == "" ? 34 : COLOR_DEFAULT)
   COLOR_ATTENTION = opt_ansi_param("COLOR_ATTENTION", COLOR_ATTENTION == "" ? 31 : COLOR_ATTENTION)
@@ -773,8 +780,7 @@ function opt_default_color() {
 # Return the ANSI color parameter given for a COLOR_* option (0 means no color). An
 # unsupported value is reported (see opt_error).
 function opt_ansi_param(option, ansi_param) {
-  # the supported parameters: the colors (EXPORT_PALETTE) and the attributes, e.g., bold
-  if (ansi_param in EXPORT_PALETTE || ansi_param in ANSI_TO_HTML_VALUE) {
+  if (ansi_param in ANSI_COLOR_PARAMS || ansi_param in ANSI_ATTRIBUTE_PARAMS) {
     # The explicit cast to int here is needed only because of a busybox awk bug,
     # see misc/busybox_awk_bug_20251107.awk
     return int(ansi_param)
@@ -784,9 +790,11 @@ function opt_ansi_param(option, ansi_param) {
   return 0
 }
 
-# Apply EXPORT_THEME, a list ANSI_PARAM:HEX_COLOR[,...]. It sets the colors of the parameters
-# 30-37, 40-47, 90-97 and 100-107, and of FG and BG. Invalid entries are reported.
+# Parse EXPORT_THEME, a list ANSI_PARAM:HEX_COLOR[,...], into EXPORT_THEME_COLORS. It gives the
+# colors of the parameters 30-37, 40-47, 90-97 and 100-107, and of FG and BG (fmt_init
+# applies them). Invalid entries are reported.
 function opt_export_theme(entries, k, n, entry, ansi_param, hex_color) { #locals
+  split("", EXPORT_THEME_COLORS)
   n = split(EXPORT_THEME, entries, ",")
   for (k = 1; k <= n; k++) {
     if (entries[k] ~ /^[ \t]*$/) {
@@ -795,17 +803,29 @@ function opt_export_theme(entries, k, n, entry, ansi_param, hex_color) { #locals
     split(entries[k], entry, ":")
     ansi_param = entry[1]
     hex_color = array_get(entry, 2) # "" if there is no colon
-    if (ansi_param != "FG" && ansi_param != "BG" && !(ansi_param in EXPORT_PALETTE)) {
+    if (ansi_param != "FG" && ansi_param != "BG" && !(ansi_param in ANSI_COLOR_PARAMS)) {
       opt_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
                         entries[k], "30-37, 40-47, 90-97, 100-107"))
     } else if (!is_hex_color(hex_color)) {
       opt_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
                         entries[k]))
-    } else if (ansi_param in EXPORT_PALETTE) {
-      EXPORT_PALETTE[ansi_param] = hex_color
     } else {
-      EXPORT_FG_BG[ansi_param] = hex_color
+      EXPORT_THEME_COLORS[ansi_param] = hex_color
     }
+  }
+}
+
+# The ANSI parameters that the color options accept:
+#   ANSI_COLOR_PARAMS[param]      the colors 30-37, 40-47, 90-97 and 100-107
+#   ANSI_ATTRIBUTE_PARAMS[param]  0 (no color) and the attributes 1, 3, 4 and 9
+function opt_define_ansi_params(attributes, n, k) { #locals
+  for (k = 30; k <= 37; k++) {
+    ANSI_COLOR_PARAMS[k] = ANSI_COLOR_PARAMS[k + 10] = 1
+    ANSI_COLOR_PARAMS[k + 60] = ANSI_COLOR_PARAMS[k + 70] = 1
+  }
+  n = split("0 1 3 4 9", attributes, " ")
+  for (k = 1; k <= n; k++) {
+    ANSI_ATTRIBUTE_PARAMS[attributes[k]] = 1
   }
 }
 
@@ -947,7 +967,16 @@ function fmt_html_box_style(style) { #locals
 
 # Set the settings of the output format from OUTPUT_FORMAT and the color options. Only
 # fmt_init, fmt_color_code and fmt_escape depend on OUTPUT_FORMAT.
-function fmt_init() {
+function fmt_init(param) { #locals
+  fmt_define_export_palette()
+  for (param in EXPORT_THEME_COLORS) { # EXPORT_THEME overrides the default colors
+    if (param == "FG" || param == "BG") {
+      EXPORT_FG_BG[param] = EXPORT_THEME_COLORS[param]
+    } else {
+      EXPORT_PALETTE[param] = EXPORT_THEME_COLORS[param]
+    }
+  }
+
   OUTPUT_HEADER = OUTPUT_FOOTER = FMT_LINE_COLOR = ""
   FMT_RESTORE_AFTER_RESET = 0
   if (OUTPUT_FORMAT == "ANSI") {
@@ -2209,6 +2238,7 @@ BEGIN {
       ABORT = 1
       exit 1
     }
+    fmt_init()
     parser_init(RECIPEPREFIX, PARSER_STATE, PARSER_MEMORY)
   }
 }
