@@ -1,0 +1,4 @@
+#: desc: An empty Makefile is reported as having no documented targets or variables
+-v COLOR=0 test/fixtures/Makefile.empty
+#: stderr
+makefile-doc: warning: no documented targets/variables in test/fixtures/Makefile.empty

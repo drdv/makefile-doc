@@ -43,4 +43,6 @@ ignore = [
   # harness helpers that not every unit test file uses
   "function `(check_bug|check_true|stderr_text)' defined but never called directly",
   "(close: `STDERR' is not an open file|data file `STDERR' is empty)",
+  # the empty Makefile of the empty*.test cases
+  "data file `test/fixtures/Makefile\\.empty' is empty",
 ]
