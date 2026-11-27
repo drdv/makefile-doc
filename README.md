@@ -89,13 +89,14 @@ path.
 
 ### Compatibility
 
-makefile-doc runs with GNU Make 3.81 or later (3.81 is the version that ships with macOS), and its
-parser follows the syntax of GNU Make 4.4 (e.g., `:::=`, grouped targets `&:`), so Makefiles that
-use newer features are documented too. It works with all the major awks (gawk, mawk, the one true
-awk, busybox awk, wak and goawk), in versions spanning 30 years: from mawk 1.3.3 (1996) and gawk
-3.1.7 to the latest releases. The tested versions are listed as platforms in
-[test/containers.toml](test/containers.toml). It runs on Linux, macOS and Windows (with the awk of
-Git for Windows, e.g., in Git Bash, or a native gawk); all three are tested in CI.
+makefile-doc runs with GNU Make 3.81 or later (the version that ships with macOS): the `help` recipe
+needs nothing newer. Its parser follows the syntax of GNU Make 4.4 (e.g., `:::=`, grouped targets
+`&:`), so Makefiles that use newer features are documented too; the examples of
+[test/parser.spec](test/parser.spec) are checked against GNU Make 4.4. It works with all the major
+awks (gawk, mawk, the one true awk, busybox awk, wak and goawk), in versions spanning 30 years: from
+mawk 1.3.3 (1996) and gawk 3.1.7 to the latest releases. The tested versions are listed as platforms
+in [test/containers.toml](test/containers.toml). It runs on Linux, macOS and Windows (with the awk
+of Git for Windows, e.g., in Git Bash, or a native gawk); all three are tested in CI.
 
 ## Writing docs
 

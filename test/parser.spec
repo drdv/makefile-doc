@@ -1,5 +1,5 @@
 # The lexical layer of the parser (misc/docs/parser-model.tex): example lines, with what the
-# model predicts for each. Every prediction is checked against GNU Make 4.3 (what its
+# model predicts for each. Every prediction is checked against GNU Make 4.4 (what its
 # database, `make -p`, gets from the line).
 #
 # Format: blocks of `key: value` lines, separated by blank lines; a line that starts with #
@@ -283,6 +283,27 @@ line:        [V::=1]
 line_kind:   assignment
 anchor_kind: variable
 anchor_name: [V]
+
+id:          operator-triple-colon
+line:        [V :::= a:b # c]
+line_kind:   assignment
+anchor_kind: variable
+anchor_name: [V]
+comment:     [# c]
+note:        :::= is an operator (GNU Make 4.4), not a double-colon rule
+
+id:          operator-triple-colon-without-spaces
+line:        [V:::=1]
+line_kind:   assignment
+anchor_kind: variable
+anchor_name: [V]
+
+id:          target-specific-triple-colon
+line:        [t: V :::= 1]
+line_kind:   assignment
+anchor_kind: target
+anchor_name: [t]
+note:        the first colon separates the target, :::= is the operator
 
 id:          qualifiers
 line:        [export override V := 1]
