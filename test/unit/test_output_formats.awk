@@ -57,10 +57,8 @@ function test_fmt_document() {
   init_globals()
 }
 
-# initialize the colors as init_globals() and opt_process() do (with the default color
-# options)
+# initialize the colors as BEGIN does (with the default color options)
 function setup_colors(output_format, export_theme) {
-  fmt_define_export_palette() # the default colors, without the theme of a previous call
   OUTPUT_FORMAT = output_format
   EXPORT_THEME = export_theme
   COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = ""
