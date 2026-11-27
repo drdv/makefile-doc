@@ -398,12 +398,12 @@ function init_globals() {
   # k = 1..DISPLAY_COUNT, with the fields
   #   kind, tag  as in ANCHORS (of the last definition)
   #   name       the displayed name (see render_display_name)
-  #   label      the text of the name column: name, with " (fixed)" after it for override
+  #   label      the text of the name column: name, with " (fixed)" after it for a variable
+  #              set with override
   #   doc        the doc after DSUB
   #   section    the section above it after DSUB (only if there is one, see render_place_sections)
   #   values     its SUB values, space-separated ("" if none)
   #   sub_row    its row in SUB_PARAM: its name if it has a SUB, "" (the defaults) otherwise
-  #   override   1 for a variable set with override (only then; displayed as "(fixed)")
   split("", DISPLAY)
   DISPLAY_COUNT = 0
 }
@@ -1943,9 +1943,6 @@ function render_add_display_record(k, key, sections,
   DISPLAY[DISPLAY_COUNT, "doc"] = render_apply_doc_substitutions(ANCHORS[k, "doc"])
   if (key in sections) {
     DISPLAY[DISPLAY_COUNT, "section"] = render_apply_doc_substitutions(sections[key])
-  }
-  if ((k, "override") in ANCHORS) {
-    DISPLAY[DISPLAY_COUNT, "override"] = 1
   }
   # "(fixed)": the command line cannot change a variable set with override
   DISPLAY[DISPLAY_COUNT, "label"] = DISPLAY[DISPLAY_COUNT, "name"] \
