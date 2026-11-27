@@ -1,30 +1,28 @@
 # Check the section Output formats of the script: colors, themes, escapes, and the
 # functions fmt_* that rendering calls.
 
-function test_fmt_html_escape() {
-  check("fmt_html_escape: <, > and &", fmt_html_escape("AWK=<variant> & co"),
-        "AWK=&lt;variant&gt; &amp; co")
-  check("fmt_html_escape: & is escaped only once", fmt_html_escape("&lt;"), "&amp;lt;")
-}
-
-function test_fmt_latex_escape() {
-  check("fmt_latex_escape: braces", fmt_latex_escape("this is {a test} string"),
-        "this is \\{a test\\} string")
-  check("fmt_latex_escape: backslash", fmt_latex_escape("a \\n b"), "a \\textbackslash{}n b")
-  check("fmt_latex_escape: backslash next to braces", fmt_latex_escape("\\{x}"),
-        "\\textbackslash{}\\{x\\}")
+# text with the escapes of output_format (see setup_colors)
+function escaped(output_format, text) {
+  setup_colors(output_format, "")
+  return fmt_escape(text)
 }
 
 function test_fmt_escape() {
-  OUTPUT_FORMAT = "ANSI"
-  check("fmt_escape (ANSI): unchanged", fmt_escape("<a> & {b} \\"), "<a> & {b} \\")
-  OUTPUT_FORMAT = "HTML"
-  check("fmt_escape (HTML): the HTML escapes only", fmt_escape("<a> & {b} \\"),
+  check("fmt_escape (HTML): <, > and &", escaped("HTML", "AWK=<variant> & co"),
+        "AWK=&lt;variant&gt; &amp; co")
+  check("fmt_escape (HTML): & is escaped only once", escaped("HTML", "&lt;"), "&amp;lt;")
+  check("fmt_escape (LATEX): braces", escaped("LATEX", "this is {a test} string"),
+        "this is \\{a test\\} string")
+  check("fmt_escape (LATEX): backslash", escaped("LATEX", "a \\n b"),
+        "a \\textbackslash{}n b")
+  check("fmt_escape (LATEX): backslash next to braces", escaped("LATEX", "\\{x}"),
+        "\\textbackslash{}\\{x\\}")
+  check("fmt_escape (ANSI): unchanged", escaped("ANSI", "<a> & {b} \\"), "<a> & {b} \\")
+  check("fmt_escape (HTML): the HTML escapes only", escaped("HTML", "<a> & {b} \\"),
         "&lt;a&gt; &amp; {b} \\")
-  OUTPUT_FORMAT = "LATEX"
-  check("fmt_escape (LATEX): the LaTeX escapes only", fmt_escape("<a> & {b} \\"),
+  check("fmt_escape (LATEX): the LaTeX escapes only", escaped("LATEX", "<a> & {b} \\"),
         "<a> & \\{b\\} \\textbackslash{}")
-  OUTPUT_FORMAT = ""
+  setup_colors("", "")
 }
 
 function test_fmt_color() {
@@ -101,24 +99,26 @@ function test_opt_ansi_param(message) { #locals
   check("opt_ansi_param: every error is counted", OPTION_ERRORS, 5)
 }
 
-function test_fmt_color_code() {
+function test_fmt_color_codes() {
   setup_colors("ANSI", "")
-  check("fmt_color_code (ANSI): color", fmt_color_code(34, "DEFAULT"), "\033[34m")
-  check("fmt_color_code (ANSI): reset", fmt_color_code(-1), "\033[0m")
-  check("fmt_color_code (ANSI): no color", fmt_color_code(0, "DEFAULT"), "")
+  check("fmt_ansi_code: color", fmt_ansi_code(34), "\033[34m")
+  check("fmt_ansi_code: no color", fmt_ansi_code(0), "")
+  check("fmt_init_ansi: reset", COLOR_RESET_CODE, "\033[0m")
 
   setup_colors("HTML", "")
-  check("fmt_color_code (HTML): color", fmt_color_code(34, "DEFAULT"),
+  check("fmt_html_code: color", fmt_html_code(34, "DEFAULT"),
         "<span class=\"makefile-doc-default\">")
-  check("fmt_color_code (HTML): reset", fmt_color_code(-1), "</span>")
+  check("fmt_html_code: no color", fmt_html_code(0, "DEFAULT"), "")
+  check("fmt_init_html: reset", COLOR_RESET_CODE, "</span>")
 
   setup_colors("LATEX", "")
-  check("fmt_color_code (LATEX): color", fmt_color_code(34, "DEFAULT"),
+  check("fmt_latex_code: color", fmt_latex_code(34, "DEFAULT"),
         "\\textcolor{makefile-doc-default}{")
-  check("fmt_color_code (LATEX): background", fmt_color_code(44, "BACKTICKS"),
+  check("fmt_latex_code: background", fmt_latex_code(44, "BACKTICKS"),
         "\\bgcolor{makefile-doc-backticks}{")
-  check("fmt_color_code (LATEX): attribute", fmt_color_code(1, "BACKTICKS"), "\\textbf{")
-  check("fmt_color_code (LATEX): reset", fmt_color_code(-1), "}")
+  check("fmt_latex_code: attribute", fmt_latex_code(1, "BACKTICKS"), "\\textbf{")
+  check("fmt_latex_code: no color", fmt_latex_code(0, "BACKTICKS"), "")
+  check("fmt_init_latex: reset", COLOR_RESET_CODE, "}")
 
   setup_colors("", "")
 }
@@ -197,14 +197,12 @@ function test_fmt_init() {
 }
 
 BEGIN {
-  test_fmt_html_escape()
-  test_fmt_latex_escape()
   test_fmt_escape()
   test_fmt_color()
   test_fmt_document()
   test_opt_default_color()
   test_opt_ansi_param()
-  test_fmt_color_code()
+  test_fmt_color_codes()
   test_fmt_init()
   test_export_theme()
   test_fmt_html_style()
