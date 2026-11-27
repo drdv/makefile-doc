@@ -212,9 +212,10 @@ Table~\ref{tab:obs} lists them.
                 \code{\#\#\%} (empty otherwise) \\
   $\Obs{prefix}$ & the prefix that $L_i$ assigns to \code{.RECIPEPREFIX}, when the value is
                    written on the line: the first character of the value (a tab if it is
-                   empty), with \code{=}, or with \code{:=}, \code{::=} or \code{:::=} and
-                   no reference in the value; none otherwise (no such assignment, a
-                   target-specific one, \code{+=}, \code{?=}, \code{!=}, \code{define}) \\
+                   empty, a \code{\#} if it starts with \code{\textbackslash\#}), with
+                   \code{=}, or with \code{:=}, \code{::=} or \code{:::=} and no reference
+                   in the value; none otherwise (no such assignment, a target-specific one,
+                   \code{+=}, \code{?=}, \code{!=}, \code{define}) \\
   \bottomrule
 \end{tabular}
 \caption{The observations $\mathcal{O}_i = \obs(L_i)$.}

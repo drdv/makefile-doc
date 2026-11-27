@@ -1,0 +1,14 @@
+#: desc: The parser state after each line of Makefile.recipeprefix-escaped-hash
+#: trace
+test/fixtures/Makefile.recipeprefix-escaped-hash
+#: stdout
+== test/fixtures/Makefile.recipeprefix-escaped-hash
+   1 0 0  0  0 #  | .RECIPEPREFIX = \#
+   2 0 0  0  0 #  |
+   3 0 1  0  0 #  | t: ## A target
+   3 ============ => target:[t]
+   4 0 1  0  0 #  | #@echo 1
+   5 0 1  0  0 #  | ## Not a doc: a recipe line (the prefix is #)
+   6 0 1  0  0 #  |
+   7 0 1  0  0 #  | u: ## Another target
+   7 ============ => target:[u]
