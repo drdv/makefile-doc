@@ -23,6 +23,16 @@ function test_repeated_string() {
   check("spaces", spaces(3), "   ")
 }
 
+function test_anchor_display_name() {
+  check("anchor_display_name: a variable or a plain target", anchor_display_name("a b"), "a b")
+  check("anchor_display_name: grouped targets",
+        anchor_display_name("a b" SUBSEP "&" SUBSEP ""), "a b&")
+  check("anchor_display_name: a double-colon rule",
+        anchor_display_name("t" SUBSEP "" SUBSEP "2"), "t~2")
+  check("anchor_display_name: grouped double-colon targets",
+        anchor_display_name("a b" SUBSEP "&" SUBSEP "1"), "a b&~1")
+}
+
 function test_array_length(arr) { #locals
   check("array_length: empty array", array_length(arr), 0)
 
@@ -168,6 +178,7 @@ BEGIN {
   test_max_min()
   test_text_length()
   test_repeated_string()
+  test_anchor_display_name()
   test_array_length()
   test_array_get()
   test_join()

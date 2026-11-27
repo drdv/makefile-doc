@@ -145,7 +145,8 @@ function test_export_theme() {
         "30-37, 40-47, 90-97, 100-107\n" \
         "makefile-doc: error: EXPORT_THEME: '5:123456' should start with FG, BG or one of " \
         "30-37, 40-47, 90-97, 100-107\n" \
-        "makefile-doc: error: EXPORT_THEME: '34:fff' should end with a color of 6 hex digits\n")
+        "makefile-doc: error: EXPORT_THEME: '34:fff' should end with a color of 6 hex digits " \
+        "(without #)\n")
   check("export theme: attributes (0-9) cannot be changed", ANSI_TO_HTML_VALUE[3], "italic")
   check_true("export theme: unsupported parameters are not added", !(5 in EXPORT_PALETTE))
   check("export theme: an invalid entry keeps the default", EXPORT_PALETTE[34], "268bd2")

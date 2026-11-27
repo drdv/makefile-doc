@@ -4,8 +4,8 @@
 makefile-doc: error: EXPORT_THEME: '1:ffffff' should start with FG, BG or one of 30-37, 40-47, 90-97, 100-107
 makefile-doc: error: EXPORT_THEME: '38:ffffff' should start with FG, BG or one of 30-37, 40-47, 90-97, 100-107
 makefile-doc: error: EXPORT_THEME: 'fg:000000' should start with FG, BG or one of 30-37, 40-47, 90-97, 100-107
-makefile-doc: error: EXPORT_THEME: 'BG' should end with a color of 6 hex digits
-makefile-doc: error: EXPORT_THEME: '31:fff' should end with a color of 6 hex digits
-makefile-doc: error: EXPORT_THEME: '32:#00ff00' should end with a color of 6 hex digits
-makefile-doc: error: EXPORT_THEME: 'FG:00000g' should end with a color of 6 hex digits
+makefile-doc: error: EXPORT_THEME: 'BG' should end with a color of 6 hex digits (without #)
+makefile-doc: error: EXPORT_THEME: '31:fff' should end with a color of 6 hex digits (without #)
+makefile-doc: error: EXPORT_THEME: '32:#00ff00' should end with a color of 6 hex digits (without #)
+makefile-doc: error: EXPORT_THEME: 'FG:00000g' should end with a color of 6 hex digits (without #)
 #: exit: 1

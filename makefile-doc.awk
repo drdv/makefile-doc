@@ -257,6 +257,17 @@ function is_hex_color(value) {
   return length(value) == 6 && value ~ /^[0-9A-Fa-f]+$/
 }
 
+# Return the name of an anchor as displayed, from its key in ANCHORS (see
+# parser_form_target_name). E.g., t1 t2& for grouped targets, and t~2 for the second
+# documented rule of a double-colon target t.
+function anchor_display_name(key,
+                             fields) { #locals
+  if (split(key, fields, SUBSEP) == 1) {
+    return key
+  }
+  return fields[1] fields[2] (fields[3] != "" ? "~" fields[3] : "")
+}
+
 # The name of the color of label in the HTML and LaTeX output, e.g., makefile-doc-default.
 # It is an HTML class and a LaTeX color.
 function color_name(label) {
@@ -314,7 +325,6 @@ function init_globals() {
 
   HEADER_TARGETS = "Available targets:"
   HEADER_VARIABLES = "Variables:"
-  DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
 
   # ---------------------------------------------------------------------------------------
   # Settings. opt_process, then fmt_init, derive them from the options, and rendering reads
@@ -363,7 +373,7 @@ function init_globals() {
   # every definition of a documented anchor, in file order (a redefinition too):
   # ANCHORS[k, field], k = 1..ANCHOR_COUNT, with the fields
   #   kind     target or variable
-  #   name     as written (blanks collapsed, & for grouped targets, ~N for double-colon rules)
+  #   name     its key: as written for a variable, see parser_form_target_name for a target
   #   doc      its lines without their tags, joined by \n
   #   tag      the tag of its first line: ##, ##! or ##%
   #   section  the section just before it, its lines joined by \n (only if there is one)
@@ -391,6 +401,9 @@ function init_globals() {
   #   PARSER_MEMORY   the memory: the pending text D_i and S_i
   #   PARSER_OBS      the observations of the last logical line L_i
   #   PARSER_DERIVED  its derived quantities: k_i and e_i
+  #
+  # (PARSER_OBS and PARSER_DERIVED are read only by tools/trace-state.awk)
+  #
   # and outside the model:
   #   PARSER_JOINER   the physical lines joined into the next logical line (see parser_join)
   #   PARSER_CONTEXT  for the names and the warnings, PARSER_CONTEXT[key] with the keys
@@ -398,7 +411,8 @@ function init_globals() {
   #                     "seen", kind, name  1 if the anchor is documented so far (see
   #                                         parser_record_anchor)
   #                     "dc", name          the number of documented rules so far of the
-  #                                         double-colon target name (see parser_form_target_name)
+  #                                         double-colon target name, with & after it if it
+  #                                         is grouped (see parser_form_target_name)
   split("", PARSER_STATE)
   split("", PARSER_MEMORY)
   split("", PARSER_OBS)
@@ -812,7 +826,7 @@ function opt_export_theme(entries, k, n, entry, ansi_param, hex_color) { #locals
       opt_error(sprintf("EXPORT_THEME: '%s' should start with FG, BG or one of %s",
                         entries[k], "30-37, 40-47, 90-97, 100-107"))
     } else if (!is_hex_color(hex_color)) {
-      opt_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits",
+      opt_error(sprintf("EXPORT_THEME: '%s' should end with a color of 6 hex digits (without #)",
                         entries[k]))
     } else {
       EXPORT_THEME_COLORS[ansi_param] = hex_color
@@ -1770,7 +1784,7 @@ function parser_record_anchor(obs, state, memory, line_number,
   name = kind == "target" ? parser_form_target_name(obs, context) : obs["anchor_name"]
   if (("seen", kind, name) in context) {
     parser_add_warning(context["file"], line_number,
-                       sprintf("redefined docs of %s '%s'", kind, name))
+                       sprintf("redefined docs of %s '%s'", kind, anchor_display_name(name)))
   }
   context["seen", kind, name] = 1
   if (state["d"]) {
@@ -1795,22 +1809,27 @@ function parser_memory_lines(memory, key, n,
   return lines
 }
 
-# The name of a documented target as displayed. A run of blanks becomes one space, because
-# GNU Make reads it as one separator. Grouped targets get a & after them. The Nth documented
-# rule of a double-colon target gets ~N, counted across files in context.
+# Return the key of a documented target in ANCHORS:
+#   name                    for a plain target
+#   name SUBSEP g SUBSEP n  for a grouped or a double-colon target
+# with
+#   name  the targets, with each run of blanks as one space (as GNU Make reads them)
+#   g     & if the targets are grouped, "" otherwise
+#   n     N for the Nth documented rule of a double-colon target, "" otherwise (counted
+#         across files in context)
+# The fields keep a target named t~1 apart from the first rule of t::. anchor_display_name
+# returns the name as displayed.
 function parser_form_target_name(obs,
                                  context, #update
-                                 name) { #locals
+                                 name, grouped, n) { #locals
   name = obs["anchor_name"]
   gsub(/[ \t]+/, " ", name)
-  if (obs["grouped"]) {
-    name = name "&"
-  }
+  grouped = obs["grouped"] ? "&" : ""
+  n = ""
   if (obs["double"]) {
-    context["dc", name] = array_get(context, "dc" SUBSEP name) + 1
-    name = name DOUBLE_COLON_SEPARATOR context["dc", name]
+    n = context["dc", name grouped] = array_get(context, "dc" SUBSEP name grouped) + 1
   }
-  return name
+  return (grouped != "" || n != "") ? name SUBSEP grouped SUBSEP n : name
 }
 
 # ---------------------------------------------------------------------------------------
@@ -2023,7 +2042,7 @@ function render_place_sections(last,
 # values. k is its last definition in ANCHORS, and key is its key in sections.
 function render_add_display_record(k, key, sections,
                                    name) { #locals
-  name = ANCHORS[k, "name"]
+  name = anchor_display_name(ANCHORS[k, "name"])
   DISPLAY_COUNT++
   DISPLAY[DISPLAY_COUNT, "kind"] = ANCHORS[k, "kind"]
   DISPLAY[DISPLAY_COUNT, "name"] = render_display_name(name)

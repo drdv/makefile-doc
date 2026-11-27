@@ -431,15 +431,21 @@ function test_parser_form_target_name(context, obs) { #locals
   obs["double"] = 0
   check("parser_form_target_name: blanks collapsed", parser_form_target_name(obs, context), "a b")
   obs["grouped"] = 1
-  check("parser_form_target_name: grouped", parser_form_target_name(obs, context), "a b&")
+  check("parser_form_target_name: grouped", parser_form_target_name(obs, context),
+        "a b" SUBSEP "&" SUBSEP "")
 
   obs["anchor_name"] = "t"
   obs["grouped"] = 0
   obs["double"] = 1
   check("parser_form_target_name: first double-colon rule",
-        parser_form_target_name(obs, context), "t~1")
+        parser_form_target_name(obs, context), "t" SUBSEP "" SUBSEP "1")
   check("parser_form_target_name: second double-colon rule",
-        parser_form_target_name(obs, context), "t~2")
+        parser_form_target_name(obs, context), "t" SUBSEP "" SUBSEP "2")
+
+  obs["anchor_name"] = "t~1"
+  obs["double"] = 0
+  check("parser_form_target_name: a target named t~1 is not the first rule of t::",
+        parser_form_target_name(obs, context), "t~1")
 }
 
 # ---------------------------------------------------------------------------------------
