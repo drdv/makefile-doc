@@ -8,7 +8,7 @@ Options (current values):
   VARS              show documented variables (0 or 1)   "1"
   DEPRECATED        show deprecated anchors (0 or 1)     "1"
   PADDING           character between anchors and docs   " "
-  OFFSET            spaces between names and docs        "3"
+  OFFSET            spaces after the longest name        "3"
   WARN              print warnings on stderr (0 or 1)    "1"
   COLOR             use colors (0 or 1)                  "1"
   OUTPUT_FORMAT     ANSI, HTML or LATEX                  "ANSI"

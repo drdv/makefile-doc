@@ -72,7 +72,8 @@ help: ## Show this help
 ```
 
 The first `make help` downloads version `VER` of the script into `~/.local/share/makefile-doc`, and
-later runs reuse it. To upgrade, change `VER`: the new version is downloaded next to the old one.
+later runs reuse it[^checksum]. To upgrade, change `VER`: the new version is downloaded next to the
+old one.
 
 ### Manual installation
 
@@ -238,6 +239,9 @@ code](https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_pa
 `34` in `\033[34m` for blue. The supported parameters are `0`, `1`, `3`, `4`, `9`, `30`-`37`,
 `40`-`47`, `90`-`97` and `100`-`107`.
 
+Colors are written even when the output is not a terminal, e.g., in a pipe or a CI log, because awk
+cannot tell. In that case, run `NO_COLOR=1 make help`.
+
 ## Substitutions
 
 makefile-doc does not expand Make variables: a target written `$(OPEN_NOTES):` is displayed as
@@ -314,10 +318,11 @@ A substitution can start with parameters that control how the values are display
 For example, `-v SUB='<L:0,M:0,I:{,T:},S:\\,>t:a b c'` displays `t   doc {a, b, c}`. With `M:1`,
 the values after the first are aligned under it (after `I`), also when they follow the doc (`L:0`).
 
-- In a parameter, only the first colon is a separator: `S::` sets the separator to a
-  colon and `P:x:y` the prefix to `x:y`.
-- A comma in a parameter value is written `\,`; on the command line the backslash has to
-  be doubled (`\\,`).
+- In a parameter, only the first colon is a separator: `S::` sets the separator to a colon and
+  `P:x:y` the prefix to `x:y`.
+- To put a comma in a parameter value, write `\\,` in the `-v` option, e.g., `-v SUB='<S:\\,>t:a
+  b'`, also inside single quotes. awk turns `\\` into `\` in `-v` values, so the script receives
+  `\,`.
 - A parameter value cannot contain `>`, which ends the parameters.
 - A parameter can be given only once.
 - A `NAME` that starts with `<...>` would be read as parameters: put parameters before it, empty
@@ -344,9 +349,9 @@ t   Prerequisites: x y
 ```
 
 Several substitutions are separated by `;` and applied in the order given, and a name can appear
-only once. Values cannot contain newlines. A `;` in a value (of `SUB` too) is written `\;`, and
-`\\;` on the command line, as for `\,`. For a value that comes from Make, e.g.,
-`SETUP := cd build; cmake ..`, use `-v DSUB='$$(SETUP):$(subst ;,\\;,$(SETUP))'`.
+only once. Values cannot contain newlines. A `;` in a value (of `SUB` too) is written `\\;` in the
+`-v` option, as for the comma. For a value that comes from Make, e.g., `SETUP := cd build; cmake
+..`, use `-v DSUB='$$(SETUP):$(subst ;,\\;,$(SETUP))'`.
 
 A substitution can start with parameters, `<p1:v1,...>NAME:VALUE`, that say where the
 text is replaced:
@@ -388,8 +393,8 @@ element followed by a `<div class="makefile-doc">`, and the names of all its cla
 engines handle any Unicode text that the monospace font has (Latin Modern Mono by default).
 
 The ANSI colors are mapped to the
-[Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) dark palette by
-default, and `EXPORT_THEME` changes this mapping. Its format is
+[Solarized](https://github.com/altercation/solarized?tab=readme-ov-file#the-values) palette of the
+16 ANSI colors by default, and `EXPORT_THEME` changes this mapping. Its format is
 `ANSI_COLOR_PARAMETER:HEX_COLOR[,...]`, with the hex color written without `#`. The tokens `FG` and
 `BG` set the foreground and the background; without them, the uncolored text and the background
 follow the page in the HTML output, and are black on white in the LaTeX output. Colors that are not
@@ -461,6 +466,10 @@ bugs are reported and fixed, and [tools/README.md](tools/README.md) for how a re
 ## License
 
 [Apache-2.0](LICENSE)
+
+[^checksum]: Each release also has the SHA-256 checksum of the script, `makefile-doc.awk.sha256`.
+    Please compare it with the checksum of the downloaded file (`sha256sum`, or `shasum -a 256` on
+    macOS).
 
 [^inline]: Inline docs on variables need care, because in GNU Make
     ["trailing space characters are not stripped from variable
