@@ -301,7 +301,7 @@ function init_globals() {
   TAG_REGEX = "^(##!|##%|##)"
 
   # A character that stands in for another during a split or a replacement, e.g., in
-  # opt_form_substitutions and fmt_latex_escape. It is assumed absent from options and docs.
+  # opt_form_substitutions and fmt_init_latex. It is assumed absent from options and docs.
   # It is not SUBSEP, although it has the same default value.
   PLACEHOLDER = "\034"
 
@@ -331,11 +331,16 @@ function init_globals() {
   #   - the text before and after the documentation
   #   - the color of each line ("" for none)
   #   - whether a color must be restored after a reset
+  #   - the escapes, FMT_ESCAPE_FROM[k] and FMT_ESCAPE_TO[k], k = 1..FMT_ESCAPE_COUNT (see
+  #     fmt_add_escape)
   COLOR_DEFAULT_CODE = COLOR_ATTENTION_CODE = COLOR_DEPRECATED_CODE = ""
   COLOR_SECTION_CODE = COLOR_BACKTICKS_CODE = COLOR_RESET_CODE = ""
   OUTPUT_HEADER = OUTPUT_FOOTER = ""
   FMT_LINE_COLOR = ""
   FMT_RESTORE_AFTER_RESET = 0
+  split("", FMT_ESCAPE_FROM)
+  split("", FMT_ESCAPE_TO)
+  FMT_ESCAPE_COUNT = 0
 
   # SUB and DSUB, parsed by opt_form_substitutions. The parameters of each substitution are
   # in a row of a table, with the defaults filled in. The tables are SUB_PARAM[name, key],
@@ -831,9 +836,18 @@ function opt_define_ansi_params(attributes, n, k) { #locals
 
 #### Output formats
 # Everything that depends on OUTPUT_FORMAT (ANSI, HTML or LATEX): the color codes, the
-# escapes, the header and the footer. The color options are checked in Options. Rendering
-# does not read OUTPUT_FORMAT. It calls fmt_escape, fmt_color and fmt_document, and uses the
-# color codes that fmt_init sets.
+# escapes, the header and the footer. The color options are checked in Options. Only fmt_init
+# reads OUTPUT_FORMAT. It calls the fmt_init_* function of the format, which sets all its
+# settings. Rendering calls fmt_escape, fmt_color and fmt_document, and uses the color codes
+# that fmt_init sets.
+#
+# To add a format:
+#   - add its name to OUTPUT_FORMATS (the checks of OUTPUT_FORMAT and the help use it)
+#   - add a branch to fmt_init that calls its fmt_init_* function
+#   - write its fmt_init_* function, which sets its escapes (fmt_add_escape), OUTPUT_HEADER,
+#     OUTPUT_FOOTER, FMT_LINE_COLOR, FMT_RESTORE_AFTER_RESET and the six color codes
+#     (a setting it leaves unset keeps the default of fmt_init: no escapes, no header, no
+#     colors)
 
 # The colors of the HTML and LaTeX output (EXPORT_THEME can change them):
 #   EXPORT_PALETTE[param]  the hex color of an ANSI color parameter (30-37, 40-47, 90-97,
@@ -866,6 +880,64 @@ function fmt_define_export_palette(k) { #locals
   for (k = 90; k <= 97; k++) { EXPORT_PALETTE[k+10] = EXPORT_PALETTE[k] }
 }
 
+# Set the settings of the output format from OUTPUT_FORMAT and the color options.
+function fmt_init(param) { #locals
+  fmt_define_export_palette()
+  for (param in EXPORT_THEME_COLORS) { # EXPORT_THEME overrides the default colors
+    if (param == "FG" || param == "BG") {
+      EXPORT_FG_BG[param] = EXPORT_THEME_COLORS[param]
+    } else {
+      EXPORT_PALETTE[param] = EXPORT_THEME_COLORS[param]
+    }
+  }
+
+
+  OUTPUT_HEADER = OUTPUT_FOOTER = FMT_LINE_COLOR = ""
+  FMT_RESTORE_AFTER_RESET = 0
+  split("", FMT_ESCAPE_FROM)
+  split("", FMT_ESCAPE_TO)
+  FMT_ESCAPE_COUNT = 0
+  if (OUTPUT_FORMAT == "ANSI") {
+    fmt_init_ansi()
+  } else if (OUTPUT_FORMAT == "HTML") {
+    fmt_init_html()
+  } else if (OUTPUT_FORMAT == "LATEX") {
+    fmt_init_latex()
+  }
+}
+
+# Add an escape of the output format. fmt_escape replaces string with replacement, after the
+# escapes added before it.
+function fmt_add_escape(string, replacement) {
+  FMT_ESCAPE_FROM[++FMT_ESCAPE_COUNT] = string
+  FMT_ESCAPE_TO[FMT_ESCAPE_COUNT] = replacement
+}
+
+# ---------------------------------------------------------------------------------------
+# ANSI
+# ---------------------------------------------------------------------------------------
+
+# The settings of the ANSI output. There are no escapes and no header. A reset turns off all
+# the colors, so a color is restored after it (see fmt_color).
+function fmt_init_ansi() {
+  FMT_RESTORE_AFTER_RESET = 1
+  COLOR_DEFAULT_CODE = fmt_ansi_code(COLOR_DEFAULT)
+  COLOR_ATTENTION_CODE = fmt_ansi_code(COLOR_ATTENTION)
+  COLOR_DEPRECATED_CODE = fmt_ansi_code(COLOR_DEPRECATED)
+  COLOR_SECTION_CODE = fmt_ansi_code(COLOR_SECTION)
+  COLOR_BACKTICKS_CODE = fmt_ansi_code(COLOR_BACKTICKS)
+  COLOR_RESET_CODE = "\033[0m"
+}
+
+# The escape sequence that starts the color or attribute ansi_color_param, "" for 0 (no color)
+function fmt_ansi_code(ansi_color_param) {
+  return ansi_color_param ? "\033[" ansi_color_param "m" : ""
+}
+
+# ---------------------------------------------------------------------------------------
+# HTML
+# ---------------------------------------------------------------------------------------
+
 # The CSS property of each ANSI parameter, and the value of the attributes (the colors are
 # in EXPORT_PALETTE)
 function fmt_define_html_attributes(k) { #locals
@@ -887,53 +959,34 @@ function fmt_define_html_attributes(k) { #locals
   for (k = 100; k <= 107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
-# The LaTeX command of each ANSI parameter (the colors are defined by fmt_latex_header)
-function fmt_define_latex_functions(k) { #locals
-  ANSI_TO_LATEX_FUN[0] = ""
-  ANSI_TO_LATEX_FUN[1] = "\\textbf"
-  ANSI_TO_LATEX_FUN[3] = "\\emph"
-  ANSI_TO_LATEX_FUN[4] = "\\uline"
-  ANSI_TO_LATEX_FUN[9] = "\\sout"
-
-  for (k = 30; k <= 37; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
-  for (k = 40; k <= 47; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
-  for (k = 90; k <= 97; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
-  for (k = 100; k <= 107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+# The settings of the HTML output. It is an HTML fragment to paste into a page, with the
+# styles, then the documentation.
+function fmt_init_html() {
+  # <, > and & are markup. & goes first, so that the & of the other escapes is not escaped
+  # again.
+  fmt_add_escape("&", "&amp;")
+  fmt_add_escape("<", "&lt;")
+  fmt_add_escape(">", "&gt;")
+  OUTPUT_HEADER = "<style>\n" \
+      fmt_html_style(COLOR_ATTENTION, "ATTENTION") \
+      fmt_html_style(COLOR_SECTION, "SECTION") \
+      fmt_html_style(COLOR_DEPRECATED, "DEPRECATED") \
+      fmt_html_style(COLOR_DEFAULT, "DEFAULT") \
+      fmt_html_style(COLOR_BACKTICKS, "BACKTICKS") \
+      fmt_html_box_style() \
+      "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
+  OUTPUT_FOOTER = "</pre>\n</div>\n"
+  COLOR_DEFAULT_CODE = fmt_html_code(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = fmt_html_code(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = fmt_html_code(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_SECTION_CODE = fmt_html_code(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = fmt_html_code(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = "</span>"
 }
 
-# The code, in the output format, that starts text styled with ansi_color_param, or ends it:
-#    0  no style ("")
-#   -1  the code that ends a style (the user cannot set -1, see opt_ansi_param)
-#   otherwise  the code that starts the color or attribute ansi_color_param (e.g., 34 or 1);
-#              color_label_key names its class (HTML) or its color (LaTeX)
-function fmt_color_code(ansi_color_param, color_label_key) {
-  if (!ansi_color_param) {
-    return "" # token for "no color annotation should be applied at all"
-  }
-
-  if (OUTPUT_FORMAT == "ANSI") {
-    if (ansi_color_param == -1) {
-      return "\033[0m"
-    } else {
-      return "\033[" ansi_color_param "m"
-    }
-  } else if (OUTPUT_FORMAT == "HTML") {
-    if (ansi_color_param == -1) {
-      return "</span>"
-    } else {
-      return "<span class=\"" color_name(color_label_key) "\">"
-    }
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    if (ansi_color_param == -1) {
-      return "}"
-    } else {
-      if (ansi_color_param > 9) {
-        return ANSI_TO_LATEX_FUN[ansi_color_param] "{" color_name(color_label_key) "}{"
-      } else {
-        return ANSI_TO_LATEX_FUN[ansi_color_param] "{"
-      }
-    }
-  }
+# The tag that starts the style of label (its class, see color_name), "" for 0 (no color)
+function fmt_html_code(ansi_color_param, label) {
+  return ansi_color_param ? "<span class=\"" color_name(label) "\">" : ""
 }
 
 # Return the CSS rule (one line) for a color option, or "" if there is nothing to style
@@ -965,49 +1018,58 @@ function fmt_html_box_style(style) { #locals
   return "  .makefile-doc { " style " }\n"
 }
 
-# Set the settings of the output format from OUTPUT_FORMAT and the color options. Only
-# fmt_init, fmt_color_code and fmt_escape depend on OUTPUT_FORMAT.
-function fmt_init(param) { #locals
-  fmt_define_export_palette()
-  for (param in EXPORT_THEME_COLORS) { # EXPORT_THEME overrides the default colors
-    if (param == "FG" || param == "BG") {
-      EXPORT_FG_BG[param] = EXPORT_THEME_COLORS[param]
-    } else {
-      EXPORT_PALETTE[param] = EXPORT_THEME_COLORS[param]
-    }
-  }
+# ---------------------------------------------------------------------------------------
+# LaTeX
+# ---------------------------------------------------------------------------------------
 
-  OUTPUT_HEADER = OUTPUT_FOOTER = FMT_LINE_COLOR = ""
-  FMT_RESTORE_AFTER_RESET = 0
-  if (OUTPUT_FORMAT == "ANSI") {
-    FMT_RESTORE_AFTER_RESET = 1 # a reset turns off all the colors (see fmt_color)
-  } else if (OUTPUT_FORMAT == "HTML") {
-    # an HTML fragment (to paste into a page): the styles, then the documentation
-    OUTPUT_HEADER = "<style>\n" \
-        fmt_html_style(COLOR_ATTENTION, "ATTENTION") \
-        fmt_html_style(COLOR_SECTION, "SECTION") \
-        fmt_html_style(COLOR_DEPRECATED, "DEPRECATED") \
-        fmt_html_style(COLOR_DEFAULT, "DEFAULT") \
-        fmt_html_style(COLOR_BACKTICKS, "BACKTICKS") \
-        fmt_html_box_style() \
-        "</style>\n<div class=\"makefile-doc\">\n<pre>\n"
-    OUTPUT_FOOTER = "</pre>\n</div>\n"
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    OUTPUT_HEADER = fmt_latex_header() "\n"
-    OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
-    # The text color FG is given to each line. With one \color for the whole documentation,
-    # varwidth would not crop the page to the text.
-    if (EXPORT_FG_BG["FG"] != "") {
-      FMT_LINE_COLOR = "\\textcolor{" color_name("FG") "}{"
-    }
-  }
+# The LaTeX command of each ANSI parameter (the colors are defined by fmt_latex_header)
+function fmt_define_latex_functions(k) { #locals
+  ANSI_TO_LATEX_FUN[0] = ""
+  ANSI_TO_LATEX_FUN[1] = "\\textbf"
+  ANSI_TO_LATEX_FUN[3] = "\\emph"
+  ANSI_TO_LATEX_FUN[4] = "\\uline"
+  ANSI_TO_LATEX_FUN[9] = "\\sout"
 
-  COLOR_DEFAULT_CODE = fmt_color_code(COLOR_DEFAULT, "DEFAULT")
-  COLOR_ATTENTION_CODE = fmt_color_code(COLOR_ATTENTION, "ATTENTION")
-  COLOR_DEPRECATED_CODE = fmt_color_code(COLOR_DEPRECATED, "DEPRECATED")
-  COLOR_SECTION_CODE = fmt_color_code(COLOR_SECTION, "SECTION")
-  COLOR_BACKTICKS_CODE = fmt_color_code(COLOR_BACKTICKS, "BACKTICKS")
-  COLOR_RESET_CODE = fmt_color_code(-1)
+  for (k = 30; k <= 37; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
+  for (k = 40; k <= 47; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+  for (k = 90; k <= 97; k++) { ANSI_TO_LATEX_FUN[k] = "\\textcolor" }
+  for (k = 100; k <= 107; k++) { ANSI_TO_LATEX_FUN[k] = "\\bgcolor" }
+}
+
+# The settings of the LaTeX output, a complete document
+function fmt_init_latex() {
+  # In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
+  # PLACEHOLDER: escaping them first would escape the braces of \textbackslash{}, and
+  # escaping them last would escape the backslashes of \{ and \}.
+  fmt_add_escape("\\", PLACEHOLDER)
+  fmt_add_escape("{", "\\{")
+  fmt_add_escape("}", "\\}")
+  fmt_add_escape(PLACEHOLDER, "\\textbackslash{}")
+  OUTPUT_HEADER = fmt_latex_header() "\n"
+  OUTPUT_FOOTER = "\\end{alltt}\n\\end{varwidth}\n\\end{document}\n"
+  # The text color FG is given to each line. With one \color for the whole documentation,
+  # varwidth would not crop the page to the text.
+  if (EXPORT_FG_BG["FG"] != "") {
+    FMT_LINE_COLOR = "\\textcolor{" color_name("FG") "}{"
+  }
+  COLOR_DEFAULT_CODE = fmt_latex_code(COLOR_DEFAULT, "DEFAULT")
+  COLOR_ATTENTION_CODE = fmt_latex_code(COLOR_ATTENTION, "ATTENTION")
+  COLOR_DEPRECATED_CODE = fmt_latex_code(COLOR_DEPRECATED, "DEPRECATED")
+  COLOR_SECTION_CODE = fmt_latex_code(COLOR_SECTION, "SECTION")
+  COLOR_BACKTICKS_CODE = fmt_latex_code(COLOR_BACKTICKS, "BACKTICKS")
+  COLOR_RESET_CODE = "}"
+}
+
+# The command that starts the color or attribute ansi_color_param, "" for 0 (no color). A
+# color is the color of label (see color_name).
+function fmt_latex_code(ansi_color_param, label) {
+  if (!ansi_color_param) {
+    return ""
+  }
+  if (ansi_color_param > 9) {
+    return ANSI_TO_LATEX_FUN[ansi_color_param] "{" color_name(label) "}{"
+  }
+  return ANSI_TO_LATEX_FUN[ansi_color_param] "{"
 }
 
 # Return a \definecolor line that sets the color of label (see color_name) to hex_color.
@@ -1070,35 +1132,16 @@ function fmt_latex_header(header) { #locals
   return header
 }
 
-# Escape <, > and &, which HTML reads as markup. & goes first, so that the & of the other
-# escapes is not escaped again. string_replace is used because & is special in gsub.
-function fmt_html_escape(text) {
-  text = string_replace("&", "&amp;", text)
-  text = string_replace("<", "&lt;", text)
-  return string_replace(">", "&gt;", text)
-}
-
-# In \begin{alltt} ... \end{alltt}, only \, { and } are special. The backslashes go through
-# PLACEHOLDER: escaping them first would escape the braces of \textbackslash{}, and
-# escaping them last would escape the backslashes of \{ and \}.
-function fmt_latex_escape(text) {
-  text = string_replace("\\", PLACEHOLDER, text)
-  gsub(/\{/, "\\{", text)
-  gsub(/\}/, "\\}", text)
-  return string_replace(PLACEHOLDER, "\\textbackslash{}", text)
-}
-
 # ---------------------------------------------------------------------------------------
 # What rendering calls
 # ---------------------------------------------------------------------------------------
 
-# text with the escapes of the output format (none in ANSI), applied before the colors are
-# added
-function fmt_escape(text) {
-  if (OUTPUT_FORMAT == "HTML") {
-    return fmt_html_escape(text)
-  } else if (OUTPUT_FORMAT == "LATEX") {
-    return fmt_latex_escape(text)
+# text with the escapes of the output format (none in ANSI), applied in order, before the
+# colors are added
+function fmt_escape(text,
+                    k) { #locals
+  for (k = 1; k <= FMT_ESCAPE_COUNT; k++) {
+    text = string_replace(FMT_ESCAPE_FROM[k], FMT_ESCAPE_TO[k], text)
   }
   return text
 }
