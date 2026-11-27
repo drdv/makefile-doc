@@ -32,3 +32,7 @@ test/fixtures/Makefile.targets-forms
   19 0 1  0  0 \t | # t3 here is not treated separately and does not get its own docs
   20 0 1  0  0 \t | $(t1) ${t2} t3: ## Variables and a name (issue #12)
   20 ============ => target:[$(t1) ${t2} t3]
+  21 0 1  0  0 \t |
+  22 0 1  1  0 \t | ## Targets with an = among them (two words before it: not an assignment)
+  23 0 1  0  0 \t | a b = c: d
+  23 ============ => target:[a b = c]

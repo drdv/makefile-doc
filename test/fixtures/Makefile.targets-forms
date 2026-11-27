@@ -18,3 +18,6 @@ $T: ## Target from a one-letter variable
 
 # t3 here is not treated separately and does not get its own docs
 $(t1) ${t2} t3: ## Variables and a name (issue #12)
+
+## Targets with an = among them (two words before it: not an assignment)
+a b = c: d

@@ -333,6 +333,13 @@ line:        [a b = 1]
 line_kind:   other
 note:        not an assignment (GNU Make rejects the line: missing separator)
 
+id:          two-words-before-operator-then-colon
+line:        [a b = c: d]
+line_kind:   rule
+anchor_kind: target
+anchor_name: [a b = c]
+note:        not an assignment, so the colon separates the targets (a, b, = and c)
+
 # ---------------------------------------------------------------------------------------
 # Rules
 # ---------------------------------------------------------------------------------------
