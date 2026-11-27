@@ -22,8 +22,9 @@
 #       ##%  a deprecated anchor (displayed in COLOR_DEPRECATED)
 #   * Lines that start with ##@ form a section (displayed in COLOR_SECTION). We define the
 #     kind of a section to be the kind (target or variable) of the first documented anchor
-#     after it. The kind is set while parsing, so hiding anchors (VARS, DEPRECATED) does
-#     not impact it. A section is displayed above the first displayed anchor of its kind.
+#     after it. The kind is set while parsing, so hidden anchors (VARS, DEPRECATED) do not
+#     impact it. A section is displayed above the first displayed anchor of its kind, before
+#     the next section; if there is none, it is not displayed.
 
 #### Options
 #   They are passed with -v OPTION=value and checked in opt_process(). The help lists them:
@@ -45,10 +46,12 @@
 #     A signature with a single group is on one line:
 #       function g(k, n) { #locals
 #
-#   * A function comment lists the arrays that it updates under Update:, and those that it
-#     fills under Fill:. An entry written as code has the form name[key] = VALUE, where VALUE
-#     is a placeholder. Other entries have the form name[key]: description. The descriptions
-#     of a list are aligned, with their continuation lines. The code entries are not.
+#   * When the code does not make it plain (e.g., keys set in several places or by other
+#     functions), a function comment describes the arrays that it updates under Update:, and
+#     those that it fills under Fill:. The markers always name them. An entry written as
+#     code has the form name[key] = VALUE, where VALUE is a placeholder. Other entries have
+#     the form name[key]: description. The descriptions of a list are aligned, with their
+#     continuation lines. The code entries are not.
 #   * Globals are upper case (a global in lower case is a local that was not declared).
 #   * Only POSIX awk, for all the major awks: no match() with an array, no arrays of arrays,
 #     no gensub. Groups are read with RSTART and RLENGTH.
@@ -311,7 +314,7 @@ function init_globals() {
   DOUBLE_COLON_SEPARATOR = "~" # decorates double-colon targets, e.g., t~1
 
   # ---------------------------------------------------------------------------------------
-  # Settings: derived from the options by opt_process, read when rendering
+  # Settings. opt_process derives them from the options, and rendering reads them.
   # ---------------------------------------------------------------------------------------
 
   # the colors of the HTML and LaTeX output (opt_export_theme applies EXPORT_THEME)
@@ -340,8 +343,8 @@ function init_globals() {
   DSUB_COUNT = 0 # number of DSUB substitutions
 
   # ---------------------------------------------------------------------------------------
-  # The interface between parsing and rendering: written while parsing (see parser_record_anchor
-  # and parser_add_warning), read when rendering (see render_prepare)
+  # The interface between parsing and rendering. Parsing writes it (see parser_record_anchor
+  # and parser_add_warning), and rendering reads it (see render_prepare).
   # ---------------------------------------------------------------------------------------
 
   # every definition of a documented anchor, in file order (a redefinition too):
@@ -391,7 +394,7 @@ function init_globals() {
   split("", PARSER_CONTEXT)
 
   # ---------------------------------------------------------------------------------------
-  # The state of the rendering: written by render_prepare (what is displayed)
+  # The state of the rendering. render_prepare writes it, to say what is displayed.
   # ---------------------------------------------------------------------------------------
 
   # the anchors to display, in order (the targets, then the variables): DISPLAY[k, field],
@@ -713,8 +716,8 @@ function opt_store_dsub_params(name, string_with_parameters,
   }
 }
 
-# The help: the usage, then the options with their current values. The values are in double
-# quotes, so that empty values and blanks show.
+# Print the help, which is the usage, then the options with their current values. The values
+# are in double quotes, so that empty values and blanks show.
 function opt_print_help() {
   print "Usage: awk [-v option=value] -f makefile-doc.awk [Makefile ...] (default: stdin)"
   print "Description: Generate docs for Makefile variables and targets"
@@ -869,6 +872,7 @@ function fmt_define_html_attributes(k) { #locals
   for (k = 100; k <= 107; k++) { ANSI_TO_HTML_ATTR[k] = "background-color" }
 }
 
+# The LaTeX command of each ANSI parameter (the colors are defined by fmt_latex_header)
 function fmt_define_latex_functions(k) { #locals
   ANSI_TO_LATEX_FUN[0] = ""
   ANSI_TO_LATEX_FUN[1] = "\\textbf"
@@ -982,7 +986,7 @@ function fmt_init() {
   COLOR_RESET_CODE = fmt_color_code(-1)
 }
 
-# a \definecolor line: the color of label (see color_name) is hex_color
+# Return a \definecolor line that sets the color of label (see color_name) to hex_color.
 function fmt_latex_definecolor(label, hex_color) {
   return sprintf("\\definecolor{%s}{HTML}{%s}\n", color_name(label), hex_color)
 }
@@ -1096,8 +1100,8 @@ function fmt_color(text, color_code,
   return join(lines, n, "\n")
 }
 
-# The document: body between OUTPUT_HEADER and OUTPUT_FOOTER, each line in FMT_LINE_COLOR
-# if it is set (see fmt_init)
+# Return the document: OUTPUT_HEADER, body and OUTPUT_FOOTER. If FMT_LINE_COLOR is set (see
+# fmt_init), each line of body gets this color.
 function fmt_document(body) {
   if (FMT_LINE_COLOR != "") {
     body = fmt_color(body, FMT_LINE_COLOR)
@@ -1110,16 +1114,16 @@ function fmt_document(body) {
 # ASCII. For example, L_i is the logical line i, r_bar is r with a bar, and O_i[x] is the
 # observation x of L_i.
 #
-# parser_file_start resets the state and the memory at the first line of each file.
 # parser_join joins a physical line with the next ones while it ends with an odd number of
-# backslashes. parser_process then processes each logical line in five steps:
-#  1. observations       (parser_observe)
-#  2. kind, and e_i      (parser_kind, parser_documented)
-#  3. anchor record      (parser_record_anchor, see init_globals)
-#  4. state transition   (parser_step)
-#  5. memory transition  (parser_carry)
-# Step 3 reads the state and the memory before steps 4 and 5 change them.
-# The rules FNR == 1 and { ... } at the end of the section run the reset and the steps.
+# backslashes. Each logical line is then read in the five steps of the overview of the note:
+#  1. reset at the first line of a file  (parser_file_start)
+#  2. observations                       (parser_observe)
+#  3. kind, and e_i                      (parser_kind, parser_documented)
+#  4. anchor record                      (parser_record_anchor, see init_globals)
+#  5. state and memory transitions       (parser_step, parser_carry)
+# Step 4 reads the state and the memory before step 5 changes them. The rule FNR == 1 at the
+# end of the section runs step 1, and the rule { ... } after it runs parser_process (steps 2
+# to 5).
 
 # Record a warning about line of file ("" for none), printed before the docs (see
 # render_print_warnings).
@@ -1220,6 +1224,8 @@ function parser_all_special(names,
   return n > 0
 }
 
+# Set the kind of the line to line_kind, with no anchor and no comment (the other fields of
+# obs are kept)
 function parser_clear(line_kind,
                       obs) { #update
   obs["line_kind"] = line_kind
@@ -1243,8 +1249,8 @@ function parser_define_name(line,
   return rest
 }
 
-# The searches of the lexical layer: on the masked line, find whether line is an assignment
-# or a rule, and cut the fields from line.
+# The searches of the lexical layer. They find whether line is an assignment or a rule. They
+# run on the masked line, and the fields are cut from line.
 #
 # Update:
 #   obs["line_kind"]:   assignment (also target-specific), rule, or unchanged ("") if neither
@@ -1296,8 +1302,8 @@ function parser_scan(line,
       sub(/^[ \t]+/, "", obs["value"])
       return
     }
-    # Not an assignment: the first colon after the operator, if no # comes before it, is the
-    # separating colon (e.g., `a b = c: d` is a rule with the targets a, b, = and c).
+    # Not an assignment. The first colon after the operator is the separating colon, unless
+    # a # comes before it. E.g., `a b = c: d` is a rule with the targets a, b, = and c.
     rest = substr(masked, end + 1)
     p = match(rest, /[#:]/)
     if (!p || substr(rest, p, 1) == "#") {
@@ -1382,10 +1388,13 @@ function parser_mask(line,
   out = ""
   k = 1
   while (k <= n) {
-    # Copy the characters up to the next $ or \ in one piece, not one by one. The one true
-    # awk and wak count UTF-8 characters without an index, so their substr walks the string
-    # from its start. A loop over the characters would take quadratic time there. In gawk and
-    # in the awks that count bytes, substr takes constant time.
+    # Copy the characters up to the next $ or \ in one piece, not one by one:
+    #   - The one true awk and wak count UTF-8 characters without an index, so their substr
+    #     walks the string from its start. A loop over the characters would take quadratic
+    #     time there.
+    #   - Each piece still copies the rest of the line (substr(line, k)). So the time grows
+    #     with the length of the line times its number of $ and \. This shows only on very
+    #     long lines.
     rest = substr(line, k)
     if (!match(rest, /[$\\]/)) {
       return out rest
@@ -1634,7 +1643,8 @@ function parser_carry(state, obs, k,
   }                                                 #       S_{i-1}              otherwise
 }
 
-# Process the logical line L_i: line, which starts at the physical line line_number of its file.
+# Process the logical line L_i, given in line. It starts at the physical line line_number of
+# its file.
 #
 # Update:
 #   state, memory: x_{i-1} and D_bar_{i-1}, S_{i-1} become x_i and D_i, S_i
@@ -1661,8 +1671,8 @@ function parser_process(line, line_number,
 }
 
 # Record a documented anchor (e_i = 1) as the next record A_n of ANCHORS. It reads obs, and
-# the state and the memory before their transitions: x_{i-1} after the reset, D_bar_{i-1}
-# and S_{i-1}.
+# the state and the memory before their transitions (x_{i-1} after the reset, D_bar_{i-1}
+# and S_{i-1}).
 #   A_n[kind]      O_i[anchor_kind]
 #   A_n[name]      O_i[anchor_name] (for a target, see parser_form_target_name)
 #   A_n[doc]       the texts of D_bar_{i-1} if d_bar_{i-1} = 1, O_i[inline_doc] otherwise
@@ -1739,7 +1749,8 @@ function parser_form_target_name(obs,
 #   joiner["line"]     the logical line, once it is complete
 # ---------------------------------------------------------------------------------------
 
-# At the first line of a file: a line continued at the end of the previous file is dropped
+# Empty the joiner, so that no line is being joined. At the first line of a file, this drops
+# a line continued at the end of the previous file.
 function parser_join_init(joiner) { #fill
   split("", joiner)
   joiner["joining"] = 0
@@ -1751,8 +1762,9 @@ function parser_join_init(joiner) { #fill
 #             joiner["start"]
 #   return 0  the line continues on the next one, because it ends with an odd number of
 #             backslashes (recipe lines too). It is kept in joiner["pending"].
-# A final \r is removed (CRLF line endings). As in GNU Make, a backslash, the newline and the
-# blanks around them become one space, and a line of only blanks adds nothing. E.g., called
+# A final \r is removed (CRLF line endings). A backslash, the newline and the blanks around
+# them become one space, and a line of only blanks adds nothing, as GNU Make does outside
+# recipes (it keeps them in a recipe line, whose text the parser does not use). E.g., called
 # with each of the four physical lines
 #   SRCS := a.c   \
 #           b.c \
@@ -1792,9 +1804,9 @@ function parser_join(physical, line_number,
   return 0
 }
 
-# Set FILES_PROCESSED to the input files: the operands of awk, or - (stdin) if there are none.
-# It is called in END, because an empty file has no line to run the rule FNR == 1. (An
-# assignment operand never gets here: opt_process rejects it.)
+# Set FILES_PROCESSED to the input files. They are the operands of awk, or - (stdin) if there
+# are none. It is called in END, because an empty file has no line to run the rule FNR == 1.
+# An assignment operand never gets here, because opt_process rejects it.
 function parser_list_files(k) { #locals
   FILES_PROCESSED = ""
   for (k = 1; k < ARGC; k++) {
@@ -1807,7 +1819,10 @@ function parser_list_files(k) { #locals
   }
 }
 
-# stdin is named - (POSIX leaves FILENAME unspecified for it; most awks set it to -)
+# Step 1, at the first line of each file:
+#   - warn about a line continued at the end of the previous file
+#   - reset the joiner, the state and the memory
+# stdin is named -. POSIX leaves FILENAME unspecified for it, and most awks set it to -.
 FNR == 1 {
   parser_warn_about_continued_last_line()
   parser_join_init(PARSER_JOINER)
@@ -1931,8 +1946,8 @@ function render_place_sections(last,
   }
 }
 
-# Add an anchor to DISPLAY, with what will be displayed: its name, its doc and section after
-# DSUB, and its SUB values. k is its last definition in ANCHORS, and key its key in sections.
+# Add an anchor to DISPLAY, with its name, its doc and section after DSUB, and its SUB
+# values. k is its last definition in ANCHORS, and key is its key in sections.
 function render_add_display_record(k, key, sections,
                                    name) { #locals
   name = ANCHORS[k, "name"]
@@ -1951,9 +1966,10 @@ function render_add_display_record(k, key, sections,
   DISPLAY[DISPLAY_COUNT, "sub_row"] = (name in SUB_VALUES) ? name : ""
 }
 
-# The displayed name of an anchor: its SUB label if it has one, otherwise its name after the
-# DSUB substitutions with A:1, in order. SUB is looked up with the name as written, so DSUB
-# never changes which SUB applies.
+# Return the displayed name of an anchor:
+#   - its SUB label, if it has one
+#   - otherwise its name, after the DSUB substitutions with A:1, in order
+# SUB is looked up with the name as written, so DSUB never changes which SUB applies.
 function render_display_name(anchor,
                              k, name) { #locals
   if (anchor in SUB_LABELS) {
@@ -1980,14 +1996,17 @@ function render_apply_doc_substitutions(text,
   return text
 }
 
+# Return the line above and below the headers, made of character. It is as wide as the
+# column of names (len_anchors), or as the longest header if that is wider.
 function render_separator(character, len_anchors) {
   return repeated_string(character, max(len_anchors,
                                         max(length(HEADER_TARGETS),
                                             length(HEADER_VARIABLES))))
 }
 
-# string with the text of each region in backticks colored with color_code, without the
-# backticks. With color_code "", only the backticks are removed (see render_doc_width).
+# Return string with the text of each region in backticks colored with color_code, and the
+# backticks removed. With color_code "", only the backticks are removed (see
+# render_doc_width).
 function render_substitute_backticks(string, color_code,
                                      before_match, inside_match, after_match) { #locals
   # (gensub with a back-reference would do this in one call, but it is only in gawk)
@@ -2001,6 +2020,8 @@ function render_substitute_backticks(string, color_code,
   return string
 }
 
+# Return doc with its text in backticks colored, if COLOR_BACKTICKS_CODE is set (see
+# fmt_init).
 function render_backticks(doc) {
   if (COLOR_BACKTICKS_CODE != "") {
     return render_substitute_backticks(doc, COLOR_BACKTICKS_CODE)
@@ -2008,8 +2029,8 @@ function render_backticks(doc) {
   return doc
 }
 
-# The width of the last line of doc as it is displayed: without the backticks that
-# render_backticks removes
+# Return the width of the last line of doc, as it is displayed. The backticks that
+# render_backticks removes are not counted.
 function render_doc_width(doc,
                           n, lines) { #locals
   if (COLOR_BACKTICKS_CODE != "") {
@@ -2029,6 +2050,8 @@ function render_anchor_color(tag) {
   return COLOR_DEFAULT_CODE # ## (a doc starts with one of the three tags)
 }
 
+# Return the doc as it follows the column of names. It starts with OFFSET spaces, and its
+# next lines are aligned with the first one. len_anchors is the width of the column of names.
 function render_doc(doc, len_anchors,
                     n, lines) { #locals
   # colored before the lines are indented: a span in backticks that continues on the next
@@ -2044,12 +2067,13 @@ function render_section(section) {
   return render_backticks(fmt_escape(section))
 }
 
-# Return the text after the doc of an anchor: its SUB values, then a newline. sub_values is
-# space-separated, and its parameters are in the row sub_row of SUB_PARAM. Each value
-# becomes an item, with P before it and S after it. The first item also starts with I, and
-# the last one ends with T instead of S. The items are on one line (M=0) or one per line
-# (M=1). They start after the doc (L=0) or on the next line (L=1). doc_width is the width of
-# the last line of the doc (see render_doc_width).
+# Return the SUB values of an anchor, which follow its doc, then a newline.
+#   - sub_values is space-separated. Its parameters are in the row sub_row of SUB_PARAM.
+#   - Each value becomes an item, with P before it and S after it. The first item also
+#     starts with I, and the last one ends with T instead of S.
+#   - The items are on one line (M=0) or one per line (M=1). They start after the doc (L=0)
+#     or on the next line (L=1).
+#   - doc_width is the width of the last line of the doc (see render_doc_width).
 function render_sub_values(sub_values, sub_row, len_anchors, doc_width,
                            values, n, k, item, lines, n_lines, initial, prefix, #locals
                            separator, termination, indentation, next_indentation, #locals
@@ -2086,9 +2110,10 @@ function render_sub_values(sub_values, sub_row, len_anchors, doc_width,
     }
   }
 
-  # The values line up with the text of the doc: the first one starts on the next line (L=1),
-  # or after the doc and a space (L=0), where the doc starts if it is empty. indentation
-  # ends where the first value starts.
+  # The values line up with the text of the doc. The first one starts:
+  #   - L=1: on the next line
+  #   - L=0: after the doc and a space, or where the doc starts if it is empty
+  # indentation ends where the first value starts.
   indentation = spaces(len_anchors + OFFSET)
   if (SUB_PARAM[sub_row, "L"]) {
     output = "\n" indentation lines[1]
@@ -2106,8 +2131,8 @@ function render_sub_values(sub_values, sub_row, len_anchors, doc_width,
   return output "\n"
 }
 
-# The text of one displayed anchor, as it appears in the help (len_anchors: the width of the
-# column of names)
+# Return the text of one displayed anchor, as it appears in the help. len_anchors is the
+# width of the column of names.
 function render_anchor(k, len_anchors,
                        section, label, formatted_anchor, padding, color, output) { #locals
   output = ""
