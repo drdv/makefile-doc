@@ -5,6 +5,18 @@
 # interface -> DISPLAY: what is displayed (render_prepare)
 # ---------------------------------------------------------------------------------------
 
+# Start a check from the settings of a run without options and without colors: the
+# defaults of opt_process and fmt_init. The options set by a previous check are cleared.
+function default_settings() {
+  init_globals()
+  VARS = DEPRECATED = PADDING = OFFSET = WARN = OUTPUT_FORMAT = EXPORT_THEME = ""
+  SUB = DSUB = RECIPEPREFIX = ""
+  COLOR_DEFAULT = COLOR_ATTENTION = COLOR_DEPRECATED = COLOR_SECTION = COLOR_BACKTICKS = ""
+  COLOR = 0
+  opt_process()
+  fmt_init()
+}
+
 # add a record to the interface, as the parser does (section "": none)
 function add_anchor(kind, name, tag, doc, section) {
   parser_add_anchor(kind, name, doc, tag, section != "", section, 0)
@@ -27,9 +39,7 @@ function add_anchors() {
 }
 
 function test_render_prepare() {
-  init_globals()
-  VARS = 1
-  DEPRECATED = 1
+  default_settings()
   add_anchors()
   render_prepare()
   check("render_prepare: the targets, then the variables, each once, in file order",
@@ -39,7 +49,7 @@ function test_render_prepare() {
   check("render_prepare: a section goes to the next displayed anchor",
         DISPLAY[3, "section"] DISPLAY[2, "section"], " S1 S2")
 
-  init_globals()
+  default_settings()
   VARS = 0
   DEPRECATED = 0
   add_anchors()
@@ -48,17 +58,15 @@ function test_render_prepare() {
   check("render_prepare: a section skips hidden anchors of its kind, not other kinds",
         DISPLAY[1, "section"], " S2")
 
-  init_globals()
+  default_settings()
   VARS = 0
-  DEPRECATED = 1
   add_anchor("variable", "V", "##", " v", " S")
   add_anchor("target", "t", "##", " doc", "")
   render_prepare()
   check("render_prepare: the section of a hidden variable does not go to a target",
         ("1", "section") in DISPLAY, 0)
 
-  init_globals()
-  VARS = 1
+  default_settings()
   DEPRECATED = 0
   add_anchor("target", "old", "##%", " deprecated", " S1")
   add_anchor("target", "t1", "##", " one", " S2")
@@ -67,9 +75,7 @@ function test_render_prepare() {
   check("render_prepare: a section with no displayed anchor before the next one is dropped",
         DISPLAY[1, "section"] "|" (("2", "section") in DISPLAY), " S2|0")
 
-  init_globals()
-  VARS = 1
-  DEPRECATED = 1
+  default_settings()
   SUB_LABELS["t"] = "T"
   SUB_VALUES["t"] = "a b"
   add_anchor("target", "t", "##", " doc", "")
@@ -78,17 +84,15 @@ function test_render_prepare() {
         DISPLAY[1, "name"] " " DISPLAY[1, "values"], "T a b")
   check("render_prepare: the label is the displayed name", DISPLAY[1, "label"], "T")
 
-  init_globals()
+  default_settings()
   parser_add_anchor("variable", "V", " doc", "##", 0, "", 1)
   render_prepare()
   check("render_prepare: the label of a variable set with override",
         DISPLAY[1, "name"] "|" DISPLAY[1, "label"], "V|V (fixed)")
-  init_globals()
-  VARS = ""
-  DEPRECATED = ""
 }
 
 function test_render_display_name(labels) { #locals
+  default_settings()
   opt_form_substitutions("<A:1>$(D):out;<A:1>out/:o/;/a:/X", 1, DSUB_PARAM, labels, DSUB_VALUES,
                          DSUB_NAMES)
   DSUB_COUNT = array_length(DSUB_NAMES)
@@ -97,7 +101,6 @@ function test_render_display_name(labels) { #locals
   check("render_display_name: a name without the text", render_display_name("plain"), "plain")
   SUB_LABELS["$(D)/a"] = "label"
   check("render_display_name: a SUB label wins", render_display_name("$(D)/a"), "label")
-  init_globals()
 }
 
 # ---------------------------------------------------------------------------------------
@@ -105,6 +108,7 @@ function test_render_display_name(labels) { #locals
 # ---------------------------------------------------------------------------------------
 
 function test_render_substitute_backticks() {
+  default_settings()
   COLOR_BACKTICKS_CODE = ">>>"
   COLOR_RESET_CODE = "<<<"
 
@@ -129,20 +133,18 @@ function test_render_substitute_backticks() {
 
 # render_doc_width: the width of the last line of a doc, as it is displayed
 function test_render_doc_width() {
-  init_globals()
+  default_settings()
   check("render_doc_width: an empty doc", render_doc_width(""), 0)
   check("render_doc_width: the last line", render_doc_width("line 1\nend"), 3)
   check("render_doc_width: backticks are counted without colors", render_doc_width("`a` b"), 5)
   COLOR_BACKTICKS_CODE = ">>>"
   check("render_doc_width: backticks are not counted with colors", render_doc_width("`a` b"), 3)
   check("render_doc_width: a region across lines", render_doc_width("`a\nb` c"), 3)
-  init_globals()
 }
 
 # render_sub_values: the values of a SUB, with the parameters of its row of SUB_PARAM
 function test_render_sub_values(labels, values, names) { #locals
-  init_globals()
-  OFFSET = 3
+  default_settings()
   check("render_sub_values: no values", render_sub_values("", "", 1), "\n")
   check("render_sub_values: the defaults (one value per line, on the next lines)",
         render_sub_values("a b", "", 1), "\n    a\n    b\n")
@@ -158,24 +160,17 @@ function test_render_sub_values(labels, values, names) { #locals
         render_sub_values("a b", "t", 1, 3), " (a\n         b\n")
   check("render_sub_values: L:0, M:1 and an empty doc",
         render_sub_values("a b", "t", 1, 0), "(a\n     b\n")
-  OFFSET = ""
-  init_globals()
 }
 
 # render_doc: the doc after the name, its lines aligned
 function test_render_doc() {
-  init_globals()
-  OFFSET = 3
+  default_settings()
   check("render_doc: the lines aligned with the first one (width 1)",
         render_doc("a\nb", 1), "   a\n    b")
-  OUTPUT_FORMAT = "HTML"
-  COLOR_BACKTICKS = 1
   COLOR_BACKTICKS_CODE = "<b>"
   COLOR_RESET_CODE = "</b>"
   check("render_doc: a span in backticks across lines does not color the indentation",
         render_doc("see `foo\nbar` here", 1), "   see <b>foo</b>\n    <b>bar</b> here")
-  OFFSET = OUTPUT_FORMAT = COLOR_BACKTICKS = ""
-  init_globals()
 }
 
 # one DISPLAY record (no section, no SUB values)
@@ -190,8 +185,7 @@ function display_record(label, tag, doc) {
 
 # render_anchor: one DISPLAY record in, its text out (no colors)
 function test_render_anchor() {
-  init_globals()
-  OFFSET = 3
+  default_settings()
   PADDING = "."
   display_record("t", "##", "doc")
   check("render_anchor: the label padded to the width, then the doc", render_anchor(1, 3),
@@ -209,15 +203,10 @@ function test_render_anchor() {
   delete DISPLAY[1, "section"]
   check("render_anchor: the SUB values after the doc", render_anchor(1, 3),
         "t..   doc\n      a\n      b\n")
-  OFFSET = PADDING = ""
-  init_globals()
 }
 
 function test_render_documentation() {
-  init_globals()
-  VARS = 1
-  DEPRECATED = 1
-  OFFSET = 3
+  default_settings()
   PADDING = "."
   add_anchor("variable", "VAR", "##", "v", "S")
   add_anchor("target", "t", "##", "doc", "")
@@ -236,9 +225,8 @@ function test_render_documentation() {
         "VAR   v\n" \
         "------------------\n")
 
-  init_globals()
+  default_settings()
   check("render_documentation: nothing displayed", render_documentation(), "")
-  VARS = DEPRECATED = OFFSET = PADDING = ""
 }
 
 BEGIN {

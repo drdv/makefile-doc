@@ -363,7 +363,7 @@ function init_globals() {
   set_dsub_param_defaults(DSUB_PARAM)
   split("", DSUB_VALUES)
   split("", DSUB_NAMES)
-  DSUB_COUNT = 0 # number of DSUB substitutions
+  DSUB_COUNT = 0
 
   # ---------------------------------------------------------------------------------------
   # The interface between parsing and rendering. Parsing writes it (see parser_add_anchor
@@ -552,7 +552,7 @@ function opt_form_substitutions(spec, no_labels,
   }
   split("", sub_labels_array)
   split("", sub_values_array)
-  split("", sub_names_array) # names in the order they are given
+  split("", sub_names_array)
 
   option = no_labels ? "DSUB" : "SUB"
   n = 0
